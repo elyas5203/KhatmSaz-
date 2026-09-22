@@ -39,20 +39,67 @@ sudo -u postgres psql -c "CREATE DATABASE khatmsaz OWNER khatmsaz;"
 
 ---
 
-## مرحله ۳ — انتقال فایل‌های پروژه به سرور
+## مرحله ۳ — انتقال فایل‌های پروژه به سرور (روش گیت‌هاب — توصیه‌شده)
 
-از روی کامپیوتر خودتون (نه داخل سرور)، یک پنجره جدید Windows Terminal باز کنید و این رو
-اجرا کنید (مسیر `C:\xampp\htdocs\Khatm` رو با مسیر واقعی پروژه عوض نکنید، همینه):
+به‌روزرسانی ۲۰۲۶-۰۹-۲۲: به‌جای فرستادن فایل با SFTP/SCP (که برای هر آپدیت
+بعدی باید دوباره کل پروژه رو بفرستید)، از گیت‌هاب استفاده کنید — هر آپدیت
+بعدی فقط با یک دستور (`git pull`) روی سرور انجام می‌شه. پوشه‌های حجیم و
+غیرلازم (مثل `.venv`) و فایل `.env` (رمزها) خودکار از این انتقال کنار
+گذاشته می‌شن — نیازی نیست دستی چیزی رو پاک کنید.
+
+**روی کامپیوتر خودتون (این بخش رو من از قبل انجام دادم — پروژه الان یک
+گیت محلی داره و اولین commit ثبت شده):**
+
+1. برید به [github.com](https://github.com) و وارد اکانتتون بشید (یا
+   یکی بسازید، رایگانه).
+2. بالا سمت راست، روی علامت **+** بزنید → **New repository**.
+3. یک اسم بذارید (مثلاً `khatmsaz`)، حتماً گزینهٔ **Private** رو انتخاب
+   کنید (چون کد شامل ساختار پروژه‌ست، بهتره خصوصی بمونه)، و **هیچ‌کدوم**
+   از گزینه‌های «Add a README»، «.gitignore»، «license» رو تیک نزنید
+   (چون پروژه از قبل این‌ها رو داره). بعد **Create repository** رو بزنید.
+4. صفحه‌ای باز می‌شه با چند دستور — فقط به آدرس بالای صفحه نیاز دارید،
+   شبیه: `https://github.com/YOUR_USERNAME/khatmsaz.git`
+5. تو ترمینال کامپیوتر خودتون (همون‌جایی که این دستورها قبلاً اجرا شده):
+   ```bash
+   cd C:\xampp\htdocs\Khatm
+   git remote add origin https://github.com/YOUR_USERNAME/khatmsaz.git
+   git branch -M main
+   git push -u origin main
+   ```
+   به‌جای `YOUR_USERNAME` یوزرنیم گیت‌هاب خودتون رو بذارید.
+6. اگه گیت‌هاب رمز عادی قبول نکرد (این روزها معمولاً قبول نمی‌کنه)، باید
+   یک **Personal Access Token** بسازید: تو گیت‌هاب برید به
+   Settings (روی عکس پروفایل بالا راست) → پایین صفحه **Developer settings**
+   → **Personal access tokens** → **Tokens (classic)** → **Generate new token
+   (classic)** → دسترسی `repo` رو تیک بزنید → **Generate token**. این
+   توکن رو کپی کنید (فقط یک‌بار نشونش می‌ده) و موقع `git push` که رمز
+   می‌خواد، به‌جای رمز همین توکن رو پیست کنید.
+
+**روی سرور (داخل SSH):**
 
 ```bash
-scp -r "C:\xampp\htdocs\Khatm" root@IP_SERVER:/root/khatmsaz
+cd /root
+git clone https://github.com/YOUR_USERNAME/khatmsaz.git
+cd khatmsaz
 ```
 
-به‌جای `IP_SERVER` آی‌پی سرورتون رو بذارید. این کار همه فایل‌ها رو می‌فرسته روی سرور، تو
-پوشه `/root/khatmsaz`.
+موقع کلون کردن یک ریپازیتوری خصوصی، یوزرنیم و همون Personal Access Token
+رو به‌جای رمز وارد کنید.
 
-> اگه بعداً کد آپدیت شد، دوباره همین دستور رو اجرا کنید تا نسخه جدید جایگزین بشه (یا از Git
-> استفاده کنید — این بخش رو بعداً با کمک هوش مصنوعی کدنویس می‌تونیم راه‌اندازی کنیم).
+از این به بعد، مسیر پروژه روی سرور `/root/khatmsaz` است — دقیقاً مثل
+حالتی که با SCP فرستاده می‌شد، بقیهٔ راهنما بدون تغییر ادامه پیدا می‌کنه.
+
+> **آپدیت بعدی کد:** هر وقت من (هوش مصنوعی کدنویس) تغییری روی پروژهٔ
+> شما دادم، فقط کافیه: از کامپیوتر خودتون `git push` بزنید (اگه من قبلاً
+> commit نکرده باشم، بگید تا انجام بدم)، بعد رو سرور:
+> ```bash
+> cd /root/khatmsaz
+> git pull
+> source .venv/bin/activate
+> pip install -r requirements.txt
+> PYTHONPATH=src python -m alembic upgrade head
+> systemctl restart khatmsaz
+> ```
 
 ---
 
@@ -193,6 +240,76 @@ systemctl daemon-reload
 systemctl enable khatmsaz
 systemctl start khatmsaz
 ```
+
+---
+
+## مرحله ۱۱ — دامنه، HTTPS، و آدرس callback درگاه پرداخت
+
+این مرحله لازمه چون درگاه پرداخت (پی‌پینگ) و مینی‌اپ تلگرام فقط با آدرس
+HTTPS واقعی کار می‌کنن، نه با آی‌پی خام.
+
+1. مطمئن بشید دامنهٔ `api.khatmsaz.com` به آی‌پی همین سرور اشاره می‌کنه
+   (این کار قبلاً با تیم پشتیبانی هاست هماهنگ شده). از کامپیوتر خودتون
+   می‌تونید چک کنید:
+   ```bash
+   nslookup api.khatmsaz.com
+   ```
+   باید همون آی‌پی سرور شما (91.107.137.22) رو نشون بده.
+
+2. نصب Nginx و Certbot روی سرور:
+   ```bash
+   apt install -y nginx certbot python3-certbot-nginx
+   ```
+
+3. ساخت فایل تنظیمات Nginx:
+   ```bash
+   nano /etc/nginx/sites-available/khatmsaz
+   ```
+   این متن رو داخلش بذارید:
+   ```nginx
+   server {
+       listen 80;
+       server_name api.khatmsaz.com;
+       location / {
+           proxy_pass http://127.0.0.1:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+   ذخیره کنید (`Ctrl+O`, `Enter`, `Ctrl+X`)، بعد:
+   ```bash
+   ln -s /etc/nginx/sites-available/khatmsaz /etc/nginx/sites-enabled/khatmsaz
+   nginx -t
+   systemctl reload nginx
+   ```
+
+4. فعال‌کردن HTTPS واقعی (رایگان، از Let's Encrypt):
+   ```bash
+   certbot --nginx -d api.khatmsaz.com
+   ```
+   یک ایمیل می‌خواد (برای یادآوری تمدید گواهی)، قوانین رو قبول کنید،
+   و گزینهٔ Redirect از HTTP به HTTPS رو انتخاب کنید.
+
+5. تست نهایی:
+   ```bash
+   curl -i https://api.khatmsaz.com/health
+   ```
+   باید ببینید: `{"status":"ok","database":"ok"}`
+
+6. در `.env` سرور، این دو مقدار باید دقیقاً این‌طور باشن (نه `khatmsaz.com`
+   ساده — طبق تیکت پشتیبانی #3122، دامنهٔ واقعی بات `api.khatmsaz.com`ه):
+   ```
+   PAYPING_CALLBACK_URL=https://api.khatmsaz.com/payments/payping/callback
+   ADMIN_WEB_BASE_URL=https://api.khatmsaz.com
+   PUBLIC_WEB_BASE_URL=https://api.khatmsaz.com
+   ```
+   بعد از تغییر:
+   ```bash
+   systemctl restart khatmsaz
+   ```
 
 ---
 

@@ -14,8 +14,13 @@
 
 ```dotenv
 PAYPING_API_TOKEN=توکن_اختصاصی_ساخته_شده_در_پنل
-PAYPING_CALLBACK_URL=https://khatmsaz.com/payments/payping/callback
+PAYPING_CALLBACK_URL=https://api.khatmsaz.com/payments/payping/callback
 ```
+
+به‌روزرسانی ۲۰۲۶-۰۹-۲۲: طبق تیکت پشتیبانی #3122، دامنهٔ واقعی بات
+`api.khatmsaz.com` است، نه `khatmsaz.com` ساده — این دو زیردامنهٔ متفاوت
+با کاربرد متفاوتن؛ حتماً همین `api.` رو استفاده کنید تا با چیزی که قبلاً
+به پشتیبانی گفته شده یکی باشه.
 
 نام متغیرها باید دقیقاً همین باشد. توکن را داخل گیومه نگذارید و آن را commit
 یا برای دیگران ارسال نکنید. توکن نشست مرورگر یا متن داخل URL ورود، توکن API
