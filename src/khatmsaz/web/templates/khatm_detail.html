@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
+{% block content %}
+<a class="back" href="/khatms">→ بازگشت به ختم‌ها</a>
+<section class="page-title"><p class="eyebrow">{{ fa_label(khatm.template_type) }} · {{ fa_label(khatm.khatm_type) }}</p><h1>{{ khatm.title }}</h1><span class="status {{ khatm.status.value|lower }}">{{ fa_label(khatm.status) }}</span></section>
+<section class="metrics compact"><article><strong>{{ stats.active_members }}</strong><span>عضو فعال</span></article><article><strong>{{ stats.completed_portions }}/{{ stats.total_portions }}</strong><span>سهم تکمیل</span></article><article><strong>{{ stats.invitation_conversion_percent }}٪</strong><span>تبدیل دعوت</span></article></section>
+<section class="panel"><div class="section-head"><h2>اعضا</h2></div>{% for membership, user in members %}<div class="list-row static"><span><b>{{ user.display_name or 'بدون نام' }}</b><small>{{ fa_label(membership.status) }}{% if membership.is_committed %} · متعهد{% endif %}</small></span><code>{{ membership.id|string|truncate(13, true, '…') }}</code></div>{% else %}<p class="empty">هنوز عضوی ندارد.</p>{% endfor %}</section>
+{% endblock %}

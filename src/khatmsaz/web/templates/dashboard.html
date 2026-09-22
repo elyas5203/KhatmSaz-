@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}نمای کلی | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">امروز در سامانه</p>
+  <h1>سلام {{ admin.display_name or 'مدیر' }}؛ وضعیت ختم‌ها روشن است.</h1>
+  <div class="pulse-line"><span></span> بات و پنل در دسترس‌اند</div>
+</section>
+<section class="metrics">
+  <article><strong>{{ counts.active_khatms }}</strong><span>ختم فعال</span></article>
+  <article><strong>{{ counts.active_members }}</strong><span>عضویت فعال</span></article>
+  <article><strong>{{ counts.users }}</strong><span>کاربر</span></article>
+  <article class="attention"><strong>{{ counts.pending }}</strong><span>نیازمند بررسی</span></article>
+</section>
+<section class="panel">
+  <div class="section-head"><div><p class="eyebrow">صف مدیریت</p><h2>موارد در انتظار</h2></div></div>
+  <div class="queue-row"><span>کاورهای ختم</span><b>{{ pending.covers }}</b></div>
+  <div class="queue-row"><span>پیام‌های گروهی</span><b>{{ pending.broadcasts }}</b></div>
+  <div class="queue-row"><span>درخواست نوع ختم</span><b>{{ pending.requests }}</b></div>
+</section>
+<section class="panel">
+  <div class="section-head"><div><p class="eyebrow">آخرین فعالیت</p><h2>ختم‌های تازه</h2></div><a href="/khatms">همه</a></div>
+  {% for item in recent %}<a class="list-row" href="/khatms/{{ item.id }}"><span><b>{{ item.title }}</b><small>{{ fa_label(item.template_type) }} · {{ fa_label(item.khatm_type) }}</small></span><em class="status {{ item.status.value|lower }}">{{ fa_label(item.status) }}</em></a>{% else %}<p class="empty">هنوز ختمی ساخته نشده است.</p>{% endfor %}
+</section>
+{% endblock %}

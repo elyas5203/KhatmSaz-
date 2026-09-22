@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% block title %}احراز شماره‌های خارجی | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title">
+  <p class="eyebrow">هویت و پشتیبانی</p>
+  <h1>تأیید شماره‌های خارج از ایران</h1>
+  <p>شمارهٔ کامل را فقط بعد از بررسی واقعی مالکیت تأیید کنید. تأیید، دائمی و معادل رمز یکبارمصرف است.</p>
+</section>
+{% if saved == 'approved' %}<p class="notice success">شماره با موفقیت تأیید شد و کاربر می‌تواند ختم بسازد.</p>{% endif %}
+{% if saved == 'rejected' %}<p class="notice error">درخواست رد شد و هویت کاربر تغییری نکرد.</p>{% endif %}
+<section class="cards">
+  {% for row in rows %}
+  <article class="user-card verification-card">
+    <header><div><h2>{{ row.user.display_name or 'کاربر بدون نام' }}</h2><small>{{ row.time }}</small></div><span class="status">در انتظار</span></header>
+    <dl>
+      <div><dt>شماره کامل</dt><dd dir="ltr">{{ row.item.e164 }}</dd></div>
+      <div><dt>هدف</dt><dd>{{ row.purpose }}</dd></div>
+      <div><dt>استان/کشور</dt><dd>{{ row.profile.province or 'نامشخص' }}</dd></div>
+      <div><dt>شهر</dt><dd>{{ row.profile.city or 'نامشخص' }}</dd></div>
+      <div><dt>شناسه کاربر</dt><dd dir="ltr">{{ row.item.user_id }}</dd></div>
+    </dl>
+    <form method="post" action="/phone-verifications/{{ row.item.id }}/decide" class="actions">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button name="decision" value="approve" onclick="return confirm('مالکیت این شماره بررسی و برای همیشه تأیید شود؟')">تأیید هویت</button>
+      <button class="danger" name="decision" value="reject" onclick="return confirm('این درخواست رد شود؟')">رد درخواست</button>
+    </form>
+  </article>
+  {% else %}
+  <p class="empty">درخواستی در انتظار نیست.</p>
+  {% endfor %}
+</section>
+{% endblock %}

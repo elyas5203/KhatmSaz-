@@ -1,0 +1,99 @@
+from khatmsaz.bot.keyboards import (
+    CREATE_BUTTON_TEXT,
+    HELP_BUTTON_TEXT,
+    MY_KHATMS_BUTTON_TEXT,
+    REPORT_BUTTON_TEXT,
+    SETTINGS_BUTTON_TEXT,
+    TODAY_BUTTON_TEXT,
+    main_menu_keyboard,
+)
+
+
+def test_home_menu_exposes_today_report_settings_and_creation():
+    labels = [button.text for row in main_menu_keyboard().keyboard for button in row]
+    assert labels == [
+        TODAY_BUTTON_TEXT,
+        MY_KHATMS_BUTTON_TEXT,
+        REPORT_BUTTON_TEXT,
+        SETTINGS_BUTTON_TEXT,
+        CREATE_BUTTON_TEXT,
+        HELP_BUTTON_TEXT,
+    ]
+
+
+def test_visibility_keyboard_contains_all_three_modes():
+    from khatmsaz.bot.keyboards import visibility_choice_keyboard
+
+    callbacks = [
+        button.callback_data
+        for row in visibility_choice_keyboard().inline_keyboard
+        for button in row
+    ]
+    assert callbacks == [
+        "ck:visibility:PUBLIC",
+        "ck:visibility:UNLISTED",
+        "ck:visibility:PRIVATE",
+    ]
+
+
+def test_creator_settings_are_button_driven_and_scope_sensitive():
+    from khatmsaz.bot.keyboards import creator_settings_keyboard
+
+    quran_callbacks = {
+        button.callback_data
+        for row in creator_settings_keyboard(
+            "khatm-id", is_quran=True, is_commitment=True,
+            is_open=False,
+            allow_skip_today=True, allow_pause=False, allow_snooze=True,
+            miss_threshold=2, miss_window_days=7,
+            content_mode="AUTO",
+        ).inline_keyboard
+        for button in row
+    }
+    open_salawat_callbacks = {
+        button.callback_data
+        for row in creator_settings_keyboard(
+            "khatm-id", is_quran=False, is_commitment=False,
+            is_open=True,
+            allow_skip_today=False, allow_pause=False, allow_snooze=False,
+            miss_threshold=2, miss_window_days=7,
+            content_mode="AUTO",
+        ).inline_keyboard
+        for button in row
+    }
+    # cs:skip and cs:misses were removed with the emergency-portion/
+    # backup-reader feature (owner decision, 2026-09-21) — no longer
+    # offered to creators.
+    assert {
+        "cs:modes:khatm-id", "cs:pause:khatm-id", "cs:snooze:khatm-id",
+    } <= quran_callbacks
+    assert "cs:skip:khatm-id" not in quran_callbacks
+    assert "cs:misses:khatm-id" not in quran_callbacks
+    assert open_salawat_callbacks == {
+        "cs:edit:khatm-id:title", "cs:edit:khatm-id:welcome",
+        "cs:end:khatm-id", "cs:end_clear:khatm-id", "cs:schedule:khatm-id",
+        "my_khatms:open"
+    }
+
+
+def test_open_schedule_menu_exposes_simple_presets_and_specific_date():
+    from khatmsaz.bot.keyboards import creator_schedule_keyboard
+
+    buttons = [
+        button
+        for row in creator_schedule_keyboard("khatm-id").inline_keyboard
+        for button in row
+    ]
+    callbacks = {button.callback_data for button in buttons}
+    labels = {button.text for button in buttons}
+    assert {
+        "cs:schedule_set:khatm-id:off",
+        "cs:schedule_set:khatm-id:daily",
+        "cs:schedule_set:khatm-id:weekly:0,1,2,3,4",
+        "cs:schedule_set:khatm-id:weekly:5,6",
+        "cs:schedule_set:khatm-id:every:3",
+        "cs:schedule_date:khatm-id",
+    } <= callbacks
+    assert any(label.endswith("روزهای کاری") for label in labels)
+    assert any(label.endswith("آخرهفته") for label in labels)
+    assert any(label.endswith("یک تاریخ مشخص") for label in labels)

@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ورود ادمین</title><link rel="stylesheet" href="{{ url_for('static', path='app.css') }}"></head>
+<body class="login-body">
+  <main class="login-card">
+    <div class="mihrab large">خ</div>
+    <p class="eyebrow">ورود محافظت‌شده</p>
+    <h1>اتاق مدیریت ختم‌ساز</h1>
+    {% if invalid %}<p class="error">ورود با لینک معمولی غیرفعال است.</p>{% endif %}
+    <p>این بخش فقط به‌صورت مینی‌اپ باز می‌شود. در گفت‌وگو با بات دستور <code>/admin_app</code> را بفرستید و دکمهٔ «باز کردن مینی‌اپ مدیریت» را لمس کنید.</p>
+  </main>
+</body></html>

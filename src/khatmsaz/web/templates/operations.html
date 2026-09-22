@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}سلامت سرویس‌ها | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title">
+  <p class="eyebrow">عملیات</p><h1>سلامت سرویس‌ها</h1>
+  <p>این صفحه فقط وضعیت و صف‌ها را نشان می‌دهد و هیچ تنظیمی را تغییر نمی‌دهد.</p>
+</section>
+<section class="cards">
+{% for service in services %}
+  <article class="metric"><span>{{ service.name }}</span><b>{% if service.ready %}آماده ✅{% else %}نیازمند تنظیم ⚠️{% endif %}</b><small>{{ service.detail }}</small></article>
+{% endfor %}
+</section>
+<section class="panel"><div class="section-head"><h2>صف‌های در انتظار</h2></div>
+  <div class="queue-row"><span>پیام گروهی</span><b>{{ queues.broadcasts }}</b></div>
+  <div class="queue-row"><span>کاور ختم</span><b>{{ queues.covers }}</b></div>
+  <div class="queue-row"><span>احراز شماره خارجی</span><b>{{ queues.phones }}</b></div>
+  <div class="queue-row"><span>درخواست دسته محتوا</span><b>{{ queues.categories }}</b></div>
+</section>
+<section class="panel"><div class="section-head"><h2>پردازشگر یادآوری</h2></div>
+  <p>{% if worker.scheduler_started_at %}زمان‌بند فعال است ✅{% else %}زمان‌بند در این پردازش ثبت نشده ⚠️{% endif %}</p>
+  <p>فاصله اجرای اسکن: هر {{ scan_interval }} دقیقه</p>
+  <p>آخرین اجرای موفق: {{ worker.last_scan_succeeded_at or 'هنوز اجرا نشده' }}</p>
+  {% if worker.last_scan_error %}<p class="notice error">آخرین خطا: {{ worker.last_scan_error }}</p>{% endif %}
+</section>
+{% endblock %}

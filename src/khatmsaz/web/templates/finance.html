@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block title %}مالی | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">کیف پول و تخفیف</p><h1>مرکز مالی</h1><p>فاکتورها حذف نمی‌شوند؛ بازپرداخت فقط وضعیت آن‌ها را تغییر می‌دهد.</p></section>
+{% if saved %}<section class="notice-ok">{% if saved == 'plan' %}تنظیمات پلن ذخیره شد ✅{% elif saved == 'sms' %}گزینهٔ اشتراک پیامک ذخیره شد ✅{% else %}کد تخفیف ذخیره و فعال شد ✅{% endif %}</section>{% endif %}
+<section class="metrics compact"><article><strong>{{ "{:,}".format(paid_total) }}</strong><span>فاکتور پرداخت‌شده</span></article><article><strong>{{ "{:,}".format(refunded_total) }}</strong><span>بازپرداخت داخلی</span></article><article><strong>{{ coupons|length }}</strong><span>کد تخفیف</span></article></section>
+<section class="panel"><div class="section-head"><div><p class="eyebrow">قابل تنظیم از مینی‌اپ</p><h2>پلن‌های ساخت ختم</h2></div></div>
+<p>هر کارت را جداگانه ذخیره کنید. خالی‌گذاشتن سقف یعنی آن بخش نامحدود است. خاموش‌کردن «اجازهٔ ساخت ختم» ساخت ختم تازه را برای کاربران آن پلن می‌بندد.</p>
+{% for plan in plan_definitions %}<form class="finance-form" method="post" action="/finance/plans/{{ plan.plan }}">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>شناسه پلن<input value="{{ plan.plan }}" disabled></label>
+<label>نام نمایشی<input name="title" value="{{ plan.title }}" required maxlength="80"></label>
+<label>روش قیمت‌گذاری<select name="pricing_mode"><option value="FIXED" {% if plan.pricing_mode == 'FIXED' %}selected{% endif %}>مبلغ ثابت</option><option value="USAGE_BASED" {% if plan.pricing_mode == 'USAGE_BASED' %}selected{% endif %}>به‌ازای هر ساخت</option></select></label>
+<label>قیمت (تومان)<input name="price_toman" type="number" min="0" value="{% if plan.pricing_mode == 'USAGE_BASED' %}{{ plan.unit_price_toman }}{% else %}{{ plan.price_toman }}{% endif %}" required></label>
+<label>سقف مجموع صلوات/دعا/زیارت/لعن<input name="max_devotional_members" type="number" min="1" value="{{ plan.entitlements.get('max_devotional_members', '') }}" placeholder="خالی = نامحدود"></label>
+<label>سقف اعضای ختم قرآن<input name="max_quran_members" type="number" min="1" value="{{ plan.entitlements.get('max_quran_members', '') }}" placeholder="خالی = نامحدود"></label>
+<label><input name="khatm_create" type="checkbox" {% if plan.entitlements.get('khatm.create') %}checked{% endif %}> اجازهٔ ساخت ختم</label>
+<label><input name="enabled" type="checkbox" {% if plan.enabled %}checked{% endif %}> خود پلن فعال باشد</label>
+<button type="submit">ذخیرهٔ پلن {{ plan.plan }}</button></form>{% else %}<p class="empty">تعریف پلنی پیدا نشد.</p>{% endfor %}</section>
+<section class="panel"><div class="section-head"><div><p class="eyebrow">یادآوری پولی</p><h2>گزینه‌های اشتراک پیامک</h2></div></div>
+<p>برای ویرایش، همان تعداد ماه را دوباره وارد کنید. گزینهٔ غیرفعال به کاربر نمایش داده نمی‌شود.</p>
+<form class="finance-form" method="post" action="/finance/sms-plans"><input type="hidden" name="csrf" value="{{ csrf }}"><label>مدت (ماه)<input name="months" type="number" min="1" required placeholder="مثلاً 3"></label><label>قیمت (تومان)<input name="price_toman" type="number" min="0" required placeholder="مثلاً 50000"></label><label><input name="enabled" type="checkbox" checked> فعال و قابل خرید</label><button type="submit">ذخیرهٔ گزینهٔ پیامک</button></form>
+{% for option in sms_plan_options %}<form class="finance-form" method="post" action="/finance/sms-plans"><input type="hidden" name="csrf" value="{{ csrf }}"><label>مدت (ماه)<input name="months" type="number" min="1" value="{{ option.months }}" readonly></label><label>قیمت (تومان)<input name="price_toman" type="number" min="0" value="{{ option.price_toman }}" required></label><label><input name="enabled" type="checkbox" {% if option.enabled %}checked{% endif %}> فعال و قابل خرید</label><button type="submit">ذخیرهٔ {{ option.months }} ماهه</button></form>{% else %}<p class="empty">هنوز گزینه‌ای ثبت نشده است.</p>{% endfor %}</section>
+<section class="panel"><div class="section-head"><div><p class="eyebrow">بدون کدنویسی</p><h2>ساخت یا ویرایش کد تخفیف</h2></div></div>
+<form class="finance-form" method="post" action="/finance/coupons">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label>کد لاتین<input name="code" required minlength="3" maxlength="40" placeholder="KHATM20"></label>
+<label>نوع<select name="discount_type"><option value="PERCENT">درصدی</option><option value="FIXED">مبلغ ثابت</option></select></label>
+<label>مقدار<input name="value" type="number" min="1" required placeholder="20"></label>
+<label>حداقل خرید (تومان)<input name="min_purchase_toman" type="number" min="0" value="0" required></label>
+<label>سقف مصرف کل<input name="total_redemption_limit" type="number" min="1" placeholder="خالی = نامحدود"></label>
+<label>سقف هر کاربر<input name="per_user_limit" type="number" min="1" value="1" required></label>
+<label>حداکثر تخفیف تومان<input name="max_discount_toman" type="number" min="1" placeholder="برای درصدی، اختیاری"></label>
+<button type="submit">ذخیره و فعال‌سازی</button></form></section>
+<section class="panel"><div class="section-head"><h2>کدهای موجود</h2></div>
+{% for coupon in coupons %}<div class="list-row"><span><b>{{ coupon.code }}</b><small>{% if coupon.discount_type == 'PERCENT' %}{{ coupon.value }}٪{% else %}{{ "{:,}".format(coupon.value) }} تومان{% endif %} · حداقل {{ "{:,}".format(coupon.min_purchase_toman) }} · هر کاربر {{ coupon.per_user_limit }} بار</small></span><form method="post" action="/finance/coupons/{{ coupon.code }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="{% if coupon.enabled %}danger{% endif %}" type="submit">{% if coupon.enabled %}غیرفعال{% else %}فعال{% endif %}</button></form></div>{% else %}<p class="empty">هنوز کدی ساخته نشده است.</p>{% endfor %}</section>
+<section class="panel"><div class="section-head"><h2>آخرین فاکتورها</h2></div>
+{% for invoice,user in invoice_rows %}<div class="list-row static"><span><b>{{ user.display_name or 'کاربر بدون نام' }} · {{ "{:,}".format(invoice.net_amount_toman) }} تومان</b><small>{{ fa_label(invoice.kind) }} · مبلغ اصلی {{ "{:,}".format(invoice.gross_amount_toman) }} · تخفیف {{ "{:,}".format(invoice.discount_amount_toman) }} · {{ invoice.issued_at }}</small></span><em class="status {% if invoice.status == 'REFUNDED' %}cancelled{% else %}active{% endif %}">{{ fa_label(invoice.status) }}</em></div>{% else %}<p class="empty">هنوز فاکتوری ثبت نشده است.</p>{% endfor %}</section>
+{% endblock %}

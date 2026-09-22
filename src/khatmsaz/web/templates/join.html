@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <title>{% if unavailable %}لینک نامعتبر{% else %}{{ khatm.title }} | ختم‌ساز{% endif %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='join.css') }}">
+</head>
+<body>
+  <main class="invite-card">
+    <div class="mark">خ</div>
+    {% if unavailable %}
+      <p class="eyebrow">این دعوت در دسترس نیست</p>
+      <h1>لینک منقضی یا لغو شده است</h1>
+      <p>از سازنده بخواهید لینک تازه‌ای برایتان بفرستد. با بازکردن این صفحه هیچ عضویتی ثبت نشده است.</p>
+    {% else %}
+      <p class="eyebrow">دعوت به یک همراهی معنوی</p>
+      <h1>{{ khatm.title }}</h1>
+      <dl>
+        <div><dt>سازنده</dt><dd>{{ creator_name }}</dd></div>
+        <div><dt>اعضای فعلی</dt><dd>{{ member_count }} نفر</dd></div>
+        <div><dt>نوع عضویت</dt><dd>{{ 'تعهدی' if khatm.khatm_type.value == 'COMMITMENT' else 'آزاد' }}</dd></div>
+      </dl>
+      {% if khatm.niyyat %}<section><b>نیت ختم</b><p>{{ khatm.niyyat }}</p></section>{% endif %}
+      {% if khatm.welcome_text %}<section><b>پیام سازنده</b><p>{{ khatm.welcome_text }}</p></section>{% endif %}
+      <p class="hint">بازکردن این صفحه یعنی عضو نشده‌اید. پیام‌رسان خود را انتخاب کنید؛ داخل بات هم یک بار دیگر مشخصات ختم را می‌بینید و بعد خودتان عضویت را تأیید می‌کنید.</p>
+      <div class="actions">
+        {% if telegram_url %}<a class="primary" href="{{ telegram_url }}">ورود از تلگرام</a>{% endif %}
+        {% if bale_url %}<a class="secondary" href="{{ bale_url }}">ورود از بله</a>{% elif bale_command %}<details><summary>ورود از بله</summary><p>این متن را داخل گفت‌وگوی بات بله بفرستید:</p><code>{{ bale_command }}</code></details>{% endif %}
+      </div>
+    {% endif %}
+  </main>
+</body>
+</html>

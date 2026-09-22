@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block title %}ختم‌ها | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">مدیریت محتوا</p><h1>همهٔ ختم‌ها</h1></section>
+<form class="filters" method="get"><input name="q" value="{{ query }}" placeholder="عنوان، نام سازنده یا شناسه ختم" autocomplete="off"><select name="status"><option value="">همه وضعیت‌ها</option>{% for s in ['ACTIVE','DRAFT','COMPLETED','CANCELLED'] %}<option value="{{ s }}" {% if selected_status==s %}selected{% endif %}>{{ fa_label(s) }}</option>{% endfor %}</select><button type="submit">جست‌وجو و فیلتر</button></form>
+<section class="panel flush">
+{% for item, members in rows %}<a class="list-row" href="/khatms/{{ item.id }}"><span><b>{{ item.title }}</b><small>{{ members }} عضو فعال · {{ fa_label(item.template_type) }}</small></span><em class="status {{ item.status.value|lower }}">{{ fa_label(item.status) }}</em></a>{% else %}<p class="empty">نتیجه‌ای نیست.</p>{% endfor %}
+</section>
+{% if page > 1 or has_next %}<nav class="pager" aria-label="صفحه‌بندی ختم‌ها">
+{% if page > 1 %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="status" value="{{ selected_status }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit">صفحه قبل</button></form>{% endif %}
+<span>صفحه {{ page }}</span>
+{% if has_next %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="status" value="{{ selected_status }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit">صفحه بعد</button></form>{% endif %}
+</nav>{% endif %}{% endblock %}

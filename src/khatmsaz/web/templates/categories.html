@@ -1,0 +1,62 @@
+{% extends "base.html" %}{% block title %}دسته‌های محتوا | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">محتوای ختم‌ها</p><h1>صلوات، لعن و ادعیه</h1><p>هر آیتمی که اینجا اضافه یا غیرفعال کنید، بلافاصله در ویزارد ساخت ختم بات دیده می‌شود؛ نیازی به دیپلوی نیست.</p></section>
+{% if saved %}<section class="notice-ok">تغییرات ذخیره شد ✅</section>{% endif %}
+
+{% if requests %}
+<section class="panel"><div class="section-head"><h2>درخواست‌های دعای جدید</h2></div>
+{% for row in requests %}
+<div class="list-row static">
+  <span><b>{{ row.item.requested_title }}</b><small>درخواست‌دهنده: {{ row.requester.display_name if row.requester else 'نامشخص' }}</small></span>
+</div>
+<form class="finance-form" method="post" action="/categories/requests/{{ row.item.id }}/fulfill">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>گروه<select name="group"><option value="DUA">دعا / زیارت</option><option value="LAAN">لعن</option><option value="SALAWAT">صلوات</option></select></label>
+  <label>عنوان نهایی<input name="title" value="{{ row.item.requested_title }}" required maxlength="200"></label>
+  <label>متن (اختیاری، از سایت خدمتگزاران کپی کنید)<textarea name="body_text" rows="4"></textarea></label>
+  <label>منبع (اختیاری)<input name="source_note" placeholder="khedmatgozaran.com"></label>
+  <button type="submit">افزودن به لیست دائمی</button>
+</form>
+<form method="post" action="/categories/requests/{{ row.item.id }}/decline">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button class="danger" type="submit">رد درخواست</button>
+</form>
+{% endfor %}
+</section>
+{% endif %}
+
+<section class="panel"><div class="section-head"><div><p class="eyebrow">بدون کدنویسی</p><h2>افزودن دسته جدید</h2></div></div>
+<form class="finance-form" method="post" action="/categories/create">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>گروه<select name="group">
+    <option value="SALAWAT">صلوات</option>
+    <option value="LAAN">لعن</option>
+    <option value="DUA">دعا / زیارت</option>
+  </select></label>
+  <label>عنوان<input name="title" required maxlength="200" placeholder="مثلاً «زیارت عاشورا»"></label>
+  <label>متن (اختیاری)<textarea name="body_text" rows="4" placeholder="متن دعا یا لعن، در صورت وجود"></textarea></label>
+  <label>منبع (اختیاری)<input name="source_note" placeholder="khedmatgozaran.com"></label>
+  <label>کد اتصال صوت/متن آماده (اختیاری)<input name="devotional_slug" placeholder="مثلاً ziyarat-ashura"></label>
+  <button type="submit">افزودن</button>
+</form>
+</section>
+
+<section class="panel"><div class="section-head"><h2>دسته‌های موجود</h2></div>
+{% for category in items %}
+<div class="list-row">
+  <span><b>{{ category.title }}</b><small>{{ group_labels.get(category.group.value, category.group.value) }}{% if category.body_text %} · متن ثبت شده{% else %} · بدون متن{% endif %}</small></span>
+  <form method="post" action="/categories/{{ category.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="{% if category.is_active %}danger{% endif %}" type="submit">{% if category.is_active %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button></form>
+</div>
+<form class="finance-form" method="post" action="/categories/{{ category.id }}/update">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <label>عنوان<input name="title" value="{{ category.title }}" required maxlength="200"></label>
+  <label>متن<textarea name="body_text" rows="4">{{ category.body_text or '' }}</textarea></label>
+  <label>منبع<input name="source_note" value="{{ category.source_note or '' }}"></label>
+  <label>کد اتصال صوت/متن آماده<input name="devotional_slug" value="{{ category.devotional_slug or '' }}" placeholder="مثلاً ziyarat-ashura"></label>
+  <button type="submit">ذخیره ویرایش</button>
+</form>
+{% else %}
+<p class="empty">هنوز دسته‌ای ثبت نشده است.</p>
+{% endfor %}
+</section>
+{% endblock %}

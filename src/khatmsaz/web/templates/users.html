@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}کاربران | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title"><p class="eyebrow">هویت و دسترسی</p><h1>جست‌وجوی کاربران</h1></section>
+<form class="search" method="get"><input name="q" value="{{ query }}" placeholder="نام، شماره یا شناسه پیام‌رسان" autocomplete="off"><button type="submit">جست‌وجو</button></form>
+<section class="cards">{% for user in users %}<article class="user-card"><div><h2>{{ user.display_name or 'کاربر بدون نام' }}</h2><p>{{ user.id }}</p><span class="status {{ user.status.value|lower }}">{{ fa_label(user.status) }}</span></div><form method="post" action="/users/{{ user.id }}/moderate" class="actions"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="q" value="{{ query }}"><button name="action" value="warn">اخطار</button><button name="action" value="suspend">تعلیق</button><button name="action" value="reactivate">فعال</button><button class="danger" name="action" value="ban" onclick="return confirm('این کاربر به‌طور نهایی مسدود شود؟')">بن نهایی</button></form></article>{% else %}{% if query %}<p class="empty">کاربری پیدا نشد.</p>{% else %}<p class="empty">برای شروع، نام یا شماره را جست‌وجو کنید.</p>{% endif %}{% endfor %}</section>
+{% if page > 1 or has_next %}<nav class="pager" aria-label="صفحه‌بندی کاربران">
+{% if page > 1 %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit">صفحه قبل</button></form>{% endif %}
+<span>صفحه {{ page }}</span>
+{% if has_next %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit">صفحه بعد</button></form>{% endif %}
+</nav>{% endif %}
+{% endblock %}

@@ -1,0 +1,1071 @@
+راهنمای فوق‌کامل استقرار ختم‌ساز روی VPS جدا و اتصال Callback پی‌پینگ
+=====================================================================
+
+نسخه راهنما: 2026-09-19
+
+هدف این راهنما
+--------------
+
+در پایان این راهنما دو سرویس جدا خواهیم داشت:
+
+1) سایت فعلی خدمتگزاران روی «سرور A» باقی می‌ماند.
+2) بات، پنل مدیریت، دیتابیس و کد ختم‌ساز روی «سرور B» یا همان VPS جدید اجرا می‌شود.
+3) آدرس ثبت‌شده در پی‌پینگ تغییر نمی‌کند و همچنان روی دامنه خدمتگزاران است.
+4) فقط یک مسیر روی سرور خدمتگزاران به سرور ختم‌ساز Reverse Proxy می‌شود.
+
+نقشه نهایی:
+
+  کاربر و پی‌پینگ
+        |
+        | POST https://YOUR-SERVICE-DOMAIN.example/khatmsaz/payments/payping/callback
+        v
+  سرور A: سایت خدمتگزاران (Nginx یا Apache)
+        |
+        | Reverse Proxy؛ بدنه POST بدون تغییر منتقل می‌شود
+        v
+  https://api.YOUR-KHATMSAZ-DOMAIN.example/payments/payping/callback
+        |
+        v
+  سرور B: Nginx -> FastAPI ختم‌ساز -> PostgreSQL
+        |
+        v
+  Verify مستقیم با API پی‌پینگ و ثبت امن تراکنش
+
+نکته بسیار مهم:
+
+- «لینک صفحه ارجاع» یک Redirect ساده است و جای Reverse Proxy یا Verify را نمی‌گیرد.
+- صفحه HTML ساده، ریدایرکت 301/302 یا iframe کافی نیست.
+- Reverse Proxy باید درخواست POST، Content-Type و بدنه درخواست را حفظ کند.
+- هیچ پرداختی فقط به دلیل بازگشت مرورگر موفق حساب نمی‌شود. کد ختم‌ساز تراکنش را با API
+  پی‌پینگ Verify می‌کند.
+- در این راهنما هر چیزی که داخل < > نوشته شده باید با مقدار واقعی جایگزین شود.
+- علامت‌های < و > را در مقدار نهایی ننویسید.
+- توکن‌ها و رمزها را برای دیگران نفرستید و در Git ذخیره نکنید.
+
+
+بخش 1 ـ چیزهایی که قبل از شروع باید آماده باشد
+================================================
+
+این موارد را روی کاغذ یا Password Manager شخصی یادداشت کنید:
+
+  <BOT_VPS_IP>             آی‌پی عمومی VPS جدید ختم‌ساز
+  <SERVICE_SERVER_IP>      آی‌پی عمومی سرور سایت خدمتگزاران
+  <BOT_ORIGIN_DOMAIN>      مثال: api.khatmsaz.com
+  <SERVICE_DOMAIN>         دامنه‌ای که در پی‌پینگ ثبت است
+  <SSH_USER>               معمولاً root در تحویل اولیه VPS
+  <TELEGRAM_BOT_TOKEN>     توکن BotFather
+  <TELEGRAM_BOT_USERNAME>  بدون علامت @
+  <PAYPING_API_TOKEN>      توکن اختصاصی API؛ نه رمز ورود پنل
+  <KAVENEGAR_API_KEY>      کلید API کاوه‌نگار
+  <SUPER_ADMIN_CHAT_ID>    شناسه عددی تلگرام مدیر اصلی
+
+آدرس نهایی Callback که در برنامه و پی‌پینگ استفاده می‌کنیم:
+
+  https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+مثال فرضی (این مثال را بدون تغییر استفاده نکنید):
+
+  https://example.com/khatmsaz/payments/payping/callback
+
+
+بخش 2 ـ روشن‌کردن VPS و اتصال با SSH
+=====================================
+
+1) از پنل شرکت VPS مطمئن شوید وضعیت سرور Running یا روشن است.
+2) اگر خاموش بود دکمه Power On / Start را بزنید.
+3) در ویندوز، منوی Start را باز کنید.
+4) عبارت PowerShell را بنویسید و Windows PowerShell را باز کنید.
+5) دستور زیر را بزنید:
+
+  ssh root@<BOT_VPS_IP>
+
+مثال:
+
+  ssh root@203.0.113.10
+
+6) بار اول ممکن است این سؤال دیده شود:
+
+  Are you sure you want to continue connecting (yes/no/[fingerprint])?
+
+فقط اگر IP دقیقاً متعلق به VPS خودتان است بنویسید:
+
+  yes
+
+7) رمز VPS را وارد کنید. هنگام تایپ رمز هیچ ستاره یا حرفی نشان داده نمی‌شود؛ طبیعی است.
+8) Enter را بزنید.
+
+از اینجا به بعد، هر دستور لینوکسی را در همین پنجره SSH وارد کنید؛ مگر جایی که صریحاً
+نوشته شده «روی کامپیوتر ویندوزی».
+
+
+بخش 3 ـ ساخت کاربر امن و آماده‌سازی Ubuntu 24.04
+=================================================
+
+این راهنما Ubuntu 24.04 LTS را مبنا قرار می‌دهد. Ubuntu 22.04 هم قابل استفاده است.
+
+نسخه سیستم را ببینید:
+
+  cat /etc/os-release
+
+ساعت و منطقه زمانی را تنظیم کنید:
+
+  timedatectl
+  sudo timedatectl set-timezone Asia/Tehran
+  timedatectl
+
+سیستم را به‌روزرسانی کنید:
+
+  sudo apt update
+  sudo apt upgrade -y
+
+ابزارهای لازم را نصب کنید:
+
+  sudo apt install -y python3 python3-venv python3-pip python3-dev build-essential \
+    postgresql postgresql-contrib redis-server nginx git curl unzip ufw certbot \
+    python3-certbot-nginx
+
+اگر با root وارد شده‌اید، یک کاربر جدا بسازید:
+
+  adduser deploy
+
+یک رمز قوی تعیین کنید. سؤال‌های نام و تلفن اختیاری‌اند و می‌توانید Enter بزنید.
+
+اجازه sudo بدهید:
+
+  usermod -aG sudo deploy
+
+بررسی کنید:
+
+  id deploy
+
+یک پنجره PowerShell جدید روی کامپیوتر باز کنید و ورود کاربر جدید را آزمایش کنید:
+
+  ssh deploy@<BOT_VPS_IP>
+
+اگر موفق بود، ادامه مراحل را با کاربر deploy انجام دهید. هرجا نیاز باشد دستور با sudo
+نوشته شده است.
+
+
+بخش 4 ـ فایروال اولیه VPS ختم‌ساز
+==================================
+
+قبل از فعال‌کردن فایروال، حتماً SSH را مجاز کنید تا دسترسی خودتان قطع نشود:
+
+  sudo ufw allow OpenSSH
+  sudo ufw allow 'Nginx Full'
+  sudo ufw enable
+
+وقتی پرسید Proceed with operation بنویسید:
+
+  y
+
+وضعیت را ببینید:
+
+  sudo ufw status verbose
+
+خروجی باید دست‌کم SSH و Nginx Full را ALLOW نشان دهد.
+
+پورت‌های PostgreSQL یعنی 5432، Redis یعنی 6379 و FastAPI یعنی 8000 را عمومی باز نکنید.
+Nginx از داخل همان سرور به FastAPI متصل می‌شود.
+
+
+بخش 5 ـ اتصال دامنه مستقل ختم‌ساز به VPS جدید
+================================================
+
+در پنل DNS دامنه ختم‌ساز یک رکورد A بسازید:
+
+  Type: A
+  Name/Host: api
+  Value: <BOT_VPS_IP>
+  TTL: Auto یا 300
+
+در نتیجه آدرس زیر به VPS جدید اشاره می‌کند:
+
+  api.<YOUR-KHATMSAZ-DOMAIN>
+
+مثال:
+
+  api.khatmsaz.com
+
+انتشار DNS ممکن است از چند دقیقه تا چند ساعت زمان ببرد. از کامپیوتر ویندوزی بررسی کنید:
+
+  nslookup api.<YOUR-KHATMSAZ-DOMAIN>
+
+باید IP نمایش‌داده‌شده همان <BOT_VPS_IP> باشد. تا وقتی DNS درست نشده سراغ Certbot نروید.
+
+
+بخش 6 ـ ساخت کاربر و دیتابیس PostgreSQL
+=======================================
+
+روی VPS ختم‌ساز بررسی کنید PostgreSQL روشن است:
+
+  sudo systemctl enable --now postgresql
+  sudo systemctl status postgresql --no-pager
+
+برای خروج از صفحه status کلید q را بزنید.
+
+وارد محیط PostgreSQL شوید:
+
+  sudo -u postgres psql
+
+داخل محیطی که ابتدای خط آن postgres=# است، این سه دستور را اجرا کنید. به‌جای متن نمونه
+یک رمز بسیار قوی بگذارید:
+
+  CREATE USER khatmsaz WITH PASSWORD '<STRONG_DATABASE_PASSWORD>';
+  CREATE DATABASE khatmsaz OWNER khatmsaz;
+  \q
+
+توجه: علامت ; انتهای دو دستور اول لازم است. دستور \q از PostgreSQL خارج می‌شود.
+
+برای جلوگیری از ثبت رمز در history بهتر است رمز را فقط در Password Manager نگه دارید.
+
+آزمایش اتصال:
+
+  psql "postgresql://khatmsaz@127.0.0.1:5432/khatmsaz"
+
+رمز دیتابیس را وارد کنید. اگر وارد شدید، بنویسید:
+
+  \q
+
+Redis را هم روشن کنید:
+
+  sudo systemctl enable --now redis-server
+  redis-cli ping
+
+پاسخ صحیح:
+
+  PONG
+
+
+بخش 7 ـ ساخت پوشه برنامه روی VPS
+=================================
+
+روی VPS ختم‌ساز:
+
+  sudo mkdir -p /opt/khatmsaz
+  sudo chown -R deploy:deploy /opt/khatmsaz
+  ls -ld /opt/khatmsaz
+
+
+بخش 8 ـ انتقال پروژه از ویندوز به VPS
+=====================================
+
+روش ساده با SCP:
+
+1) در PowerShell کامپیوتر ویندوزی، نه داخل SSH، به پوشه پروژه بروید:
+
+  cd C:\xampp\htdocs\Khatm
+
+2) فایل‌های پروژه را منتقل کنید:
+
+  scp -r .\* deploy@<BOT_VPS_IP>:/opt/khatmsaz/
+
+3) فایل‌های مخفی لازم مثل .env.example را جدا بفرستید:
+
+  scp .\.env.example deploy@<BOT_VPS_IP>:/opt/khatmsaz/.env.example
+
+فایل .env واقعی کامپیوتر را منتقل نکنید. روی سرور یک .env تازه می‌سازیم.
+
+نکته: انتقال .venv ویندوز به Linux لازم نیست و نباید از آن استفاده شود. اگر پوشه .venv
+هم منتقل شد، روی VPS آن را پاک و دوباره ایجاد می‌کنیم:
+
+  rm -rf /opt/khatmsaz/.venv
+
+دستور بالا فقط همین مسیر مشخص را پاک می‌کند. آن را با مسیر خالی، / یا ~ اجرا نکنید.
+
+
+بخش 8-ب ـ روش جایگزین: انتقال با GitHub به‌جای SCP (توصیه‌شده برای به‌روزرسانی‌های بعدی)
+=========================================================================================
+
+اگر می‌خواهید کد را روی گیت‌هاب خودتان (یک ریپازیتوری خصوصی/private) نگه دارید و سرور
+مستقیم از آنجا بخواند، به‌جای SCP این روش را انجام دهید. مزیتش این است که برای هر
+به‌روزرسانی بعدی فقط کافی است روی سرور یک دستور (`git pull`) بزنید.
+
+نکتهٔ امنیتی مهم: فایل `.env` واقعی (توکن‌ها، رمز دیتابیس، ...) هرگز نباید داخل گیت‌هاب
+برود — همین الان هم در `.gitignore` پروژه لیست شده و به‌صورت خودکار نادیده گرفته می‌شود؛
+فقط مطمئن شوید حین کار با git این فایل را دستی force-add نکنید.
+
+1) روی کامپیوتر ویندوزی، اگر تا حالا این پوشه به گیت وصل نشده:
+
+  cd C:\xampp\htdocs\Khatm
+  git init
+  git add .
+  git commit -m "اولین نسخه برای استقرار"
+
+2) یک ریپازیتوری خصوصی (Private) در گیت‌هاب خودتان بسازید (بدون هیچ فایلی داخلش)، سپس:
+
+  git remote add origin https://github.com/<یوزرنیم-شما>/khatmsaz.git
+  git branch -M main
+  git push -u origin main
+
+اگر گیت‌هاب رمز عبور معمولی نمی‌پذیرد، باید یک Personal Access Token بسازید
+(تنظیمات گیت‌هاب → Developer settings → Personal access tokens) و به‌جای رمز از آن
+توکن استفاده کنید.
+
+3) روی VPS (به‌جای بخش 8 با SCP)، یک‌بار این‌طور کلون کنید:
+
+  sudo mkdir -p /opt/khatmsaz
+  sudo chown -R deploy:deploy /opt/khatmsaz
+  cd /opt
+  git clone https://github.com/<یوزرنیم-شما>/khatmsaz.git khatmsaz
+  cd khatmsaz
+
+برای ریپازیتوری خصوصی، حین `git clone` یوزرنیم و همان Personal Access Token را
+به‌عنوان رمز وارد کنید.
+
+4) از همان‌جا ادامهٔ راهنما (بخش 9 به بعد: نصب Python، ساخت `.env` واقعی روی خودِ سرور،
+migration، و ساخت سرویس systemd) دقیقاً همان‌طور که نوشته شده انجام می‌شود — این روش
+فقط جایگزین «انتقال فایل» است، نه بقیهٔ مراحل.
+
+5) برای هر به‌روزرسانی بعدی، به‌جای بخش 24 (SCP دوباره)، کافی است:
+
+  cd /opt/khatmsaz
+  git pull
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  PYTHONPATH=src python -m alembic upgrade head
+  RUN_INTEGRATION_TESTS=1 PYTHONPATH=src python -m pytest -q
+  sudo systemctl restart khatmsaz
+  sudo systemctl status khatmsaz --no-pager
+
+فایل `.env` سرور با `git pull` دست‌نخورده می‌ماند چون اصلاً داخل گیت نیست — نیازی به
+بکاپ/بازگردانی آن مثل روش SCP (بخش 24) وجود ندارد.
+
+
+بخش 9 ـ نصب Python و وابستگی‌های پروژه
+======================================
+
+روی VPS:
+
+  cd /opt/khatmsaz
+  python3 --version
+  python3 -m venv .venv
+  source .venv/bin/activate
+  python -m pip install --upgrade pip wheel
+  pip install -r requirements.txt
+
+آزمایش import:
+
+  PYTHONPATH=src python -c "import khatmsaz; print('KhatmSaz import OK')"
+
+برای خارج‌شدن از محیط مجازی در صورت نیاز:
+
+  deactivate
+
+
+بخش 10 ـ ساخت فایل .env تولید
+================================
+
+روی VPS:
+
+  cd /opt/khatmsaz
+  cp .env.example .env
+  chmod 600 .env
+
+یک OTP secret امن بسازید:
+
+  python3 -c "import secrets; print(secrets.token_hex(32))"
+
+خروجی را موقتاً در Password Manager کپی کنید. سپس فایل را باز کنید:
+
+  nano .env
+
+مقادیر مهم را دقیقاً به شکل زیر تنظیم کنید:
+
+  DATABASE_URL=postgresql+asyncpg://khatmsaz:<STRONG_DATABASE_PASSWORD>@127.0.0.1:5432/khatmsaz
+  REDIS_URL=redis://127.0.0.1:6379/0
+
+  TELEGRAM_BOT_TOKEN=<TELEGRAM_BOT_TOKEN>
+  TELEGRAM_BOT_USERNAME=<TELEGRAM_BOT_USERNAME_WITHOUT_AT>
+  BOT_HTTP_PROXY_URL=
+
+  BALE_BOT_TOKEN=<BALE_BOT_TOKEN_OR_EMPTY>
+  BALE_API_BASE_URL=https://tapi.bale.ai
+  BALE_BOT_USERNAME=<BALE_BOT_USERNAME_OR_EMPTY>
+
+  ADMIN_WEB_ENABLED=true
+  ADMIN_WEB_HOST=127.0.0.1
+  ADMIN_WEB_PORT=8000
+  ADMIN_WEB_BASE_URL=https://api.<YOUR-KHATMSAZ-DOMAIN>
+  PUBLIC_WEB_BASE_URL=https://api.<YOUR-KHATMSAZ-DOMAIN>
+
+  OTP_HMAC_SECRET=<GENERATED_64_HEX_CHARACTERS>
+  DEV_OTP=0
+
+  SMS_PROVIDER=kavenegar
+  SMS_API_KEY=<KAVENEGAR_API_KEY>
+  SMS_SENDER=<APPROVED_KAVENEGAR_SENDER>
+  SMS_API_BASE_URL=https://api.kavenegar.com/v1
+
+  PAYPING_API_TOKEN=<DEDICATED_PAYPING_API_TOKEN>
+  PAYPING_CALLBACK_URL=https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+  SUPER_ADMIN_TELEGRAM_CHAT_IDS=<NUMERIC_TELEGRAM_CHAT_ID>
+  APP_TIMEZONE=Asia/Tehran
+  LOG_LEVEL=INFO
+  REMINDER_SCAN_INTERVAL_MINUTES=30
+  MONTHLY_REPORT_DAY=1
+  MONTHLY_REPORT_HOUR=10
+  KHATM_CREATION_PRICE_TOMAN=0
+
+نکات:
+
+- مقدار BOT_HTTP_PROXY_URL روی VPS خارجی خالی می‌ماند.
+- DEV_OTP در تولید حتماً صفر است.
+- تا پایان پرداخت واقعی آزمایشی، KHATM_CREATION_PRICE_TOMAN را صفر نگه دارید.
+- رمز پنل پی‌پینگ را داخل .env نگذارید؛ فقط API Token لازم است.
+- اگر رمز دیتابیس دارای @، :، /، # یا علامت‌های URL است باید URL-encode شود. ساده‌ترین
+  راه این است که برای رمز دیتابیس از حروف، اعداد، خط تیره و زیرخط استفاده کنید.
+
+ذخیره در nano:
+
+  Ctrl+O
+  Enter
+  Ctrl+X
+
+بررسی permission:
+
+  ls -l .env
+
+باید فقط مالک فایل اجازه خواندن/نوشتن داشته باشد، معمولاً -rw-------.
+
+
+بخش 11 ـ اجرای Migration و تست‌ها
+=================================
+
+روی VPS:
+
+  cd /opt/khatmsaz
+  source .venv/bin/activate
+  export PYTHONPATH=/opt/khatmsaz/src
+  python -m alembic current
+  python -m alembic upgrade head
+  python -m alembic current
+
+خروجی آخر باید revision دارای عبارت head را نشان دهد.
+
+تست سریع:
+
+  python -m pytest -q
+
+تست کامل با PostgreSQL واقعی:
+
+  RUN_INTEGRATION_TESTS=1 python -m pytest -q
+
+اگر هر تستی FAIL شد، سرویس تولید را شروع نکنید. متن کامل خطا را نگه دارید.
+
+
+بخش 12 ـ اجرای آزمایشی بات قبل از systemd
+==========================================
+
+روی VPS:
+
+  cd /opt/khatmsaz
+  source .venv/bin/activate
+  PYTHONPATH=src python -m khatmsaz.bootstrap
+
+منتظر این پیام‌ها بمانید:
+
+  Telegram bot configured.
+  Admin web app listening ...
+  Run polling for bot ...
+
+در تلگرام به بات /start بدهید. اگر پاسخ داد یعنی اتصال Telegram درست است.
+
+برای توقف آزمایشی:
+
+  Ctrl+C
+
+
+بخش 13 ـ ساخت سرویس دائمی systemd
+==================================
+
+روی VPS فایل سرویس را بسازید:
+
+  sudo nano /etc/systemd/system/khatmsaz.service
+
+کل متن زیر را داخل آن قرار دهید:
+
+  [Unit]
+  Description=KhatmSaz Telegram Bale Bot and Admin Web
+  Wants=network-online.target
+  After=network-online.target postgresql.service redis-server.service
+
+  [Service]
+  Type=simple
+  User=deploy
+  Group=deploy
+  WorkingDirectory=/opt/khatmsaz
+  Environment=PYTHONPATH=/opt/khatmsaz/src
+  Environment=PYTHONUNBUFFERED=1
+  ExecStart=/opt/khatmsaz/.venv/bin/python -m khatmsaz.bootstrap
+  Restart=on-failure
+  RestartSec=5
+  TimeoutStopSec=30
+  NoNewPrivileges=true
+  PrivateTmp=true
+  ProtectSystem=full
+  ProtectHome=true
+  ReadWritePaths=/opt/khatmsaz
+
+  [Install]
+  WantedBy=multi-user.target
+
+ذخیره کنید و سپس:
+
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now khatmsaz
+  sudo systemctl status khatmsaz --no-pager
+
+لاگ 100 خط آخر:
+
+  sudo journalctl -u khatmsaz -n 100 --no-pager
+
+لاگ زنده:
+
+  sudo journalctl -u khatmsaz -f
+
+برای خروج از لاگ زنده Ctrl+C بزنید.
+
+
+بخش 14 ـ Nginx روی VPS ختم‌ساز
+================================
+
+فایل سایت را بسازید:
+
+  sudo nano /etc/nginx/sites-available/khatmsaz
+
+محتوا:
+
+  server {
+      listen 80;
+      listen [::]:80;
+      server_name api.<YOUR-KHATMSAZ-DOMAIN>;
+
+      client_max_body_size 20m;
+
+      location / {
+          proxy_pass http://127.0.0.1:8000;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_connect_timeout 10s;
+          proxy_read_timeout 60s;
+          proxy_send_timeout 60s;
+      }
+  }
+
+فعال‌سازی:
+
+  sudo ln -s /etc/nginx/sites-available/khatmsaz /etc/nginx/sites-enabled/khatmsaz
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+اگر گفت فایل symlink از قبل وجود دارد، دوباره ln را نزنید؛ فقط nginx -t را اجرا کنید.
+
+تست HTTP:
+
+  curl -i http://api.<YOUR-KHATMSAZ-DOMAIN>/health
+
+پاسخ درست شامل HTTP 200 و این متن است:
+
+  {"status":"ok","database":"ok"}
+
+این آدرس فقط روشن‌بودن وب‌سرور را بررسی نمی‌کند؛ یک دستور ساده هم واقعاً
+روی PostgreSQL اجرا می‌کند. اگر وب‌سرور روشن باشد ولی دیتابیس قطع شده باشد،
+پاسخ صحیح HTTP 503 با متن زیر است:
+
+  {"status":"unavailable","database":"unavailable"}
+
+در حالت 503 بات آمادهٔ سرویس‌دهی نیست. ابتدا PostgreSQL و سپس سرویس ختم‌ساز
+را بررسی کنید. متن عمومی Health عمداً آدرس، نام کاربری، رمز یا جزئیات خطای
+دیتابیس را نمایش نمی‌دهد.
+
+
+بخش 15 ـ فعال‌کردن HTTPS روی VPS ختم‌ساز
+========================================
+
+بعد از اینکه DNS درست شد و تست HTTP جواب داد:
+
+  sudo certbot --nginx -d api.<YOUR-KHATMSAZ-DOMAIN>
+
+Certbot ایمیل می‌خواهد. ایمیل معتبر وارد کنید، قوانین را قبول کنید و Redirect از HTTP به
+HTTPS را انتخاب کنید.
+
+تست:
+
+  curl -i https://api.<YOUR-KHATMSAZ-DOMAIN>/health
+
+آزمایش تمدید خودکار گواهی:
+
+  sudo certbot renew --dry-run
+
+بررسی timer:
+
+  systemctl list-timers | grep certbot
+
+
+بخش 16 ـ Reverse Proxy روی سرور خدمتگزاران با Nginx (روش پیشنهادی)
+==================================================================
+
+این بخش روی «سرور A»، یعنی سرور سایت خدمتگزاران اجرا می‌شود؛ نه VPS ختم‌ساز.
+
+ابتدا وارد سرور خدمتگزاران شوید:
+
+  ssh <SERVICE_SSH_USER>@<SERVICE_SERVER_IP>
+
+نسخه Nginx و کانفیگ فعال را بررسی کنید:
+
+  sudo nginx -v
+  sudo nginx -T > /tmp/nginx-full-before-khatmsaz.txt
+
+فایل سایت دامنه خدمتگزاران را پیدا کنید:
+
+  sudo grep -R "server_name.*<SERVICE_DOMAIN>" /etc/nginx/sites-enabled /etc/nginx/conf.d
+
+قبل از تغییر، از فایل پیدا‌شده بکاپ بگیرید:
+
+  sudo cp /etc/nginx/sites-available/<SERVICE_CONFIG_FILE> \
+    /etc/nginx/sites-available/<SERVICE_CONFIG_FILE>.backup-$(date +%Y%m%d-%H%M%S)
+
+فایل کانفیگ سایت را باز کنید:
+
+  sudo nano /etc/nginx/sites-available/<SERVICE_CONFIG_FILE>
+
+داخل همان server block مربوط به HTTPS و دامنه خدمتگزاران، قبل از location /، این بخش را
+اضافه کنید:
+
+  location = /khatmsaz/payments/payping/callback {
+      proxy_pass https://api.<YOUR-KHATMSAZ-DOMAIN>/payments/payping/callback;
+      proxy_http_version 1.1;
+
+      proxy_set_header Host api.<YOUR-KHATMSAZ-DOMAIN>;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto https;
+
+      proxy_ssl_server_name on;
+      proxy_ssl_name api.<YOUR-KHATMSAZ-DOMAIN>;
+
+      proxy_pass_request_body on;
+      proxy_set_header Content-Length $content_length;
+      proxy_set_header Content-Type $content_type;
+
+      proxy_connect_timeout 10s;
+      proxy_send_timeout 30s;
+      proxy_read_timeout 60s;
+
+      limit_except POST { deny all; }
+  }
+
+چرا علامت = مهم است؟ چون فقط همین مسیر دقیق را Proxy می‌کند و مسیرهای دیگر سایت دست‌نخورده
+می‌مانند.
+
+چرا proxy_pass شامل مسیر کامل است؟ چون آدرس بیرونی یک پیشوند /khatmsaz دارد ولی Route واقعی
+FastAPI این است:
+
+  /payments/payping/callback
+
+آزمایش syntax:
+
+  sudo nginx -t
+
+فقط اگر خروجی شامل syntax is ok و test is successful بود reload کنید:
+
+  sudo systemctl reload nginx
+
+وضعیت:
+
+  sudo systemctl status nginx --no-pager
+
+اگر nginx -t خطا داد، reload نکنید. فایل بکاپ را برگردانید و دوباره تست کنید.
+
+
+بخش 17 ـ اگر سایت خدمتگزاران Apache است
+=========================================
+
+اگر دستور nginx -v گفت command not found و سایت با Apache است:
+
+  sudo apache2ctl -v
+
+ماژول‌های لازم:
+
+  sudo a2enmod proxy proxy_http proxy_ssl headers
+
+فایل VirtualHost دامنه را پیدا کنید:
+
+  sudo grep -R "ServerName.*<SERVICE_DOMAIN>" /etc/apache2/sites-enabled
+
+بکاپ:
+
+  sudo cp /etc/apache2/sites-available/<SERVICE_CONFIG_FILE> \
+    /etc/apache2/sites-available/<SERVICE_CONFIG_FILE>.backup-$(date +%Y%m%d-%H%M%S)
+
+فایل را باز کنید:
+
+  sudo nano /etc/apache2/sites-available/<SERVICE_CONFIG_FILE>
+
+داخل VirtualHost مربوط به پورت 443 اضافه کنید:
+
+  SSLProxyEngine On
+  ProxyPreserveHost Off
+
+  <Location "/khatmsaz/payments/payping/callback">
+      <LimitExcept POST>
+          Require all denied
+      </LimitExcept>
+      Require all granted
+  </Location>
+
+  ProxyPass "/khatmsaz/payments/payping/callback" \
+      "https://api.<YOUR-KHATMSAZ-DOMAIN>/payments/payping/callback" retry=0 timeout=60
+  ProxyPassReverse "/khatmsaz/payments/payping/callback" \
+      "https://api.<YOUR-KHATMSAZ-DOMAIN>/payments/payping/callback"
+
+تست و reload:
+
+  sudo apache2ctl configtest
+  sudo systemctl reload apache2
+  sudo systemctl status apache2 --no-pager
+
+خروجی configtest باید Syntax OK باشد.
+
+
+بخش 18 ـ اگر هاست خدمتگزاران اشتراکی است و sudo ندارید
+=======================================================
+
+روی هاست اشتراکی معمولاً امکان Reverse Proxy در .htaccess وجود ندارد یا شرکت هاست آن را
+غیرفعال کرده است. در این حالت یکی از این کارها لازم است:
+
+1) به پشتیبانی هاست این متن را بدهید:
+
+  لطفاً درخواست‌های POST مسیر دقیق زیر را با حفظ کامل body، Content-Type و query string:
+  https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+  به این مقصد Reverse Proxy کنید:
+  https://api.<YOUR-KHATMSAZ-DOMAIN>/payments/payping/callback
+  Redirect مرورگر نمی‌خواهیم؛ Reverse Proxy server-to-server لازم است.
+
+2) اگر پشتیبانی Reverse Proxy انجام نمی‌دهد، باید Relay امن PHP/WordPress ساخته شود. این
+   Relay نباید یک header Location ساده باشد. ساخت Relay نیاز به کدنویسی و تست جداگانه دارد.
+
+3) تا قبل از آماده‌شدن یکی از دو روش، پرداخت واقعی ختم‌ساز را فعال نکنید.
+
+
+بخش 19 ـ تنظیم Callback در ختم‌ساز و پی‌پینگ
+============================================
+
+روی VPS ختم‌ساز:
+
+  cd /opt/khatmsaz
+  nano .env
+
+این مقدار را قرار دهید:
+
+  PAYPING_CALLBACK_URL=https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+توکن اختصاصی API:
+
+  PAYPING_API_TOKEN=<YOUR_DEDICATED_API_TOKEN>
+
+ذخیره و restart:
+
+  sudo systemctl restart khatmsaz
+  sudo systemctl status khatmsaz --no-pager
+  sudo journalctl -u khatmsaz -n 100 --no-pager
+
+در صفحه «محصول» پی‌پینگ، فیلدی که نامش «لینک صفحه ارجاع» است Callback فنی ختم‌ساز نیست.
+در آن فیلد Endpoint بالا را نگذارید؛ محصول ثابت پس از پرداخت ممکن است مرورگر را با GET به آن
+آدرس ببرد، در حالی که Endpoint ختم‌ساز Callback نسخه 3 API را با POST می‌پذیرد. برای محصول
+دستی می‌توانید آدرس یک صفحه عادی «تشکر از پرداخت» روی سایت خدمتگزاران را قرار دهید.
+
+در اتصال واقعی ختم‌ساز نیازی به ساخت محصول ثابت نیست. خود کد برای هر فاکتور از API پی‌پینگ
+یک پرداخت می‌سازد و این مقدار را در همان درخواست API به عنوان returnUrl می‌فرستد:
+
+  https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+پس فیلد محصول جای API Token، returnUrl برنامه یا مرحله Verify را نمی‌گیرد.
+
+
+بخش 20 ـ تست مسیر Reverse Proxy بدون انجام پرداخت
+==================================================
+
+از هر کامپیوتری اجرا کنید:
+
+  curl -i https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+چون Route فقط POST است، پاسخ 405 Method Not Allowed انتظار می‌رود. این پاسخ بد نیست؛ یعنی
+درخواست به FastAPI رسیده و GET مجاز نیست.
+
+اکنون یک POST خالی بفرستید:
+
+  curl -i -X POST https://<SERVICE_DOMAIN>/khatmsaz/payments/payping/callback
+
+پاسخ باید یک صفحه فارسی «پرداخت کامل نشد» یا HTTP 400 از برنامه ختم‌ساز باشد. اگر صفحه
+WordPress، 404 سایت خدمتگزاران یا 502 دیدید، Reverse Proxy درست نیست.
+
+هم‌زمان لاگ سرور ختم‌ساز را نگاه کنید:
+
+  sudo journalctl -u khatmsaz -f
+
+و روی سرور خدمتگزاران، برای Nginx:
+
+  sudo tail -f /var/log/nginx/access.log /var/log/nginx/error.log
+
+یا برای Apache:
+
+  sudo tail -f /var/log/apache2/access.log /var/log/apache2/error.log
+
+برای خروج از tail یا journalctl کلید Ctrl+C را بزنید.
+
+
+بخش 21 ـ تست واقعی کم‌مبلغ پی‌پینگ
+===================================
+
+این مرحله فقط بعد از موفقیت تمام مراحل قبل اجرا شود.
+
+1) در .env مطمئن شوید قیمت ساخت ختم هنوز صفر است.
+2) از بات دستور /wallet یا /topup را باز کنید.
+3) کمترین مبلغ مجاز را انتخاب کنید.
+4) صفحه بانک باید باز شود.
+5) یک پرداخت واقعی کم‌مبلغ انجام دهید.
+6) بعد از برگشت باید صفحه موفقیت ختم‌ساز دیده شود.
+7) دوباره /wallet را بزنید و افزایش موجودی را بررسی کنید.
+8) /invoices را بررسی کنید.
+9) در پنل ادمین، بخش مالی و Audit را بررسی کنید.
+10) لاگ‌ها نباید Token، شماره کامل کارت یا رمز بانکی نشان دهند.
+
+هرگز برای تست، Callback جعلی را به‌عنوان پرداخت موفق قبول نکنید. موفقیت فقط بعد از Verify
+پی‌پینگ و تطبیق amount، paymentCode، paymentRefId و clientRefId ثبت می‌شود.
+
+
+بخش 22 ـ خطاهای رایج و معنی آن‌ها
+=================================
+
+خطای 404 روی دامنه خدمتگزاران:
+
+- location یا ProxyPass در VirtualHost درست قرار نگرفته است.
+- مسیر بیرونی اشتباه است.
+- کانفیگ reload نشده است.
+
+خطای 405:
+
+- اگر با GET تست کرده‌اید طبیعی و درست است.
+- پی‌پینگ باید Callback را با روش مورد انتظار نسخه API ارسال کند.
+
+خطای 502 Bad Gateway:
+
+- سرور خدمتگزاران به api domain دسترسی ندارد.
+- DNS مقصد اشتباه است.
+- HTTPS مقصد نامعتبر است.
+- سرویس khatmsaz یا Nginx مقصد خاموش است.
+
+بررسی‌ها:
+
+  curl -i https://api.<YOUR-KHATMSAZ-DOMAIN>/health
+  sudo systemctl status khatmsaz --no-pager
+  sudo systemctl status nginx --no-pager
+  sudo journalctl -u khatmsaz -n 100 --no-pager
+
+خطای 403:
+
+- WAF، ModSecurity یا Cloudflare ممکن است POST را مسدود کرده باشد.
+- مسیر Callback را در WAF بررسی کنید؛ کل سایت را ناامن یا خاموش نکنید.
+
+خطای SSL certificate:
+
+- DNS هنوز منتشر نشده یا گواهی منقضی/اشتباه است.
+
+  sudo certbot certificates
+  sudo certbot renew --dry-run
+
+صفحه پرداخت باز می‌شود ولی کیف پول شارژ نمی‌شود:
+
+- PAYPING_API_TOKEN اشتباه است.
+- Callback به برنامه نرسیده است.
+- amount یا شناسه‌ها با intent دیتابیس تطبیق ندارند.
+- Verify پی‌پینگ شکست خورده است.
+
+لاگ را ببینید، ولی Token را در پیام یا اسکرین‌شات عمومی نفرستید.
+
+
+بخش 23 ـ دستورات روزمره مدیریت سرویس
+=====================================
+
+وضعیت بات:
+
+  sudo systemctl status khatmsaz --no-pager
+
+شروع:
+
+  sudo systemctl start khatmsaz
+
+توقف:
+
+  sudo systemctl stop khatmsaz
+
+Restart بعد از تغییر .env یا کد:
+
+  sudo systemctl restart khatmsaz
+
+لاگ:
+
+  sudo journalctl -u khatmsaz -n 100 --no-pager
+  sudo journalctl -u khatmsaz -f
+
+بررسی Nginx:
+
+  sudo nginx -t
+  sudo systemctl status nginx --no-pager
+  sudo systemctl reload nginx
+
+بررسی PostgreSQL:
+
+  sudo systemctl status postgresql --no-pager
+
+بررسی Redis:
+
+  sudo systemctl status redis-server --no-pager
+  redis-cli ping
+
+بررسی سلامت وب:
+
+  curl -i https://api.<YOUR-KHATMSAZ-DOMAIN>/health
+
+
+بخش 24 ـ روش امن به‌روزرسانی کد
+================================
+
+قبل از هر به‌روزرسانی بکاپ بگیرید. سپس فایل‌ها را از کامپیوتر منتقل کنید. فایل .env سرور را
+بازنویسی نکنید.
+
+روی VPS:
+
+  cd /opt/khatmsaz
+  cp .env /tmp/khatmsaz-env-backup
+
+پس از انتقال نسخه جدید:
+
+  cd /opt/khatmsaz
+  cp /tmp/khatmsaz-env-backup .env
+  chmod 600 .env
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  PYTHONPATH=src python -m alembic upgrade head
+  RUN_INTEGRATION_TESTS=1 PYTHONPATH=src python -m pytest -q
+  sudo systemctl restart khatmsaz
+  sudo systemctl status khatmsaz --no-pager
+  sudo journalctl -u khatmsaz -n 100 --no-pager
+
+اگر Migration یا تست شکست خورد، قبل از restart مشکل را حل کنید.
+
+
+بخش 25 ـ بکاپ روزانه PostgreSQL
+================================
+
+پوشه بکاپ:
+
+  sudo mkdir -p /var/backups/khatmsaz
+  sudo chown postgres:postgres /var/backups/khatmsaz
+  sudo chmod 700 /var/backups/khatmsaz
+
+اسکریپت بکاپ:
+
+  sudo nano /usr/local/sbin/backup-khatmsaz-db.sh
+
+محتوا:
+
+  #!/usr/bin/env bash
+  set -euo pipefail
+  BACKUP_DIR=/var/backups/khatmsaz
+  STAMP=$(date +%Y%m%d-%H%M%S)
+  sudo -u postgres pg_dump -Fc khatmsaz > "$BACKUP_DIR/khatmsaz-$STAMP.dump"
+  find "$BACKUP_DIR" -type f -name 'khatmsaz-*.dump' -mtime +14 -delete
+
+دسترسی اجرا:
+
+  sudo chmod 750 /usr/local/sbin/backup-khatmsaz-db.sh
+
+تست دستی:
+
+  sudo /usr/local/sbin/backup-khatmsaz-db.sh
+  sudo ls -lh /var/backups/khatmsaz
+
+Cron روزانه ساعت 03:20:
+
+  sudo crontab -e
+
+این خط را اضافه کنید:
+
+  20 3 * * * /usr/local/sbin/backup-khatmsaz-db.sh >> /var/log/khatmsaz-backup.log 2>&1
+
+بکاپی که Restore آن آزمایش نشده، بکاپ قابل اعتماد نیست. Restore را ابتدا روی دیتابیس آزمایشی
+و نه دیتابیس تولید تمرین کنید.
+
+ساخت دیتابیس آزمایشی Restore:
+
+  sudo -u postgres createdb khatmsaz_restore_test
+  sudo -u postgres pg_restore --clean --if-exists -d khatmsaz_restore_test \
+    /var/backups/khatmsaz/<BACKUP_FILE.dump>
+  sudo -u postgres psql -d khatmsaz_restore_test -c "SELECT count(*) FROM users;"
+  sudo -u postgres dropdb khatmsaz_restore_test
+
+
+بخش 26 ـ Rollback امن Reverse Proxy
+====================================
+
+اگر Reverse Proxy باعث مشکل سایت خدمتگزاران شد:
+
+Nginx:
+
+1) فایل کانفیگ را باز کنید.
+2) فقط location مربوط به /khatmsaz/payments/payping/callback را حذف کنید.
+3) اجرا کنید:
+
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+یا فایل backup را برگردانید:
+
+  sudo cp /etc/nginx/sites-available/<SERVICE_CONFIG_FILE>.backup-<TIMESTAMP> \
+    /etc/nginx/sites-available/<SERVICE_CONFIG_FILE>
+  sudo nginx -t
+  sudo systemctl reload nginx
+
+Apache:
+
+  sudo cp /etc/apache2/sites-available/<SERVICE_CONFIG_FILE>.backup-<TIMESTAMP> \
+    /etc/apache2/sites-available/<SERVICE_CONFIG_FILE>
+  sudo apache2ctl configtest
+  sudo systemctl reload apache2
+
+
+بخش 27 ـ چک‌لیست نهایی قبل از فعال‌کردن پرداخت پولی
+=====================================================
+
+[ ] VPS ختم‌ساز روشن و systemd در حالت active (running) است.
+[ ] PostgreSQL و Redis روشن‌اند.
+[ ] تست کامل pytest موفق است.
+[ ] Alembic روی head است.
+[ ] api domain به IP صحیح اشاره می‌کند.
+[ ] HTTPS معتبر است.
+[ ] /health از اینترنت HTTP 200 و database=ok می‌دهد.
+[ ] Callback دامنه خدمتگزاران با GET پاسخ 405 می‌دهد.
+[ ] Callback دامنه خدمتگزاران با POST خالی به پاسخ برنامه ختم‌ساز می‌رسد.
+[ ] API Token اختصاصی در .env قرار گرفته است.
+[ ] رمز پنل پی‌پینگ داخل پروژه ذخیره نشده است.
+[ ] PAYPING_CALLBACK_URL دقیقاً روی دامنه خدمتگزاران است.
+[ ] یک پرداخت واقعی کم‌مبلغ با Verify موفق انجام شده است.
+[ ] callback تکراری موجودی را دوباره افزایش نمی‌دهد.
+[ ] فاکتور و تراکنش در پنل مالی دیده می‌شود.
+[ ] بکاپ روزانه اجرا و Restore آزمایشی بررسی شده است.
+[ ] بعد از همه موارد بالا، قیمت تولید از صفر تغییر می‌کند.
+
+
+خلاصه یک‌خطی
+-------------
+
+سایت خدمتگزاران و ختم‌ساز می‌توانند روی دو VPS جدا باشند؛ آدرس پی‌پینگ روی دامنه
+خدمتگزاران می‌ماند و یک Reverse Proxy دقیق، درخواست POST را به Endpoint واقعی FastAPI روی
+VPS ختم‌ساز می‌رساند.

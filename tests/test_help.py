@@ -1,0 +1,101 @@
+from khatmsaz.bot.handlers.help import HELP_HOME, HELP_TOPICS
+from khatmsaz.bot.keyboards import (
+    HELP_BUTTON_TEXT,
+    confirm_keyboard,
+    coupon_entry_keyboard,
+    help_create_actions_keyboard,
+    help_manage_actions_keyboard,
+    help_keyboard,
+    help_settings_actions_keyboard,
+    help_wallet_actions_keyboard,
+    settings_home_keyboard,
+    main_menu_keyboard,
+)
+
+
+def test_creation_coupon_is_available_without_a_typed_command() -> None:
+    paid_callbacks = {
+        button.callback_data
+        for row in confirm_keyboard(allow_coupon=True).inline_keyboard
+        for button in row
+    }
+    free_callbacks = {
+        button.callback_data
+        for row in confirm_keyboard().inline_keyboard
+        for button in row
+    }
+    entry_callbacks = {
+        button.callback_data
+        for row in coupon_entry_keyboard().inline_keyboard
+        for button in row
+    }
+    assert "ck:coupon" in paid_callbacks
+    assert "ck:coupon" not in free_callbacks
+    assert entry_callbacks == {"ck:coupon_back", "ck:cancel"}
+
+
+def test_help_is_complete_and_button_driven() -> None:
+    assert "لازم نیست دستورها را حفظ کنید" in HELP_HOME
+    assert set(HELP_TOPICS) == {"join", "portion", "create", "wallet", "settings", "manage"}
+    callbacks = {
+        button.callback_data
+        for row in help_keyboard().inline_keyboard
+        for button in row
+    }
+    assert callbacks == {f"help:{topic}" for topic in HELP_TOPICS} | {"suggest:start"}
+    assert all(len(text) > 250 for text in HELP_TOPICS.values())
+    main_menu_labels = {
+        button.text
+        for row in main_menu_keyboard().keyboard
+        for button in row
+    }
+    assert HELP_BUTTON_TEXT in main_menu_labels
+
+
+def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None:
+    assert "/" not in HELP_TOPICS["wallet"]
+    assert "/" not in HELP_TOPICS["settings"]
+    wallet_callbacks = {
+        button.callback_data
+        for row in help_wallet_actions_keyboard().inline_keyboard
+        for button in row
+    }
+    assert {"wallet:open", "wallet:invoices", "help:home"} == wallet_callbacks
+
+    settings_callbacks = {
+        button.callback_data
+        for row in help_settings_actions_keyboard().inline_keyboard
+        for button in row
+    }
+    assert {
+        "settings:home", "settings:profile", "settings:change_phone",
+        "settings:link_account", "help:home",
+    } == settings_callbacks
+
+
+def test_create_and_manage_help_expose_normal_actions_as_buttons() -> None:
+    assert "/" not in HELP_TOPICS["create"]
+    assert "/" not in HELP_TOPICS["manage"]
+    create_callbacks = {
+        button.callback_data
+        for row in help_create_actions_keyboard().inline_keyboard
+        for button in row
+    }
+    manage_callbacks = {
+        button.callback_data
+        for row in help_manage_actions_keyboard().inline_keyboard
+        for button in row
+    }
+    assert create_callbacks == {"create:start_from_help", "request_khatm:start", "help:home"}
+    assert manage_callbacks == {
+        "my_khatms:open", "creator:web_login", "admin:web_login", "help:home"
+    }
+
+
+def test_settings_home_exposes_account_actions_as_buttons() -> None:
+    callbacks = {
+        button.callback_data
+        for row in settings_home_keyboard(audio_enabled=False).inline_keyboard
+        for button in row
+    }
+    assert {"settings:profile", "settings:change_phone", "settings:link_account"} <= callbacks

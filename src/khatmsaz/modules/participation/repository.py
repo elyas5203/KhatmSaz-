@@ -1,0 +1,170 @@
+"""Persistence access for participation — the only place that runs SQL for this module."""
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from khatmsaz.core.ids import new_id
+from khatmsaz.modules.identity.models import User
+from khatmsaz.modules.participation.models import Participation, ParticipationStatus
+
+
+async def get_active(session: AsyncSession, khatm_id, user_id) -> Participation | None:
+    stmt = select(Participation).where(
+        Participation.khatm_id == khatm_id,
+        Participation.user_id == user_id,
+        Participation.status == ParticipationStatus.ACTIVE,
+    )
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def create(session: AsyncSession, khatm_id, user_id, is_committed: bool = True) -> Participation:
+    """Raises `sqlalchemy.exc.IntegrityError` if a concurrent request already
+    joined this (khatm, user) first — see `participation/service.py` for the
+    retry. Runs inside a SAVEPOINT so a lost race doesn't poison the caller's
+    outer transaction (same pattern as `identity/repository.py`)."""
+    async with session.begin_nested():
+        participation = Participation(id=new_id(), khatm_id=khatm_id, user_id=user_id, is_committed=is_committed)
+        session.add(participation)
+        await session.flush()
+    return participation
+
+
+async def count_committed_active(session: AsyncSession, khatm_id) -> int:
+    stmt = select(func.count()).select_from(Participation).where(
+        Participation.khatm_id == khatm_id,
+        Participation.status == ParticipationStatus.ACTIVE,
+        Participation.is_committed.is_(True),
+    )
+    result = await session.execute(stmt)
+    return int(result.scalar_one())
+
+
+async def count_for_khatm(session: AsyncSession, khatm_id) -> int:
+    result = await session.execute(
+        select(func.count()).select_from(Participation).where(Participation.khatm_id == khatm_id)
+    )
+    return int(result.scalar_one())
+
+
+async def list_active_for_khatm(session: AsyncSession, khatm_id) -> list[Participation]:
+    result = await session.execute(
+        select(Participation).where(
+            Participation.khatm_id == khatm_id,
+            Participation.status == ParticipationStatus.ACTIVE,
+        )
+    )
+    return list(result.scalars())
+
+
+async def list_active_with_users(session: AsyncSession, khatm_id) -> list[tuple[Participation, User]]:
+    result = await session.execute(
+        select(Participation, User)
+        .join(User, User.id == Participation.user_id)
+        .where(
+            Participation.khatm_id == khatm_id,
+            Participation.status == ParticipationStatus.ACTIVE,
+        )
+        .order_by(Participation.joined_at.asc())
+    )
+    return list(result.all())
+
+
+async def set_committed(session: AsyncSession, participation_id, is_committed: bool) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.is_committed = is_committed
+    await session.flush()
+
+
+async def set_creator_resolution(session: AsyncSession, participation_id, resolution: str) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.creator_resolution = resolution
+    await session.flush()
+
+
+async def set_status(
+    session: AsyncSession, participation_id, status: ParticipationStatus, leave_reason: str | None = None
+) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.status = status
+    if leave_reason is not None:
+        participation.leave_reason = leave_reason
+    await session.flush()
+
+
+async def set_paused_until(session: AsyncSession, participation_id, until) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.paused_until = until
+    await session.flush()
+
+
+async def set_backup_reader_opt_in(session: AsyncSession, participation_id, enabled: bool) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.backup_reader_opt_in = enabled
+    await session.flush()
+
+
+async def set_open_reading_pages_per_day(session: AsyncSession, participation_id, pages_per_day: int) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.open_reading_pages_per_day = pages_per_day
+    await session.flush()
+
+
+async def advance_open_reading(session: AsyncSession, participation_id, pages: int) -> tuple[int, int] | None:
+    """Reserve the next `pages` pages for this open reader, advancing the
+    cursor, and return the (start, end) 1-based range reserved. Returns
+    None if the participation doesn't exist. Does not cap against the
+    edition's total page count — the caller (which already knows the
+    khatm's total) is responsible for passing a `pages` value that doesn't
+    overrun it."""
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return None
+    start = participation.open_reading_next_page
+    end = start + pages - 1
+    participation.open_reading_next_page = end + 1
+    await session.flush()
+    return start, end
+
+
+async def mark_open_reading_sent_now(session: AsyncSession, participation_id, when) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.open_reading_last_sent_at = when
+    await session.flush()
+
+
+async def list_active_with_open_reading_plan(session: AsyncSession) -> list[Participation]:
+    """All ACTIVE participations that have set up an open-Quran-reading
+    daily plan — used by the reminder engine's daily auto-send scan."""
+    stmt = select(Participation).where(
+        Participation.status == ParticipationStatus.ACTIVE,
+        Participation.open_reading_pages_per_day.isnot(None),
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars())
+
+
+async def list_active_for_user(session: AsyncSession, user_id) -> list[Participation]:
+    stmt = select(Participation).where(
+        Participation.user_id == user_id, Participation.status == ParticipationStatus.ACTIVE
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars())
+
+
+async def get_by_id(session: AsyncSession, participation_id) -> Participation | None:
+    return await session.get(Participation, participation_id)

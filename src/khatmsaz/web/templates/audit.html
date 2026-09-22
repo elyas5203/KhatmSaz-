@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}رویدادهای حساس | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title">
+  <p class="eyebrow">گزارش فقط‌خواندنی و غیرقابل‌حذف</p>
+  <h1>خط زمانی فعالیت‌های حساس</h1>
+  <p>تغییر نقش‌ها، امور مالی، نظارت و تصمیم‌های محتوایی اینجا با نام انجام‌دهنده، هدف و زمان تهران ثبت می‌شوند.</p>
+</section>
+
+<form class="search" method="get" action="/audit">
+  <input name="q" value="{{ query }}" placeholder="فیلتر با کد رویداد؛ مثلاً USER یا COUPON">
+  <button type="submit">فیلتر</button>
+</form>
+
+<section class="audit-list" aria-label="رویدادهای حساس">
+  {% for row in rows %}
+  <article class="audit-card">
+    <header>
+      <div><span class="audit-dot" aria-hidden="true"></span><b>{{ row.label }}</b></div>
+      <time>{{ row.time }}</time>
+    </header>
+    <p class="audit-code">{{ row.entry.action }}</p>
+    <dl>
+      <div><dt>انجام‌دهنده</dt><dd>{{ row.actor.display_name if row.actor and row.actor.display_name else row.entry.actor_user_id }}</dd></div>
+      {% if row.entry.target_user_id %}<div><dt>کاربر هدف</dt><dd>{{ row.target_user.display_name if row.target_user and row.target_user.display_name else row.entry.target_user_id }}</dd></div>{% endif %}
+      {% if row.entry.target_khatm_id %}<div><dt>ختم هدف</dt><dd>{{ row.target_khatm.title if row.target_khatm else row.entry.target_khatm_id }}</dd></div>{% endif %}
+      {% for label, value in row.details %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
+    </dl>
+  </article>
+  {% else %}<p class="empty">رویدادی با این فیلتر پیدا نشد.</p>{% endfor %}
+</section>
+{% endblock %}

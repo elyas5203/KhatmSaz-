@@ -1,0 +1,1191 @@
+# CHANGELOG
+
+Newest entry at the top. One entry per meaningful task, dated.
+
+---
+
+## 2026-09-22 — SMS provider configured (Kavenegar Verify Lookup), PayPing token set, delivery-hour ask extended to OPEN khatms, advertising question removed from wizard
+
+- **SMS: real Kavenegar credentials configured**, but kept as
+  `SMS_PROVIDER=noop` in this local `.env` on purpose — flipping it here
+  would send real, paid SMS to real numbers on every local test. The
+  owner's given API key was hex-encoded; decoded to its real base64-like
+  form before storing.
+- **New: Kavenegar OTP goes through Verify Lookup, not plain SMS.**
+  Iranian carriers require pre-approved patterns for OTP codes — sending
+  a raw code as free-text SMS is routinely rejected for compliance. Added
+  `SmsProvider.send(..., otp_code=...)` to the protocol; when both an OTP
+  code and `SMS_KAVENEGAR_VERIFY_TEMPLATE` (set to the owner's registered
+  "verify" pattern) are present, `KavenegarSmsProvider` calls
+  `verify/lookup.json` (token + template) instead of `sms/send.json`
+  (free text) — falls back to plain send if no template is configured.
+  Wired into all 3 real OTP call sites (`change_phone.py` x2,
+  `account_link.py`). New tests in `tests/test_sms_provider.py`.
+- **PayPing token + callback URL set.** Callback URL corrected to
+  `api.khatmsaz.com` (matching support ticket #3122), not `khatmsaz.com`.
+- **Real bug fixed:** the "what hour should your daily nudge/portion
+  arrive" question only fired for a fresh COMMITMENT portion — an OPEN
+  khatm join (e.g. the owner's own new "دعای عهد" khatm) never asked at
+  all, even though `_send_open_schedule_reminders` also reads each
+  participant's own reminder hour. Now asks for both cases.
+  **Still open, flagged rather than guessed:** the owner reported not
+  being asked right after *creating* their own OPEN khatm — but creators
+  don't automatically become a participant of their own khatm (confirmed
+  in `khatm_workflow/service.py`), so this fix (which is join-flow-based)
+  doesn't cover that exact moment. Whether creators should auto-join
+  their own khatm is a real product decision, not something to guess.
+- **Owner request, done:** removed the "فعال بشه؟" advertising/cash-gift
+  question from the create-khatm wizard entirely (defaults to off) — "منطق
+  ارسال پیام تبلیغاتی رو اشتباه فهمیدی، بعداً توضیح میدم." Also removed
+  its now-meaningless summary line from the confirmation screen.
+- Full `pytest` (85) + real-Postgres integration (154 total) pass; both
+  bots restarted, `/health` OK.
+
+## 2026-09-22 — Multi-reciter audio, multi-page images, and PDF support for devotional content; **critical i18n corruption found and fixed** (381 entries had silently lost their Arabic/English translations)
+
+- **Critical, wide-reaching bug found and fixed:** while adding a new
+  translation key, noticed `devotional.audio_caption` had its "ar"/"en"
+  values mashed into literal garbled text inside the "fa" string, using
+  curly quotes (“ ”) instead of straight ones. Searched the whole file
+  for the same corruption pattern and found **381 more entries** (249
+  missing "ar", 132 also missing "en") — likely from a bulk edit earlier
+  in this long session that used the wrong quote character. Every one of
+  those keys had been silently serving Persian text (with garbage
+  embedded) to Arabic and English users this entire time. Fixed with a
+  targeted, verified string replacement (not a blind quote swap — only
+  the exact corrupted separator sequences were touched, so legitimate
+  curly quotes used as real punctuation elsewhere in English example
+  text were left alone). Confirmed zero remaining occurrences, full
+  `pytest` suite still green.
+- **New: multiple reciters per dua/ziyarat.** Owner's original request:
+  "زیارت عاشورا ممکنه دوتا قاری مختلف داشته باشه." New `devotional_media`
+  table (migration `f4a5b6c7d8e9`) replaces the old single audio-slot
+  design; `/admin_devotional_audio <slug> [نام قاری]` now adds one more
+  variant instead of overwriting. When a dua has 2+ registered reciters,
+  `/devotional <slug>` (and the khatm-participation recitation flow) show
+  a "کدوم قاری؟" picker instead of guessing; 1 reciter still auto-plays,
+  0 falls back to the legacy single `audio_ref` column for content
+  registered before this table existed.
+- **New: multi-page images (pagination).** `/admin_devotional_image
+  <slug> [شماره صفحه]` — omit the page number to auto-append after the
+  last page, or give an explicit number to insert/replace one page.
+- **New: PDF support.** `/admin_devotional_pdf <slug>` — send a PDF as a
+  document with that caption; delivered via `answer_document`.
+- New test `tests/test_devotional_multi_media.py`.
+- Full `pytest` (78) + real-Postgres integration (152 total) pass;
+  migration applied; both bots restarted, `/health` OK.
+
+## 2026-09-22 — Devotional channel workflow: voice-note upload bug fixed, image support added; 3 new dua texts registered; local Postgres crash recovered
+
+- **Real bug fixed:** `/admin_devotional_audio` only accepted
+  `message.audio`/`message.document` — a Telegram *voice message*
+  (`message.voice`, what recording directly in a chat produces) is a
+  separate field and was silently rejected with "باید فایل صوتی یا
+  document ضمیمه کنید" even though a real audio file was attached. Now
+  accepts voice notes too.
+- **New: image support for devotional content**, previously entirely
+  missing (only text + audio existed). New `image_ref`/`image_platform`
+  columns on `devotional_assets` (migration `e3f4a5b6c7d8`), new
+  `content_service.register_devotional_image`, new admin command
+  `/admin_devotional_image <slug>` (send a photo with that caption), and
+  delivery wired into both `/devotional <slug>` and the khatm-participation
+  recitation flow (`portions.py::_send_recitation_content`).
+- **Registered 3 new dua texts** the owner sent verbatim: Dua Ale-Yasin,
+  Dua Ahd, Dua Moshkel Gosha (slugs `dua-ale-yasin`, `dua-ahd`,
+  `dua-moshkel-gosha`) — same convention as Ziyarat Ashura (bold Arabic +
+  Persian translation, chunked for Telegram's message-length limit).
+  `scripts/register_devotional_content_batch2.py`.
+- **Local Postgres crashed again overnight** (same recurring
+  0x40010004 exception as before, coinciding with the local VPN proxy
+  also dropping — likely a laptop sleep/network event, not an app bug) —
+  restarted the dev-test cluster on port 55433, ran the pending dua
+  registration, verified full `pytest` (151) passes, both bots restarted,
+  `/health` OK.
+- **Not done, flagged for the owner:** true per-dua multiple-reciter
+  browsing (e.g. Ziyarat Ashura having two different reciters to choose
+  between) needs a real new data model (a devotional asset currently has
+  exactly one audio slot, not a list) and a new hierarchical picker UI —
+  a genuinely separate feature, not attempted this pass to avoid a rushed
+  half-implementation at the end of a long session.
+
+## 2026-09-22 — "confused-user" persona pass: hour pickers replace raw 0-23 typing
+
+Owner asked to actually put myself in the shoes of a non-technical user
+and walk through the bot's flows to find real friction, not just review
+text. Did an objective sweep of the whole `i18n/__init__.py` first
+(banned jargon words, blame-toned phrases, over-long sentences) — result
+was clean, no violations found (prior sessions' plain-language pass had
+already covered this; see BACKLOG.md §19 for the full method). The real
+friction found was interaction-shaped, not text-shaped:
+
+- Two places asked someone to type a raw hour (0–23, 24-hour clock) with
+  no other option: the join-time delivery-hour question (`start.py`) and
+  the open-Quran-reading setup wizard (`portions.py`). Confusing/error-
+  prone for anyone unsure of 24-hour notation. Added
+  `keyboards.py::delivery_hour_keyboard` — six plain-language time-of-day
+  buttons (🌅 صبح زود / ☀️ صبح / 🌞 ظهر / 🌤 بعدازظهر / 🌇 غروب / 🌙 شب) as
+  the primary path in both flows; typing an exact hour still works as a
+  fallback for anyone who wants precision. New test
+  `tests/test_delivery_hour_button_picker.py`.
+- Full `pytest` (77) + real-Postgres integration (151 total) pass; both
+  bots restarted, `/health` OK.
+
+## 2026-09-22 — miss notice: 2 consecutive days + phone number for creator; skip_today removed [Claude Code]
+
+**تصمیم مالک (آیتم ۱۵ BACKLOG):**
+- دکمهٔ «امروز نمی‌رسم» از UI حذف شد (قبلاً no-op بود، حالا کاملاً پاک‌سازی شد)
+- غیبت ۲ روز پشت‌سرهم: سازنده نام + شماره تماس عضو + پیام «چیکارش کنیم؟» می‌گیرد
+
+**فایل‌های تغییرکرده:**
+- `src/khatmsaz/modules/reminder_engine/service.py`
+- `src/khatmsaz/modules/khatm/models.py` + `repository.py`
+- `src/khatmsaz/modules/khatm_workflow/service.py`
+- `migrations/versions/78e35fca4f39_shorten_miss_notice_window.py`
+- `tests/test_creator_miss_notice_integration.py`
+
+**150 تست پاس، migration اجرا شد.**
+
+---
+
+## 2026-09-22 — BACKLOG item 8: today-vs-yesterday for committed quantity khatms [Claude Code]
+
+**فایل‌های تغییرکرده:**
+- `src/khatmsaz/modules/allocation/models.py` — `CommittedQuantityLog` model
+- `src/khatmsaz/modules/allocation/repository.py` — log insert + range query
+- `src/khatmsaz/modules/allocation/service.py` — auto-log on progress record + `today_vs_yesterday_committed`
+- `src/khatmsaz/bot/handlers/portions.py` — نمایش امروز/دیروز در پاسخ تعهدی
+- `migrations/versions/c8e057163033_add_committed_quantity_logs.py` — migration
+- `tests/test_committed_today_vs_yesterday_integration.py` — تست
+
+**149 تست پاس، migration اجرا شد.**
+
+---
+
+## 2026-09-22 — delivery-hour question extended to ALL committed khatm types [Claude Code]
+
+**فایل‌های تغییرکرده:**
+- `src/khatmsaz/bot/handlers/start.py` — شرط `unit_kind == POSITIONAL` از
+  trigger پرسش ساعت تحویل حذف شد؛ حالا برای همهٔ ختم‌های تعهدی (قرآن +
+  صلوات + دعا + لعن) پرسیده می‌شه
+- `tests/test_join_delivery_hour_ask_integration.py` — تست جدید برای صلوات
+
+**148 تست پاس.**
+
+---
+
+## 2026-09-22 — start.py join-flow fully i18n'd; creator_web_login DB-before-HTTPS-check bug fixed; test isolation regression fixed [Claude Code]
+
+**فایل‌های تغییرکرده:**
+- `src/khatmsaz/bot/handlers/start.py` — همهٔ رشته‌های هاردکد join-flow (خطاهای
+  لینک دعوت، ختم حذف‌شده/تموم‌شده/عضوقبلی، تعهد، کپشن کاور، خصوصی، لغو)
+  با `t()` و کلیدهای جدید `join.*` جایگزین شدن؛ `_request_private_join`
+  پارامتر `lang` گرفت؛ `cancel_commitment` از DB زبان می‌گیره
+- `src/khatmsaz/bot/handlers/my_khatms.py` — چک HTTPS به پیش از `_lang_for`
+  منتقل شد تا در مسیر reject به DB وصل نشه
+- `src/khatmsaz/i18n/__init__.py` — ۱۱ کلید جدید `join.error.*`,
+  `join.cancelled`, `join.commitment_*`, `join.private_request_sent`,
+  `join.cover_caption`
+- `docs/ai/I18N_MIGRATION.md` — `start.py` و `my_khatms.py` هر دو `[x]` شدن
+
+**تست:** ۶۸ unit + ۱۴۷ integration همه پاس.
+
+---
+
+## 2026-09-22 — Bale join link is now a real clickable link; Telegram registration no longer accepts a typed phone number
+
+- Owner-reported bug: the Bale invite in the "khatm created" message was
+  raw text telling the recipient to manually type `/start join_<token>`
+  into Bale — error-prone, not an actual link, and reported broken in
+  practice. Fixed to build a real `https://ble.ir/<username>?start=join_<token>`
+  clickable link, matching the format `portions.py::_invite_friends_line`
+  already assumes elsewhere in this codebase (so this is now consistent,
+  not a new unconfirmed guess). New test
+  `tests/test_bale_invite_link_is_clickable.py`.
+- Owner clarification on the phone-share ambiguity from earlier tonight:
+  during **initial registration on Telegram**, only the "share my number"
+  button should work — typing a number manually is no longer accepted
+  there (Bale has no button-share equivalent, so Bale still allows
+  typing). New i18n keys `registration.ask_phone_share_only` /
+  `registration.use_share_button_only`. New test
+  `tests/test_registration_phone_share_only.py`. (Scoped only to the
+  initial-registration step — `change_phone.py`'s manual phone-change
+  flow is a different, deliberately-typed context and is untouched.)
+- Full `pytest` (74) + real-Postgres integration (147 total) pass; both
+  bots restarted, `/health` OK.
+
+## 2026-09-22 — Bale bot activated; real bug fixed: creating a khatm no longer restarts from scratch if phone/profile verification is needed mid-way
+
+- **Bale bot activated.** New token + username set in `.env`; Bale is now
+  running alongside Telegram (confirmed live in logs: both bots polling).
+  Super-admin auto-promotion (`identity/service.py`) was Telegram-only —
+  extended to also check a new `SUPER_ADMIN_BALE_CHAT_IDS` env var
+  (`config.py`), set to the owner's given Bale id, so the same
+  first-admin bootstrap mechanism now works on Bale too.
+- **Real, high-impact bug fixed (owner-reported):** a first-time creator
+  whose phone wasn't verified yet lost their *entire* create-khatm wizard
+  the moment they tapped confirm — `confirm_wizard` used to just clear the
+  state and tell them to run `/verify_phone` and start over from scratch.
+  Now it kicks off the same phone-verification (or profile-completion,
+  if that's what's missing first) flow while keeping every answer the
+  wizard already collected, and once verification succeeds, the khatm
+  actually gets created immediately with those preserved answers — no
+  restart. New `create_khatm.py::resume_khatm_creation_if_pending`,
+  wired into both `change_phone.py`'s OTP-success handler and
+  `profile.py`'s profile-completion handler (both previously just showed
+  a generic "done" message and dropped back to the main menu,
+  discarding any in-progress wizard). New end-to-end test
+  `tests/test_create_khatm_survives_phone_verification.py` — actually
+  drives a wizard into the unverified-phone case, extracts the dev-mode
+  OTP code, enters it, and confirms the khatm was created with the
+  original title/type.
+- **New system-settings admin feature** (owner request: "همه چیز
+  داینامیک باشه"): generic `system_settings` key/value table (migration
+  `d2e3f4a5b6c7`) + `/admin_settings` / `/admin_setting_set` commands.
+  First two real values wired in: `default_reminder_hour` and
+  `inactivity_days` in `reminder_engine.service`, previously hardcoded
+  Python constants — now live-editable without a deploy.
+- **⚠️ Flagged, not guessed at:** the owner also described a phone-share
+  reply-keyboard issue in Telegram ("کیبورد بسته بشه تا دکمه شیر بیاد") —
+  the phrasing was ambiguous enough (possible dictation artifact) that
+  guessing at a fix risked solving the wrong problem. Needs a follow-up
+  screenshot or clearer description before touching `registration.py`'s
+  `_phone_keyboard`.
+- Full `pytest` (72) + real-Postgres integration (144 total) pass;
+  `alembic upgrade head` applied; both bots restarted, `/health` OK.
+
+## 2026-09-21 — Salawat no longer asks for custom text (La'an-only now); category→devotional content link is now explicit and admin-editable
+
+- Owner-reported bug: "برای صلوات نباید متن رو از یوزر بخواد؛ متن صلوات
+  همیشه ثابته — این فقط باید برای لعن باشه." The creator-authored-text
+  step in the create-khatm wizard fired for every Salawat-template khatm
+  (plain Salawat, Dua, *and* La'an) when it should only ever fire for
+  La'an — Salawat wording is fixed/standard, Dua text comes from the
+  admin-managed devotional library. Fixed the condition in
+  `bot/handlers/create_khatm.py::_after_welcome` to check
+  `category_group == LAAN` instead of just the SALAWAT template type;
+  reworded `create_khatm.ask_recitation_text` to say "لعن" explicitly.
+- **BACKLOG.md §14 follow-up, done:** replaced the fragile name-matching
+  hack (checking if "عاشورا" appeared in a category's title to guess
+  which devotional-library text to send) with a real, explicit
+  `KhatmCategory.devotional_slug` column — admin-editable from the
+  categories web panel (new migration `c1d2e3f4a5b6`). The old
+  name-matching is kept only as a fallback for categories an admin
+  hasn't linked yet, so nothing that worked before silently breaks.
+- New tests: `tests/test_recitation_text_only_for_laan.py`,
+  `tests/test_category_devotional_slug_link.py`.
+- **Admin-panel dynamism audit (owner asked: "همه چیز قابل کنترل و
+  ویرایش باشه، داینامیک باشه"):** researched what's already
+  admin-editable vs. hardcoded across the whole panel. Already dynamic
+  and broader than expected: pricing/plans, SMS plans, coupons, message
+  templates, roles, devotional categories (now including this slug
+  link), Quran cover approvals, Quran source-channel seeding. Confirmed
+  hardcoded-in-Python items that would need real (migration-sized) work
+  to make dynamic: the reciter whitelist (`SYSTEM_RECITERS`), Quran
+  edition list, and the `KhatmCategoryGroup` enum (SALAWAT/LAAN/DUA count
+  fixed at 3 — extending it needs a DB enum migration, not just an admin
+  toggle). No global system-settings key/value table exists yet for
+  tuning small numeric defaults (reminder hour, inactivity days) without
+  a migration each time — flagged as the highest-leverage next step if
+  more "make this a number I can change" requests come in.
+- Full `pytest` (70) + real-Postgres integration (143 total) pass;
+  `alembic upgrade head` applied cleanly; bot restarted, `/health` OK.
+
+## 2026-09-21 — Fixed: picking a reciter never actually turned audio on
+
+- Owner-reported bug: "قاری رو فعال میکنم اما صوت ارسال نمیشه." Root
+  cause: `UserSettings.quran_audio_enabled` is a separate flag (defaults
+  to `False`, lives on a different settings screen) that picking a
+  reciter — via either the ⚙️ تنظیمات inline menu or the typed `/reciter`
+  command — never touched. So no matter which reciter someone picked,
+  `content_service.resolve_current_quran_delivery` kept skipping audio
+  because the unrelated flag was still off. Fixed both entry points
+  (`settings_menu.py::set_reciter`, `reciter_settings.py::set_reciter`) to
+  turn audio on when a reciter is picked, matching the obvious intent.
+- New tests: `tests/test_reciter_activates_audio_integration.py` (both
+  entry points).
+- **Real end-to-end verification, not just unit tests (owner asked to
+  actually go check audio comes through):** found `quran_page_assets` was
+  completely empty *again* (0 rows) — almost certainly fallout from
+  tonight's Postgres crash/WAL-recovery. Re-ran the idempotent seed (604
+  images + 604 audio restored, no risk of duplicates). Then ran a real
+  script through the actual production code path — created a live Quran
+  khatm with the real boundary-aligned allocator, called the real
+  `settings_menu.py::set_reciter` handler, then called the real
+  `notify_adapter.build_send_quran_pages_fn` (the function the reminder
+  engine actually uses to push content) against a fake bot capturing
+  calls. Result: first portion resolved to pages 1-3 (matches the earlier
+  audio-boundary fix) and exactly 3 real Telegram `forward_message` calls
+  went out — 2 for images (pages 1 and 2 correctly deduped into one
+  shared image forward, page 3 as its own) and exactly 1 for audio
+  (the combined 1-3 recording, deduped from 3 page-rows into 1 send) —
+  proving both the reciter/audio-toggle fix and the audio-boundary fix
+  from earlier tonight work correctly together against real seeded data,
+  not just in isolation.
+- **Self-heal added so this can't silently recur unnoticed:** since
+  `quran_page_assets` has now emptied twice this session after unrelated
+  Postgres crashes, `bootstrap.py::main` now re-runs the idempotent
+  `seed_verified_quran_channel_map` on every single startup (a few seconds
+  of one-time cost, logs the result, never blocks startup on failure) —
+  confirmed live: fresh restart logged
+  `Quran channel map self-heal check: {'ready': True, ...}`.
+- Full `pytest` (67) + real-Postgres integration (139 total) pass; bot
+  restarted, `/health` OK.
+
+## 2026-09-21 — Committed Quran members now get their hour asked at join + content auto-pushed daily; local Postgres crash recovered; bot wrapped in an auto-restart watchdog
+
+- Owner request: every committed member should be asked what hour to
+  receive their daily portion, right at join time (not left to silently
+  default to hour 9) — new `AskDeliveryHour` FSM step in
+  `bot/handlers/start.py::resume_join_after_registration`, fires once for
+  a fresh QURAN_PAGE COMMITMENT join with a real first portion assigned.
+- Owner request ("سهم امروز باید اتومات باشه، دکمه نداشته باشه"): a
+  committed Quran participant's daily portion content (image/audio/text)
+  is now auto-pushed alongside the reminder text — both the first-portion
+  daily digest and every later day's `deliver_due_next_portions` — reusing
+  the same `send_quran_pages` mechanism already built for open-Quran
+  readers (BACKLOG.md §24). New `reminder_engine.service._push_portion_content`
+  helper, best-effort (a delivery failure never blocks the reminder text).
+- Found and fixed two more stale occurrences of the removed backup-reader
+  wording ("سهم را به یکی از دوستان بسپارید") in `reminder_engine.service`'s
+  default reminder text — missed in the earlier sweep since they live in a
+  different function than the ones already fixed.
+- New tests: `tests/test_committed_quran_auto_content_push_integration.py`,
+  `tests/test_join_delivery_hour_ask_integration.py`.
+- **Infra, not code — real production risk found and fixed:** the local
+  dev/test Postgres cluster (port 55433) crashed mid-session (an OS-level
+  client-backend termination, unrelated to any code change) and the bot
+  process died with it. Both recovered (`pg_ctl start`, WAL replayed
+  cleanly, no data loss). Since the owner was going offline for the night,
+  the bot is now run under a small restart-loop watchdog script instead of
+  a bare background process, so a future crash self-heals without needing
+  anyone awake to restart it.
+- Documented a GitHub-based deployment alternative (owner's own
+  private repo → server `git clone`/`git pull`) in `Rahnama.VPS.txt`
+  (new §8-ب), alongside the existing SCP-based method — `.env` was
+  already correctly excluded via `.gitignore`.
+- Full `pytest` (65) + real-Postgres integration (137 total) pass; bot
+  restarted, `/health` OK.
+
+## 2026-09-21 — Restored creator-only miss notification (owner reversed part of the earlier removal after being asked to confirm)
+
+- Owner was asked directly whether "nobody gets notified on a miss"
+  (decided earlier today) should stand, given a new request implied the
+  opposite. They confirmed: creator should be notified after repeated
+  misses. Implemented narrowly: participant is still never notified and
+  their portion is still never released to anyone else — only the
+  creator gets an informational message once a member crosses the
+  khatm's own miss threshold/window (fields already existed, no
+  migration). New `reminder_engine.service._maybe_record_miss_and_notify_creator`.
+- New test `tests/test_creator_miss_notice_integration.py`. Full `pytest`
+  (64) + real-Postgres integration (135 total) pass; bot restarted,
+  `/health` OK.
+
+## 2026-09-21 — Fixed real UX bugs from owner screenshots: language-leaking buttons, wrong post-completion keyboard, stale consent text
+
+- `contribute_keyboard`/`commitment_quantity_keyboard` (`bot/keyboards.py`)
+  had hardcoded Persian button text with no `lang` param — an English-mode
+  user got an all-English message with a Persian "ثبت مشارکت" button.
+  Fixed: both now take `lang` and use `t()`; all call sites
+  (`portions.py`, `start.py`) updated.
+- Real UX bug (owner screenshot): after tapping "✅ انجام دادم", the
+  confirmation message still showed "📖 نمایش محتوای سهم" and "✅ انجام
+  دادم" again — buttons for a portion that was already just completed.
+  Split `portion_done_keyboard` (for a still-pending portion — content +
+  done + snooze) from a new `post_completion_keyboard` (snooze + undo
+  only) and switched `mark_portion_done`'s three response branches to the
+  latter. Also translated both keyboards' labels (were hardcoded Persian).
+- Fixed stale wording in the commitment join-consent prompt
+  (`start.py::resume_join_after_registration`) — it still said "if I
+  can't, I'll let people know early so the portion doesn't fall behind,"
+  describing the now-removed backup-reader mechanism. Reworded to be
+  responsibility-framed instead (BACKLOG.md §14): missing your portion
+  can hold back the whole khatm and everyone else's progress.
+- Full `pytest` (63) + real-Postgres integration (134 total) pass; bot
+  restarted, `/health` OK.
+
+## 2026-09-21 — Open/waitlisted Quran readers now actually receive real page content (BACKLOG.md §24)
+
+- Root cause: OPEN Quran khatms (and waitlisted, non-committed members of
+  a COMMITMENT Quran khatm) only ever logged a bare contribution number —
+  real page delivery required a `KhatmPortion`, which only exists for
+  committed participants. Confirmed via full trace before writing any code.
+- New migration (`r9s0t1u2v3w4`): 3 columns on `khatm_participations`
+  (`open_reading_pages_per_day`, `open_reading_next_page`,
+  `open_reading_last_sent_at`).
+- First "ثبت مشارکت" tap for a non-committed Quran participant now asks
+  pages/day + delivery hour, then immediately sends that day's real pages;
+  subsequent manual logging also delivers real content, not just a number.
+- New `reminder_engine.service.deliver_due_open_quran_reading` (wired into
+  the existing 30-min scan) auto-sends the daily batch at the reader's
+  chosen hour, once per local day, and stops at the edition's last page.
+- New `bot/notify_adapter.py::build_send_quran_pages_fn` for actual
+  photo/audio delivery from the platform-agnostic reminder engine.
+- New test `tests/test_open_quran_reading_integration.py`. Full `pytest`
+  (63) + real-Postgres integration (134 total) pass; migration applied;
+  bot restarted, `/health` OK.
+
+## 2026-09-21 — my_khatms.py creator commands fully translated + tone-guide pass; fixed a real NameError bug
+
+- Translated every remaining Persian-only string in `bot/handlers/my_khatms.py`
+  (all `/khatm_*` typed commands + the `cs:*` inline settings tree) to
+  fa/ar/en, ~90 new `my_khatms.creator.*` i18n keys, written against
+  `docs/ai/TONE_GUIDE_80YO_PERSONA.md`'s checklist (BACKLOG.md §19/§3).
+- Fixed a real bug: `khatm_stats`'s phone-not-verified branch referenced
+  an undefined `callback` variable — would have raised `NameError` for
+  any creator with an unverified phone running `/khatm_stats`.
+- Removed `/khatm_skip_today` and `/khatm_miss_policy` outright (not
+  translated) — both configured features already removed from the UI in
+  today's earlier emergency-portion-removal pass, so they no longer did
+  anything visible.
+- Full `pytest` (63, one assertion updated for new tone-compliant copy) +
+  real-Postgres integration (133 total) pass; bot restarted, `/health` OK.
+
+## 2026-09-21 — "ختم‌های من" redesigned as a hierarchical menu (BACKLOG.md §18)
+
+- Replaced the single long text list with a 3-level navigable menu:
+  created/joined/finished → content type (Quran/Salawat/Dua/La'an) →
+  individual khatms with their existing action buttons. No FSM state —
+  each navigation tap (`mk:root`/`mk:b:*`/`mk:c:*`) re-reads from the DB
+  and edits the same message in place.
+- New `_build_my_khatms_tree`/`_render_my_khatms_{root,branch,category}`
+  in `bot/handlers/my_khatms.py`; grouping uses `Khatm.template_type` +
+  `KhatmCategory.group` (`content_category_id`).
+- New test `tests/test_my_khatms_hierarchy_integration.py` against real
+  Postgres (creator + member, spanning Quran/Salawat/Dua). Admin web
+  panel intentionally stays Persian-only — the admin's own language
+  choice, per the owner.
+- Full `pytest` (63) + real-Postgres integration (133 total) pass; bot
+  restarted, `/health` OK.
+
+## 2026-09-21 — Removed emergency-portion/backup-reader system; one Quran portion per day
+
+- Owner decision: remove the entire emergency-portion/backup-reader
+  concept — a missed portion no longer notifies anyone or gets released to
+  a shared pool; the same member simply gets it later. Removed the
+  `emergency:`/`backup_toggle:`/`skip_today:` callbacks, their keyboards,
+  `reminder_engine.service._maybe_send_miss_notice`, and reduced
+  `/khatm_decision` to a short "no longer available" stub. Cleaned up
+  ~15 now-dead i18n keys this left behind.
+- Implemented "one Quran portion per day": completing a portion no longer
+  auto-advances to the next one; a new `reminder_engine.deliver_due_next_portions`
+  hands out the next portion once a full day has passed in the member's
+  own timezone, at their existing `/reminder` hour. New integration test
+  `tests/test_one_portion_per_day_integration.py`.
+- Fixed two now-stale strings that still described the removed mechanism
+  as reassuring ("someone else will cover it") — rewritten to be
+  responsibility-framed instead (BACKLOG.md §14), since they were now
+  simply false.
+- Found and fixed an unrelated, pre-existing operational bug: two
+  independent bot processes were both polling Telegram at once (real
+  double-handling risk) — killed both, started one clean instance.
+- Full `pytest` (62) + real-Postgres integration (70) pass; bot restarted,
+  `/health` OK.
+
+## 2026-09-21 — Fixed Quran portion/audio boundary mismatch (real, wide bug)
+
+- Root-caused and fixed a real bug where most Quran-commitment portions
+  (300 of 302, not just the reported "pages 7-8") got two different audio
+  messages, because portion boundaries (uniform 2-per-portion from page 1)
+  didn't match the real reciter's audio-segment boundaries (1-3, then
+  4-5, 6-7, ...). Added `allocation_service.generate_quran_page_plan_from_boundaries`
+  and used it for the canonical 604-page edition only.
+- Found and fixed an unrelated incident: `quran_page_assets` was empty
+  (stale local Postgres snapshot); re-ran the idempotent seed.
+- Fixed two integration tests broken by an earlier `_creator()` i18n
+  change (new UserSettings side effect not accounted for in teardown).
+- Investigated the "add devotional audio without code" request: already
+  fully supported via `/admin_devotional_text` + `/admin_devotional_audio
+  <slug>` caption command; no new feature needed.
+- Flagged "one Quran portion per day" as not yet built — needs an owner
+  decision before touching a core, heavily-used subsystem (see BACKLOG §23).
+- Verified with full pytest + full real-Postgres integration suite (both
+  before and after each change), multiple real-Postgres verification
+  scripts, and a bot restart + `/health` check. (Claude Code)
+
+## 2026-09-21 — Devotional content delivery + suggestions inbox
+
+- Registered the owner-supplied Ziyarat Ashura (bold Arabic + Persian
+  translation, chunked) and Salawat text into `devotional_assets` via
+  `scripts/register_devotional_content.py`.
+- Fixed `devotional.py`: it was HTML-escaping `text_body`, which silently
+  broke all bold formatting; now sends trusted-HTML chunks split on `\x1e`.
+- Added an optional creator-authored recitation-text wizard step for
+  SALAWAT-family khatms (stored in the pre-existing `Khatm.description`
+  column, no migration); wired delivery into `portions.py` after each
+  contribution — custom text if set, else a devotional-library fallback
+  matched by category title (stopgap; needs a real `devotional_slug` FK
+  later, see BACKLOG §14).
+- Added a suggestions/bug-report inbox (`suggestions.py`): a Help-menu
+  button that records feedback in `audit_logs` and pushes it live to all
+  Super Admin chats.
+- Verified with full pytest suite (updated `test_help.py`'s callback-set
+  assertion), real-Postgres delivery-path checks, chunk-size verification,
+  import smoke-tests, and a bot restart + `/health` check after each
+  change. (Claude Code)
+
+## 2026-09-21 — Creator Mini App panel localized; go-live readiness confirmed
+
+- Localized the creator-facing web/Mini-App templates (`creator_base.html`,
+  `creator_dashboard.html`, `creator_khatm_detail.html`, `creator_login.html`)
+  to `t(key, lang)`; added ~60 fa/ar/en keys under `web.*`. Admin-only pages
+  intentionally left Persian, same reasoning as `admin.py`.
+- Confirmed via `.env` inspection and a real-Postgres end-to-end script
+  that core flows (register, phone verify, create khatm, join, contribute)
+  already work today without PayPing or Kavenegar configured
+  (`KHATM_CREATION_PRICE_TOMAN=0`, `DEV_OTP=1`, `SMS_PROVIDER=noop`).
+- Restarted local dev Postgres and the bot process after an interruption;
+  verified `/health` and live polling.
+- Investigated content-delivery for Salawat/Ziyarat khatms: no such
+  pipeline exists yet (only Quran has one); flagged as a real fast-follow
+  feature, not built today — Ziyarat Ashura's text needs a verified source
+  from the owner, not a reproduction from memory.
+- Verified with full pytest suite, a real-Postgres smoke test, a direct
+  Jinja2 render check in 3 languages, and a bot restart + `/health` check.
+  (Claude Code)
+
+## 2026-09-20 — Fixed language-menu reply-keyboard bug and reciter picker; investigated Quran-content report
+
+- `settings_menu.py`: changing language now also refreshes the persistent
+  bottom Reply Keyboard immediately (was only updating the inline settings
+  message before).
+- `content/service.py`: reciter picker now only offers Parhizgar
+  (the only reciter with real registered audio) via a new
+  `RECITERS_WITH_REGISTERED_AUDIO` constant; the underlying `SYSTEM_RECITERS`
+  whitelist and its fallback-logic tests are untouched.
+- Investigated the "content not registered" report: seed data and delivery
+  queries are correct; the real cause is old test khatms using the
+  superseded `iran-pocket` edition, which was never seeded with page
+  assets. Not a code bug — recommended retesting with a fresh khatm.
+- Verified with full pytest suite, the full real-Postgres integration
+  suite (69 passed), an import smoke-test, and a bot restart + `/health`
+  check. (Claude Code)
+
+## 2026-09-20 — Fixed message burst, province keyboard height, and join-invite text
+
+- `my_khatms.py`: `list_my_khatms` no longer sends a burst of one message
+  per khatm/action; everything is now one combined inline keyboard on the
+  single summary message, with creator management behind a "Manage" opener
+  button. New `my_khatms:manage:<id>` callback.
+- `registration.py` / `profile.py`: province-selection keyboard now pairs
+  two provinces per row instead of one-per-row, halving its height.
+- `start.py`: `build_join_preview_message` now explains the khatm's content
+  type (Quran/Salawat/Dua/La'an, with real category names) and what
+  committing to it actually means (including the real pledged quantity for
+  Salawat/Dua/La'an), fully localized fa/ar/en.
+- Verified with full pytest suite (no regressions in `test_welcome_text.py`),
+  real-Postgres one-off scripts for all three fixes, an import smoke-test,
+  and a bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — Legacy settings commands localized; bot-side i18n rollout complete
+
+- Owner resolved 3 open i18n-scope questions (DEC-PY-0075): `admin.py`
+  stays Persian-only; the admin web panel needs translation (separate,
+  not-yet-started task); legacy typed settings commands get translated.
+- Converted all 7 legacy settings files (`digest_settings.py`,
+  `font_settings.py`, `language_settings.py`, `reciter_settings.py`,
+  `reminder_settings.py`, `sms_settings.py`, `timezone_settings.py`) to
+  `t(key, lang)`; added 28 fa/ar/en keys.
+- This completes the entire bot-side i18n rollout. Only the admin web
+  panel remains, and it's a distinct task requiring its own architecture
+  decisions first.
+- Verified with full pytest suite, a real-Postgres key check, an import
+  smoke-test for all 7 modules, and a bot restart + `/health` check.
+  (Claude Code)
+
+## 2026-09-20 — devotional.py localized; normal-priority i18n checklist complete
+
+- Converted `bot/handlers/devotional.py` to `t(key, lang)`; added 4
+  fa/ar/en keys.
+- Reviewed `broadcast.py`: no changes needed (typed admin/creator commands
+  plus free-form creator-authored broadcast text, nothing translatable).
+- This completes every "normal priority" file on `docs/ai/I18N_MIGRATION.md`'s
+  checklist. Remaining: legacy typed-command settings files (low
+  priority), `admin.py`, and the admin web panel — both need an owner
+  decision before further work.
+- Verified with full pytest suite, a real-Postgres key check, an import
+  smoke-test, and a bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — manual_phone_verification.py: requester notification localized
+
+- `bot/handlers/manual_phone_verification.py` is admin-only UI (stays
+  Persian, like `admin.py`); localized only the approved/rejected
+  notification sent to the requester — 2 fa/ar/en keys.
+- Verified with full pytest suite, key checks, an import smoke-test, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — public_khatms.py fully localized
+
+- Converted `bot/handlers/public_khatms.py` to `t(key, lang)`; added 4
+  fa/ar/en keys.
+- Verified with full pytest suite, a real-Postgres key check, and a bot
+  restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — khatm_request.py localized (submitter side + notifications)
+
+- Converted the submitter-facing flow in `bot/handlers/khatm_request.py`
+  to `t(key, lang)`; added 11 fa/ar/en keys. Admin typed commands remain
+  Persian (like `admin.py`), but the approve/reject notification back to
+  the requester always uses the requester's own language.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — creator_decisions.py fully localized
+
+- Converted `bot/handlers/creator_decisions.py` (`/khatm_decision`) to
+  `t(key, lang)`; added 11 fa/ar/en keys. Fully localized despite being a
+  creator typed command, because it also notifies a promoted third-party
+  member.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — account.py fully localized
+
+- Converted `bot/handlers/account.py` (delete-account confirm/cancel flow)
+  to `t(key, lang)`; added 11 fa/ar/en keys under `account.*`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — account_link.py fully localized
+
+- Converted `bot/handlers/account_link.py` to `t(key, lang)`; added 11
+  fa/ar/en keys under `account_link.*`, including the real OTP SMS text.
+- Language resolved from the source account (current chat), carried via
+  `state.update_data(lang=...)`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — change_phone.py fully localized
+
+- Converted `bot/handlers/change_phone.py` to `t(key, lang)`; added 22
+  fa/ar/en keys under `change_phone.*`, including the actual OTP SMS text
+  sent via Kavenegar (not just in-bot messages).
+- Language carried through the multi-step OTP flow via
+  `state.update_data(lang=...)`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — wallet.py fully localized
+
+- Converted `bot/handlers/wallet.py` (balance, invoices, PayPing top-up) to
+  `t(key, lang)`; added 21 fa/ar/en keys under `wallet.*`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — join_requests.py localized + shared join-success message localized
+
+- Converted `bot/handlers/join_requests.py` to `t(key, lang)`, per-recipient
+  (creator vs. requester) same as `leave.py`; added 10 fa/ar/en keys.
+- Localized `build_join_success_message()` in `bot/handlers/start.py` (used
+  by both the direct join flow and this file's approval flow); added a
+  `lang` parameter and 9 new `join.*` keys. Rest of `start.py` remains
+  Persian-only for now (separate checklist item).
+- Verified with full pytest suite, a real-Postgres key/format check plus an
+  import smoke-test, and a bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — leave.py fully localized
+
+- Converted `bot/handlers/leave.py` to `t(key, lang)`; added 14 fa/ar/en
+  keys under `leave.*`.
+- First multi-recipient file this session: requester, creator, and
+  promoted waitlist member each get their notification in their own
+  stored language via a new `_lang_for_user(session, user_id)` helper.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — report.py fully localized
+
+- Converted `bot/handlers/report.py` (today overview + personal report) to
+  `t(key, lang)`; added 11 fa/ar/en keys under `report.*`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — portions.py fully localized
+
+- Converted `bot/handlers/portions.py` (portion completion, contribution
+  logging, today-vs-yesterday, pause/resume/snooze, emergency-portion
+  claim, friend-invite line) to `t(key, lang)`; added 60 fa/ar/en keys
+  under `portions.*`.
+- Plain callback handlers resolve language via `_lang_for()`; the three
+  multi-message FSM flows store it once in `state.update_data(lang=...)`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — my_khatms.py member entry point localized; NameError bug fixed
+
+- Localized `list_my_khatms` (the "🕋 ختم‌های من" button) and its follow-up
+  messages in `bot/handlers/my_khatms.py`; added 21 fa/ar/en keys under
+  `my_khatms.*`. Creator typed commands and the `cs:*` inline settings tree
+  intentionally left in Persian pending an owner decision (same as
+  `admin.py`).
+- Fixed a real pre-existing bug: a block of message loops was misplaced
+  inside `confirm_cancel_khatm`, referencing undefined variables — this
+  would raise `NameError` on every khatm-cancellation confirmation. Removed
+  the dead/broken duplicate; the correct logic already existed in
+  `list_my_khatms`.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — settings_menu.py fully localized
+
+- Converted `bot/handlers/settings_menu.py` and its keyboards in
+  `bot/keyboards.py` to `t(key, lang)`; added 49 new fa/ar/en keys under
+  `settings.*`.
+- Language is read fresh per screen from `UserSettings.language` (no FSM
+  state in this router), via a small `_lang_for()` helper.
+- Verified with full pytest suite, a real-Postgres key/format check, and a
+  bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — create_khatm.py wizard fully localized
+
+- Converted the entire khatm-creation wizard (`bot/handlers/create_khatm.py`)
+  to `t(key, lang, **kwargs)`; added 105 new fa/ar/en keys to
+  `src/khatmsaz/i18n/__init__.py` under `create_khatm.*`.
+- Language resolved once at wizard start and carried in FSM state (`lang`)
+  instead of re-querying the DB on every step.
+- Verified with full pytest suite, a real-Postgres one-off key/format check,
+  and a bot restart + `/health` check. (Claude Code)
+
+## 2026-09-20 — help.py fully localized
+
+- Wired `bot/handlers/help.py` to resolve the real user's stored language
+  and pass it through to `help_keyboard`/`help_*_actions_keyboard` (Codex
+  had already added the translation keys and keyboard `lang` params in
+  parallel, but nothing called them with a real language yet).
+- Kept `HELP_TOPICS` (fa-only) for `tests/test_help.py` compatibility.
+- Verified against real Postgres with an `en`-language user.
+
+## 2026-09-20 — Multi-language (fa/ar/en) foundation started
+
+- Added `src/khatmsaz/i18n/` (`t()`/`variants()` translation registry) and
+  `UserSettings.language_prompted` (migration `c9d0e1f2a3b4`).
+- `/start` now shows the welcome message then asks language once for
+  first-time users; returning users get their stored language.
+- Converted the 6 main-menu buttons + their filters (6 handler files) to
+  the new variant-matching pattern, needed because aiogram's `F.text == X`
+  filters can't look up the user's language before matching.
+- Added `docs/ai/I18N_MIGRATION.md`: full continuation checklist for the
+  rest of the bot's text (deliberately not attempted in one session).
+- Verified against real Postgres. Fast suite: 62 passed, 64 skipped.
+
+## 2026-09-20 — Time-limited SMS reminder subscriptions
+
+- New module `sms_subscription` (migration `b8c9d0e1f2a3`): admin-editable
+  plan options (seeded 3mo/50,000 & 6mo/87,000 toman) and a per-user
+  subscription with expiry.
+- `purchase()` charges the wallet, extends expiry, enables SMS;
+  `process_expired()` (wired into the existing periodic scan) disables SMS
+  and notifies the user exactly once per lapse.
+- Replaced the free on/off SMS toggle in `settings_menu.py` with a
+  plan-purchase keyboard; `/sms on` now points to it instead of enabling
+  for free; `/sms off` still works directly.
+- Added `/admin_sms_plan_set` for editing plan options.
+- Verified end-to-end against real Postgres (purchase, expiry, single
+  notification, no double-notify on repeat scan).
+
+## 2026-09-20 — Plain-language wizard prompts + local DB recovery
+
+- Rewrote remaining terse wizard prompts (welcome message, creator display
+  name, start schedule, reminder tone, advertising opt-in) with concrete,
+  verified explanations — corrected a misleading "ads are shown" framing
+  to accurately describe the real mechanic (platform-funded one-time
+  wallet credit, not a creator charge).
+- Found the bot down: the Docker Postgres container has no published port;
+  the actual local database is a separate recovery cluster that had
+  stopped. Restarted it and the bot manually; noted that a `start_bot.ps1`
+  terminal needs to stay open for auto-restart supervision to apply.
+
+## 2026-09-20 — Today-vs-yesterday progress for countable khatms
+
+- Added `open_contribution.service.today_vs_yesterday` +
+  `repository.total_for_khatm_between`; shows the group's running today
+  total next to yesterday's full-day total after each open-pool logging.
+- Scoped to open contribution logging only (Salawat/Dua/Ziyarat/La'an);
+  SALAWAT+COMMITMENT quantity logging has no per-increment timestamp yet,
+  flagged as a separate, bigger feature if wanted later.
+- Verified against real Postgres with a backdated row to prove the
+  day-boundary split is correct.
+
+## 2026-09-20 — Reordered creation wizard (content first, then commitment/free)
+
+- Moved the تعهدی/آزاد question to after content family + subcategory
+  selection (was asked first before); added `CreateKhatm.choosing_mode`.
+- Each (template, category group) combination now shows its own concrete
+  commitment/free example instead of one generic explanation.
+- Verified all four combinations produce distinct text and correct state
+  transitions via a direct functional test.
+
+## 2026-09-20 — Free-tier plan member caps (DEC-PY-0074)
+
+- Added `khatm_workflow.service._enforce_creation_cap` +
+  `PlanCapExceededError`: blocks *new* khatm creation (never existing
+  membership) once a FREE-tier creator's summed member count across their
+  own SALAWAT-family or QURAN_PAGE khatms hits an admin-configured cap.
+- Reused `PlanDefinition.entitlements` (no new table) with two new keys:
+  `max_devotional_members`, `max_quran_members`. Missing key = unlimited.
+- Extended `/admin_plan_set` to accept `key=value` numeric entitlements.
+- Verified end-to-end against real Postgres (cap hit blocks creation,
+  existing khatm still accepts new members).
+
+## 2026-09-20 — Post-completion invite links + docs archiving
+
+- Every portion/contribution-logged message now ends with a link inviting
+  friends to the same khatm (owner-provided sample matched).
+- Split `PROJECT_STATE.md`, `CHANGELOG.md`, `DECISIONS.md` into trimmed
+  current files + verbatim `docs/ai/archive/*.md` files; documented the
+  convention in `AI_HANDOFF_PROTOCOL.md`.
+- Resolved three BACKLOG.md clarifications (100-member cap is per-creator;
+  SMS plan prices are in thousands of toman; post-completion link = invite
+  link).
+
+## 2026-09-20 — Converted dashboard entry to signed Telegram Mini Apps
+
+- Replaced token-bearing admin/creator URL buttons with Telegram `web_app`
+  buttons and new visible `/admin_app` and `/creator_app` commands.
+- Added server-side Telegram HMAC, freshness, duplicate-field, identity and
+  authorization validation; issued only Secure, HttpOnly scoped sessions.
+- Disabled legacy query-string token login and added forged/stale/wrong-bot
+  regression tests plus a real PostgreSQL/ASGI authentication test.
+- Kept Bale closed rather than guessing an undocumented authentication flow.
+- Added a fail-closed HTTPS-origin gate so local/LAN addresses never reach
+  Telegram as invalid Mini App buttons; focused entry tests: 2 passed.
+- Complete real-PostgreSQL regression: **121 passed in 136.33s**; restarted
+  Telegram polling and verified database-aware HTTP health.
+
+## 2026-09-20 — Separated devotional parent families
+
+- Made Salawat, Dua/Ziyarat and La'an independent top-level creation choices.
+- Added group-filtered service/repository reads and guarded forged category
+  callbacks so children cannot cross parent families.
+- Limited custom content requests to Dua/Ziyarat.
+- Seeded La'an Umar, Abu Bakr, Aisha, and the eightfold Imam Reza item in
+  migration `ab8c9d0e1f2a`, leaving body text empty pending verified content.
+- Added navigation unit coverage and real PostgreSQL family-filter coverage.
+
+## 2026-09-20 — Added khatm search to the admin Mini App
+
+- Added bounded search by khatm title, creator display name and UUID, combined
+  with the existing status filter and active-member aggregate.
+- Added a real PostgreSQL/ASGI test for every search key and empty results.
+- Validation: focused integration 2 passed; fast suite 62 passed, 62 skipped.
+- Added 25-row pagination for khatm and user searches, preserving search and
+  status filters with mobile-friendly controls.
+- PostgreSQL pagination test proves the 25+1 boundary for both lists; focused
+  integration 3 passed and fast regression 62 passed, 63 skipped.
+
+## 2026-09-20 — Paginated creator reports and fixed XLSX member export
+
+- Added 25-row pagination to creator-owned khatms and searchable member
+  reports, retaining the query and enforcing ownership on every page.
+- Scoped active-member aggregation to only the visible creator khatms.
+- Fixed XLSX export crashing when the Tehran join time was already rendered as
+  text; integration now downloads and opens the workbook and checks member data.
+- Validation: focused real-PostgreSQL tests 3 passed; fast suite 62 passed,
+  64 skipped.
+- Replaced raw member status/gender enums and the technical `Miss` wording
+  with plain Persian labels; restored independent Salawat, Dua/Ziyarat and
+  La'an labels. Focused render/PostgreSQL tests: 4 passed.
+
+## 2026-09-20 — Hardened the one-command Windows bot launcher
+
+- Added a real TCP readiness probe for PostgreSQL to `start_bot.ps1`.
+- The launcher now tries the existing Docker database and the preserved local
+  PostgreSQL recovery cluster, then stops with an actionable error instead of
+  running the bot against an unavailable database.
+- Pending Alembic migrations are applied before polling starts.
+- Verified the script end-to-end: Telegram polling, admin web, and database-
+  aware HTTP 200 health all started successfully.
+- Documented `.\start_bot.ps1` as the preferred Windows command in README.
+
+---
+
+## 2026-09-20 — Made health database-aware and recovered stable local PostgreSQL
+
+- Changed `/health` from a process-only response to a real PostgreSQL
+  readiness check; database failure now returns HTTP 503 without leaking
+  connection details.
+- Added healthy/failure unit coverage; fast suite: `50 passed, 59 skipped`.
+- Initialized an isolated PostgreSQL 18 cluster after Docker Desktop stopped
+  publishing its configured host port, and applied every migration to head.
+- Full integration-enabled suite passed: `109 passed in 131.80s`.
+- Took a non-destructive custom-format backup of the Docker database and
+  restored it locally (32 users, 22 khatms), then restarted the live bot.
+- Confirmed the configured Telegram Super Admin already owns an active
+  VERIFIED phone claim; no further OTP is required for creator testing.
+- Updated `Rahnama.VPS.txt` with the new HTTP 200/503 health contract.
+
+---
+
+## 2026-09-19 — Recovered PostgreSQL and confirmed Quran forwarding live
+
+- Restarted the existing `khatmsaz-py-postgres` container on port 55433.
+- Ran the new private-join authorization regression against PostgreSQL:
+  `1 passed`.
+- Restarted the Telegram bot/admin web against the recovered database.
+- Reclassified Quran-channel forwarding as live-verified: Telegram shows the
+  forwarded pages 1–2 image and one deduplicated Parhizgar audio source post
+  covering pages 1–3, with the seeded map at 604/604 coverage.
+
+---
+
+## 2026-09-19 — Hardened private-khatm join decisions
+
+- Revalidated Cloud Code's recent handler changes with compileall and the full
+  default test suite.
+- Added creator-ownership checks for both approve and reject callbacks.
+- Enforced approval ownership again in `khatm_workflow.service` to prevent a
+  forged callback from bypassing the handler.
+- Added independent unit and PostgreSQL regression tests. The focused unit test
+  and full default suite pass (`48 passed, 59 skipped`); the PostgreSQL test
+  subsequently passed after database-container recovery.
+- Confirmed the running bot/admin health endpoint returns `{"status":"ok"}`.
+
+---
+
+## 2026-09-19 — Added optional attachments to custom khatm requests
+
+- Users can attach a document or photo after describing a requested khatm,
+  or explicitly continue without a file.
+- Only platform file ID and metadata are persisted; the bot does not download
+  the file automatically.
+- Added migration `aa7b8c9d0e1f` and PostgreSQL integration coverage.
+- Content admins now receive attached documents/photos directly while viewing
+  the pending request queue.
+- Full PostgreSQL integration suite after the change: 105 passed.
+
+---
+
+## 2026-09-19 — Regression test audit
+
+- Full default suite: 47 passed, 57 intentionally skipped integration tests.
+- Runtime health check remained `{"status":"ok"}`.
+
+---
+
+## 2026-09-19 — Audited payment-secret handling
+
+- Confirmed the PayPing panel credentials are absent from project files.
+- Confirmed `.env` is ignored and the API token remains unset until the owner
+  creates a dedicated token manually.
+
+---
+
+## 2026-09-19 — Completed button-first open schedule choices
+
+- Added workday, weekend, and specific-date choices to the open-khatm
+  schedule menu.
+- Specific dates are entered in Tehran-local `YYYY-MM-DD` format and pass
+  through the existing ownership and service validation.
+- Validation: compileall passed; focused tests 7 passed.
+- Creator settings now show the currently selected schedule in plain Persian.
+- Fixed-date schedules now reject past dates using the configured application
+  timezone at the service boundary.
+
+---
+
+## 2026-09-19 — Added button-first ending and open scheduling
+
+- Added Tehran-local historical end-date entry/clear controls to per-khatm
+  settings, with future-date and ownership validation.
+- Added open-khatm schedule presets for off, daily, and every three days.
+- Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
+
+## 2026-09-19 — Added a recoverable Windows bot launcher
+
+- Added `start_bot.ps1` and `start_bot.bat` for the local project.
+- The launcher automatically retries an unexpected bot-process exit after five
+  seconds and documents the distinction between local and VPS operation.
+
+## 2026-09-19 — Added button-first miss-alert policy presets
+
+- Added the current miss threshold/window to commitment-khatm settings.
+- Added sensitive, balanced, and relaxed one-tap policy presets with clear
+  private-alert semantics and existing service-level validation.
+- Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
+
+## 2026-09-19 — Added button-first title and welcome editing
+
+- Added Title and Welcome buttons to each owned khatm's settings screen.
+- Added a guarded text-entry flow with cancel/back, ownership/status rechecks,
+  service-level length validation, and plain-Persian welcome deletion.
+- Kept structural fields immutable after activation.
+- Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
+
+## 2026-09-19 — Added button-first per-khatm policy settings
+
+- Added a creator settings button to every owned-khatm management card.
+- Added scoped inline controls for Quran content mode, Skip Today, commitment
+  Pause and reminder Snooze, with clear Persian explanations and live state.
+- Reused the existing ownership checks and domain services; inapplicable
+  controls are hidden and stale/unauthorized callbacks are rejected.
+- Validation: focused keyboard tests 3 passed; full PostgreSQL suite 103 passed.
+
+## 2026-09-19 — Removed commands from first-run help/profile UX
+
+- Added a persistent `راهنمای کامل` Home-menu button and routed it to the
+  complete button-driven help screen.
+- Updated welcome copy to point at the button instead of `/help`.
+- Made Create automatically launch profile completion when creator details are
+  incomplete instead of asking the user to type `/profile`.
+- Validation: full PostgreSQL suite 102 passed.
+
+## 2026-09-19 — Made create/manage help actionable without commands
+
+- Added direct buttons to start creation, submit a custom-khatm request, open
+  My Khatms, and request creator/admin dashboard login links.
+- Added a guarded FSM step for custom-khatm descriptions and preserved the old
+  `/request_khatm` entry point for compatibility.
+- Removed slash-command instructions from the create/manage help copy.
+- Validation: focused help tests 5 passed; full PostgreSQL suite 102 passed.
+
+## 2026-09-19 — Added live Quran-channel access diagnosis
+
+- Extended `/admin_quran_source_status` to check whether the Telegram bot can
+  currently resolve the configured private source channel.
+- Kept 604-page registry coverage separate from live delivery readiness and
+  added an actionable Persian message when the bot has not been added.
+- Live evidence: forwarding source message 10 returned Telegram `chat not
+  found`; no content was delivered and no database state changed.
+
+## 2026-09-19 — Made creation coupons button-first
+
+- Added a coupon button to paid-khatm confirmation and a simple code-entry
+  step with retry, skip and cancel actions.
+- Removed slash-command instructions from the normal and expired-coupon UX,
+  while preserving `/coupon CODE` compatibility.
+- Validation: focused tests 4 passed; full PostgreSQL suite 101 passed.
+
+## 2026-09-19 — Made wallet and account settings button-first
+
+- Added direct help buttons for wallet balance/top-up and invoice history.
+- Added direct settings/help buttons for profile editing, secure phone change,
+  and linking a prior account.
+- Removed typed slash-command instructions from wallet/settings help and the
+  successful-payment return copy while retaining command compatibility.
+- Validation: focused UX tests 3 passed; full PostgreSQL suite 98 passed; live
+  Telegram polling and web health both confirmed.
+
+## 2026-09-19 — Added complete two-VPS deployment and PayPing proxy guide
+
+- Added `Rahnama.VPS.txt`, a zero-assumption Persian runbook from first SSH
+  login through production deployment, HTTPS and operations.
+- Included exact Nginx and Apache configurations that preserve PayPing's POST
+  body while rewriting the public service-domain path to FastAPI's real route.
+- Included safe rollout, tests, backups, rollback and troubleshooting, and
+  clarified that a product referral URL is not the API callback.
+
+## 2026-09-19 — Added Health/Operations dashboard
+
+- Added `/operations` for Super Admin/Operations with live database,
+  Telegram/Bale, PayPing, Kavenegar, queue-depth and reminder-worker status.
+- Added an in-process scheduler/scan heartbeat that records safe exception
+  class names only and never exposes tokens or provider error payloads.
+- Added Persian navigation and PostgreSQL-backed authorization/render tests.
+- Validation: targeted admin suite 4 passed; full suite 98 passed.
+
+## 2026-09-19 — Hardened category moderation and button-only profile entry
+
+- Registered `khatm_category` models in the central SQLAlchemy model registry.
+- Enforced one-way `PENDING` category-request decisions; replay attempts now
+  return HTTP 409 and cannot create duplicate categories.
+- Audited category create/update/toggle/request-fulfill/request-decline actions.
+- Made the settings «ویرایش مشخصات» button launch the profile wizard directly.
+- Expanded real-PostgreSQL admin regression coverage to categories,
+  broadcasts, foreign-number verification and replay protection.
+- Validation: targeted admin integration suite 4 passed; full suite 98 passed.
+
+## 2026-09-20 — Cross-AI handoff protocol + owner backlog
+
+- Added `docs/ai/AI_HANDOFF_PROTOCOL.md`: shared convention for Codex,
+  Claude Code, and Antigravity (owner now runs all three) to sign changes
+  and hand off cleanly. `CLAUDE.md` now points to it.
+- Added `docs/ai/BACKLOG.md` capturing every item from the owner's latest
+  feature request in full, each with current-state context and explicit
+  "needs a decision" flags where a real product question is still open
+  (multi-language rollout trigger, plan/capacity semantics, SMS pricing).
+
+## 2026-09-20 — SALAWAT+COMMITMENT waiting list
+
+- Extended capacity/waiting-list support (previously QURAN_PAGE-only) to
+  SALAWAT+COMMITMENT khatms, per explicit owner decision: a waitlisted
+  participant contributes casually through the open pool, same as Quran.
+- Fixed a related pre-existing gap: waitlisted participants (both templates)
+  never actually got a contribute button, in the join message or in
+  `my_khatms.py` on later visits. Both now show one.
+- Verified end-to-end against real Postgres (capacity gate, waitlisting,
+  leave-triggered promotion with a real quantity portion assigned).
+
+## 2026-09-19 — Warmer bot copy + Quran channel live + dev OTP bypass
+
+- Rewrote DB-backed reminder templates (`reminder.first/second/final/missed`,
+  fa/FRIENDLY) to match a warmer, more explicit sample the owner provided
+  (explicit Tehran-time deadline, "delegate to a friend" line, sawab
+  framing); added the missing `deadline` value to `reminder.first`.
+- Warmed up the per-page completion message and several terse
+  creator/admin-facing approve/reject confirmations across
+  `start.py`, `registration.py`, `profile.py`, `leave.py`,
+  `join_requests.py`, `khatm_request.py`. Not a full-codebase pass — logged
+  what's left in PROJECT_STATE.md.
+- Set `DEV_OTP=1` in `.env` (local dev only, existing intentional bypass)
+  so khatm creation isn't blocked while waiting on a real Kavenegar token.
+- Owner added the bot as admin to the real Quran channel and ran
+  `/admin_quran_source_seed`; confirmed 604/604 images and audio registered
+  against the pre-built verified map for that exact channel.
+
+## 2026-09-19 — Admin-manageable khatm categories (صلوات/لعن/ادعیه)
+
+- New module `khatm_category` + migration `a7f8b9c0d1e2`: `khatm_categories`,
+  `khatm_category_requests`, and `khatms.content_category_id`.
+- `/categories` admin page: add/edit/activate/deactivate content items and
+  turn a participant's "دعای دیگر (درخواستی)" request into a permanent item —
+  no code deploy needed for new صلوات/لعن/ادعیه content.
+- Creation wizard's SALAWAT branch now shows the live category list from the
+  DB instead of a single hardcoded button.
+- Seeded 6 starting categories (text left blank for the owner to paste in
+  from khedmatgozaran.com via the panel).
+- Verified end-to-end against real Postgres (round-tripped
+  `content_category_id` on a real khatm, cleaned up test rows); fast suite
+  41 passed, 56 skipped; bot restarted cleanly.
+- Added `docs/ai/QA_HANDOFF_TELEGRAM_TESTING.md` for Codex to run full
+  Telegram-based scenario testing and self-fix bugs.
+
+
+---
+
+## Older history
+
+Entries from 2026-09-18 and earlier were moved to keep this file
+readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_until_2026-09-18.md).
+# 2026-09-20 — SMS/plan integrity fixes and verified restart [Codex]
+
+- Prevented SMS subscription purchases from debiting the wallet when the
+  user has no contact phone; invalid purchase callback payloads now fail
+  safely.
+- Added migration `d0e1f2a3b4c5` to idempotently restore the FREE plan row
+  while preserving administrator-edited entitlement values.
+- Made the free devotional-member cap aggregate SALAWAT, DUA, ZIYARAT and
+  CUSTOM rows as one product family, while keeping Quran independent.
+- Added PostgreSQL integration regressions; full suite passed: 128 tests.
+- Restarted the Telegram bot and verified polling plus database health.
+# 2026-09-20 — Admin Mini App plan controls [Codex]
+
+- Added graphical plan-definition controls to the Finance section: pricing,
+  enabled state, creation access, devotional cap and Quran cap.
+- Added graphical create/edit/disable controls for paid SMS subscription
+  durations and prices.
+- Preserved unrecognized entitlement keys during edits and audit-logged both
+  mutation types.
+- Added real-PostgreSQL ASGI coverage; full suite now passes 129 tests.
+# 2026-09-20 — Multilingual first-join registration [Codex]
+
+- Localized the complete registration flow to Persian, Arabic and English.
+- Added localized phone sharing, validation, gender and all 31 province
+  labels while retaining canonical Persian province storage.
+- Added PostgreSQL-backed Arabic/English registration tests; full suite now
+  passes 131 tests.
+# 2026-09-20 — Multilingual profile editing [Codex]
+
+- Localized `/profile` and the Settings profile flow to fa/ar/en.
+- Localized the verified-phone security warning without weakening its
+  requirement to use `/change_phone`.
+- Reused canonical province storage and localized province/gender controls.
+- Full real-PostgreSQL suite: 131 passed.

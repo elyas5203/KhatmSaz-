@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block title %}پیام‌های گروهی | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="page-title">
+  <p class="eyebrow">ارتباط با اعضا</p>
+  <h1>پیام‌های گروهی سازنده‌ها</h1>
+  <p>هر سازنده می‌تواند برای اعضای فعال ختم خودش پیام بفرستد؛ پیام فقط بعد از تأیید شما برای همه ارسال می‌شود.</p>
+</section>
+{% if saved == 'approved' %}<p class="notice success">پیام تأیید و برای اعضای فعال ارسال شد.</p>{% endif %}
+{% if saved == 'rejected' %}<p class="notice error">پیام رد شد.</p>{% endif %}
+<section class="cards">
+  {% for row in rows %}
+  <article class="user-card verification-card">
+    <header><div><h2>{{ row.khatm.title if row.khatm else 'ختم حذف‌شده' }}</h2><small>{{ row.time }}</small></div><span class="status">در انتظار</span></header>
+    <dl>
+      <div><dt>سازنده</dt><dd>{{ row.creator.display_name if row.creator else 'نامشخص' }}</dd></div>
+      <div><dt>متن پیام</dt><dd>{{ row.item.body }}</dd></div>
+    </dl>
+    <form method="post" action="/broadcasts/{{ row.item.id }}/decide" class="actions">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button name="decision" value="approve" onclick="return confirm('این پیام برای همه اعضای فعال این ختم ارسال شود؟')">تأیید و ارسال</button>
+      <button class="danger" name="decision" value="reject" onclick="return confirm('این پیام رد شود؟')">رد پیام</button>
+    </form>
+  </article>
+  {% else %}
+  <p class="empty">پیام در انتظار بررسی وجود ندارد.</p>
+  {% endfor %}
+</section>
+{% endblock %}

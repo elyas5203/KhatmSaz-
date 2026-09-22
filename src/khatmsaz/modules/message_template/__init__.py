@@ -1,0 +1,1 @@
+"""Localized, versioned message templates."""

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f4c45">
+  <title>{% block title %}پنل ختم‌ساز{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='finance.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" aria-label="خانه پنل">
+      <span class="mihrab" aria-hidden="true">خ</span>
+      <span><b>ختم‌ساز</b><small>اتاق مدیریت</small></span>
+    </a>
+    <form action="/logout" method="post">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="ghost" type="submit">خروج امن</button>
+    </form>
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+  <nav class="dock" aria-label="ناوبری اصلی">
+    <a href="/">خانه</a>
+    {% set permissions = admin._admin_permissions if admin else [] %}
+    {% if 'SUPPORT_USERS' in permissions or 'MODERATION_MANAGE' in permissions %}<a href="/khatms">ختم‌ها</a><a href="/users">کاربران</a>{% endif %}
+    {% if 'SUPPORT_USERS' in permissions %}<a href="/phone-verifications">احراز خارجی</a>{% endif %}
+    {% if 'MODERATION_MANAGE' in permissions %}<a href="/broadcasts">پیام گروهی</a>{% endif %}
+    {% if 'CONTENT_MANAGE' in permissions %}<a href="/templates">پیام‌ها</a><a href="/categories">دسته‌های ختم</a>{% endif %}
+    {% if 'FINANCE_MANAGE' in permissions %}<a href="/finance">مالی</a>{% endif %}
+    {% if 'OPERATIONS_VIEW' in permissions %}<a href="/operations">سلامت</a><a href="/audit">رویدادها</a>{% endif %}
+    {% if 'ADMIN_ROLES_MANAGE' in permissions %}<a href="/admins">مدیران</a>{% endif %}
+  </nav>
+</body>
+</html>
