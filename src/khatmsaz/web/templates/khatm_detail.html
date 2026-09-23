@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
 {% block content %}
 <a href="/khatms" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm font-bold bg-slate-800/40 px-4 py-2 rounded-xl">
@@ -32,7 +33,7 @@
     </div>
     <div>
       <strong class="block text-2xl font-bold text-white">{{ stats.active_members }}</strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">عضو فعال</span>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">عضو فعال {{ tooltip("تعداد کاربرانی که در این ختم شرکت کرده‌اند و هنوز انصراف نداده‌اند.") }}</span>
     </div>
   </article>
   
@@ -46,7 +47,7 @@
         <span class="text-sm text-slate-500">/</span>
         <span>{{ stats.total_portions }}</span>
       </strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">سهم تکمیل‌شده</span>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">سهم تکمیل‌شده {{ tooltip("تعداد سهم‌هایی که کاربرا تایید کردند خوانده‌اند از کل سهم‌های تعریف شده برای این دوره.") }}</span>
     </div>
   </article>
   
@@ -56,7 +57,7 @@
     </div>
     <div>
       <strong class="block text-2xl font-bold text-white font-mono" dir="ltr">{{ stats.invitation_conversion_percent }}%</strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">نرخ تبدیل دعوت</span>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">نرخ تبدیل دعوت {{ tooltip("درصد کاربرانی که روی لینک دعوت این ختم کلیک کرده‌اند و نهایتاً در آن عضو شده‌اند.") }}</span>
     </div>
   </article>
 </section>

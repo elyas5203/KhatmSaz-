@@ -2,6 +2,13 @@
 
 > Newest entry is always at the top. Read this file first in every session.
 
+## Current state — 2026-09-23 — Admin Panel Glassmorphism & Media Ingestion Tool [Antigravity]
+
+- **UI/UX Rewrite**: Rewrote all admin panel pages (including `categories.html` and `khatm_detail.html`) to follow the new Tailwind Glassmorphism design system requested by the owner (dark slate/emerald gradients, strictly no horizontal scroll, fully responsive).
+- **Category Media Enhancements**: Updated `categories.html` and `/categories/requests/{request_id}/fulfill` to accept `image_url` and `devotional_slug` to resolve empty text delivery issues for Ziyarat requests.
+- **Bot Media Ingestion (`/manage_content`)**: Built a brand new FSM-based admin command `/manage_content`. Instead of managing complicated Telegram/Bale `file_id`s manually, the admin can now upload Duas/Ziyarats media directly in chat. The bot prompts for a `slug` (e.g. `ahad`), and listens for text, photos, audio, or PDFs forwarded from a channel or sent directly. It automatically decodes and saves them into `devotional_assets` and `devotional_media` mapped to the respective platform (`TELEGRAM` or `BALE`). This achieves the requested "dedicated channel for info" workflow seamlessly.
+- **Bug Fix**: Identified and fixed a missing Alembic migration for `notification_preferences.reminder_minute` that crashed the VPS. Created `d39691343c63` and stamped it locally to preserve schema consistency.
+
 ## Current state — 2026-09-23 — Deployment docs updated & UI redesign planning started [Antigravity]
 
 **تغییرات:**

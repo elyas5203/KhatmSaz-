@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}سلامت سرویس‌ها | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">عملیات</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">سلامت سرویس‌ها</h1>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">سلامت سرویس‌ها {{ tooltip("وضعیت اتصال سرویس‌های مختلف مثل درگاه پرداخت، سامانه پیامکی، و صف‌های ارسال پیام را نشان می‌دهد.") }}</h1>
   <p class="text-slate-400 text-sm">این صفحه فقط وضعیت و صف‌ها را نشان می‌دهد و هیچ تنظیمی را تغییر نمی‌دهد.</p>
 </section>
 

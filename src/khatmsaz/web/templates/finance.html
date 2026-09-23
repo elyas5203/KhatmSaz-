@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}مالی | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">کیف پول و تخفیف</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مرکز مالی</h1>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مرکز مالی {{ tooltip("مدیریت تراکنش‌ها، کیف پول و پلن‌های پولی. فاکتورها حذف نمی‌شوند و فقط می‌توانید مبلغ را به کیف پول کاربر برگردانید.") }}</h1>
   <p class="text-slate-400 text-sm">فاکتورها حذف نمی‌شوند؛ بازپرداخت فقط وضعیت آن‌ها را تغییر می‌دهد.</p>
 </section>
 

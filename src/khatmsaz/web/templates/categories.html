@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}دسته‌های محتوا | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
@@ -54,17 +55,17 @@
         </div>
         
         <div class="space-y-1 md:col-span-2">
-          <label class="text-xs font-bold text-slate-400">متن (اختیاری، از سایت خدمتگزاران کپی کنید)</label>
+          <label class="text-xs font-bold text-slate-400">متن (اختیاری، از سایت خدمتگزاران کپی کنید) {{ tooltip("برای دعاهای کوتاه، متن عربی و ترجمه را اینجا وارد کنید. سیستم این متن را در قالب یک پیام طولانی برای کاربر می‌فرستد.") }}</label>
           <textarea name="body_text" rows="3" class="input-field"></textarea>
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری)</label>
+          <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری) {{ tooltip("لینک تصویر هدر که به همراه متن دسته در بات ارسال می‌شود.") }}</label>
           <input name="image_url" placeholder="https://..." class="input-field" dir="ltr">
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری)</label>
+          <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری) {{ tooltip("اگر این دعا را با دستور /manage_content ثبت کرده‌اید، کد (slug) آن را اینجا وارد کنید تا فایل‌های صوتی به این دسته متصل شوند.") }}</label>
           <input name="devotional_slug" placeholder="مثلاً ziyarat-ashura" class="input-field" dir="ltr">
         </div>
         
@@ -107,17 +108,17 @@
     </div>
     
     <div class="space-y-1 md:col-span-2 lg:col-span-3">
-      <label class="text-xs font-bold text-slate-400">متن (اختیاری)</label>
+      <label class="text-xs font-bold text-slate-400">متن (اختیاری) {{ tooltip("برای دعاهای کوتاه، متن عربی و ترجمه را اینجا وارد کنید. سیستم این متن را در قالب یک پیام طولانی برای کاربر می‌فرستد.") }}</label>
       <textarea name="body_text" rows="3" placeholder="متن دعا یا لعن، در صورت وجود" class="input-field"></textarea>
     </div>
     
     <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری)</label>
+      <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری) {{ tooltip("لینک تصویر هدر که به همراه متن دسته در بات ارسال می‌شود.") }}</label>
       <input name="image_url" placeholder="https://example.com/image.jpg" class="input-field" dir="ltr">
     </div>
     
     <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری)</label>
+      <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری) {{ tooltip("اگر این دعا را با دستور /manage_content ثبت کرده‌اید، کد (slug) آن را اینجا وارد کنید تا فایل‌های صوتی به این دسته متصل شوند.") }}</label>
       <input name="devotional_slug" placeholder="مثلاً ziyarat-ashura" class="input-field" dir="ltr">
     </div>
     

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}مدیران | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">دسترسی کمینه و قابل لغو</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مدیران و نقش‌ها</h1>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مدیران و نقش‌ها {{ tooltip("در این بخش می‌توانید دسترسی‌های مختلف به دیگر افراد بدهید. هر فرد فقط به بخش‌هایی که دسترسی دارد وارد می‌شود.") }}</h1>
   <p class="text-slate-400 text-sm">هر نفر فقط بخش مربوط به نقش خودش را می‌بیند. مدیر اصلی همیشه همهٔ دسترسی‌ها را دارد.</p>
 </section>
 

@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip %}
 {% block title %}کاربران | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">هویت و دسترسی</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">جست‌وجوی کاربران</h1>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">جست‌وجوی کاربران {{ tooltip("لیست کاربرانی که وارد ربات شده‌اند. می‌توانید روی آن‌ها مدیریت داشته باشید (اخطار، تعلیق، بن).") }}</h1>
   
   <form class="flex gap-2 w-full max-w-2xl relative" method="get">
     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
