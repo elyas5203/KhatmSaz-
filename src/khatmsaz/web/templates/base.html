@@ -1,34 +1,178 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="fa" dir="rtl" class="overflow-x-hidden">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0f4c45">
+  <meta name="theme-color" content="#020617">
   <title>{% block title %}پنل ختم‌ساز{% endblock %}</title>
-  <style>{{ inline_css | safe }}</style>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+  <script>
+    tailwind.config = {
+      theme: { extend: { fontFamily: { sans: ['Vazirmatn', 'sans-serif'] } } }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #020617;
+      background-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 35%),
+                        radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.08), transparent 35%);
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .glass-card:hover {
+      border-color: rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
+      transform: translateY(-2px);
+    }
+    .bg-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      z-index: -1;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .bg-orb-1 { width: 300px; height: 300px; background: rgba(16, 185, 129, 0.15); top: -100px; left: -100px; }
+    .bg-orb-2 { width: 400px; height: 400px; background: rgba(20, 184, 166, 0.1); bottom: -150px; right: -100px; }
+    
+    /* Common UI Elements */
+    .status {
+      display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 9999px; border: 1px solid transparent; direction: ltr;
+    }
+    .status.active { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
+    .status.completed { background: rgba(56, 189, 248, 0.1); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.2); }
+    .status.cancelled, .status.banned { background: rgba(244, 63, 94, 0.1); color: #fb7185; border-color: rgba(244, 63, 94, 0.2); }
+    .status.suspended, .status.warned, .status.draft { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border-color: rgba(251, 191, 36, 0.2); }
+    
+    .btn { background: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.75rem; font-weight: 600; display: inline-block; cursor: pointer; border: none; transition: background 0.2s; }
+    .btn:hover { background: #10b981; }
+    .btn-danger { background: #e11d48; }
+    .btn-danger:hover { background: #f43f5e; }
+    
+    .input-field { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; padding: 0.5rem 1rem; color: white; outline: none; width: 100%; transition: border-color 0.2s; }
+    .input-field:focus { border-color: rgba(16, 185, 129, 0.5); }
+    select.input-field option { background: #0f172a; color: white; }
+    
+    /* Scrollable dock for mobile */
+    .mobile-dock { display: flex; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .mobile-dock::-webkit-scrollbar { display: none; }
+  </style>
 </head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="/" aria-label="خانه پنل">
-      <span class="mihrab" aria-hidden="true">خ</span>
-      <span><b>ختم‌ساز</b><small>اتاق مدیریت</small></span>
+<body class="font-sans antialiased text-slate-200 relative overflow-x-hidden">
+  <div class="bg-orb bg-orb-1"></div>
+  <div class="bg-orb bg-orb-2"></div>
+
+  <!-- Topbar -->
+  <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 py-3 flex justify-between items-center">
+    <a href="/" class="flex items-center gap-3 group" aria-label="خانه پنل">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-emerald-900/50 group-hover:shadow-emerald-500/30 transition-all">خ</div>
+      <div class="flex flex-col">
+        <span class="font-bold text-lg leading-tight text-white group-hover:text-emerald-400 transition-colors">ختم‌ساز</span>
+        <span class="text-[0.65rem] text-emerald-500/80">اتاق مدیریت</span>
+      </div>
     </a>
+    
     <form action="/logout" method="post">
       <input type="hidden" name="csrf" value="{{ csrf }}">
-      <button class="ghost" type="submit">خروج امن</button>
+      <button class="text-sm font-medium text-slate-400 hover:text-rose-400 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-500/30 hover:bg-rose-500/10 transition-colors flex items-center gap-2" type="submit">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+        <span class="hidden sm:inline">خروج امن</span>
+      </button>
     </form>
   </header>
-  <main>{% block content %}{% endblock %}</main>
-  <nav class="dock" aria-label="ناوبری اصلی">
-    <a href="/">خانه</a>
-    {% set permissions = admin._admin_permissions if admin else [] %}
-    {% if 'SUPPORT_USERS' in permissions or 'MODERATION_MANAGE' in permissions %}<a href="/khatms">ختم‌ها</a><a href="/users">کاربران</a>{% endif %}
-    {% if 'SUPPORT_USERS' in permissions %}<a href="/phone-verifications">احراز خارجی</a>{% endif %}
-    {% if 'MODERATION_MANAGE' in permissions %}<a href="/broadcasts">پیام گروهی</a>{% endif %}
-    {% if 'CONTENT_MANAGE' in permissions %}<a href="/templates">پیام‌ها</a><a href="/categories">دسته‌های ختم</a>{% endif %}
-    {% if 'FINANCE_MANAGE' in permissions %}<a href="/finance">مالی</a>{% endif %}
-    {% if 'OPERATIONS_VIEW' in permissions %}<a href="/operations">سلامت</a><a href="/audit">رویدادها</a>{% endif %}
-    {% if 'ADMIN_ROLES_MANAGE' in permissions %}<a href="/admins">مدیران</a>{% endif %}
+
+  <!-- Main Content -->
+  <main class="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Mobile Bottom Dock (visible on all screens due to many links) -->
+  <nav class="fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 px-2 py-3 z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.5)]">
+    <div class="mobile-dock max-w-6xl mx-auto gap-4 px-2">
+      <a href="/" class="flex flex-col items-center flex-none min-w-[64px] text-emerald-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+        <span class="text-[0.65rem] font-bold">خانه</span>
+      </a>
+      
+      {% set permissions = admin._admin_permissions if admin else [] %}
+      
+      {% if 'SUPPORT_USERS' in permissions or 'MODERATION_MANAGE' in permissions %}
+      <a href="/khatms" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        <span class="text-[0.65rem] font-bold">ختم‌ها</span>
+      </a>
+      <a href="/users" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        <span class="text-[0.65rem] font-bold">کاربران</span>
+      </a>
+      {% endif %}
+      
+      {% if 'SUPPORT_USERS' in permissions %}
+      <a href="/phone-verifications" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+        <span class="text-[0.65rem] font-bold">احراز</span>
+      </a>
+      {% endif %}
+      
+      {% if 'MODERATION_MANAGE' in permissions %}
+      <a href="/broadcasts" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+        <span class="text-[0.65rem] font-bold">پیام گروهی</span>
+      </a>
+      {% endif %}
+      
+      {% if 'CONTENT_MANAGE' in permissions %}
+      <a href="/templates" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+        <span class="text-[0.65rem] font-bold">پیام‌ها</span>
+      </a>
+      <a href="/categories" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+        <span class="text-[0.65rem] font-bold">دسته‌ها</span>
+      </a>
+      {% endif %}
+      
+      {% if 'FINANCE_MANAGE' in permissions %}
+      <a href="/finance" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="text-[0.65rem] font-bold">مالی</span>
+      </a>
+      {% endif %}
+      
+      {% if 'OPERATIONS_VIEW' in permissions %}
+      <a href="/operations" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        <span class="text-[0.65rem] font-bold">سلامت</span>
+      </a>
+      <a href="/audit" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span class="text-[0.65rem] font-bold">رویدادها</span>
+      </a>
+      {% endif %}
+      
+      {% if 'ADMIN_ROLES_MANAGE' in permissions %}
+      <a href="/admins" class="flex flex-col items-center flex-none min-w-[64px] text-slate-400 hover:text-emerald-400 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+        <span class="text-[0.65rem] font-bold">مدیران</span>
+      </a>
+      {% endif %}
+    </div>
   </nav>
 </body>
 </html>
