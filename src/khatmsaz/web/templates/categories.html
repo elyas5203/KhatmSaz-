@@ -35,6 +35,7 @@
   </select></label>
   <label>عنوان<input name="title" required maxlength="200" placeholder="مثلاً «زیارت عاشورا»"></label>
   <label>متن (اختیاری)<textarea name="body_text" rows="4" placeholder="متن دعا یا لعن، در صورت وجود"></textarea></label>
+  <label>لینک تصویر (اختیاری)<input name="image_url" placeholder="https://example.com/image.jpg"></label>
   <label>منبع (اختیاری)<input name="source_note" placeholder="khedmatgozaran.com"></label>
   <label>کد اتصال صوت/متن آماده (اختیاری)<input name="devotional_slug" placeholder="مثلاً ziyarat-ashura"></label>
   <button type="submit">افزودن</button>
@@ -51,6 +52,7 @@
   <input type="hidden" name="csrf" value="{{ csrf }}">
   <label>عنوان<input name="title" value="{{ category.title }}" required maxlength="200"></label>
   <label>متن<textarea name="body_text" rows="4">{{ category.body_text or '' }}</textarea></label>
+  <label>لینک تصویر<input name="image_url" value="{{ category.image_url or '' }}" placeholder="https://..."></label>
   <label>منبع<input name="source_note" value="{{ category.source_note or '' }}"></label>
   <label>کد اتصال صوت/متن آماده<input name="devotional_slug" value="{{ category.devotional_slug or '' }}" placeholder="مثلاً ziyarat-ashura"></label>
   <button type="submit">ذخیره ویرایش</button>

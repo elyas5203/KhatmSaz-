@@ -40,6 +40,7 @@ class KhatmCategory(Base):
     # `bot/handlers/portions.py` (checking if "عاشورا" appeared in the
     # category title) that broke if a creator renamed the category.
     devotional_slug: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

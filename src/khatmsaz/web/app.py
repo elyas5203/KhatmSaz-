@@ -1367,6 +1367,7 @@ async def create_category(
     body_text: str = Form(""),
     source_note: str = Form(""),
     devotional_slug: str = Form(""),
+    image_url: str = Form(""),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -1378,7 +1379,7 @@ async def create_category(
         try:
             category = await category_service.create(
                 session, group=group, title=title, body_text=body_text, source_note=source_note,
-                devotional_slug=devotional_slug,
+                devotional_slug=devotional_slug, image_url=image_url,
             )
         except ValueError as exc:
             return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)
@@ -1397,6 +1398,7 @@ async def update_category(
     body_text: str = Form(""),
     source_note: str = Form(""),
     devotional_slug: str = Form(""),
+    image_url: str = Form(""),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -1408,7 +1410,7 @@ async def update_category(
         try:
             category = await category_service.update(
                 session, category_id, title=title, body_text=body_text, source_note=source_note,
-                devotional_slug=devotional_slug,
+                devotional_slug=devotional_slug, image_url=image_url,
             )
         except ValueError as exc:
             return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)

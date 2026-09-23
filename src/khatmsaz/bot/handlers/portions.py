@@ -111,16 +111,33 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
                     if hint in category.title:
                         slug = hint_slug
                         break
-    if slug is None:
-        return
-    asset = await content_service.get_devotional_asset(session, slug)
-    if asset is None:
-        return
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     lang = await _lang_for(message.chat.id, message.bot)
+
+    if category and category.image_url:
+        from aiogram.types import URLInputFile
+        try:
+            await message.answer_photo(URLInputFile(category.image_url))
+        except Exception:
+            pass # fallback if URL is invalid
+
+    if slug is None:
+        if category and category.body_text:
+            await message.answer(escape(category.body_text))
+        return
+
+    asset = await content_service.get_devotional_asset(session, slug)
+    if asset is None:
+        if category and category.body_text:
+            await message.answer(escape(category.body_text))
+        return
+
     if asset.text_body:
         for chunk in asset.text_body.split("\x1e"):
             await message.answer(chunk)
+    elif category and category.body_text:
+        await message.answer(escape(category.body_text))
+
     from khatmsaz.bot.handlers.devotional import deliver_devotional_media
     await deliver_devotional_media(session, message, slug=slug, asset=asset, platform=platform, lang=lang)
 

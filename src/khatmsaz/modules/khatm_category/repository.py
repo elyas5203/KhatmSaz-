@@ -34,11 +34,11 @@ async def get_by_id(session: AsyncSession, category_id) -> KhatmCategory | None:
 
 async def create(
     session: AsyncSession, *, group: KhatmCategoryGroup, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None,
 ) -> KhatmCategory:
     category = KhatmCategory(
         id=new_id(), group=group, title=title.strip(), body_text=body_text, source_note=source_note,
-        devotional_slug=devotional_slug,
+        devotional_slug=devotional_slug, image_url=image_url,
     )
     session.add(category)
     await session.flush()
@@ -47,12 +47,13 @@ async def create(
 
 async def update(
     session: AsyncSession, category: KhatmCategory, *, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None,
 ) -> KhatmCategory:
     category.title = title.strip()
     category.body_text = body_text
     category.source_note = source_note
     category.devotional_slug = devotional_slug
+    category.image_url = image_url
     await session.flush()
     return category
 

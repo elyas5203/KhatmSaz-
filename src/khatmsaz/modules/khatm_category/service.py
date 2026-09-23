@@ -30,7 +30,7 @@ async def get(session: AsyncSession, category_id) -> KhatmCategory | None:
 
 async def create(
     session: AsyncSession, *, group: str, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None,
 ) -> KhatmCategory:
     title = title.strip()
     if not title:
@@ -43,12 +43,13 @@ async def create(
         session, group=group_enum, title=title, body_text=(body_text or "").strip() or None,
         source_note=(source_note or "").strip() or None,
         devotional_slug=(devotional_slug or "").strip().lower() or None,
+        image_url=(image_url or "").strip() or None,
     )
 
 
 async def update(
     session: AsyncSession, category_id, *, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None,
 ) -> KhatmCategory:
     category = await repository.get_by_id(session, category_id)
     if category is None:
@@ -60,6 +61,7 @@ async def update(
         session, category, title=title, body_text=(body_text or "").strip() or None,
         source_note=(source_note or "").strip() or None,
         devotional_slug=(devotional_slug or "").strip().lower() or None,
+        image_url=(image_url or "").strip() or None,
     )
 
 
