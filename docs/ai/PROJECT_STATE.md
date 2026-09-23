@@ -4,6 +4,7 @@
 
 ## Current state — 2026-09-23 — Admin Panel Glassmorphism & Media Ingestion Tool [Antigravity]
 
+- **UI/UX Tooltips added**: Added an interactive tooltip macro (`components.html`) and injected helpful `(?)` icons with in-context documentation across 11 different templates (`dashboard.html`, `categories.html`, `finance.html`, etc.) in the Admin Panel to explain how sections and specific fields work.
 - **UI/UX Rewrite**: Rewrote all admin panel pages (including `categories.html` and `khatm_detail.html`) to follow the new Tailwind Glassmorphism design system requested by the owner (dark slate/emerald gradients, strictly no horizontal scroll, fully responsive).
 - **Category Media Enhancements**: Updated `categories.html` and `/categories/requests/{request_id}/fulfill` to accept `image_url` and `devotional_slug` to resolve empty text delivery issues for Ziyarat requests.
 - **Bot Media Ingestion (`/manage_content`)**: Built a brand new FSM-based admin command `/manage_content`. Instead of managing complicated Telegram/Bale `file_id`s manually, the admin can now upload Duas/Ziyarats media directly in chat. The bot prompts for a `slug` (e.g. `ahad`), and listens for text, photos, audio, or PDFs forwarded from a channel or sent directly. It automatically decodes and saves them into `devotional_assets` and `devotional_media` mapped to the respective platform (`TELEGRAM` or `BALE`). This achieves the requested "dedicated channel for info" workflow seamlessly.
