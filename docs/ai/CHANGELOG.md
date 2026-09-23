@@ -1,87 +1,91 @@
-# CHANGELOG
+﻿# CHANGELOG
+
+## 2026-09-24
+
+- **UX**: Auto-start khatm creation wizard on /start or immediately after language selection in src/khatmsaz/bot/handlers/start.py.
 
 Newest entry at the top. One entry per meaningful task, dated.
 
 ---
 
-## 2026-09-22 — SMS provider configured (Kavenegar Verify Lookup), PayPing token set, delivery-hour ask extended to OPEN khatms, advertising question removed from wizard
+## 2026-09-22 â€” SMS provider configured (Kavenegar Verify Lookup), PayPing token set, delivery-hour ask extended to OPEN khatms, advertising question removed from wizard
 
 - **SMS: real Kavenegar credentials configured**, but kept as
-  `SMS_PROVIDER=noop` in this local `.env` on purpose — flipping it here
+  `SMS_PROVIDER=noop` in this local `.env` on purpose â€” flipping it here
   would send real, paid SMS to real numbers on every local test. The
   owner's given API key was hex-encoded; decoded to its real base64-like
   form before storing.
 - **New: Kavenegar OTP goes through Verify Lookup, not plain SMS.**
-  Iranian carriers require pre-approved patterns for OTP codes — sending
+  Iranian carriers require pre-approved patterns for OTP codes â€” sending
   a raw code as free-text SMS is routinely rejected for compliance. Added
   `SmsProvider.send(..., otp_code=...)` to the protocol; when both an OTP
   code and `SMS_KAVENEGAR_VERIFY_TEMPLATE` (set to the owner's registered
   "verify" pattern) are present, `KavenegarSmsProvider` calls
   `verify/lookup.json` (token + template) instead of `sms/send.json`
-  (free text) — falls back to plain send if no template is configured.
+  (free text) â€” falls back to plain send if no template is configured.
   Wired into all 3 real OTP call sites (`change_phone.py` x2,
   `account_link.py`). New tests in `tests/test_sms_provider.py`.
 - **PayPing token + callback URL set.** Callback URL corrected to
   `api.khatmsaz.com` (matching support ticket #3122), not `khatmsaz.com`.
 - **Real bug fixed:** the "what hour should your daily nudge/portion
-  arrive" question only fired for a fresh COMMITMENT portion — an OPEN
-  khatm join (e.g. the owner's own new "دعای عهد" khatm) never asked at
+  arrive" question only fired for a fresh COMMITMENT portion â€” an OPEN
+  khatm join (e.g. the owner's own new "Ø¯Ø¹Ø§ÛŒ Ø¹Ù‡Ø¯" khatm) never asked at
   all, even though `_send_open_schedule_reminders` also reads each
   participant's own reminder hour. Now asks for both cases.
   **Still open, flagged rather than guessed:** the owner reported not
-  being asked right after *creating* their own OPEN khatm — but creators
+  being asked right after *creating* their own OPEN khatm â€” but creators
   don't automatically become a participant of their own khatm (confirmed
   in `khatm_workflow/service.py`), so this fix (which is join-flow-based)
   doesn't cover that exact moment. Whether creators should auto-join
   their own khatm is a real product decision, not something to guess.
-- **Owner request, done:** removed the "فعال بشه؟" advertising/cash-gift
-  question from the create-khatm wizard entirely (defaults to off) — "منطق
-  ارسال پیام تبلیغاتی رو اشتباه فهمیدی، بعداً توضیح میدم." Also removed
+- **Owner request, done:** removed the "ÙØ¹Ø§Ù„ Ø¨Ø´Ù‡ØŸ" advertising/cash-gift
+  question from the create-khatm wizard entirely (defaults to off) â€” "Ù…Ù†Ø·Ù‚
+  Ø§Ø±Ø³Ø§Ù„ Ù¾ÛŒØ§Ù… ØªØ¨Ù„ÛŒØºØ§ØªÛŒ Ø±Ùˆ Ø§Ø´ØªØ¨Ø§Ù‡ ÙÙ‡Ù…ÛŒØ¯ÛŒØŒ Ø¨Ø¹Ø¯Ø§Ù‹ ØªÙˆØ¶ÛŒØ­ Ù…ÛŒØ¯Ù…." Also removed
   its now-meaningless summary line from the confirmation screen.
 - Full `pytest` (85) + real-Postgres integration (154 total) pass; both
   bots restarted, `/health` OK.
 
-## 2026-09-22 — Multi-reciter audio, multi-page images, and PDF support for devotional content; **critical i18n corruption found and fixed** (381 entries had silently lost their Arabic/English translations)
+## 2026-09-22 â€” Multi-reciter audio, multi-page images, and PDF support for devotional content; **critical i18n corruption found and fixed** (381 entries had silently lost their Arabic/English translations)
 
 - **Critical, wide-reaching bug found and fixed:** while adding a new
   translation key, noticed `devotional.audio_caption` had its "ar"/"en"
   values mashed into literal garbled text inside the "fa" string, using
-  curly quotes (“ ”) instead of straight ones. Searched the whole file
+  curly quotes (â€œ â€) instead of straight ones. Searched the whole file
   for the same corruption pattern and found **381 more entries** (249
-  missing "ar", 132 also missing "en") — likely from a bulk edit earlier
+  missing "ar", 132 also missing "en") â€” likely from a bulk edit earlier
   in this long session that used the wrong quote character. Every one of
   those keys had been silently serving Persian text (with garbage
   embedded) to Arabic and English users this entire time. Fixed with a
-  targeted, verified string replacement (not a blind quote swap — only
+  targeted, verified string replacement (not a blind quote swap â€” only
   the exact corrupted separator sequences were touched, so legitimate
   curly quotes used as real punctuation elsewhere in English example
   text were left alone). Confirmed zero remaining occurrences, full
   `pytest` suite still green.
 - **New: multiple reciters per dua/ziyarat.** Owner's original request:
-  "زیارت عاشورا ممکنه دوتا قاری مختلف داشته باشه." New `devotional_media`
+  "Ø²ÛŒØ§Ø±Øª Ø¹Ø§Ø´ÙˆØ±Ø§ Ù…Ù…Ú©Ù†Ù‡ Ø¯ÙˆØªØ§ Ù‚Ø§Ø±ÛŒ Ù…Ø®ØªÙ„Ù Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´Ù‡." New `devotional_media`
   table (migration `f4a5b6c7d8e9`) replaces the old single audio-slot
-  design; `/admin_devotional_audio <slug> [نام قاری]` now adds one more
+  design; `/admin_devotional_audio <slug> [Ù†Ø§Ù… Ù‚Ø§Ø±ÛŒ]` now adds one more
   variant instead of overwriting. When a dua has 2+ registered reciters,
   `/devotional <slug>` (and the khatm-participation recitation flow) show
-  a "کدوم قاری؟" picker instead of guessing; 1 reciter still auto-plays,
+  a "Ú©Ø¯ÙˆÙ… Ù‚Ø§Ø±ÛŒØŸ" picker instead of guessing; 1 reciter still auto-plays,
   0 falls back to the legacy single `audio_ref` column for content
   registered before this table existed.
 - **New: multi-page images (pagination).** `/admin_devotional_image
-  <slug> [شماره صفحه]` — omit the page number to auto-append after the
+  <slug> [Ø´Ù…Ø§Ø±Ù‡ ØµÙØ­Ù‡]` â€” omit the page number to auto-append after the
   last page, or give an explicit number to insert/replace one page.
-- **New: PDF support.** `/admin_devotional_pdf <slug>` — send a PDF as a
+- **New: PDF support.** `/admin_devotional_pdf <slug>` â€” send a PDF as a
   document with that caption; delivered via `answer_document`.
 - New test `tests/test_devotional_multi_media.py`.
 - Full `pytest` (78) + real-Postgres integration (152 total) pass;
   migration applied; both bots restarted, `/health` OK.
 
-## 2026-09-22 — Devotional channel workflow: voice-note upload bug fixed, image support added; 3 new dua texts registered; local Postgres crash recovered
+## 2026-09-22 â€” Devotional channel workflow: voice-note upload bug fixed, image support added; 3 new dua texts registered; local Postgres crash recovered
 
 - **Real bug fixed:** `/admin_devotional_audio` only accepted
-  `message.audio`/`message.document` — a Telegram *voice message*
+  `message.audio`/`message.document` â€” a Telegram *voice message*
   (`message.voice`, what recording directly in a chat produces) is a
-  separate field and was silently rejected with "باید فایل صوتی یا
-  document ضمیمه کنید" even though a real audio file was attached. Now
+  separate field and was silently rejected with "Ø¨Ø§ÛŒØ¯ ÙØ§ÛŒÙ„ ØµÙˆØªÛŒ ÛŒØ§
+  document Ø¶Ù…ÛŒÙ…Ù‡ Ú©Ù†ÛŒØ¯" even though a real audio file was attached. Now
   accepts voice notes too.
 - **New: image support for devotional content**, previously entirely
   missing (only text + audio existed). New `image_ref`/`image_platform`
@@ -92,110 +96,110 @@ Newest entry at the top. One entry per meaningful task, dated.
   recitation flow (`portions.py::_send_recitation_content`).
 - **Registered 3 new dua texts** the owner sent verbatim: Dua Ale-Yasin,
   Dua Ahd, Dua Moshkel Gosha (slugs `dua-ale-yasin`, `dua-ahd`,
-  `dua-moshkel-gosha`) — same convention as Ziyarat Ashura (bold Arabic +
+  `dua-moshkel-gosha`) â€” same convention as Ziyarat Ashura (bold Arabic +
   Persian translation, chunked for Telegram's message-length limit).
   `scripts/register_devotional_content_batch2.py`.
 - **Local Postgres crashed again overnight** (same recurring
   0x40010004 exception as before, coinciding with the local VPN proxy
-  also dropping — likely a laptop sleep/network event, not an app bug) —
+  also dropping â€” likely a laptop sleep/network event, not an app bug) â€”
   restarted the dev-test cluster on port 55433, ran the pending dua
   registration, verified full `pytest` (151) passes, both bots restarted,
   `/health` OK.
 - **Not done, flagged for the owner:** true per-dua multiple-reciter
   browsing (e.g. Ziyarat Ashura having two different reciters to choose
   between) needs a real new data model (a devotional asset currently has
-  exactly one audio slot, not a list) and a new hierarchical picker UI —
+  exactly one audio slot, not a list) and a new hierarchical picker UI â€”
   a genuinely separate feature, not attempted this pass to avoid a rushed
   half-implementation at the end of a long session.
 
-## 2026-09-22 — "confused-user" persona pass: hour pickers replace raw 0-23 typing
+## 2026-09-22 â€” "confused-user" persona pass: hour pickers replace raw 0-23 typing
 
 Owner asked to actually put myself in the shoes of a non-technical user
 and walk through the bot's flows to find real friction, not just review
 text. Did an objective sweep of the whole `i18n/__init__.py` first
-(banned jargon words, blame-toned phrases, over-long sentences) — result
+(banned jargon words, blame-toned phrases, over-long sentences) â€” result
 was clean, no violations found (prior sessions' plain-language pass had
-already covered this; see BACKLOG.md §19 for the full method). The real
+already covered this; see BACKLOG.md Â§19 for the full method). The real
 friction found was interaction-shaped, not text-shaped:
 
-- Two places asked someone to type a raw hour (0–23, 24-hour clock) with
+- Two places asked someone to type a raw hour (0â€“23, 24-hour clock) with
   no other option: the join-time delivery-hour question (`start.py`) and
   the open-Quran-reading setup wizard (`portions.py`). Confusing/error-
   prone for anyone unsure of 24-hour notation. Added
-  `keyboards.py::delivery_hour_keyboard` — six plain-language time-of-day
-  buttons (🌅 صبح زود / ☀️ صبح / 🌞 ظهر / 🌤 بعدازظهر / 🌇 غروب / 🌙 شب) as
+  `keyboards.py::delivery_hour_keyboard` â€” six plain-language time-of-day
+  buttons (ðŸŒ… ØµØ¨Ø­ Ø²ÙˆØ¯ / â˜€ï¸ ØµØ¨Ø­ / ðŸŒž Ø¸Ù‡Ø± / ðŸŒ¤ Ø¨Ø¹Ø¯Ø§Ø²Ø¸Ù‡Ø± / ðŸŒ‡ ØºØ±ÙˆØ¨ / ðŸŒ™ Ø´Ø¨) as
   the primary path in both flows; typing an exact hour still works as a
   fallback for anyone who wants precision. New test
   `tests/test_delivery_hour_button_picker.py`.
 - Full `pytest` (77) + real-Postgres integration (151 total) pass; both
   bots restarted, `/health` OK.
 
-## 2026-09-22 — miss notice: 2 consecutive days + phone number for creator; skip_today removed [Claude Code]
+## 2026-09-22 â€” miss notice: 2 consecutive days + phone number for creator; skip_today removed [Claude Code]
 
-**تصمیم مالک (آیتم ۱۵ BACKLOG):**
-- دکمهٔ «امروز نمی‌رسم» از UI حذف شد (قبلاً no-op بود، حالا کاملاً پاک‌سازی شد)
-- غیبت ۲ روز پشت‌سرهم: سازنده نام + شماره تماس عضو + پیام «چیکارش کنیم؟» می‌گیرد
+**ØªØµÙ…ÛŒÙ… Ù…Ø§Ù„Ú© (Ø¢ÛŒØªÙ… Û±Ûµ BACKLOG):**
+- Ø¯Ú©Ù…Ù‡Ù” Â«Ø§Ù…Ø±ÙˆØ² Ù†Ù…ÛŒâ€ŒØ±Ø³Ù…Â» Ø§Ø² UI Ø­Ø°Ù Ø´Ø¯ (Ù‚Ø¨Ù„Ø§Ù‹ no-op Ø¨ÙˆØ¯ØŒ Ø­Ø§Ù„Ø§ Ú©Ø§Ù…Ù„Ø§Ù‹ Ù¾Ø§Ú©â€ŒØ³Ø§Ø²ÛŒ Ø´Ø¯)
+- ØºÛŒØ¨Øª Û² Ø±ÙˆØ² Ù¾Ø´Øªâ€ŒØ³Ø±Ù‡Ù…: Ø³Ø§Ø²Ù†Ø¯Ù‡ Ù†Ø§Ù… + Ø´Ù…Ø§Ø±Ù‡ ØªÙ…Ø§Ø³ Ø¹Ø¶Ùˆ + Ù¾ÛŒØ§Ù… Â«Ú†ÛŒÚ©Ø§Ø±Ø´ Ú©Ù†ÛŒÙ…ØŸÂ» Ù…ÛŒâ€ŒÚ¯ÛŒØ±Ø¯
 
-**فایل‌های تغییرکرده:**
+**ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ ØªØºÛŒÛŒØ±Ú©Ø±Ø¯Ù‡:**
 - `src/khatmsaz/modules/reminder_engine/service.py`
 - `src/khatmsaz/modules/khatm/models.py` + `repository.py`
 - `src/khatmsaz/modules/khatm_workflow/service.py`
 - `migrations/versions/78e35fca4f39_shorten_miss_notice_window.py`
 - `tests/test_creator_miss_notice_integration.py`
 
-**150 تست پاس، migration اجرا شد.**
+**150 ØªØ³Øª Ù¾Ø§Ø³ØŒ migration Ø§Ø¬Ø±Ø§ Ø´Ø¯.**
 
 ---
 
-## 2026-09-22 — BACKLOG item 8: today-vs-yesterday for committed quantity khatms [Claude Code]
+## 2026-09-22 â€” BACKLOG item 8: today-vs-yesterday for committed quantity khatms [Claude Code]
 
-**فایل‌های تغییرکرده:**
-- `src/khatmsaz/modules/allocation/models.py` — `CommittedQuantityLog` model
-- `src/khatmsaz/modules/allocation/repository.py` — log insert + range query
-- `src/khatmsaz/modules/allocation/service.py` — auto-log on progress record + `today_vs_yesterday_committed`
-- `src/khatmsaz/bot/handlers/portions.py` — نمایش امروز/دیروز در پاسخ تعهدی
-- `migrations/versions/c8e057163033_add_committed_quantity_logs.py` — migration
-- `tests/test_committed_today_vs_yesterday_integration.py` — تست
+**ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ ØªØºÛŒÛŒØ±Ú©Ø±Ø¯Ù‡:**
+- `src/khatmsaz/modules/allocation/models.py` â€” `CommittedQuantityLog` model
+- `src/khatmsaz/modules/allocation/repository.py` â€” log insert + range query
+- `src/khatmsaz/modules/allocation/service.py` â€” auto-log on progress record + `today_vs_yesterday_committed`
+- `src/khatmsaz/bot/handlers/portions.py` â€” Ù†Ù…Ø§ÛŒØ´ Ø§Ù…Ø±ÙˆØ²/Ø¯ÛŒØ±ÙˆØ² Ø¯Ø± Ù¾Ø§Ø³Ø® ØªØ¹Ù‡Ø¯ÛŒ
+- `migrations/versions/c8e057163033_add_committed_quantity_logs.py` â€” migration
+- `tests/test_committed_today_vs_yesterday_integration.py` â€” ØªØ³Øª
 
-**149 تست پاس، migration اجرا شد.**
-
----
-
-## 2026-09-22 — delivery-hour question extended to ALL committed khatm types [Claude Code]
-
-**فایل‌های تغییرکرده:**
-- `src/khatmsaz/bot/handlers/start.py` — شرط `unit_kind == POSITIONAL` از
-  trigger پرسش ساعت تحویل حذف شد؛ حالا برای همهٔ ختم‌های تعهدی (قرآن +
-  صلوات + دعا + لعن) پرسیده می‌شه
-- `tests/test_join_delivery_hour_ask_integration.py` — تست جدید برای صلوات
-
-**148 تست پاس.**
+**149 ØªØ³Øª Ù¾Ø§Ø³ØŒ migration Ø§Ø¬Ø±Ø§ Ø´Ø¯.**
 
 ---
 
-## 2026-09-22 — start.py join-flow fully i18n'd; creator_web_login DB-before-HTTPS-check bug fixed; test isolation regression fixed [Claude Code]
+## 2026-09-22 â€” delivery-hour question extended to ALL committed khatm types [Claude Code]
 
-**فایل‌های تغییرکرده:**
-- `src/khatmsaz/bot/handlers/start.py` — همهٔ رشته‌های هاردکد join-flow (خطاهای
-  لینک دعوت، ختم حذف‌شده/تموم‌شده/عضوقبلی، تعهد، کپشن کاور، خصوصی، لغو)
-  با `t()` و کلیدهای جدید `join.*` جایگزین شدن؛ `_request_private_join`
-  پارامتر `lang` گرفت؛ `cancel_commitment` از DB زبان می‌گیره
-- `src/khatmsaz/bot/handlers/my_khatms.py` — چک HTTPS به پیش از `_lang_for`
-  منتقل شد تا در مسیر reject به DB وصل نشه
-- `src/khatmsaz/i18n/__init__.py` — ۱۱ کلید جدید `join.error.*`,
+**ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ ØªØºÛŒÛŒØ±Ú©Ø±Ø¯Ù‡:**
+- `src/khatmsaz/bot/handlers/start.py` â€” Ø´Ø±Ø· `unit_kind == POSITIONAL` Ø§Ø²
+  trigger Ù¾Ø±Ø³Ø´ Ø³Ø§Ø¹Øª ØªØ­ÙˆÛŒÙ„ Ø­Ø°Ù Ø´Ø¯Ø› Ø­Ø§Ù„Ø§ Ø¨Ø±Ø§ÛŒ Ù‡Ù…Ù‡Ù” Ø®ØªÙ…â€ŒÙ‡Ø§ÛŒ ØªØ¹Ù‡Ø¯ÛŒ (Ù‚Ø±Ø¢Ù† +
+  ØµÙ„ÙˆØ§Øª + Ø¯Ø¹Ø§ + Ù„Ø¹Ù†) Ù¾Ø±Ø³ÛŒØ¯Ù‡ Ù…ÛŒâ€ŒØ´Ù‡
+- `tests/test_join_delivery_hour_ask_integration.py` â€” ØªØ³Øª Ø¬Ø¯ÛŒØ¯ Ø¨Ø±Ø§ÛŒ ØµÙ„ÙˆØ§Øª
+
+**148 ØªØ³Øª Ù¾Ø§Ø³.**
+
+---
+
+## 2026-09-22 â€” start.py join-flow fully i18n'd; creator_web_login DB-before-HTTPS-check bug fixed; test isolation regression fixed [Claude Code]
+
+**ÙØ§ÛŒÙ„â€ŒÙ‡Ø§ÛŒ ØªØºÛŒÛŒØ±Ú©Ø±Ø¯Ù‡:**
+- `src/khatmsaz/bot/handlers/start.py` â€” Ù‡Ù…Ù‡Ù” Ø±Ø´ØªÙ‡â€ŒÙ‡Ø§ÛŒ Ù‡Ø§Ø±Ø¯Ú©Ø¯ join-flow (Ø®Ø·Ø§Ù‡Ø§ÛŒ
+  Ù„ÛŒÙ†Ú© Ø¯Ø¹ÙˆØªØŒ Ø®ØªÙ… Ø­Ø°Ùâ€ŒØ´Ø¯Ù‡/ØªÙ…ÙˆÙ…â€ŒØ´Ø¯Ù‡/Ø¹Ø¶ÙˆÙ‚Ø¨Ù„ÛŒØŒ ØªØ¹Ù‡Ø¯ØŒ Ú©Ù¾Ø´Ù† Ú©Ø§ÙˆØ±ØŒ Ø®ØµÙˆØµÛŒØŒ Ù„ØºÙˆ)
+  Ø¨Ø§ `t()` Ùˆ Ú©Ù„ÛŒØ¯Ù‡Ø§ÛŒ Ø¬Ø¯ÛŒØ¯ `join.*` Ø¬Ø§ÛŒÚ¯Ø²ÛŒÙ† Ø´Ø¯Ù†Ø› `_request_private_join`
+  Ù¾Ø§Ø±Ø§Ù…ØªØ± `lang` Ú¯Ø±ÙØªØ› `cancel_commitment` Ø§Ø² DB Ø²Ø¨Ø§Ù† Ù…ÛŒâ€ŒÚ¯ÛŒØ±Ù‡
+- `src/khatmsaz/bot/handlers/my_khatms.py` â€” Ú†Ú© HTTPS Ø¨Ù‡ Ù¾ÛŒØ´ Ø§Ø² `_lang_for`
+  Ù…Ù†ØªÙ‚Ù„ Ø´Ø¯ ØªØ§ Ø¯Ø± Ù…Ø³ÛŒØ± reject Ø¨Ù‡ DB ÙˆØµÙ„ Ù†Ø´Ù‡
+- `src/khatmsaz/i18n/__init__.py` â€” Û±Û± Ú©Ù„ÛŒØ¯ Ø¬Ø¯ÛŒØ¯ `join.error.*`,
   `join.cancelled`, `join.commitment_*`, `join.private_request_sent`,
   `join.cover_caption`
-- `docs/ai/I18N_MIGRATION.md` — `start.py` و `my_khatms.py` هر دو `[x]` شدن
+- `docs/ai/I18N_MIGRATION.md` â€” `start.py` Ùˆ `my_khatms.py` Ù‡Ø± Ø¯Ùˆ `[x]` Ø´Ø¯Ù†
 
-**تست:** ۶۸ unit + ۱۴۷ integration همه پاس.
+**ØªØ³Øª:** Û¶Û¸ unit + Û±Û´Û· integration Ù‡Ù…Ù‡ Ù¾Ø§Ø³.
 
 ---
 
-## 2026-09-22 — Bale join link is now a real clickable link; Telegram registration no longer accepts a typed phone number
+## 2026-09-22 â€” Bale join link is now a real clickable link; Telegram registration no longer accepts a typed phone number
 
 - Owner-reported bug: the Bale invite in the "khatm created" message was
   raw text telling the recipient to manually type `/start join_<token>`
-  into Bale — error-prone, not an actual link, and reported broken in
+  into Bale â€” error-prone, not an actual link, and reported broken in
   practice. Fixed to build a real `https://ble.ir/<username>?start=join_<token>`
   clickable link, matching the format `portions.py::_invite_friends_line`
   already assumes elsewhere in this codebase (so this is now consistent,
@@ -203,49 +207,49 @@ friction found was interaction-shaped, not text-shaped:
   `tests/test_bale_invite_link_is_clickable.py`.
 - Owner clarification on the phone-share ambiguity from earlier tonight:
   during **initial registration on Telegram**, only the "share my number"
-  button should work — typing a number manually is no longer accepted
+  button should work â€” typing a number manually is no longer accepted
   there (Bale has no button-share equivalent, so Bale still allows
   typing). New i18n keys `registration.ask_phone_share_only` /
   `registration.use_share_button_only`. New test
   `tests/test_registration_phone_share_only.py`. (Scoped only to the
-  initial-registration step — `change_phone.py`'s manual phone-change
+  initial-registration step â€” `change_phone.py`'s manual phone-change
   flow is a different, deliberately-typed context and is untouched.)
 - Full `pytest` (74) + real-Postgres integration (147 total) pass; both
   bots restarted, `/health` OK.
 
-## 2026-09-22 — Bale bot activated; real bug fixed: creating a khatm no longer restarts from scratch if phone/profile verification is needed mid-way
+## 2026-09-22 â€” Bale bot activated; real bug fixed: creating a khatm no longer restarts from scratch if phone/profile verification is needed mid-way
 
 - **Bale bot activated.** New token + username set in `.env`; Bale is now
   running alongside Telegram (confirmed live in logs: both bots polling).
-  Super-admin auto-promotion (`identity/service.py`) was Telegram-only —
+  Super-admin auto-promotion (`identity/service.py`) was Telegram-only â€”
   extended to also check a new `SUPER_ADMIN_BALE_CHAT_IDS` env var
   (`config.py`), set to the owner's given Bale id, so the same
   first-admin bootstrap mechanism now works on Bale too.
 - **Real, high-impact bug fixed (owner-reported):** a first-time creator
   whose phone wasn't verified yet lost their *entire* create-khatm wizard
-  the moment they tapped confirm — `confirm_wizard` used to just clear the
+  the moment they tapped confirm â€” `confirm_wizard` used to just clear the
   state and tell them to run `/verify_phone` and start over from scratch.
   Now it kicks off the same phone-verification (or profile-completion,
   if that's what's missing first) flow while keeping every answer the
   wizard already collected, and once verification succeeds, the khatm
-  actually gets created immediately with those preserved answers — no
+  actually gets created immediately with those preserved answers â€” no
   restart. New `create_khatm.py::resume_khatm_creation_if_pending`,
   wired into both `change_phone.py`'s OTP-success handler and
   `profile.py`'s profile-completion handler (both previously just showed
   a generic "done" message and dropped back to the main menu,
   discarding any in-progress wizard). New end-to-end test
-  `tests/test_create_khatm_survives_phone_verification.py` — actually
+  `tests/test_create_khatm_survives_phone_verification.py` â€” actually
   drives a wizard into the unverified-phone case, extracts the dev-mode
   OTP code, enters it, and confirms the khatm was created with the
   original title/type.
-- **New system-settings admin feature** (owner request: "همه چیز
-  داینامیک باشه"): generic `system_settings` key/value table (migration
+- **New system-settings admin feature** (owner request: "Ù‡Ù…Ù‡ Ú†ÛŒØ²
+  Ø¯Ø§ÛŒÙ†Ø§Ù…ÛŒÚ© Ø¨Ø§Ø´Ù‡"): generic `system_settings` key/value table (migration
   `d2e3f4a5b6c7`) + `/admin_settings` / `/admin_setting_set` commands.
   First two real values wired in: `default_reminder_hour` and
   `inactivity_days` in `reminder_engine.service`, previously hardcoded
-  Python constants — now live-editable without a deploy.
-- **⚠️ Flagged, not guessed at:** the owner also described a phone-share
-  reply-keyboard issue in Telegram ("کیبورد بسته بشه تا دکمه شیر بیاد") —
+  Python constants â€” now live-editable without a deploy.
+- **âš ï¸ Flagged, not guessed at:** the owner also described a phone-share
+  reply-keyboard issue in Telegram ("Ú©ÛŒØ¨ÙˆØ±Ø¯ Ø¨Ø³ØªÙ‡ Ø¨Ø´Ù‡ ØªØ§ Ø¯Ú©Ù…Ù‡ Ø´ÛŒØ± Ø¨ÛŒØ§Ø¯") â€”
   the phrasing was ambiguous enough (possible dictation artifact) that
   guessing at a fix risked solving the wrong problem. Needs a follow-up
   screenshot or clearer description before touching `registration.py`'s
@@ -253,28 +257,28 @@ friction found was interaction-shaped, not text-shaped:
 - Full `pytest` (72) + real-Postgres integration (144 total) pass;
   `alembic upgrade head` applied; both bots restarted, `/health` OK.
 
-## 2026-09-21 — Salawat no longer asks for custom text (La'an-only now); category→devotional content link is now explicit and admin-editable
+## 2026-09-21 â€” Salawat no longer asks for custom text (La'an-only now); categoryâ†’devotional content link is now explicit and admin-editable
 
-- Owner-reported bug: "برای صلوات نباید متن رو از یوزر بخواد؛ متن صلوات
-  همیشه ثابته — این فقط باید برای لعن باشه." The creator-authored-text
+- Owner-reported bug: "Ø¨Ø±Ø§ÛŒ ØµÙ„ÙˆØ§Øª Ù†Ø¨Ø§ÛŒØ¯ Ù…ØªÙ† Ø±Ùˆ Ø§Ø² ÛŒÙˆØ²Ø± Ø¨Ø®ÙˆØ§Ø¯Ø› Ù…ØªÙ† ØµÙ„ÙˆØ§Øª
+  Ù‡Ù…ÛŒØ´Ù‡ Ø«Ø§Ø¨ØªÙ‡ â€” Ø§ÛŒÙ† ÙÙ‚Ø· Ø¨Ø§ÛŒØ¯ Ø¨Ø±Ø§ÛŒ Ù„Ø¹Ù† Ø¨Ø§Ø´Ù‡." The creator-authored-text
   step in the create-khatm wizard fired for every Salawat-template khatm
   (plain Salawat, Dua, *and* La'an) when it should only ever fire for
-  La'an — Salawat wording is fixed/standard, Dua text comes from the
+  La'an â€” Salawat wording is fixed/standard, Dua text comes from the
   admin-managed devotional library. Fixed the condition in
   `bot/handlers/create_khatm.py::_after_welcome` to check
   `category_group == LAAN` instead of just the SALAWAT template type;
-  reworded `create_khatm.ask_recitation_text` to say "لعن" explicitly.
-- **BACKLOG.md §14 follow-up, done:** replaced the fragile name-matching
-  hack (checking if "عاشورا" appeared in a category's title to guess
+  reworded `create_khatm.ask_recitation_text` to say "Ù„Ø¹Ù†" explicitly.
+- **BACKLOG.md Â§14 follow-up, done:** replaced the fragile name-matching
+  hack (checking if "Ø¹Ø§Ø´ÙˆØ±Ø§" appeared in a category's title to guess
   which devotional-library text to send) with a real, explicit
-  `KhatmCategory.devotional_slug` column — admin-editable from the
+  `KhatmCategory.devotional_slug` column â€” admin-editable from the
   categories web panel (new migration `c1d2e3f4a5b6`). The old
   name-matching is kept only as a fallback for categories an admin
   hasn't linked yet, so nothing that worked before silently breaks.
 - New tests: `tests/test_recitation_text_only_for_laan.py`,
   `tests/test_category_devotional_slug_link.py`.
-- **Admin-panel dynamism audit (owner asked: "همه چیز قابل کنترل و
-  ویرایش باشه، داینامیک باشه"):** researched what's already
+- **Admin-panel dynamism audit (owner asked: "Ù‡Ù…Ù‡ Ú†ÛŒØ² Ù‚Ø§Ø¨Ù„ Ú©Ù†ØªØ±Ù„ Ùˆ
+  ÙˆÛŒØ±Ø§ÛŒØ´ Ø¨Ø§Ø´Ù‡ØŒ Ø¯Ø§ÛŒÙ†Ø§Ù…ÛŒÚ© Ø¨Ø§Ø´Ù‡"):** researched what's already
   admin-editable vs. hardcoded across the whole panel. Already dynamic
   and broader than expected: pricing/plans, SMS plans, coupons, message
   templates, roles, devotional categories (now including this slug
@@ -282,21 +286,21 @@ friction found was interaction-shaped, not text-shaped:
   hardcoded-in-Python items that would need real (migration-sized) work
   to make dynamic: the reciter whitelist (`SYSTEM_RECITERS`), Quran
   edition list, and the `KhatmCategoryGroup` enum (SALAWAT/LAAN/DUA count
-  fixed at 3 — extending it needs a DB enum migration, not just an admin
+  fixed at 3 â€” extending it needs a DB enum migration, not just an admin
   toggle). No global system-settings key/value table exists yet for
   tuning small numeric defaults (reminder hour, inactivity days) without
-  a migration each time — flagged as the highest-leverage next step if
+  a migration each time â€” flagged as the highest-leverage next step if
   more "make this a number I can change" requests come in.
 - Full `pytest` (70) + real-Postgres integration (143 total) pass;
   `alembic upgrade head` applied cleanly; bot restarted, `/health` OK.
 
-## 2026-09-21 — Fixed: picking a reciter never actually turned audio on
+## 2026-09-21 â€” Fixed: picking a reciter never actually turned audio on
 
-- Owner-reported bug: "قاری رو فعال میکنم اما صوت ارسال نمیشه." Root
+- Owner-reported bug: "Ù‚Ø§Ø±ÛŒ Ø±Ùˆ ÙØ¹Ø§Ù„ Ù…ÛŒÚ©Ù†Ù… Ø§Ù…Ø§ ØµÙˆØª Ø§Ø±Ø³Ø§Ù„ Ù†Ù…ÛŒØ´Ù‡." Root
   cause: `UserSettings.quran_audio_enabled` is a separate flag (defaults
   to `False`, lives on a different settings screen) that picking a
-  reciter — via either the ⚙️ تنظیمات inline menu or the typed `/reciter`
-  command — never touched. So no matter which reciter someone picked,
+  reciter â€” via either the âš™ï¸ ØªÙ†Ø¸ÛŒÙ…Ø§Øª inline menu or the typed `/reciter`
+  command â€” never touched. So no matter which reciter someone picked,
   `content_service.resolve_current_quran_delivery` kept skipping audio
   because the unrelated flag was still off. Fixed both entry points
   (`settings_menu.py::set_reciter`, `reciter_settings.py::set_reciter`) to
@@ -305,19 +309,19 @@ friction found was interaction-shaped, not text-shaped:
   entry points).
 - **Real end-to-end verification, not just unit tests (owner asked to
   actually go check audio comes through):** found `quran_page_assets` was
-  completely empty *again* (0 rows) — almost certainly fallout from
+  completely empty *again* (0 rows) â€” almost certainly fallout from
   tonight's Postgres crash/WAL-recovery. Re-ran the idempotent seed (604
   images + 604 audio restored, no risk of duplicates). Then ran a real
-  script through the actual production code path — created a live Quran
+  script through the actual production code path â€” created a live Quran
   khatm with the real boundary-aligned allocator, called the real
   `settings_menu.py::set_reciter` handler, then called the real
   `notify_adapter.build_send_quran_pages_fn` (the function the reminder
   engine actually uses to push content) against a fake bot capturing
   calls. Result: first portion resolved to pages 1-3 (matches the earlier
   audio-boundary fix) and exactly 3 real Telegram `forward_message` calls
-  went out — 2 for images (pages 1 and 2 correctly deduped into one
+  went out â€” 2 for images (pages 1 and 2 correctly deduped into one
   shared image forward, page 3 as its own) and exactly 1 for audio
-  (the combined 1-3 recording, deduped from 3 page-rows into 1 send) —
+  (the combined 1-3 recording, deduped from 3 page-rows into 1 send) â€”
   proving both the reciter/audio-toggle fix and the audio-boundary fix
   from earlier tonight work correctly together against real seeded data,
   not just in isolation.
@@ -325,33 +329,33 @@ friction found was interaction-shaped, not text-shaped:
   `quran_page_assets` has now emptied twice this session after unrelated
   Postgres crashes, `bootstrap.py::main` now re-runs the idempotent
   `seed_verified_quran_channel_map` on every single startup (a few seconds
-  of one-time cost, logs the result, never blocks startup on failure) —
+  of one-time cost, logs the result, never blocks startup on failure) â€”
   confirmed live: fresh restart logged
   `Quran channel map self-heal check: {'ready': True, ...}`.
 - Full `pytest` (67) + real-Postgres integration (139 total) pass; bot
   restarted, `/health` OK.
 
-## 2026-09-21 — Committed Quran members now get their hour asked at join + content auto-pushed daily; local Postgres crash recovered; bot wrapped in an auto-restart watchdog
+## 2026-09-21 â€” Committed Quran members now get their hour asked at join + content auto-pushed daily; local Postgres crash recovered; bot wrapped in an auto-restart watchdog
 
 - Owner request: every committed member should be asked what hour to
   receive their daily portion, right at join time (not left to silently
-  default to hour 9) — new `AskDeliveryHour` FSM step in
+  default to hour 9) â€” new `AskDeliveryHour` FSM step in
   `bot/handlers/start.py::resume_join_after_registration`, fires once for
   a fresh QURAN_PAGE COMMITMENT join with a real first portion assigned.
-- Owner request ("سهم امروز باید اتومات باشه، دکمه نداشته باشه"): a
+- Owner request ("Ø³Ù‡Ù… Ø§Ù…Ø±ÙˆØ² Ø¨Ø§ÛŒØ¯ Ø§ØªÙˆÙ…Ø§Øª Ø¨Ø§Ø´Ù‡ØŒ Ø¯Ú©Ù…Ù‡ Ù†Ø¯Ø§Ø´ØªÙ‡ Ø¨Ø§Ø´Ù‡"): a
   committed Quran participant's daily portion content (image/audio/text)
-  is now auto-pushed alongside the reminder text — both the first-portion
-  daily digest and every later day's `deliver_due_next_portions` — reusing
+  is now auto-pushed alongside the reminder text â€” both the first-portion
+  daily digest and every later day's `deliver_due_next_portions` â€” reusing
   the same `send_quran_pages` mechanism already built for open-Quran
-  readers (BACKLOG.md §24). New `reminder_engine.service._push_portion_content`
+  readers (BACKLOG.md Â§24). New `reminder_engine.service._push_portion_content`
   helper, best-effort (a delivery failure never blocks the reminder text).
 - Found and fixed two more stale occurrences of the removed backup-reader
-  wording ("سهم را به یکی از دوستان بسپارید") in `reminder_engine.service`'s
-  default reminder text — missed in the earlier sweep since they live in a
+  wording ("Ø³Ù‡Ù… Ø±Ø§ Ø¨Ù‡ ÛŒÚ©ÛŒ Ø§Ø² Ø¯ÙˆØ³ØªØ§Ù† Ø¨Ø³Ù¾Ø§Ø±ÛŒØ¯") in `reminder_engine.service`'s
+  default reminder text â€” missed in the earlier sweep since they live in a
   different function than the ones already fixed.
 - New tests: `tests/test_committed_quran_auto_content_push_integration.py`,
   `tests/test_join_delivery_hour_ask_integration.py`.
-- **Infra, not code — real production risk found and fixed:** the local
+- **Infra, not code â€” real production risk found and fixed:** the local
   dev/test Postgres cluster (port 55433) crashed mid-session (an OS-level
   client-backend termination, unrelated to any code change) and the bot
   process died with it. Both recovered (`pg_ctl start`, WAL replayed
@@ -360,19 +364,19 @@ friction found was interaction-shaped, not text-shaped:
   a bare background process, so a future crash self-heals without needing
   anyone awake to restart it.
 - Documented a GitHub-based deployment alternative (owner's own
-  private repo → server `git clone`/`git pull`) in `Rahnama.VPS.txt`
-  (new §8-ب), alongside the existing SCP-based method — `.env` was
+  private repo â†’ server `git clone`/`git pull`) in `Rahnama.VPS.txt`
+  (new Â§8-Ø¨), alongside the existing SCP-based method â€” `.env` was
   already correctly excluded via `.gitignore`.
 - Full `pytest` (65) + real-Postgres integration (137 total) pass; bot
   restarted, `/health` OK.
 
-## 2026-09-21 — Restored creator-only miss notification (owner reversed part of the earlier removal after being asked to confirm)
+## 2026-09-21 â€” Restored creator-only miss notification (owner reversed part of the earlier removal after being asked to confirm)
 
 - Owner was asked directly whether "nobody gets notified on a miss"
   (decided earlier today) should stand, given a new request implied the
   opposite. They confirmed: creator should be notified after repeated
   misses. Implemented narrowly: participant is still never notified and
-  their portion is still never released to anyone else — only the
+  their portion is still never released to anyone else â€” only the
   creator gets an informational message once a member crosses the
   khatm's own miss threshold/window (fields already existed, no
   migration). New `reminder_engine.service._maybe_record_miss_and_notify_creator`.
@@ -380,39 +384,39 @@ friction found was interaction-shaped, not text-shaped:
   (64) + real-Postgres integration (135 total) pass; bot restarted,
   `/health` OK.
 
-## 2026-09-21 — Fixed real UX bugs from owner screenshots: language-leaking buttons, wrong post-completion keyboard, stale consent text
+## 2026-09-21 â€” Fixed real UX bugs from owner screenshots: language-leaking buttons, wrong post-completion keyboard, stale consent text
 
 - `contribute_keyboard`/`commitment_quantity_keyboard` (`bot/keyboards.py`)
-  had hardcoded Persian button text with no `lang` param — an English-mode
-  user got an all-English message with a Persian "ثبت مشارکت" button.
+  had hardcoded Persian button text with no `lang` param â€” an English-mode
+  user got an all-English message with a Persian "Ø«Ø¨Øª Ù…Ø´Ø§Ø±Ú©Øª" button.
   Fixed: both now take `lang` and use `t()`; all call sites
   (`portions.py`, `start.py`) updated.
-- Real UX bug (owner screenshot): after tapping "✅ انجام دادم", the
-  confirmation message still showed "📖 نمایش محتوای سهم" and "✅ انجام
-  دادم" again — buttons for a portion that was already just completed.
-  Split `portion_done_keyboard` (for a still-pending portion — content +
+- Real UX bug (owner screenshot): after tapping "âœ… Ø§Ù†Ø¬Ø§Ù… Ø¯Ø§Ø¯Ù…", the
+  confirmation message still showed "ðŸ“– Ù†Ù…Ø§ÛŒØ´ Ù…Ø­ØªÙˆØ§ÛŒ Ø³Ù‡Ù…" and "âœ… Ø§Ù†Ø¬Ø§Ù…
+  Ø¯Ø§Ø¯Ù…" again â€” buttons for a portion that was already just completed.
+  Split `portion_done_keyboard` (for a still-pending portion â€” content +
   done + snooze) from a new `post_completion_keyboard` (snooze + undo
   only) and switched `mark_portion_done`'s three response branches to the
   latter. Also translated both keyboards' labels (were hardcoded Persian).
 - Fixed stale wording in the commitment join-consent prompt
-  (`start.py::resume_join_after_registration`) — it still said "if I
+  (`start.py::resume_join_after_registration`) â€” it still said "if I
   can't, I'll let people know early so the portion doesn't fall behind,"
   describing the now-removed backup-reader mechanism. Reworded to be
-  responsibility-framed instead (BACKLOG.md §14): missing your portion
+  responsibility-framed instead (BACKLOG.md Â§14): missing your portion
   can hold back the whole khatm and everyone else's progress.
 - Full `pytest` (63) + real-Postgres integration (134 total) pass; bot
   restarted, `/health` OK.
 
-## 2026-09-21 — Open/waitlisted Quran readers now actually receive real page content (BACKLOG.md §24)
+## 2026-09-21 â€” Open/waitlisted Quran readers now actually receive real page content (BACKLOG.md Â§24)
 
 - Root cause: OPEN Quran khatms (and waitlisted, non-committed members of
-  a COMMITMENT Quran khatm) only ever logged a bare contribution number —
+  a COMMITMENT Quran khatm) only ever logged a bare contribution number â€”
   real page delivery required a `KhatmPortion`, which only exists for
   committed participants. Confirmed via full trace before writing any code.
 - New migration (`r9s0t1u2v3w4`): 3 columns on `khatm_participations`
   (`open_reading_pages_per_day`, `open_reading_next_page`,
   `open_reading_last_sent_at`).
-- First "ثبت مشارکت" tap for a non-committed Quran participant now asks
+- First "Ø«Ø¨Øª Ù…Ø´Ø§Ø±Ú©Øª" tap for a non-committed Quran participant now asks
   pages/day + delivery hour, then immediately sends that day's real pages;
   subsequent manual logging also delivers real content, not just a number.
 - New `reminder_engine.service.deliver_due_open_quran_reading` (wired into
@@ -424,27 +428,27 @@ friction found was interaction-shaped, not text-shaped:
   (63) + real-Postgres integration (134 total) pass; migration applied;
   bot restarted, `/health` OK.
 
-## 2026-09-21 — my_khatms.py creator commands fully translated + tone-guide pass; fixed a real NameError bug
+## 2026-09-21 â€” my_khatms.py creator commands fully translated + tone-guide pass; fixed a real NameError bug
 
 - Translated every remaining Persian-only string in `bot/handlers/my_khatms.py`
   (all `/khatm_*` typed commands + the `cs:*` inline settings tree) to
   fa/ar/en, ~90 new `my_khatms.creator.*` i18n keys, written against
-  `docs/ai/TONE_GUIDE_80YO_PERSONA.md`'s checklist (BACKLOG.md §19/§3).
+  `docs/ai/TONE_GUIDE_80YO_PERSONA.md`'s checklist (BACKLOG.md Â§19/Â§3).
 - Fixed a real bug: `khatm_stats`'s phone-not-verified branch referenced
-  an undefined `callback` variable — would have raised `NameError` for
+  an undefined `callback` variable â€” would have raised `NameError` for
   any creator with an unverified phone running `/khatm_stats`.
 - Removed `/khatm_skip_today` and `/khatm_miss_policy` outright (not
-  translated) — both configured features already removed from the UI in
+  translated) â€” both configured features already removed from the UI in
   today's earlier emergency-portion-removal pass, so they no longer did
   anything visible.
 - Full `pytest` (63, one assertion updated for new tone-compliant copy) +
   real-Postgres integration (133 total) pass; bot restarted, `/health` OK.
 
-## 2026-09-21 — "ختم‌های من" redesigned as a hierarchical menu (BACKLOG.md §18)
+## 2026-09-21 â€” "Ø®ØªÙ…â€ŒÙ‡Ø§ÛŒ Ù…Ù†" redesigned as a hierarchical menu (BACKLOG.md Â§18)
 
 - Replaced the single long text list with a 3-level navigable menu:
-  created/joined/finished → content type (Quran/Salawat/Dua/La'an) →
-  individual khatms with their existing action buttons. No FSM state —
+  created/joined/finished â†’ content type (Quran/Salawat/Dua/La'an) â†’
+  individual khatms with their existing action buttons. No FSM state â€”
   each navigation tap (`mk:root`/`mk:b:*`/`mk:c:*`) re-reads from the DB
   and edits the same message in place.
 - New `_build_my_khatms_tree`/`_render_my_khatms_{root,branch,category}`
@@ -452,15 +456,15 @@ friction found was interaction-shaped, not text-shaped:
   `KhatmCategory.group` (`content_category_id`).
 - New test `tests/test_my_khatms_hierarchy_integration.py` against real
   Postgres (creator + member, spanning Quran/Salawat/Dua). Admin web
-  panel intentionally stays Persian-only — the admin's own language
+  panel intentionally stays Persian-only â€” the admin's own language
   choice, per the owner.
 - Full `pytest` (63) + real-Postgres integration (133 total) pass; bot
   restarted, `/health` OK.
 
-## 2026-09-21 — Removed emergency-portion/backup-reader system; one Quran portion per day
+## 2026-09-21 â€” Removed emergency-portion/backup-reader system; one Quran portion per day
 
 - Owner decision: remove the entire emergency-portion/backup-reader
-  concept — a missed portion no longer notifies anyone or gets released to
+  concept â€” a missed portion no longer notifies anyone or gets released to
   a shared pool; the same member simply gets it later. Removed the
   `emergency:`/`backup_toggle:`/`skip_today:` callbacks, their keyboards,
   `reminder_engine.service._maybe_send_miss_notice`, and reduced
@@ -472,16 +476,16 @@ friction found was interaction-shaped, not text-shaped:
   own timezone, at their existing `/reminder` hour. New integration test
   `tests/test_one_portion_per_day_integration.py`.
 - Fixed two now-stale strings that still described the removed mechanism
-  as reassuring ("someone else will cover it") — rewritten to be
-  responsibility-framed instead (BACKLOG.md §14), since they were now
+  as reassuring ("someone else will cover it") â€” rewritten to be
+  responsibility-framed instead (BACKLOG.md Â§14), since they were now
   simply false.
 - Found and fixed an unrelated, pre-existing operational bug: two
   independent bot processes were both polling Telegram at once (real
-  double-handling risk) — killed both, started one clean instance.
+  double-handling risk) â€” killed both, started one clean instance.
 - Full `pytest` (62) + real-Postgres integration (70) pass; bot restarted,
   `/health` OK.
 
-## 2026-09-21 — Fixed Quran portion/audio boundary mismatch (real, wide bug)
+## 2026-09-21 â€” Fixed Quran portion/audio boundary mismatch (real, wide bug)
 
 - Root-caused and fixed a real bug where most Quran-commitment portions
   (300 of 302, not just the reported "pages 7-8") got two different audio
@@ -496,13 +500,13 @@ friction found was interaction-shaped, not text-shaped:
 - Investigated the "add devotional audio without code" request: already
   fully supported via `/admin_devotional_text` + `/admin_devotional_audio
   <slug>` caption command; no new feature needed.
-- Flagged "one Quran portion per day" as not yet built — needs an owner
-  decision before touching a core, heavily-used subsystem (see BACKLOG §23).
+- Flagged "one Quran portion per day" as not yet built â€” needs an owner
+  decision before touching a core, heavily-used subsystem (see BACKLOG Â§23).
 - Verified with full pytest + full real-Postgres integration suite (both
   before and after each change), multiple real-Postgres verification
   scripts, and a bot restart + `/health` check. (Claude Code)
 
-## 2026-09-21 — Devotional content delivery + suggestions inbox
+## 2026-09-21 â€” Devotional content delivery + suggestions inbox
 
 - Registered the owner-supplied Ziyarat Ashura (bold Arabic + Persian
   translation, chunked) and Salawat text into `devotional_assets` via
@@ -512,9 +516,9 @@ friction found was interaction-shaped, not text-shaped:
 - Added an optional creator-authored recitation-text wizard step for
   SALAWAT-family khatms (stored in the pre-existing `Khatm.description`
   column, no migration); wired delivery into `portions.py` after each
-  contribution — custom text if set, else a devotional-library fallback
+  contribution â€” custom text if set, else a devotional-library fallback
   matched by category title (stopgap; needs a real `devotional_slug` FK
-  later, see BACKLOG §14).
+  later, see BACKLOG Â§14).
 - Added a suggestions/bug-report inbox (`suggestions.py`): a Help-menu
   button that records feedback in `audit_logs` and pushes it live to all
   Super Admin chats.
@@ -523,7 +527,7 @@ friction found was interaction-shaped, not text-shaped:
   import smoke-tests, and a bot restart + `/health` check after each
   change. (Claude Code)
 
-## 2026-09-21 — Creator Mini App panel localized; go-live readiness confirmed
+## 2026-09-21 â€” Creator Mini App panel localized; go-live readiness confirmed
 
 - Localized the creator-facing web/Mini-App templates (`creator_base.html`,
   `creator_dashboard.html`, `creator_khatm_detail.html`, `creator_login.html`)
@@ -537,13 +541,13 @@ friction found was interaction-shaped, not text-shaped:
   verified `/health` and live polling.
 - Investigated content-delivery for Salawat/Ziyarat khatms: no such
   pipeline exists yet (only Quran has one); flagged as a real fast-follow
-  feature, not built today — Ziyarat Ashura's text needs a verified source
+  feature, not built today â€” Ziyarat Ashura's text needs a verified source
   from the owner, not a reproduction from memory.
 - Verified with full pytest suite, a real-Postgres smoke test, a direct
   Jinja2 render check in 3 languages, and a bot restart + `/health` check.
   (Claude Code)
 
-## 2026-09-20 — Fixed language-menu reply-keyboard bug and reciter picker; investigated Quran-content report
+## 2026-09-20 â€” Fixed language-menu reply-keyboard bug and reciter picker; investigated Quran-content report
 
 - `settings_menu.py`: changing language now also refreshes the persistent
   bottom Reply Keyboard immediately (was only updating the inline settings
@@ -555,12 +559,12 @@ friction found was interaction-shaped, not text-shaped:
 - Investigated the "content not registered" report: seed data and delivery
   queries are correct; the real cause is old test khatms using the
   superseded `iran-pocket` edition, which was never seeded with page
-  assets. Not a code bug — recommended retesting with a fresh khatm.
+  assets. Not a code bug â€” recommended retesting with a fresh khatm.
 - Verified with full pytest suite, the full real-Postgres integration
   suite (69 passed), an import smoke-test, and a bot restart + `/health`
   check. (Claude Code)
 
-## 2026-09-20 — Fixed message burst, province keyboard height, and join-invite text
+## 2026-09-20 â€” Fixed message burst, province keyboard height, and join-invite text
 
 - `my_khatms.py`: `list_my_khatms` no longer sends a burst of one message
   per khatm/action; everything is now one combined inline keyboard on the
@@ -576,7 +580,7 @@ friction found was interaction-shaped, not text-shaped:
   real-Postgres one-off scripts for all three fixes, an import smoke-test,
   and a bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — Legacy settings commands localized; bot-side i18n rollout complete
+## 2026-09-20 â€” Legacy settings commands localized; bot-side i18n rollout complete
 
 - Owner resolved 3 open i18n-scope questions (DEC-PY-0075): `admin.py`
   stays Persian-only; the admin web panel needs translation (separate,
@@ -592,7 +596,7 @@ friction found was interaction-shaped, not text-shaped:
   smoke-test for all 7 modules, and a bot restart + `/health` check.
   (Claude Code)
 
-## 2026-09-20 — devotional.py localized; normal-priority i18n checklist complete
+## 2026-09-20 â€” devotional.py localized; normal-priority i18n checklist complete
 
 - Converted `bot/handlers/devotional.py` to `t(key, lang)`; added 4
   fa/ar/en keys.
@@ -600,27 +604,27 @@ friction found was interaction-shaped, not text-shaped:
   plus free-form creator-authored broadcast text, nothing translatable).
 - This completes every "normal priority" file on `docs/ai/I18N_MIGRATION.md`'s
   checklist. Remaining: legacy typed-command settings files (low
-  priority), `admin.py`, and the admin web panel — both need an owner
+  priority), `admin.py`, and the admin web panel â€” both need an owner
   decision before further work.
 - Verified with full pytest suite, a real-Postgres key check, an import
   smoke-test, and a bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — manual_phone_verification.py: requester notification localized
+## 2026-09-20 â€” manual_phone_verification.py: requester notification localized
 
 - `bot/handlers/manual_phone_verification.py` is admin-only UI (stays
   Persian, like `admin.py`); localized only the approved/rejected
-  notification sent to the requester — 2 fa/ar/en keys.
+  notification sent to the requester â€” 2 fa/ar/en keys.
 - Verified with full pytest suite, key checks, an import smoke-test, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — public_khatms.py fully localized
+## 2026-09-20 â€” public_khatms.py fully localized
 
 - Converted `bot/handlers/public_khatms.py` to `t(key, lang)`; added 4
   fa/ar/en keys.
 - Verified with full pytest suite, a real-Postgres key check, and a bot
   restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — khatm_request.py localized (submitter side + notifications)
+## 2026-09-20 â€” khatm_request.py localized (submitter side + notifications)
 
 - Converted the submitter-facing flow in `bot/handlers/khatm_request.py`
   to `t(key, lang)`; added 11 fa/ar/en keys. Admin typed commands remain
@@ -629,7 +633,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — creator_decisions.py fully localized
+## 2026-09-20 â€” creator_decisions.py fully localized
 
 - Converted `bot/handlers/creator_decisions.py` (`/khatm_decision`) to
   `t(key, lang)`; added 11 fa/ar/en keys. Fully localized despite being a
@@ -638,14 +642,14 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — account.py fully localized
+## 2026-09-20 â€” account.py fully localized
 
 - Converted `bot/handlers/account.py` (delete-account confirm/cancel flow)
   to `t(key, lang)`; added 11 fa/ar/en keys under `account.*`.
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — account_link.py fully localized
+## 2026-09-20 â€” account_link.py fully localized
 
 - Converted `bot/handlers/account_link.py` to `t(key, lang)`; added 11
   fa/ar/en keys under `account_link.*`, including the real OTP SMS text.
@@ -654,7 +658,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — change_phone.py fully localized
+## 2026-09-20 â€” change_phone.py fully localized
 
 - Converted `bot/handlers/change_phone.py` to `t(key, lang)`; added 22
   fa/ar/en keys under `change_phone.*`, including the actual OTP SMS text
@@ -664,14 +668,14 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — wallet.py fully localized
+## 2026-09-20 â€” wallet.py fully localized
 
 - Converted `bot/handlers/wallet.py` (balance, invoices, PayPing top-up) to
   `t(key, lang)`; added 21 fa/ar/en keys under `wallet.*`.
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — join_requests.py localized + shared join-success message localized
+## 2026-09-20 â€” join_requests.py localized + shared join-success message localized
 
 - Converted `bot/handlers/join_requests.py` to `t(key, lang)`, per-recipient
   (creator vs. requester) same as `leave.py`; added 10 fa/ar/en keys.
@@ -682,7 +686,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check plus an
   import smoke-test, and a bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — leave.py fully localized
+## 2026-09-20 â€” leave.py fully localized
 
 - Converted `bot/handlers/leave.py` to `t(key, lang)`; added 14 fa/ar/en
   keys under `leave.*`.
@@ -692,14 +696,14 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — report.py fully localized
+## 2026-09-20 â€” report.py fully localized
 
 - Converted `bot/handlers/report.py` (today overview + personal report) to
   `t(key, lang)`; added 11 fa/ar/en keys under `report.*`.
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — portions.py fully localized
+## 2026-09-20 â€” portions.py fully localized
 
 - Converted `bot/handlers/portions.py` (portion completion, contribution
   logging, today-vs-yesterday, pause/resume/snooze, emergency-portion
@@ -710,22 +714,22 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — my_khatms.py member entry point localized; NameError bug fixed
+## 2026-09-20 â€” my_khatms.py member entry point localized; NameError bug fixed
 
-- Localized `list_my_khatms` (the "🕋 ختم‌های من" button) and its follow-up
+- Localized `list_my_khatms` (the "ðŸ•‹ Ø®ØªÙ…â€ŒÙ‡Ø§ÛŒ Ù…Ù†" button) and its follow-up
   messages in `bot/handlers/my_khatms.py`; added 21 fa/ar/en keys under
   `my_khatms.*`. Creator typed commands and the `cs:*` inline settings tree
   intentionally left in Persian pending an owner decision (same as
   `admin.py`).
 - Fixed a real pre-existing bug: a block of message loops was misplaced
-  inside `confirm_cancel_khatm`, referencing undefined variables — this
+  inside `confirm_cancel_khatm`, referencing undefined variables â€” this
   would raise `NameError` on every khatm-cancellation confirmation. Removed
   the dead/broken duplicate; the correct logic already existed in
   `list_my_khatms`.
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — settings_menu.py fully localized
+## 2026-09-20 â€” settings_menu.py fully localized
 
 - Converted `bot/handlers/settings_menu.py` and its keyboards in
   `bot/keyboards.py` to `t(key, lang)`; added 49 new fa/ar/en keys under
@@ -735,7 +739,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres key/format check, and a
   bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — create_khatm.py wizard fully localized
+## 2026-09-20 â€” create_khatm.py wizard fully localized
 
 - Converted the entire khatm-creation wizard (`bot/handlers/create_khatm.py`)
   to `t(key, lang, **kwargs)`; added 105 new fa/ar/en keys to
@@ -745,7 +749,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified with full pytest suite, a real-Postgres one-off key/format check,
   and a bot restart + `/health` check. (Claude Code)
 
-## 2026-09-20 — help.py fully localized
+## 2026-09-20 â€” help.py fully localized
 
 - Wired `bot/handlers/help.py` to resolve the real user's stored language
   and pass it through to `help_keyboard`/`help_*_actions_keyboard` (Codex
@@ -754,7 +758,7 @@ friction found was interaction-shaped, not text-shaped:
 - Kept `HELP_TOPICS` (fa-only) for `tests/test_help.py` compatibility.
 - Verified against real Postgres with an `en`-language user.
 
-## 2026-09-20 — Multi-language (fa/ar/en) foundation started
+## 2026-09-20 â€” Multi-language (fa/ar/en) foundation started
 
 - Added `src/khatmsaz/i18n/` (`t()`/`variants()` translation registry) and
   `UserSettings.language_prompted` (migration `c9d0e1f2a3b4`).
@@ -767,7 +771,7 @@ friction found was interaction-shaped, not text-shaped:
   rest of the bot's text (deliberately not attempted in one session).
 - Verified against real Postgres. Fast suite: 62 passed, 64 skipped.
 
-## 2026-09-20 — Time-limited SMS reminder subscriptions
+## 2026-09-20 â€” Time-limited SMS reminder subscriptions
 
 - New module `sms_subscription` (migration `b8c9d0e1f2a3`): admin-editable
   plan options (seeded 3mo/50,000 & 6mo/87,000 toman) and a per-user
@@ -782,11 +786,11 @@ friction found was interaction-shaped, not text-shaped:
 - Verified end-to-end against real Postgres (purchase, expiry, single
   notification, no double-notify on repeat scan).
 
-## 2026-09-20 — Plain-language wizard prompts + local DB recovery
+## 2026-09-20 â€” Plain-language wizard prompts + local DB recovery
 
 - Rewrote remaining terse wizard prompts (welcome message, creator display
   name, start schedule, reminder tone, advertising opt-in) with concrete,
-  verified explanations — corrected a misleading "ads are shown" framing
+  verified explanations â€” corrected a misleading "ads are shown" framing
   to accurately describe the real mechanic (platform-funded one-time
   wallet credit, not a creator charge).
 - Found the bot down: the Docker Postgres container has no published port;
@@ -794,7 +798,7 @@ friction found was interaction-shaped, not text-shaped:
   stopped. Restarted it and the bot manually; noted that a `start_bot.ps1`
   terminal needs to stay open for auto-restart supervision to apply.
 
-## 2026-09-20 — Today-vs-yesterday progress for countable khatms
+## 2026-09-20 â€” Today-vs-yesterday progress for countable khatms
 
 - Added `open_contribution.service.today_vs_yesterday` +
   `repository.total_for_khatm_between`; shows the group's running today
@@ -805,16 +809,16 @@ friction found was interaction-shaped, not text-shaped:
 - Verified against real Postgres with a backdated row to prove the
   day-boundary split is correct.
 
-## 2026-09-20 — Reordered creation wizard (content first, then commitment/free)
+## 2026-09-20 â€” Reordered creation wizard (content first, then commitment/free)
 
-- Moved the تعهدی/آزاد question to after content family + subcategory
+- Moved the ØªØ¹Ù‡Ø¯ÛŒ/Ø¢Ø²Ø§Ø¯ question to after content family + subcategory
   selection (was asked first before); added `CreateKhatm.choosing_mode`.
 - Each (template, category group) combination now shows its own concrete
   commitment/free example instead of one generic explanation.
 - Verified all four combinations produce distinct text and correct state
   transitions via a direct functional test.
 
-## 2026-09-20 — Free-tier plan member caps (DEC-PY-0074)
+## 2026-09-20 â€” Free-tier plan member caps (DEC-PY-0074)
 
 - Added `khatm_workflow.service._enforce_creation_cap` +
   `PlanCapExceededError`: blocks *new* khatm creation (never existing
@@ -826,7 +830,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified end-to-end against real Postgres (cap hit blocks creation,
   existing khatm still accepts new members).
 
-## 2026-09-20 — Post-completion invite links + docs archiving
+## 2026-09-20 â€” Post-completion invite links + docs archiving
 
 - Every portion/contribution-logged message now ends with a link inviting
   friends to the same khatm (owner-provided sample matched).
@@ -837,7 +841,7 @@ friction found was interaction-shaped, not text-shaped:
   SMS plan prices are in thousands of toman; post-completion link = invite
   link).
 
-## 2026-09-20 — Converted dashboard entry to signed Telegram Mini Apps
+## 2026-09-20 â€” Converted dashboard entry to signed Telegram Mini Apps
 
 - Replaced token-bearing admin/creator URL buttons with Telegram `web_app`
   buttons and new visible `/admin_app` and `/creator_app` commands.
@@ -851,7 +855,7 @@ friction found was interaction-shaped, not text-shaped:
 - Complete real-PostgreSQL regression: **121 passed in 136.33s**; restarted
   Telegram polling and verified database-aware HTTP health.
 
-## 2026-09-20 — Separated devotional parent families
+## 2026-09-20 â€” Separated devotional parent families
 
 - Made Salawat, Dua/Ziyarat and La'an independent top-level creation choices.
 - Added group-filtered service/repository reads and guarded forged category
@@ -861,7 +865,7 @@ friction found was interaction-shaped, not text-shaped:
   migration `ab8c9d0e1f2a`, leaving body text empty pending verified content.
 - Added navigation unit coverage and real PostgreSQL family-filter coverage.
 
-## 2026-09-20 — Added khatm search to the admin Mini App
+## 2026-09-20 â€” Added khatm search to the admin Mini App
 
 - Added bounded search by khatm title, creator display name and UUID, combined
   with the existing status filter and active-member aggregate.
@@ -872,7 +876,7 @@ friction found was interaction-shaped, not text-shaped:
 - PostgreSQL pagination test proves the 25+1 boundary for both lists; focused
   integration 3 passed and fast regression 62 passed, 63 skipped.
 
-## 2026-09-20 — Paginated creator reports and fixed XLSX member export
+## 2026-09-20 â€” Paginated creator reports and fixed XLSX member export
 
 - Added 25-row pagination to creator-owned khatms and searchable member
   reports, retaining the query and enforcing ownership on every page.
@@ -885,7 +889,7 @@ friction found was interaction-shaped, not text-shaped:
   with plain Persian labels; restored independent Salawat, Dua/Ziyarat and
   La'an labels. Focused render/PostgreSQL tests: 4 passed.
 
-## 2026-09-20 — Hardened the one-command Windows bot launcher
+## 2026-09-20 â€” Hardened the one-command Windows bot launcher
 
 - Added a real TCP readiness probe for PostgreSQL to `start_bot.ps1`.
 - The launcher now tries the existing Docker database and the preserved local
@@ -898,7 +902,7 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-20 — Made health database-aware and recovered stable local PostgreSQL
+## 2026-09-20 â€” Made health database-aware and recovered stable local PostgreSQL
 
 - Changed `/health` from a process-only response to a real PostgreSQL
   readiness check; database failure now returns HTTP 503 without leaking
@@ -915,19 +919,19 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-19 — Recovered PostgreSQL and confirmed Quran forwarding live
+## 2026-09-19 â€” Recovered PostgreSQL and confirmed Quran forwarding live
 
 - Restarted the existing `khatmsaz-py-postgres` container on port 55433.
 - Ran the new private-join authorization regression against PostgreSQL:
   `1 passed`.
 - Restarted the Telegram bot/admin web against the recovered database.
 - Reclassified Quran-channel forwarding as live-verified: Telegram shows the
-  forwarded pages 1–2 image and one deduplicated Parhizgar audio source post
-  covering pages 1–3, with the seeded map at 604/604 coverage.
+  forwarded pages 1â€“2 image and one deduplicated Parhizgar audio source post
+  covering pages 1â€“3, with the seeded map at 604/604 coverage.
 
 ---
 
-## 2026-09-19 — Hardened private-khatm join decisions
+## 2026-09-19 â€” Hardened private-khatm join decisions
 
 - Revalidated Cloud Code's recent handler changes with compileall and the full
   default test suite.
@@ -941,7 +945,7 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-19 — Added optional attachments to custom khatm requests
+## 2026-09-19 â€” Added optional attachments to custom khatm requests
 
 - Users can attach a document or photo after describing a requested khatm,
   or explicitly continue without a file.
@@ -954,14 +958,14 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-19 — Regression test audit
+## 2026-09-19 â€” Regression test audit
 
 - Full default suite: 47 passed, 57 intentionally skipped integration tests.
 - Runtime health check remained `{"status":"ok"}`.
 
 ---
 
-## 2026-09-19 — Audited payment-secret handling
+## 2026-09-19 â€” Audited payment-secret handling
 
 - Confirmed the PayPing panel credentials are absent from project files.
 - Confirmed `.env` is ignored and the API token remains unset until the owner
@@ -969,7 +973,7 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-19 — Completed button-first open schedule choices
+## 2026-09-19 â€” Completed button-first open schedule choices
 
 - Added workday, weekend, and specific-date choices to the open-khatm
   schedule menu.
@@ -982,27 +986,27 @@ friction found was interaction-shaped, not text-shaped:
 
 ---
 
-## 2026-09-19 — Added button-first ending and open scheduling
+## 2026-09-19 â€” Added button-first ending and open scheduling
 
 - Added Tehran-local historical end-date entry/clear controls to per-khatm
   settings, with future-date and ownership validation.
 - Added open-khatm schedule presets for off, daily, and every three days.
 - Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
 
-## 2026-09-19 — Added a recoverable Windows bot launcher
+## 2026-09-19 â€” Added a recoverable Windows bot launcher
 
 - Added `start_bot.ps1` and `start_bot.bat` for the local project.
 - The launcher automatically retries an unexpected bot-process exit after five
   seconds and documents the distinction between local and VPS operation.
 
-## 2026-09-19 — Added button-first miss-alert policy presets
+## 2026-09-19 â€” Added button-first miss-alert policy presets
 
 - Added the current miss threshold/window to commitment-khatm settings.
 - Added sensitive, balanced, and relaxed one-tap policy presets with clear
   private-alert semantics and existing service-level validation.
 - Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
 
-## 2026-09-19 — Added button-first title and welcome editing
+## 2026-09-19 â€” Added button-first title and welcome editing
 
 - Added Title and Welcome buttons to each owned khatm's settings screen.
 - Added a guarded text-entry flow with cancel/back, ownership/status rechecks,
@@ -1010,7 +1014,7 @@ friction found was interaction-shaped, not text-shaped:
 - Kept structural fields immutable after activation.
 - Validation: focused menu tests 3 passed; full PostgreSQL suite 103 passed.
 
-## 2026-09-19 — Added button-first per-khatm policy settings
+## 2026-09-19 â€” Added button-first per-khatm policy settings
 
 - Added a creator settings button to every owned-khatm management card.
 - Added scoped inline controls for Quran content mode, Skip Today, commitment
@@ -1019,16 +1023,16 @@ friction found was interaction-shaped, not text-shaped:
   controls are hidden and stale/unauthorized callbacks are rejected.
 - Validation: focused keyboard tests 3 passed; full PostgreSQL suite 103 passed.
 
-## 2026-09-19 — Removed commands from first-run help/profile UX
+## 2026-09-19 â€” Removed commands from first-run help/profile UX
 
-- Added a persistent `راهنمای کامل` Home-menu button and routed it to the
+- Added a persistent `Ø±Ø§Ù‡Ù†Ù…Ø§ÛŒ Ú©Ø§Ù…Ù„` Home-menu button and routed it to the
   complete button-driven help screen.
 - Updated welcome copy to point at the button instead of `/help`.
 - Made Create automatically launch profile completion when creator details are
   incomplete instead of asking the user to type `/profile`.
 - Validation: full PostgreSQL suite 102 passed.
 
-## 2026-09-19 — Made create/manage help actionable without commands
+## 2026-09-19 â€” Made create/manage help actionable without commands
 
 - Added direct buttons to start creation, submit a custom-khatm request, open
   My Khatms, and request creator/admin dashboard login links.
@@ -1037,7 +1041,7 @@ friction found was interaction-shaped, not text-shaped:
 - Removed slash-command instructions from the create/manage help copy.
 - Validation: focused help tests 5 passed; full PostgreSQL suite 102 passed.
 
-## 2026-09-19 — Added live Quran-channel access diagnosis
+## 2026-09-19 â€” Added live Quran-channel access diagnosis
 
 - Extended `/admin_quran_source_status` to check whether the Telegram bot can
   currently resolve the configured private source channel.
@@ -1046,7 +1050,7 @@ friction found was interaction-shaped, not text-shaped:
 - Live evidence: forwarding source message 10 returned Telegram `chat not
   found`; no content was delivered and no database state changed.
 
-## 2026-09-19 — Made creation coupons button-first
+## 2026-09-19 â€” Made creation coupons button-first
 
 - Added a coupon button to paid-khatm confirmation and a simple code-entry
   step with retry, skip and cancel actions.
@@ -1054,7 +1058,7 @@ friction found was interaction-shaped, not text-shaped:
   while preserving `/coupon CODE` compatibility.
 - Validation: focused tests 4 passed; full PostgreSQL suite 101 passed.
 
-## 2026-09-19 — Made wallet and account settings button-first
+## 2026-09-19 â€” Made wallet and account settings button-first
 
 - Added direct help buttons for wallet balance/top-up and invoice history.
 - Added direct settings/help buttons for profile editing, secure phone change,
@@ -1064,7 +1068,7 @@ friction found was interaction-shaped, not text-shaped:
 - Validation: focused UX tests 3 passed; full PostgreSQL suite 98 passed; live
   Telegram polling and web health both confirmed.
 
-## 2026-09-19 — Added complete two-VPS deployment and PayPing proxy guide
+## 2026-09-19 â€” Added complete two-VPS deployment and PayPing proxy guide
 
 - Added `Rahnama.VPS.txt`, a zero-assumption Persian runbook from first SSH
   login through production deployment, HTTPS and operations.
@@ -1073,7 +1077,7 @@ friction found was interaction-shaped, not text-shaped:
 - Included safe rollout, tests, backups, rollback and troubleshooting, and
   clarified that a product referral URL is not the API callback.
 
-## 2026-09-19 — Added Health/Operations dashboard
+## 2026-09-19 â€” Added Health/Operations dashboard
 
 - Added `/operations` for Super Admin/Operations with live database,
   Telegram/Bale, PayPing, Kavenegar, queue-depth and reminder-worker status.
@@ -1082,18 +1086,18 @@ friction found was interaction-shaped, not text-shaped:
 - Added Persian navigation and PostgreSQL-backed authorization/render tests.
 - Validation: targeted admin suite 4 passed; full suite 98 passed.
 
-## 2026-09-19 — Hardened category moderation and button-only profile entry
+## 2026-09-19 â€” Hardened category moderation and button-only profile entry
 
 - Registered `khatm_category` models in the central SQLAlchemy model registry.
 - Enforced one-way `PENDING` category-request decisions; replay attempts now
   return HTTP 409 and cannot create duplicate categories.
 - Audited category create/update/toggle/request-fulfill/request-decline actions.
-- Made the settings «ویرایش مشخصات» button launch the profile wizard directly.
+- Made the settings Â«ÙˆÛŒØ±Ø§ÛŒØ´ Ù…Ø´Ø®ØµØ§ØªÂ» button launch the profile wizard directly.
 - Expanded real-PostgreSQL admin regression coverage to categories,
   broadcasts, foreign-number verification and replay protection.
 - Validation: targeted admin integration suite 4 passed; full suite 98 passed.
 
-## 2026-09-20 — Cross-AI handoff protocol + owner backlog
+## 2026-09-20 â€” Cross-AI handoff protocol + owner backlog
 
 - Added `docs/ai/AI_HANDOFF_PROTOCOL.md`: shared convention for Codex,
   Claude Code, and Antigravity (owner now runs all three) to sign changes
@@ -1103,7 +1107,7 @@ friction found was interaction-shaped, not text-shaped:
   "needs a decision" flags where a real product question is still open
   (multi-language rollout trigger, plan/capacity semantics, SMS pricing).
 
-## 2026-09-20 — SALAWAT+COMMITMENT waiting list
+## 2026-09-20 â€” SALAWAT+COMMITMENT waiting list
 
 - Extended capacity/waiting-list support (previously QURAN_PAGE-only) to
   SALAWAT+COMMITMENT khatms, per explicit owner decision: a waitlisted
@@ -1114,7 +1118,7 @@ friction found was interaction-shaped, not text-shaped:
 - Verified end-to-end against real Postgres (capacity gate, waitlisting,
   leave-triggered promotion with a real quantity portion assigned).
 
-## 2026-09-19 — Warmer bot copy + Quran channel live + dev OTP bypass
+## 2026-09-19 â€” Warmer bot copy + Quran channel live + dev OTP bypass
 
 - Rewrote DB-backed reminder templates (`reminder.first/second/final/missed`,
   fa/FRIENDLY) to match a warmer, more explicit sample the owner provided
@@ -1123,7 +1127,7 @@ friction found was interaction-shaped, not text-shaped:
 - Warmed up the per-page completion message and several terse
   creator/admin-facing approve/reject confirmations across
   `start.py`, `registration.py`, `profile.py`, `leave.py`,
-  `join_requests.py`, `khatm_request.py`. Not a full-codebase pass — logged
+  `join_requests.py`, `khatm_request.py`. Not a full-codebase pass â€” logged
   what's left in PROJECT_STATE.md.
 - Set `DEV_OTP=1` in `.env` (local dev only, existing intentional bypass)
   so khatm creation isn't blocked while waiting on a real Kavenegar token.
@@ -1131,13 +1135,13 @@ friction found was interaction-shaped, not text-shaped:
   `/admin_quran_source_seed`; confirmed 604/604 images and audio registered
   against the pre-built verified map for that exact channel.
 
-## 2026-09-19 — Admin-manageable khatm categories (صلوات/لعن/ادعیه)
+## 2026-09-19 â€” Admin-manageable khatm categories (ØµÙ„ÙˆØ§Øª/Ù„Ø¹Ù†/Ø§Ø¯Ø¹ÛŒÙ‡)
 
 - New module `khatm_category` + migration `a7f8b9c0d1e2`: `khatm_categories`,
   `khatm_category_requests`, and `khatms.content_category_id`.
 - `/categories` admin page: add/edit/activate/deactivate content items and
-  turn a participant's "دعای دیگر (درخواستی)" request into a permanent item —
-  no code deploy needed for new صلوات/لعن/ادعیه content.
+  turn a participant's "Ø¯Ø¹Ø§ÛŒ Ø¯ÛŒÚ¯Ø± (Ø¯Ø±Ø®ÙˆØ§Ø³ØªÛŒ)" request into a permanent item â€”
+  no code deploy needed for new ØµÙ„ÙˆØ§Øª/Ù„Ø¹Ù†/Ø§Ø¯Ø¹ÛŒÙ‡ content.
 - Creation wizard's SALAWAT branch now shows the live category list from the
   DB instead of a single hardcoded button.
 - Seeded 6 starting categories (text left blank for the owner to paste in
@@ -1155,7 +1159,7 @@ friction found was interaction-shaped, not text-shaped:
 
 Entries from 2026-09-18 and earlier were moved to keep this file
 readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_until_2026-09-18.md).
-# 2026-09-20 — SMS/plan integrity fixes and verified restart [Codex]
+# 2026-09-20 â€” SMS/plan integrity fixes and verified restart [Codex]
 
 - Prevented SMS subscription purchases from debiting the wallet when the
   user has no contact phone; invalid purchase callback payloads now fail
@@ -1166,7 +1170,7 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
   CUSTOM rows as one product family, while keeping Quran independent.
 - Added PostgreSQL integration regressions; full suite passed: 128 tests.
 - Restarted the Telegram bot and verified polling plus database health.
-# 2026-09-20 — Admin Mini App plan controls [Codex]
+# 2026-09-20 â€” Admin Mini App plan controls [Codex]
 
 - Added graphical plan-definition controls to the Finance section: pricing,
   enabled state, creation access, devotional cap and Quran cap.
@@ -1175,17 +1179,18 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Preserved unrecognized entitlement keys during edits and audit-logged both
   mutation types.
 - Added real-PostgreSQL ASGI coverage; full suite now passes 129 tests.
-# 2026-09-20 — Multilingual first-join registration [Codex]
+# 2026-09-20 â€” Multilingual first-join registration [Codex]
 
 - Localized the complete registration flow to Persian, Arabic and English.
 - Added localized phone sharing, validation, gender and all 31 province
   labels while retaining canonical Persian province storage.
 - Added PostgreSQL-backed Arabic/English registration tests; full suite now
   passes 131 tests.
-# 2026-09-20 — Multilingual profile editing [Codex]
+# 2026-09-20 â€” Multilingual profile editing [Codex]
 
 - Localized `/profile` and the Settings profile flow to fa/ar/en.
 - Localized the verified-phone security warning without weakening its
   requirement to use `/change_phone`.
 - Reused canonical province storage and localized province/gender controls.
 - Full real-PostgreSQL suite: 131 passed.
+
