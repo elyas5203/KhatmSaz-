@@ -1467,6 +1467,8 @@ async def fulfill_category_request(
     title: str = Form(...),
     body_text: str = Form(""),
     source_note: str = Form(""),
+    image_url: str = Form(""),
+    devotional_slug: str = Form(""),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -1477,7 +1479,8 @@ async def fulfill_category_request(
     async with session_scope() as session:
         try:
             req, category = await category_service.fulfill_request(
-                session, request_id, group=group, title=title, body_text=body_text, source_note=source_note
+                session, request_id, group=group, title=title, body_text=body_text, source_note=source_note,
+                image_url=image_url, devotional_slug=devotional_slug,
             )
         except ValueError as exc:
             return HTMLResponse(f"درخواست قابل پردازش نیست: {exc}", status_code=409)

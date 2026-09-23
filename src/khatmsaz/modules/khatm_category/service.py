@@ -86,14 +86,18 @@ async def list_pending_requests(session: AsyncSession) -> list[KhatmCategoryRequ
 
 
 async def fulfill_request(
-    session: AsyncSession, request_id, *, group: str, title: str, body_text: str | None, source_note: str | None
+    session: AsyncSession, request_id, *, group: str, title: str, body_text: str | None, source_note: str | None,
+    image_url: str | None = None, devotional_slug: str | None = None,
 ) -> tuple[KhatmCategoryRequest, KhatmCategory]:
     request = await repository.get_request_by_id(session, request_id)
     if request is None:
         raise ValueError("request not found")
     if request.status != KhatmCategoryRequestStatus.PENDING:
         raise ValueError("request is not pending")
-    category = await create(session, group=group, title=title, body_text=body_text, source_note=source_note)
+    category = await create(
+        session, group=group, title=title, body_text=body_text, source_note=source_note,
+        image_url=image_url, devotional_slug=devotional_slug,
+    )
     request = await repository.mark_request_fulfilled(session, request, category)
     return request, category
 
