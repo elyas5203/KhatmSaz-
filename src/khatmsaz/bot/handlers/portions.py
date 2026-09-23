@@ -212,14 +212,22 @@ async def receive_custom_snooze(message: Message, state: FSMContext) -> None:
         return
     data = await state.get_data()
     lang = data.get("lang", "fa")
+    text = (message.text or "").strip()
     try:
-        local_until = datetime.strptime((message.text or "").strip(), "%Y-%m-%d %H:%M").replace(
-            tzinfo=ZoneInfo(get_settings().app_timezone)
-        )
+        hours = float(text)
+        if hours <= 0 or hours > 24 * 365:
+            raise ValueError
+        local_until = datetime.now(ZoneInfo(get_settings().app_timezone)) + timedelta(hours=hours)
+        until = local_until.astimezone(timezone.utc)
     except ValueError:
-        await message.answer(t("portions.time_format_invalid", lang))
-        return
-    until = local_until.astimezone(timezone.utc)
+        try:
+            local_until = datetime.strptime(text, "%Y-%m-%d %H:%M").replace(
+                tzinfo=ZoneInfo(get_settings().app_timezone)
+            )
+            until = local_until.astimezone(timezone.utc)
+        except ValueError:
+            await message.answer(t("portions.time_format_invalid", lang))
+            return
     khatm_id = data["snooze_khatm_id"]
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:

@@ -904,13 +904,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "This khatm's reminder was delayed by {label} ✅",
     },
     "portions.ask_custom_snooze_time": {
-        "fa": "زمان پایان تعویق را به وقت تهران بفرستید: YYYY-MM-DD HH:MM",
-        "ar": "أرسل وقت انتهاء التأجيل بتوقيت طهران: YYYY-MM-DD HH:MM",
-        "en": "Send the end time of the delay in Tehran time: YYYY-MM-DD HH:MM",
+        "fa": "چند ساعت می‌خواهید یادآوری به تعویق بیفتد؟ (مثلاً برای دو ساعت بفرستید: 2)\nیا تاریخ دقیق: YYYY-MM-DD HH:MM",
+        "ar": "كم ساعة تريد تأجيل التذكير؟ (مثلاً لساعتين أرسل: 2)\nأو تاريخ دقيق: YYYY-MM-DD HH:MM",
+        "en": "How many hours do you want to delay the reminder? (e.g., for two hours, send: 2)\nOr exact date: YYYY-MM-DD HH:MM",
     },
     "portions.time_format_invalid": {
-        "fa": "قالب زمان درست نیست. نمونه: 2026-10-01 18:30", "ar": "صيغة الوقت غير صحيحة. مثال: 2026-10-01 18:30",
-        "en": "Invalid time format. Example: 2026-10-01 18:30",
+        "fa": "فرمت زمان درست نیست. لطفاً یک عدد (مثل 2) یا تاریخ دقیق (مثل 2026-10-01 18:30) بفرستید.", "ar": "صيغة الوقت غير صحيحة. يرجى إرسال رقم (مثل 2) أو تاريخ دقيق (مثل 2026-10-01 18:30).",
+        "en": "Invalid time format. Please send a number (like 2) or an exact date (like 2026-10-01 18:30).",
     },
     "portions.khatm_inactive_or_not_member": {
         "fa": "این ختم فعال نیست یا تعویق یادآوری برای آن خاموش شده است.",
