@@ -5,31 +5,230 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow">
   <title>{% if unavailable %}لینک نامعتبر{% else %}{{ khatm.title }} | ختم‌ساز{% endif %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', path='join.css') }}">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+  <style>
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      /* تم بی‌نهایت لوکس تیره: ترکیب Slate 950 و هاله‌های نوری */
+      background-color: #020617;
+      background-image: radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+                        radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.08), transparent 25%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #e2e8f0;
+      position: relative;
+      overflow-x: hidden;
+      margin: 0;
+    }
+    
+    /* انیمیشن اورب‌های نوری پس‌زمینه (نفس کشیدن و حرکت آرام) */
+    @keyframes float {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-20px) scale(1.05); }
+    }
+    @keyframes float-reverse {
+      0%, 100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(20px) scale(0.95); }
+    }
+
+    .glow-orb-1 {
+      position: absolute;
+      top: -15%;
+      right: -10%;
+      width: 60vw;
+      height: 60vw;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0) 70%);
+      border-radius: 50%;
+      z-index: 0;
+      animation: float 15s ease-in-out infinite;
+    }
+    .glow-orb-2 {
+      position: absolute;
+      bottom: -15%;
+      left: -10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, rgba(20, 184, 166, 0.12) 0%, rgba(20, 184, 166, 0) 70%);
+      border-radius: 50%;
+      z-index: 0;
+      animation: float-reverse 18s ease-in-out infinite;
+    }
+
+    /* تکسچر نویز برای طبیعی‌تر شدن متریال شیشه */
+    .noise-bg {
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+      border-radius: inherit;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* افکت شیشه‌ای بسیار حرفه‌ای (Premium Glassmorphism) */
+    .glass-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      /* سایه داخلی برای لبه‌های شیشه + سایه بیرونی دراپ‌شدو + هاله‌ی سبز */
+      box-shadow: 
+        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        0 25px 50px -12px rgba(0, 0, 0, 0.8),
+        0 0 0 1px rgba(16, 185, 129, 0.1); 
+      position: relative;
+      z-index: 10;
+      /* انیمیشن ورود نرم */
+      animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* استایل‌های متن */
+    .gradient-text {
+      background: linear-gradient(135deg, #a7f3d0 0%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* افکت عبور نور از روی دکمه اصلی */
+    .shimmer-button {
+      position: relative;
+      overflow: hidden;
+    }
+    .shimmer-button::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transform: skewX(-20deg);
+      animation: shimmer 3s infinite;
+    }
+    @keyframes shimmer {
+      100% { left: 200%; }
+    }
+  </style>
 </head>
-<body>
-  <main class="invite-card">
-    <div class="mark">خ</div>
-    {% if unavailable %}
-      <p class="eyebrow">این دعوت در دسترس نیست</p>
-      <h1>لینک منقضی یا لغو شده است</h1>
-      <p>از سازنده بخواهید لینک تازه‌ای برایتان بفرستد. با بازکردن این صفحه هیچ عضویتی ثبت نشده است.</p>
-    {% else %}
-      <p class="eyebrow">دعوت به یک همراهی معنوی</p>
-      <h1>{{ khatm.title }}</h1>
-      <dl>
-        <div><dt>سازنده</dt><dd>{{ creator_name }}</dd></div>
-        <div><dt>اعضای فعلی</dt><dd>{{ member_count }} نفر</dd></div>
-        <div><dt>نوع عضویت</dt><dd>{{ 'تعهدی' if khatm.khatm_type.value == 'COMMITMENT' else 'آزاد' }}</dd></div>
-      </dl>
-      {% if khatm.niyyat %}<section><b>نیت ختم</b><p>{{ khatm.niyyat }}</p></section>{% endif %}
-      {% if khatm.welcome_text %}<section><b>پیام سازنده</b><p>{{ khatm.welcome_text }}</p></section>{% endif %}
-      <p class="hint">بازکردن این صفحه یعنی عضو نشده‌اید. پیام‌رسان خود را انتخاب کنید؛ داخل بات هم یک بار دیگر مشخصات ختم را می‌بینید و بعد خودتان عضویت را تأیید می‌کنید.</p>
-      <div class="actions">
-        {% if telegram_url %}<a class="primary" href="{{ telegram_url }}">ورود از تلگرام</a>{% endif %}
-        {% if bale_url %}<a class="secondary" href="{{ bale_url }}">ورود از بله</a>{% elif bale_command %}<details><summary>ورود از بله</summary><p>این متن را داخل گفت‌وگوی بات بله بفرستید:</p><code>{{ bale_command }}</code></details>{% endif %}
+<body class="m-0 p-0">
+  <div class="relative w-full min-h-screen overflow-hidden flex items-center justify-center p-4 sm:p-8">
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+
+    <main class="glass-card w-full max-w-lg rounded-[2.5rem] p-8 sm:p-12 transition-all duration-500 hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.9),0_0_0_1px_rgba(16,185,129,0.3)]">
+      <!-- لایه تکسچر دار برای شیشه -->
+      <div class="noise-bg"></div>
+      
+      <div class="relative z-10">
+        <!-- آیکون بالا -->
+        <div class="flex justify-center mb-8 relative">
+          <div class="absolute inset-0 bg-emerald-500 blur-[30px] opacity-20 rounded-full"></div>
+          <div class="w-20 h-20 rounded-[1.25rem] bg-gradient-to-br from-[#064e3b] to-[#022c22] flex items-center justify-center text-4xl font-black text-emerald-400 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_10px_20px_rgba(0,0,0,0.5)] border border-emerald-500/30 relative">
+            خ
+          </div>
+        </div>
+
+        {% if unavailable %}
+          <div class="text-center">
+            <span class="inline-block px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold tracking-wider mb-4">غیرفعال</span>
+            <h1 class="text-2xl sm:text-3xl font-black text-white mb-4">لینک منقضی یا لغو شده است</h1>
+            <p class="text-slate-400 text-sm leading-relaxed">از سازنده بخواهید لینک تازه‌ای برایتان بفرستد. با بازکردن این صفحه هیچ عضویتی ثبت نشده است.</p>
+          </div>
+        {% else %}
+          <!-- تیتر و دعوتنامه -->
+          <div class="text-center mb-10">
+            <p class="text-emerald-400 font-bold text-xs sm:text-sm mb-3 tracking-widest uppercase">دعوت به یک همراهی معنوی</p>
+            <h1 class="text-3xl sm:text-4xl font-black text-white mb-2 leading-tight gradient-text">{{ khatm.title }}</h1>
+          </div>
+
+          <!-- باکس‌های اطلاعات -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+            <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center hover:bg-white/[0.06] transition duration-300">
+              <dt class="text-[11px] text-slate-400 mb-1.5 uppercase tracking-wider">سازنده</dt>
+              <dd class="text-sm font-bold text-slate-200 truncate">{{ creator_name }}</dd>
+            </div>
+            <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center hover:bg-white/[0.06] transition duration-300">
+              <dt class="text-[11px] text-slate-400 mb-1.5 uppercase tracking-wider">اعضای فعلی</dt>
+              <dd class="text-sm font-bold text-emerald-400">{{ member_count }} نفر</dd>
+            </div>
+            <div class="bg-white/[0.03] border border-white/5 rounded-2xl p-4 text-center hover:bg-white/[0.06] transition duration-300">
+              <dt class="text-[11px] text-slate-400 mb-1.5 uppercase tracking-wider">نوع عضویت</dt>
+              <dd class="text-sm font-bold text-slate-200">{{ 'تعهدی' if khatm.khatm_type.value == 'COMMITMENT' else 'آزاد' }}</dd>
+            </div>
+          </div>
+
+          <!-- نیت و پیام -->
+          <div class="space-y-4 mb-10 text-right">
+            {% if khatm.niyyat %}
+            <section class="bg-gradient-to-l from-emerald-500/10 to-transparent border-r-2 border-emerald-500 rounded-l-2xl p-5 hover:from-emerald-500/20 transition duration-300">
+              <h3 class="text-xs text-emerald-400 font-bold mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+                نیت ختم
+              </h3>
+              <p class="text-sm text-slate-300 leading-loose">{{ khatm.niyyat }}</p>
+            </section>
+            {% endif %}
+
+            {% if khatm.welcome_text %}
+            <section class="bg-gradient-to-l from-white/5 to-transparent border-r-2 border-white/20 rounded-l-2xl p-5 mt-4 hover:from-white/10 transition duration-300">
+              <h3 class="text-xs text-slate-400 font-bold mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                پیام سازنده
+              </h3>
+              <p class="text-sm text-slate-300 leading-loose">{{ khatm.welcome_text }}</p>
+            </section>
+            {% endif %}
+          </div>
+
+          <p class="text-[11px] text-slate-500 text-center mb-8 leading-relaxed px-4">
+            بازکردن این صفحه به معنای عضویت نیست. پیام‌رسان خود را انتخاب کنید؛ اطلاعات داخل بات به شما نمایش داده می‌شود و سپس می‌توانید تأیید کنید.
+          </p>
+
+          <!-- دکمه‌های اکشن -->
+          <div class="flex flex-col gap-4">
+            {% if telegram_url %}
+            <a class="w-full relative group" href="{{ telegram_url }}">
+              <!-- افکت هاله پشت دکمه تلگرام -->
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-[#2AABEE] to-[#229ED9] rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+              <!-- دکمه اصلی تلگرام -->
+              <div class="relative w-full bg-gradient-to-r from-[#2AABEE]/90 to-[#229ED9]/90 hover:from-[#2AABEE] hover:to-[#229ED9] text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] shimmer-button">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.11.03-1.84 1.18-5.2 3.45-.49.33-.94.5-1.34.49-.45-.01-1.3-.25-1.93-.46-.78-.26-1.4-.4-1.35-.85.03-.23.33-.48.91-.74 3.56-1.55 5.94-2.58 7.13-3.07 3.39-1.41 4.09-1.66 4.54-1.67.1 0 .32.02.44.13.1.1.13.23.14.33 0 .04.01.12 0 .22z"/></svg>
+                <span class="text-lg tracking-wide">ورود از تلگرام</span>
+              </div>
+            </a>
+            {% endif %}
+
+            {% if bale_url %}
+            <a class="w-full relative group" href="{{ bale_url }}">
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-[#4EAA8C] to-[#3B8F73] rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
+              <div class="relative w-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-slate-200 hover:text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3">
+                <span class="text-lg tracking-wide">ورود از بله</span>
+              </div>
+            </a>
+            {% elif bale_command %}
+            <details class="w-full bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden group transition-all">
+              <summary class="w-full cursor-pointer text-slate-400 text-center py-4 font-bold outline-none hover:bg-white/[0.05] hover:text-slate-200 transition-all tracking-wide">ورود از بله (کپی کد)</summary>
+              <div class="p-5 bg-black/40 text-center border-t border-white/5">
+                <p class="text-[11px] text-slate-500 mb-3">این متن را کپی کنید و داخل گفت‌وگوی بات بله بفرستید:</p>
+                <code class="block text-emerald-400 bg-emerald-900/10 py-3 px-4 rounded-xl text-sm font-mono tracking-wider break-all select-all border border-emerald-500/10 shadow-inner">{{ bale_command }}</code>
+              </div>
+            </details>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
-    {% endif %}
-  </main>
+    </main>
+  </div>
 </body>
 </html>

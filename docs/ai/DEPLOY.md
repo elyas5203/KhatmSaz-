@@ -80,7 +80,7 @@ ssh -i ~/.ssh/id_rsa user@YOUR_VPS_IP
 
 ### مرحله ۲: رفتن به پوشه پروژه
 ```bash
-cd /opt/khatmsaz   # یا هر مسیری که هست
+cd /root/khatmsaz   # یا هر مسیری که هست
 # اگه مطمئن نیستی:
 find / -name "bootstrap.py" -path "*/khatmsaz/*" 2>/dev/null
 ```

@@ -2,6 +2,18 @@
 
 > Newest entry is always at the top. Read this file first in every session.
 
+## Current state — 2026-09-23 — Deployment docs updated & UI redesign planning started [Antigravity]
+
+**تغییرات:**
+- مسیر سرور در `docs/ai/DEPLOY.md` از `/opt/khatmsaz` به `/root/khatmsaz` تغییر یافت.
+- بررسی فایل‌های `join.html`، `creator_dashboard.html` و `creator_khatm_detail.html` برای شروع طراحی مجدد (UI Redesign) با توجه به درخواست کاربر.
+
+**برنامه بعدی:**
+- ارائه پیشنهاد طراحی جدید برای پنل کاربری (glassmorphism/Tailwind-like/etc.) به کاربر.
+- اطمینان دادن به کاربر در مورد `.env` که روی گیت پوش نمی‌شود و توکن تستی روی پروژه‌ی اصلی و سرور اعمال نمی‌شود (`.env` داخل `.gitignore` قرار دارد).
+
+---
+
 ## Current state — 2026-09-23 — scheduler cron fix + minute-level reminder + post-reg redirect + deploy docs [Claude Code]
 
 **مشکل ۱ — یادآور سر ساعت ارسال نمی‌شد:**
