@@ -61,6 +61,7 @@ class NotificationPreference(Base):
         UUID(as_uuid=True), ForeignKey("khatm_participations.id"), unique=True
     )
     reminder_hour: Mapped[int] = mapped_column(Integer, default=9)
+    reminder_minute: Mapped[int] = mapped_column(Integer, default=0)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

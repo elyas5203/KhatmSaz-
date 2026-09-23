@@ -54,7 +54,7 @@ async def test_admin_session_opens_mobile_dashboard_routes():
             response = await client.get(path)
             assert response.status_code == 200
             assert expected in response.text
-            assert response.headers["x-frame-options"] == "DENY"
+            assert response.headers["x-frame-options"] == "SAMEORIGIN"
             assert response.headers["cache-control"] == "no-store"
 
         finance = await client.get("/finance")

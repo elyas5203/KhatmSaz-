@@ -20,6 +20,7 @@ from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
 import khatmsaz.modules.khatm_category.models  # noqa: F401 — registers FK target table
+from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.participation import repository as participation_repository
 from khatmsaz.modules.reminder_engine import service as reminder_service
 from khatmsaz.modules.settings import service as settings_service
@@ -64,6 +65,10 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
         await session.flush()
 
         member = await participation_repository.create(session, khatm_id, member_id)
+        await notification_service.set_reminder_preference(
+            session, member.id, reminder_hour=reminder_hour,
+            reminder_minute=datetime.now(timezone.utc).minute, enabled=True,
+        )
         await allocation_service.generate_quran_page_plan(session, khatm_id, 6, pages_per_portion=2)
 
         first = await allocation_service.allocate_next_portion_to(session, khatm_id, member.id)
@@ -107,6 +112,8 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
         plan = await allocation_repository.get_plan_by_khatm(session, khatm_id)
         if plan is not None:
             await session.execute(delete(type(plan)).where(type(plan).id == plan.id))
+        from khatmsaz.modules.notification.models import NotificationPreference
+        await session.execute(delete(NotificationPreference).where(NotificationPreference.participation_id == member.id))
         await session.execute(delete(type(member)).where(type(member).khatm_id == khatm_id))
         await session.execute(delete(Khatm).where(Khatm.id == khatm_id))
         await session.execute(delete(PlatformIdentity).where(PlatformIdentity.id == member_identity_id))

@@ -42,11 +42,16 @@ async def get_preference(session: AsyncSession, participation_id):
     return await repository.get_preference(session, participation_id)
 
 
-async def set_reminder_preference(session: AsyncSession, participation_id, *, reminder_hour: int, enabled: bool = True):
+async def set_reminder_preference(
+    session: AsyncSession, participation_id, *, reminder_hour: int, reminder_minute: int = 0, enabled: bool = True
+):
     if not 0 <= reminder_hour <= 23:
         raise ValueError("reminder_hour must be between 0 and 23")
+    if not 0 <= reminder_minute <= 59:
+        raise ValueError("reminder_minute must be between 0 and 59")
     return await repository.upsert_preference(
-        session, participation_id, reminder_hour=reminder_hour, enabled=enabled
+        session, participation_id,
+        reminder_hour=reminder_hour, reminder_minute=reminder_minute, enabled=enabled
     )
 
 

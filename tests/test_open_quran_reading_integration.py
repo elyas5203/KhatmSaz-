@@ -58,7 +58,10 @@ async def test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour():
         member_settings = await settings_service.get_or_create(session, member_id)
         member_settings.timezone = tz_name
         await session.flush()
-        await notification_service.set_reminder_preference(session, member.id, reminder_hour=reminder_hour, enabled=True)
+        await notification_service.set_reminder_preference(
+            session, member.id, reminder_hour=reminder_hour,
+            reminder_minute=datetime.now(timezone.utc).minute, enabled=True,
+        )
 
         sent_ranges = []
 

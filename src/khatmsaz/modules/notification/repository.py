@@ -44,15 +44,19 @@ async def get_preference(session: AsyncSession, participation_id) -> Notificatio
     return result.scalar_one_or_none()
 
 
-async def upsert_preference(session: AsyncSession, participation_id, *, reminder_hour: int, enabled: bool) -> NotificationPreference:
+async def upsert_preference(
+    session: AsyncSession, participation_id, *, reminder_hour: int, reminder_minute: int = 0, enabled: bool
+) -> NotificationPreference:
     preference = await get_preference(session, participation_id)
     if preference is None:
         preference = NotificationPreference(
-            id=new_id(), participation_id=participation_id, reminder_hour=reminder_hour, enabled=enabled
+            id=new_id(), participation_id=participation_id,
+            reminder_hour=reminder_hour, reminder_minute=reminder_minute, enabled=enabled
         )
         session.add(preference)
     else:
         preference.reminder_hour = reminder_hour
+        preference.reminder_minute = reminder_minute
         preference.enabled = enabled
     await session.flush()
     return preference

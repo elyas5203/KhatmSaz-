@@ -228,7 +228,9 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
         async with session_scope() as session:
             await resume_join_after_registration(callback.message, session, user_id, pending_token, state=state)
     else:
-        await callback.message.answer(
-            t("registration.completed", lang),
-            reply_markup=main_menu_keyboard(lang),
-        )
+        # Owner request (2026-09-23): after registration without a pending
+        # join, automatically open the khatm creation wizard — this is why
+        # the user registered, so don't make them hunt for the button.
+        await callback.message.answer(t("registration.completed", lang))
+        from khatmsaz.bot.handlers.create_khatm import start_wizard
+        await start_wizard(callback.message, state)

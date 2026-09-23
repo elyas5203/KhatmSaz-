@@ -363,11 +363,29 @@ async def resume_join_after_registration(
         await message.answer(t("join.ask_delivery_hour", lang), reply_markup=delivery_hour_keyboard("join_hour", lang))
 
 
-async def _save_delivery_hour(participation_id: str, hour: int) -> None:
+async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0) -> None:
     async with session_scope() as session:
         await notification_service.set_reminder_preference(
-            session, participation_id, reminder_hour=hour, enabled=True
+            session, participation_id, reminder_hour=hour, reminder_minute=minute, enabled=True
         )
+
+
+def _parse_delivery_time(raw: str) -> tuple[int, int] | None:
+    """Parse 'H', 'HH', or 'HH:MM' into (hour, minute). Returns None if invalid."""
+    raw = raw.strip()
+    if ":" in raw:
+        parts = raw.split(":", 1)
+        if not parts[0].isdigit() or not parts[1].isdigit():
+            return None
+        h, m = int(parts[0]), int(parts[1])
+        if 0 <= h <= 23 and 0 <= m <= 59:
+            return h, m
+        return None
+    if raw.isdigit():
+        h = int(raw)
+        if 0 <= h <= 23:
+            return h, 0
+    return None
 
 
 @router.callback_query(F.data.startswith("join_hour:"), AskDeliveryHour.entering_hour)
@@ -382,7 +400,7 @@ async def receive_delivery_hour_button(callback, state: FSMContext) -> None:
     except Exception:
         pass
     if participation_id:
-        await _save_delivery_hour(participation_id, hour)
+        await _save_delivery_time(participation_id, hour, 0)
     await callback.message.answer(t("join.delivery_hour_saved", lang, hour=hour), reply_markup=main_menu_keyboard(lang))
     await callback.answer()
 
@@ -394,15 +412,17 @@ async def receive_delivery_hour(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     lang = data.get("lang", "fa")
     raw = (message.text or "").strip()
-    if not raw.isdigit() or not 0 <= int(raw) <= 23:
+    parsed = _parse_delivery_time(raw)
+    if parsed is None:
         await message.answer(t("join.delivery_hour_invalid", lang))
         return
-    hour = int(raw)
+    hour, minute = parsed
     participation_id = data.get("delivery_hour_participation_id")
     await state.clear()
     if participation_id:
-        await _save_delivery_hour(participation_id, hour)
-    await message.answer(t("join.delivery_hour_saved", lang, hour=hour), reply_markup=main_menu_keyboard(lang))
+        await _save_delivery_time(participation_id, hour, minute)
+    time_str = f"{hour:02d}:{minute:02d}"
+    await message.answer(t("join.delivery_hour_saved", lang, hour=time_str), reply_markup=main_menu_keyboard(lang))
 
 
 @router.callback_query(F.data.startswith("commitment_consent:accept"))

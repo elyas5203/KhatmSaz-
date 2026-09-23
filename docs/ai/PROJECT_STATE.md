@@ -2,6 +2,46 @@
 
 > Newest entry is always at the top. Read this file first in every session.
 
+## Current state — 2026-09-23 — scheduler cron fix + minute-level reminder + post-reg redirect + deploy docs [Claude Code]
+
+**مشکل ۱ — یادآور سر ساعت ارسال نمی‌شد:**
+ریشه احتمالی: scheduler با `interval` اجرا می‌شد؛ اگه بات در لحظه اشتباهی start می‌شد،
+ممکن بود ساعت هدف کاملاً skip بشه. بعلاوه چک `current_hour == reminder_hour` اگه scanner
+دیر/زود می‌رسید مشکل داشت.
+
+**تغییرات:**
+- `bootstrap.py` — scheduler از `interval(30min)` به `cron(minute="0,15,30,45")` تغییر کرد؛
+  حالا بدون توجه به زمان start بات، هر ۱۵ دقیقه دقیقاً اجرا می‌شه
+- `reminder_engine/service.py` — تابع `_is_reminder_due()` اضافه شد؛ به‌جای `current_hour == reminder_hour`
+  (نقطه‌ای)، از پنجره ۱۵ دقیقه‌ای استفاده می‌کنه — اگه scanner کمی دیر برسد باز درست کار می‌کند؛
+  logging برای debug اضافه شد
+- `notification/models.py` — ستون `reminder_minute` (INT default=0) به `notification_preferences` اضافه شد
+- `notification/repository.py` + `notification/service.py` — `upsert_preference` و `set_reminder_preference`
+  پارامتر `reminder_minute` گرفتند
+- `migrations/versions/a1b2c3d4e5f6_add_reminder_minute.py` — migration جدید
+
+**مشکل ۲ — پشتیبانی از زمان دقیق (مثل ۷:۴۵):**
+- `bot/handlers/start.py` — تابع `_parse_delivery_time()` اضافه شد؛ فرمت‌های `7`، `07`، `7:45`،
+  `19:30` همه قبول می‌شن؛ دقیقه هم ذخیره می‌شه
+
+**مشکل ۳ — بعد از احراز هویت هدایت خودکار به ساخت ختم:**
+- `bot/handlers/registration.py` — وقتی کاربر بدون `pending_token` ثبت‌نام می‌کنه،
+  بلافاصله ویزارد ساخت ختم باز می‌شه
+
+**مستندات جدید:**
+- `docs/ai/DEPLOY.md` — راهنمای کامل push + deploy روی سرور + rollback
+- `docs/ai/ANTIGRAVITY_PROMPT.md` — متاپرامپت برای Antigravity (مالک می‌تونه مستقیم بده)
+- `docs/ai/AI_HANDOFF_PROTOCOL.md` — هشدار production اضافه شد
+
+**اجرای migration روی سرور لازم است:**
+```bash
+python -m alembic upgrade head   # migration: a1b2c3d4e5f6
+```
+
+**تست: ۶۹ unit test پاس (integration tests نیاز به DB دارن)**
+
+---
+
 ## Current state — 2026-09-22 — miss notice: consecutive days + phone number; skip_today confirmed removed [Claude Code]
 
 **تصمیم مالک:** دکمهٔ «امروز نمی‌رسم» حذف شد (قبلاً از UI حذف شده بود، کد مرده هم

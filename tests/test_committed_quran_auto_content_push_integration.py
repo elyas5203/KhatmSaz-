@@ -57,7 +57,10 @@ async def test_deliver_due_next_portions_pushes_real_content_not_just_text():
         member_settings = await settings_service.get_or_create(session, member_id)
         member_settings.timezone = tz_name
         await session.flush()
-        await notification_service.set_reminder_preference(session, member.id, reminder_hour=reminder_hour, enabled=True)
+        await notification_service.set_reminder_preference(
+            session, member.id, reminder_hour=reminder_hour,
+            reminder_minute=datetime.now(timezone.utc).minute, enabled=True,
+        )
 
         await allocation_service.generate_quran_page_plan(session, khatm_id, total_pages=10, pages_per_portion=2)
         first = await allocation_service.allocate_next_portion_to(session, khatm_id, member.id)

@@ -1,9 +1,25 @@
 """Reminder + deadline-miss detection for QURAN_PAGE + COMMITMENT portions."""
 
+import logging
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+
+logger = logging.getLogger(__name__)
+
+# Scheduler fires every SCAN_INTERVAL_MINUTES minutes (at :00, :15, :30, :45).
+# A reminder is due if the current time falls in [target, target+SCAN_INTERVAL_MINUTES).
+SCAN_INTERVAL_MINUTES = 15
+
+
+def _is_reminder_due(now_local: datetime, reminder_hour: int, reminder_minute: int = 0) -> bool:
+    """Return True if `now_local` falls in the 15-minute window starting at
+    reminder_hour:reminder_minute.  This is robust to the scheduler firing a
+    few seconds late and works for any HH:MM reminder time, not just whole hours."""
+    target_total = reminder_hour * 60 + reminder_minute
+    now_total = now_local.hour * 60 + now_local.minute
+    return target_total <= now_total < target_total + SCAN_INTERVAL_MINUTES
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -78,7 +94,8 @@ async def run_once(
             user_tz = ZoneInfo(user_settings.timezone)
         except (KeyError, ValueError):
             user_tz = ZoneInfo(tz_name)
-        current_hour = datetime.now(user_tz).hour
+        now_local = datetime.now(user_tz)
+        current_hour = now_local.hour
         reminders_enabled = preference is None or preference.enabled
         snoozed = (
             preference is not None
@@ -90,10 +107,15 @@ async def run_once(
             if preference is not None and preference.enabled
             else await _default_reminder_hour(session)
         )
-        if reminders_enabled and not snoozed and current_hour == reminder_hour:
+        reminder_minute = getattr(preference, "reminder_minute", 0) if (preference is not None and preference.enabled) else 0
+        if reminders_enabled and not snoozed and _is_reminder_due(now_local, reminder_hour, reminder_minute):
             if not await notification_service.already_sent_today(
                 session, participation.id, NotificationKind.DAILY_REMINDER
             ):
+                logger.debug(
+                    "Daily reminder candidate: participation=%s khatm=%s target=%02d:%02d",
+                    participation.id, khatm.title, reminder_hour, reminder_minute,
+                )
                 daily_candidates.append(
                     (
                         participation, khatm, portion, user_settings.language,
@@ -174,7 +196,8 @@ async def deliver_due_next_portions(
         reminder_hour = (
             preference.reminder_hour if preference is not None and preference.enabled else await _default_reminder_hour(session)
         )
-        if now_local.hour != reminder_hour:
+        reminder_minute = getattr(preference, "reminder_minute", 0) if (preference is not None and preference.enabled) else 0
+        if not _is_reminder_due(now_local, reminder_hour, reminder_minute):
             continue
         if last_completed.completed_at is None:
             continue
@@ -236,7 +259,8 @@ async def deliver_due_open_quran_reading(
         reminder_hour = (
             preference.reminder_hour if preference is not None and preference.enabled else await _default_reminder_hour(session)
         )
-        if now_local.hour != reminder_hour:
+        reminder_minute = getattr(preference, "reminder_minute", 0) if (preference is not None and preference.enabled) else 0
+        if not _is_reminder_due(now_local, reminder_hour, reminder_minute):
             continue
         if participation.open_reading_last_sent_at is not None:
             last_sent_local_date = participation.open_reading_last_sent_at.astimezone(user_tz).date()
@@ -329,7 +353,9 @@ async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
                 user_tz = ZoneInfo(user_settings.timezone)
             except (KeyError, ValueError):
                 user_tz = ZoneInfo(tz_name)
-            if datetime.now(user_tz).hour != (preference.reminder_hour if preference else await _default_reminder_hour(session)):
+            _pref_hour = preference.reminder_hour if preference else await _default_reminder_hour(session)
+            _pref_minute = getattr(preference, "reminder_minute", 0) if preference else 0
+            if not _is_reminder_due(datetime.now(user_tz), _pref_hour, _pref_minute):
                 continue
             if await notification_service.already_sent_today(session, participation.id, NotificationKind.DAILY_REMINDER):
                 continue

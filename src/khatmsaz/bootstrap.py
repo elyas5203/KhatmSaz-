@@ -182,18 +182,20 @@ async def main() -> None:
         else:
             runtime_status.mark_scan_succeeded()
 
+    # Cron trigger at :00, :15, :30, :45 (every 15 min) so reminder delivery
+    # is predictable regardless of when the bot starts. The 15-minute
+    # granularity also supports per-minute delivery times (e.g. 7:45) that
+    # users can now set. `reminder_scan_interval_minutes` is kept in config
+    # for backward compatibility but the cron overrides it.
     scheduler = AsyncIOScheduler(timezone=settings.app_timezone)
     scheduler.add_job(
         _run_reminder_scan,
-        "interval",
-        minutes=settings.reminder_scan_interval_minutes,
-        next_run_time=None,  # first run happens after one interval, not immediately
+        "cron",
+        minute="0,15,30,45",
     )
     scheduler.start()
     runtime_status.mark_scheduler_started()
-    logger.info(
-        "Reminder scan scheduled every %d minute(s).", settings.reminder_scan_interval_minutes
-    )
+    logger.info("Reminder scan scheduled at :00, :15, :30, :45 of every hour.")
 
     logger.info("Starting polling for %d bot(s)...", len(bots))
     polling = asyncio.create_task(dp.start_polling(*bots))
