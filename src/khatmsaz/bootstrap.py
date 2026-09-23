@@ -31,6 +31,7 @@ from khatmsaz.bot.handlers.language_settings import router as language_settings_
 from khatmsaz.bot.handlers.manual_phone_verification import router as manual_phone_verification_router
 from khatmsaz.bot.handlers.khatm_request import router as khatm_request_router
 from khatmsaz.bot.handlers.leave import router as leave_router
+from khatmsaz.bot.handlers.manage_content import router as manage_content_router
 from khatmsaz.bot.handlers.my_khatms import router as my_khatms_router
 from khatmsaz.bot.handlers.portions import router as portions_router
 from khatmsaz.bot.handlers.profile import router as profile_router
@@ -131,6 +132,7 @@ async def main() -> None:
     dp.include_router(broadcast_router)
     dp.include_router(khatm_request_router)
     dp.include_router(join_requests_router)
+    dp.include_router(manage_content_router)
 
     for bot in bots:
         # Long polling requires no webhook to be set; clear any stale one so

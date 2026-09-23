@@ -556,3 +556,59 @@ async def set_user_favorite(session: AsyncSession, user_id, reciter_id: str) -> 
     settings = await settings_service.get_or_create(session, user_id)
     settings.preferred_reciter = reciter_id
     await session.flush()
+
+
+async def append_devotional_media_from_message(
+    session: AsyncSession, slug: str, message, platform: "Platform | str"  # type: ignore
+) -> str | None:
+    """Extracts media/text from an aiogram Message and appends it to a devotional asset."""
+    from aiogram.types import Message
+    msg: Message = message
+    platform_val = platform.value if hasattr(platform, "value") else str(platform)
+    
+    slug = slug.strip().lower()
+    asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
+    if not asset:
+        asset = DevotionalAsset(
+            id=new_id(), content_type="DUA", slug=slug, title=slug, text_body=""
+        )
+        session.add(asset)
+        await session.flush()
+        
+    kind = None
+    file_id = None
+    
+    if msg.photo:
+        kind = "IMAGE"
+        file_id = msg.photo[-1].file_id
+    elif msg.audio:
+        kind = "AUDIO"
+        file_id = msg.audio.file_id
+    elif msg.voice:
+        kind = "AUDIO"
+        file_id = msg.voice.file_id
+    elif msg.document and msg.document.mime_type == "application/pdf":
+        kind = "PDF"
+        file_id = msg.document.file_id
+    elif msg.text:
+        text = msg.text.strip()
+        if asset.text_body:
+            asset.text_body += f"\x1e{text}"
+        else:
+            asset.text_body = text
+        await session.flush()
+        return "TEXT"
+        
+    if kind and file_id:
+        media = DevotionalMedia(
+            id=new_id(),
+            devotional_asset_id=asset.id,
+            kind=kind,
+            asset_ref=file_id,
+            asset_platform=platform_val,
+        )
+        session.add(media)
+        await session.flush()
+        return kind
+        
+    return None
