@@ -193,7 +193,7 @@ async def accept_join_preview(callback, state: FSMContext) -> None:
 
 
 @router.message(CommandStart())
-async def handle_start(message: Message) -> None:
+async def handle_start(message: Message, state: FSMContext) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
@@ -203,6 +203,8 @@ async def handle_start(message: Message) -> None:
 
     if already_prompted:
         await message.answer(t("welcome.text", lang), reply_markup=main_menu_keyboard(lang))
+        from khatmsaz.bot.handlers.create_khatm import start_wizard
+        await start_wizard(message, state)
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -216,7 +218,7 @@ async def handle_start(message: Message) -> None:
 
 
 @router.callback_query(F.data.startswith("first_lang:"))
-async def choose_first_language(callback) -> None:
+async def choose_first_language(callback, state: FSMContext) -> None:
     lang = callback.data.split(":", 1)[1]
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -232,6 +234,9 @@ async def choose_first_language(callback) -> None:
         pass
     await callback.message.answer(t("language.saved", lang), reply_markup=main_menu_keyboard(lang))
     await callback.answer()
+    
+    from khatmsaz.bot.handlers.create_khatm import start_wizard
+    await start_wizard(callback.message, state)
 
 
 def build_join_success_message(
