@@ -1,6 +1,40 @@
-{% extends "creator_base.html" %}{% block title %}{{ t('web.creator.home_title', lang) }}{% endblock %}
+{% extends "creator_base.html" %}
+{% block title %}{{ t('web.creator.home_title', lang) }}{% endblock %}
 {% block content %}
-<section class="page-title"><p class="eyebrow">{{ t('web.creator.eyebrow_private_report', lang) }}</p><h1>{{ t('web.creator.greeting', lang, name=creator.display_name or t('web.creator.default_name', lang)) }}</h1><p>{{ t('web.creator.pick_khatm_hint', lang) }}</p></section>
-<section class="creator-khatm-grid">{% for khatm in khatms %}<a class="creator-khatm-card" href="/creator/khatms/{{ khatm.id }}"><span class="status {{ khatm.status.value|lower }}">{{ label(khatm.status) }}</span><h2>{{ khatm.title }}</h2><p>{{ t('web.creator.active_members_suffix', lang, count=member_counts.get(khatm.id, 0), template=label(khatm.template_type), mode=label(khatm.khatm_type)) }}</p></a>{% else %}<p class="empty">{{ t('web.creator.no_khatms_yet', lang) }}</p>{% endfor %}</section>
-{% if page > 1 or has_next %}<nav class="pager" aria-label="{{ t('web.creator.pagination_aria', lang) }}">{% if page > 1 %}<form method="get"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit">{{ t('web.creator.prev_page', lang) }}</button></form>{% endif %}<span>{{ t('web.creator.page_label', lang, page=page) }}</span>{% if has_next %}<form method="get"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit">{{ t('web.creator.next_page', lang) }}</button></form>{% endif %}</nav>{% endif %}
+<section class="mb-8">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_private_report', lang) }}</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">{{ t('web.creator.greeting', lang, name=creator.display_name or t('web.creator.default_name', lang)) }}</h1>
+  <p class="text-slate-400 text-sm">{{ t('web.creator.pick_khatm_hint', lang) }}</p>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {% for khatm in khatms %}
+  <a href="/creator/khatms/{{ khatm.id }}" class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
+    <div class="flex justify-between items-start mb-4">
+      <h2 class="text-lg font-bold text-slate-100 group-hover:text-emerald-300 transition-colors line-clamp-1">{{ khatm.title }}</h2>
+      <span class="status {{ khatm.status.value|lower }} whitespace-nowrap mr-3">{{ label(khatm.status) }}</span>
+    </div>
+    <p class="text-sm text-slate-400 flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+      {{ t('web.creator.active_members_suffix', lang, count=member_counts.get(khatm.id, 0), template=label(khatm.template_type), mode=label(khatm.khatm_type)) }}
+    </p>
+  </a>
+  {% else %}
+  <div class="col-span-full glass-panel p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
+    <p>{{ t('web.creator.no_khatms_yet', lang) }}</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% if page > 1 or has_next %}
+<nav class="flex items-center justify-center gap-4 mt-8" aria-label="{{ t('web.creator.pagination_aria', lang) }}">
+  {% if page > 1 %}
+  <form method="get" class="m-0"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.prev_page', lang) }}</button></form>
+  {% endif %}
+  <span class="text-slate-400 text-sm font-medium">{{ t('web.creator.page_label', lang, page=page) }}</span>
+  {% if has_next %}
+  <form method="get" class="m-0"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.next_page', lang) }}</button></form>
+  {% endif %}
+</nav>
+{% endif %}
 {% endblock %}

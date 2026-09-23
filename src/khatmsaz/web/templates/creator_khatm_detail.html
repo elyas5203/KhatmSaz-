@@ -1,10 +1,111 @@
-{% extends "creator_base.html" %}{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
+{% extends "creator_base.html" %}
+{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
 {% block content %}
-<a class="back" href="/creator">{{ t('web.creator.back_to_my_khatms', lang) }}</a>
-<section class="page-title"><p class="eyebrow">{{ t('web.creator.eyebrow_member_report', lang) }}</p><h1>{{ khatm.title }}</h1><p>{{ t('web.creator.member_report_notice', lang) }}</p></section>
-<section class="metrics compact"><article><strong>{{ stats.active_members }}</strong><span>{{ t('web.creator.metric_active_members', lang) }}</span></article><article><strong>{{ stats.completed_portions }}/{{ stats.total_portions }}</strong><span>{{ t('web.creator.metric_completed_portions', lang) }}</span></article><article><strong>{{ stats.contribution_total|int }}</strong><span>{{ t('web.creator.metric_open_contribution', lang) }}</span></article></section>
-<form class="search" method="get"><input name="q" value="{{ query }}" placeholder="{{ t('web.creator.search_placeholder', lang) }}"><button type="submit">{{ t('web.creator.search_button', lang) }}</button></form>
-<a class="back" href="/creator/khatms/{{ khatm.id }}/export.xlsx">{{ t('web.creator.download_full_xlsx', lang) }}</a>
-<section class="member-detail-list">{% for row in rows %}<article class="member-detail-card"><header><div><h2>{{ row.user.display_name or t('web.creator.no_name', lang) }}</h2><span class="status {{ row.membership.status.value|lower }}">{{ label(row.membership.status) }}</span></div><small>{{ row.joined_at }}</small></header><dl><div><dt>{{ t('web.creator.field_mobile', lang) }}</dt><dd>{{ row.settings.contact_phone if row.settings and row.settings.contact_phone else t('web.creator.not_registered', lang) }}</dd></div><div><dt>{{ t('web.creator.field_province_city', lang) }}</dt><dd>{% if row.settings %}{{ row.settings.province or '—' }} / {{ row.settings.city or '—' }}{% else %}—{% endif %}</dd></div><div><dt>{{ t('web.creator.field_gender', lang) }}</dt><dd>{{ label(row.settings.gender) if row.settings and row.settings.gender else t('web.creator.not_registered', lang) }}</dd></div><div><dt>{{ t('web.creator.field_membership_type', lang) }}</dt><dd>{% if row.membership.is_committed %}{{ t('web.label.COMMITMENT', lang) }}{% else %}{{ t('web.creator.open_companion', lang) }}{% endif %}{% if row.membership.backup_reader_opt_in %}{{ t('web.creator.backup_reader_suffix', lang) }}{% endif %}</dd></div><div><dt>{{ t('web.creator.field_completed_portion', lang) }}</dt><dd>{{ row.completed }}</dd></div><div><dt>{{ t('web.creator.field_recorded_misses', lang) }}</dt><dd>{{ row.misses }}</dd></div><div><dt>{{ t('web.creator.field_contribution', lang) }}</dt><dd>{{ row.contribution|int }}</dd></div><div><dt>{{ t('web.creator.field_surplus', lang) }}</dt><dd>{{ row.surplus|int }}</dd></div></dl></article>{% else %}<p class="empty">{{ t('web.creator.no_member_found', lang) }}</p>{% endfor %}</section>
-{% if page > 1 or has_next %}<nav class="pager" aria-label="{{ t('web.creator.member_pagination_aria', lang) }}">{% if page > 1 %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit">{{ t('web.creator.prev_page', lang) }}</button></form>{% endif %}<span>{{ t('web.creator.page_label', lang, page=page) }}</span>{% if has_next %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit">{{ t('web.creator.next_page', lang) }}</button></form>{% endif %}</nav>{% endif %}
+<!-- Back button -->
+<div class="mb-6">
+  <a href="/creator" class="inline-flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition-colors group">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+    {{ t('web.creator.back_to_my_khatms', lang) }}
+  </a>
+</div>
+
+<!-- Header -->
+<section class="mb-8">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_member_report', lang) }}</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">{{ khatm.title }}</h1>
+  <p class="text-slate-400 text-sm">{{ t('web.creator.member_report_notice', lang) }}</p>
+</section>
+
+<!-- Metrics -->
+<section class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
+  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
+    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.active_members }}</strong>
+    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_active_members', lang) }}</span>
+  </article>
+  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
+    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.completed_portions }}<span class="text-slate-500 text-lg">/{{ stats.total_portions }}</span></strong>
+    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_completed_portions', lang) }}</span>
+  </article>
+  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
+    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.contribution_total|int }}</strong>
+    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_open_contribution', lang) }}</span>
+  </article>
+</section>
+
+<!-- Actions & Search -->
+<div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-8">
+  <form class="flex-1 flex gap-2" method="get">
+    <input name="q" value="{{ query }}" placeholder="{{ t('web.creator.search_placeholder', lang) }}" class="flex-1 bg-slate-800/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-slate-500">
+    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-emerald-900/20">{{ t('web.creator.search_button', lang) }}</button>
+  </form>
+  <a href="/creator/khatms/{{ khatm.id }}/export.xlsx" class="glass-panel text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 px-5 py-2.5 rounded-xl font-medium transition-all text-center flex items-center justify-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+    {{ t('web.creator.download_full_xlsx', lang) }}
+  </a>
+</div>
+
+<!-- Member List -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {% for row in rows %}
+  <article class="glass-card p-5 sm:p-6 rounded-2xl flex flex-col group">
+    <header class="flex justify-between items-start mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-white mb-2">{{ row.user.display_name or t('web.creator.no_name', lang) }}</h2>
+        <span class="status {{ row.membership.status.value|lower }}">{{ label(row.membership.status) }}</span>
+      </div>
+      <small class="text-xs text-slate-500 font-mono bg-slate-800/50 px-2 py-1 rounded-md">{{ row.joined_at }}</small>
+    </header>
+    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 mt-auto">
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_mobile', lang) }}</dt>
+        <dd class="text-sm text-slate-200 font-mono">{{ row.settings.contact_phone if row.settings and row.settings.contact_phone else t('web.creator.not_registered', lang) }}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_province_city', lang) }}</dt>
+        <dd class="text-sm text-slate-200 truncate" title="{% if row.settings %}{{ row.settings.province or '—' }} / {{ row.settings.city or '—' }}{% else %}—{% endif %}">{% if row.settings %}{{ row.settings.province or '—' }} / {{ row.settings.city or '—' }}{% else %}—{% endif %}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_gender', lang) }}</dt>
+        <dd class="text-sm text-slate-200">{{ label(row.settings.gender) if row.settings and row.settings.gender else t('web.creator.not_registered', lang) }}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_membership_type', lang) }}</dt>
+        <dd class="text-sm text-slate-200">{% if row.membership.is_committed %}{{ t('web.label.COMMITMENT', lang) }}{% else %}{{ t('web.creator.open_companion', lang) }}{% endif %}{% if row.membership.backup_reader_opt_in %}{{ t('web.creator.backup_reader_suffix', lang) }}{% endif %}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_completed_portion', lang) }}</dt>
+        <dd class="text-sm text-emerald-400 font-bold">{{ row.completed }}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_recorded_misses', lang) }}</dt>
+        <dd class="text-sm {% if row.misses > 0 %}text-rose-400 font-bold{% else %}text-slate-200{% endif %}">{{ row.misses }}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_contribution', lang) }}</dt>
+        <dd class="text-sm text-slate-200">{{ row.contribution|int }}</dd>
+      </div>
+      <div class="border-t border-slate-700/50 pt-2">
+        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_surplus', lang) }}</dt>
+        <dd class="text-sm text-slate-200">{{ row.surplus|int }}</dd>
+      </div>
+    </dl>
+  </article>
+  {% else %}
+  <div class="col-span-full glass-panel p-10 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
+    <p>{{ t('web.creator.no_member_found', lang) }}</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% if page > 1 or has_next %}
+<nav class="flex items-center justify-center gap-4 mt-10" aria-label="{{ t('web.creator.member_pagination_aria', lang) }}">
+  {% if page > 1 %}
+  <form method="get" class="m-0"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.prev_page', lang) }}</button></form>
+  {% endif %}
+  <span class="text-slate-400 text-sm font-medium">{{ t('web.creator.page_label', lang, page=page) }}</span>
+  {% if has_next %}
+  <form method="get" class="m-0"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.next_page', lang) }}</button></form>
+  {% endif %}
+</nav>
+{% endif %}
 {% endblock %}
