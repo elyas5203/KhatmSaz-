@@ -1,48 +1,83 @@
 {% extends "base.html" %}
 {% block title %}مدیران | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title">
-  <p class="eyebrow">دسترسی کمینه و قابل لغو</p>
-  <h1>مدیران و نقش‌ها</h1>
-  <p>هر نفر فقط بخش مربوط به نقش خودش را می‌بیند. مدیر اصلی همیشه همهٔ دسترسی‌ها را دارد.</p>
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">دسترسی کمینه و قابل لغو</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مدیران و نقش‌ها</h1>
+  <p class="text-slate-400 text-sm">هر نفر فقط بخش مربوط به نقش خودش را می‌بیند. مدیر اصلی همیشه همهٔ دسترسی‌ها را دارد.</p>
 </section>
 
-{% if saved %}<p class="notice success">تغییر نقش ذخیره و در گزارش حسابرسی ثبت شد.</p>{% endif %}
+{% if saved %}
+<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+  تغییر نقش ذخیره و در گزارش حسابرسی ثبت شد.
+</div>
+{% endif %}
 
-<form class="search" method="get" action="/admins">
-  <input name="q" value="{{ query }}" placeholder="نام، شماره، شناسه تلگرام یا شناسه داخلی کاربر">
-  <button type="submit">پیدا کردن</button>
+<form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get" action="/admins">
+  <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+  </div>
+  <input name="q" value="{{ query }}" placeholder="نام، شماره، شناسه تلگرام یا شناسه داخلی کاربر" autocomplete="off" class="input-field pl-4 pr-10 py-3 text-lg">
+  <button type="submit" class="btn px-6 whitespace-nowrap shadow-lg shadow-emerald-900/20">پیدا کردن</button>
 </form>
 
 {% if users %}
-<section class="cards">
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
   {% for user in users %}
-  <article class="user-card">
-    <h2>{{ user.display_name or 'کاربر بدون نام' }}</h2>
-    <p>{{ user.id }}</p>
-    <form class="role-form" method="post" action="/admins/{{ user.id }}/roles">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <select name="role">
-        {% for role in roles %}<option value="{{ role.value }}">{{ fa_label(role) }}</option>{% endfor %}
-      </select>
-      <button name="action" value="grant" type="submit">اعطای نقش</button>
-    </form>
+  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
+    <div class="mb-6">
+      <h2 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors mb-2">{{ user.display_name or 'کاربر بدون نام' }}</h2>
+      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all">{{ user.id }}</p>
+    </div>
+    
+    <div class="border-t border-slate-700/50 pt-4 mt-auto">
+      <form method="post" action="/admins/{{ user.id }}/roles" class="flex flex-col sm:flex-row gap-2">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <select name="role" class="input-field py-2 text-sm flex-1">
+          {% for role in roles %}
+          <option value="{{ role.value }}">{{ fa_label(role) }}</option>
+          {% endfor %}
+        </select>
+        <button name="action" value="grant" type="submit" class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap">اعطای نقش</button>
+      </form>
+    </div>
   </article>
   {% endfor %}
 </section>
-{% elif query %}<p class="empty">کاربری با این عبارت پیدا نشد.</p>{% endif %}
+{% elif query %}
+<div class="glass-panel p-8 text-center text-slate-500 rounded-3xl border border-dashed border-slate-700 mb-8">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+  <p>کاربری با این عبارت پیدا نشد.</p>
+</div>
+{% endif %}
 
-<section class="panel">
-  <div class="section-head"><h2>نقش‌های فعال</h2></div>
-  {% for grant, user in active_grants %}
-  <div class="list-row">
-    <span><b>{{ user.display_name or user.id }}</b><small>{{ fa_label(grant.role) }}</small></span>
-    <form method="post" action="/admins/{{ user.id }}/roles">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <input type="hidden" name="role" value="{{ grant.role }}">
-      <button class="danger" name="action" value="revoke" type="submit">لغو نقش</button>
-    </form>
+<section class="glass-panel p-6 rounded-3xl">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <h2 class="text-xl font-bold text-white">نقش‌های فعال</h2>
   </div>
-  {% else %}<p class="empty">هنوز نقش واگذارشده‌ای وجود ندارد.</p>{% endfor %}
+  
+  <div class="flex flex-col gap-4">
+    {% for grant, user in active_grants %}
+    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+      <div>
+        <h3 class="font-bold text-white mb-1">{{ user.display_name or user.id }}</h3>
+        <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400">{{ fa_label(grant.role) }}</span>
+      </div>
+      
+      <form method="post" action="/admins/{{ user.id }}/roles">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="role" value="{{ grant.role }}">
+        <button name="action" value="revoke" type="submit" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-xl transition-colors" title="لغو نقش">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-500">
+      <p>هنوز نقش واگذارشده‌ای وجود ندارد.</p>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

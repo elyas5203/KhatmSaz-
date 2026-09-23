@@ -1,32 +1,72 @@
 {% extends "base.html" %}
 {% block title %}رویدادهای حساس | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title">
-  <p class="eyebrow">گزارش فقط‌خواندنی و غیرقابل‌حذف</p>
-  <h1>خط زمانی فعالیت‌های حساس</h1>
-  <p>تغییر نقش‌ها، امور مالی، نظارت و تصمیم‌های محتوایی اینجا با نام انجام‌دهنده، هدف و زمان تهران ثبت می‌شوند.</p>
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-rose-500 tracking-wider uppercase mb-1">گزارش فقط‌خواندنی و غیرقابل‌حذف</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">خط زمانی فعالیت‌های حساس</h1>
+  <p class="text-slate-400 text-sm">تغییر نقش‌ها، امور مالی، نظارت و تصمیم‌های محتوایی اینجا با نام انجام‌دهنده، هدف و زمان تهران ثبت می‌شوند.</p>
 </section>
 
-<form class="search" method="get" action="/audit">
-  <input name="q" value="{{ query }}" placeholder="فیلتر با کد رویداد؛ مثلاً USER یا COUPON">
-  <button type="submit">فیلتر</button>
+<form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get" action="/audit">
+  <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+  </div>
+  <input name="q" value="{{ query }}" placeholder="فیلتر با کد رویداد؛ مثلاً USER یا COUPON" autocomplete="off" class="input-field pl-4 pr-10 py-3 text-lg font-mono">
+  <button type="submit" class="btn px-6 whitespace-nowrap">فیلتر</button>
 </form>
 
-<section class="audit-list" aria-label="رویدادهای حساس">
-  {% for row in rows %}
-  <article class="audit-card">
-    <header>
-      <div><span class="audit-dot" aria-hidden="true"></span><b>{{ row.label }}</b></div>
-      <time>{{ row.time }}</time>
-    </header>
-    <p class="audit-code">{{ row.entry.action }}</p>
-    <dl>
-      <div><dt>انجام‌دهنده</dt><dd>{{ row.actor.display_name if row.actor and row.actor.display_name else row.entry.actor_user_id }}</dd></div>
-      {% if row.entry.target_user_id %}<div><dt>کاربر هدف</dt><dd>{{ row.target_user.display_name if row.target_user and row.target_user.display_name else row.entry.target_user_id }}</dd></div>{% endif %}
-      {% if row.entry.target_khatm_id %}<div><dt>ختم هدف</dt><dd>{{ row.target_khatm.title if row.target_khatm else row.entry.target_khatm_id }}</dd></div>{% endif %}
-      {% for label, value in row.details %}<div><dt>{{ label }}</dt><dd>{{ value }}</dd></div>{% endfor %}
-    </dl>
-  </article>
-  {% else %}<p class="empty">رویدادی با این فیلتر پیدا نشد.</p>{% endfor %}
+<section class="glass-panel p-6 rounded-3xl mb-8" aria-label="رویدادهای حساس">
+  <div class="relative border-r-2 border-slate-700/50 pr-6 space-y-8">
+    {% for row in rows %}
+    <article class="relative bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-colors">
+      <!-- Timeline Dot -->
+      <div class="absolute -right-[1.95rem] top-6 w-4 h-4 rounded-full bg-slate-900 border-2 border-rose-500"></div>
+      
+      <header class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-700/50 pb-4 gap-2">
+        <div>
+          <h2 class="text-lg font-bold text-white">{{ row.label }}</h2>
+          <p class="text-xs font-mono text-rose-400 bg-rose-500/10 px-2 py-1 rounded inline-block mt-2 select-all">{{ row.entry.action }}</p>
+        </div>
+        <time class="text-xs text-slate-400 font-mono flex items-center gap-1 bg-slate-900/50 px-3 py-1.5 rounded-lg whitespace-nowrap" dir="ltr">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          {{ row.time }}
+        </time>
+      </header>
+      
+      <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-slate-900/40 rounded-xl p-3">
+          <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">انجام‌دهنده</dt>
+          <dd class="text-sm font-bold text-slate-300">{{ row.actor.display_name if row.actor and row.actor.display_name else row.entry.actor_user_id }}</dd>
+        </div>
+        
+        {% if row.entry.target_user_id %}
+        <div class="bg-slate-900/40 rounded-xl p-3">
+          <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">کاربر هدف</dt>
+          <dd class="text-sm font-bold text-sky-400">{{ row.target_user.display_name if row.target_user and row.target_user.display_name else row.entry.target_user_id }}</dd>
+        </div>
+        {% endif %}
+        
+        {% if row.entry.target_khatm_id %}
+        <div class="bg-slate-900/40 rounded-xl p-3">
+          <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">ختم هدف</dt>
+          <dd class="text-sm font-bold text-emerald-400">{{ row.target_khatm.title if row.target_khatm else row.entry.target_khatm_id }}</dd>
+        </div>
+        {% endif %}
+        
+        {% for label, value in row.details %}
+        <div class="bg-slate-900/40 rounded-xl p-3">
+          <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">{{ label }}</dt>
+          <dd class="text-sm font-mono text-amber-400">{{ value }}</dd>
+        </div>
+        {% endfor %}
+      </dl>
+    </article>
+    {% else %}
+    <div class="p-8 text-center text-slate-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <p>رویدادی با این فیلتر پیدا نشد.</p>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

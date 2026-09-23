@@ -1,11 +1,77 @@
-{% extends "base.html" %}{% block title %}کاربران | ختم‌ساز{% endblock %}
+{% extends "base.html" %}
+{% block title %}کاربران | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title"><p class="eyebrow">هویت و دسترسی</p><h1>جست‌وجوی کاربران</h1></section>
-<form class="search" method="get"><input name="q" value="{{ query }}" placeholder="نام، شماره یا شناسه پیام‌رسان" autocomplete="off"><button type="submit">جست‌وجو</button></form>
-<section class="cards">{% for user in users %}<article class="user-card"><div><h2>{{ user.display_name or 'کاربر بدون نام' }}</h2><p>{{ user.id }}</p><span class="status {{ user.status.value|lower }}">{{ fa_label(user.status) }}</span></div><form method="post" action="/users/{{ user.id }}/moderate" class="actions"><input type="hidden" name="csrf" value="{{ csrf }}"><input type="hidden" name="q" value="{{ query }}"><button name="action" value="warn">اخطار</button><button name="action" value="suspend">تعلیق</button><button name="action" value="reactivate">فعال</button><button class="danger" name="action" value="ban" onclick="return confirm('این کاربر به‌طور نهایی مسدود شود؟')">بن نهایی</button></form></article>{% else %}{% if query %}<p class="empty">کاربری پیدا نشد.</p>{% else %}<p class="empty">برای شروع، نام یا شماره را جست‌وجو کنید.</p>{% endif %}{% endfor %}</section>
-{% if page > 1 or has_next %}<nav class="pager" aria-label="صفحه‌بندی کاربران">
-{% if page > 1 %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit">صفحه قبل</button></form>{% endif %}
-<span>صفحه {{ page }}</span>
-{% if has_next %}<form method="get"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit">صفحه بعد</button></form>{% endif %}
-</nav>{% endif %}
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">هویت و دسترسی</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">جست‌وجوی کاربران</h1>
+  
+  <form class="flex gap-2 w-full max-w-2xl relative" method="get">
+    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+    </div>
+    <input name="q" value="{{ query }}" placeholder="نام، شماره یا شناسه پیام‌رسان" autocomplete="off" class="input-field pl-4 pr-10 py-3 text-lg">
+    <button type="submit" class="btn px-6 whitespace-nowrap">جست‌وجو</button>
+  </form>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+  {% for user in users %}
+  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
+    <div class="mb-6">
+      <div class="flex justify-between items-start mb-2">
+        <h2 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">{{ user.display_name or 'کاربر بدون نام' }}</h2>
+        <span class="status {{ user.status.value|lower }}">{{ fa_label(user.status) }}</span>
+      </div>
+      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all">{{ user.id }}</p>
+    </div>
+    
+    <div class="border-t border-slate-700/50 pt-4 mt-auto">
+      <form method="post" action="/users/{{ user.id }}/moderate" class="grid grid-cols-2 gap-2">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="q" value="{{ query }}">
+        <button name="action" value="warn" class="bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-amber-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">اخطار</button>
+        <button name="action" value="suspend" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-orange-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">تعلیق</button>
+        <button name="action" value="reactivate" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-emerald-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">فعال</button>
+        <button name="action" value="ban" onclick="return confirm('این کاربر به‌طور نهایی مسدود شود؟')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors">بن نهایی</button>
+      </form>
+    </div>
+  </article>
+  {% else %}
+  <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-700">
+    {% if query %}
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    <p class="text-slate-400 font-medium">کاربری پیدا نشد.</p>
+    {% else %}
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-emerald-500/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+    <p class="text-slate-400 font-medium">برای شروع، نام، شماره یا شناسه کاربری را جست‌وجو کنید.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</section>
+
+{% if page > 1 or has_next %}
+<nav class="flex items-center justify-center gap-4 my-8" aria-label="صفحه‌بندی کاربران">
+  {% if page > 1 %}
+  <form method="get">
+    <input type="hidden" name="q" value="{{ query }}">
+    <input type="hidden" name="page" value="{{ page - 1 }}">
+    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه قبل</button>
+  </form>
+  {% else %}
+  <div class="px-4 py-2 w-24"></div>
+  {% endif %}
+  
+  <span class="text-slate-400 font-mono bg-slate-800/50 px-4 py-2 rounded-xl">صفحه {{ page }}</span>
+  
+  {% if has_next %}
+  <form method="get">
+    <input type="hidden" name="q" value="{{ query }}">
+    <input type="hidden" name="page" value="{{ page + 1 }}">
+    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه بعد</button>
+  </form>
+  {% else %}
+  <div class="px-4 py-2 w-24"></div>
+  {% endif %}
+</nav>
+{% endif %}
 {% endblock %}

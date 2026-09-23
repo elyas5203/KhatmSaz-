@@ -1,38 +1,284 @@
-{% extends "base.html" %}{% block title %}مالی | ختم‌ساز{% endblock %}
+{% extends "base.html" %}
+{% block title %}مالی | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title"><p class="eyebrow">کیف پول و تخفیف</p><h1>مرکز مالی</h1><p>فاکتورها حذف نمی‌شوند؛ بازپرداخت فقط وضعیت آن‌ها را تغییر می‌دهد.</p></section>
-{% if saved %}<section class="notice-ok">{% if saved == 'plan' %}تنظیمات پلن ذخیره شد ✅{% elif saved == 'sms' %}گزینهٔ اشتراک پیامک ذخیره شد ✅{% else %}کد تخفیف ذخیره و فعال شد ✅{% endif %}</section>{% endif %}
-<section class="metrics compact"><article><strong>{{ "{:,}".format(paid_total) }}</strong><span>فاکتور پرداخت‌شده</span></article><article><strong>{{ "{:,}".format(refunded_total) }}</strong><span>بازپرداخت داخلی</span></article><article><strong>{{ coupons|length }}</strong><span>کد تخفیف</span></article></section>
-<section class="panel"><div class="section-head"><div><p class="eyebrow">قابل تنظیم از مینی‌اپ</p><h2>پلن‌های ساخت ختم</h2></div></div>
-<p>هر کارت را جداگانه ذخیره کنید. خالی‌گذاشتن سقف یعنی آن بخش نامحدود است. خاموش‌کردن «اجازهٔ ساخت ختم» ساخت ختم تازه را برای کاربران آن پلن می‌بندد.</p>
-{% for plan in plan_definitions %}<form class="finance-form" method="post" action="/finance/plans/{{ plan.plan }}">
-<input type="hidden" name="csrf" value="{{ csrf }}">
-<label>شناسه پلن<input value="{{ plan.plan }}" disabled></label>
-<label>نام نمایشی<input name="title" value="{{ plan.title }}" required maxlength="80"></label>
-<label>روش قیمت‌گذاری<select name="pricing_mode"><option value="FIXED" {% if plan.pricing_mode == 'FIXED' %}selected{% endif %}>مبلغ ثابت</option><option value="USAGE_BASED" {% if plan.pricing_mode == 'USAGE_BASED' %}selected{% endif %}>به‌ازای هر ساخت</option></select></label>
-<label>قیمت (تومان)<input name="price_toman" type="number" min="0" value="{% if plan.pricing_mode == 'USAGE_BASED' %}{{ plan.unit_price_toman }}{% else %}{{ plan.price_toman }}{% endif %}" required></label>
-<label>سقف مجموع صلوات/دعا/زیارت/لعن<input name="max_devotional_members" type="number" min="1" value="{{ plan.entitlements.get('max_devotional_members', '') }}" placeholder="خالی = نامحدود"></label>
-<label>سقف اعضای ختم قرآن<input name="max_quran_members" type="number" min="1" value="{{ plan.entitlements.get('max_quran_members', '') }}" placeholder="خالی = نامحدود"></label>
-<label><input name="khatm_create" type="checkbox" {% if plan.entitlements.get('khatm.create') %}checked{% endif %}> اجازهٔ ساخت ختم</label>
-<label><input name="enabled" type="checkbox" {% if plan.enabled %}checked{% endif %}> خود پلن فعال باشد</label>
-<button type="submit">ذخیرهٔ پلن {{ plan.plan }}</button></form>{% else %}<p class="empty">تعریف پلنی پیدا نشد.</p>{% endfor %}</section>
-<section class="panel"><div class="section-head"><div><p class="eyebrow">یادآوری پولی</p><h2>گزینه‌های اشتراک پیامک</h2></div></div>
-<p>برای ویرایش، همان تعداد ماه را دوباره وارد کنید. گزینهٔ غیرفعال به کاربر نمایش داده نمی‌شود.</p>
-<form class="finance-form" method="post" action="/finance/sms-plans"><input type="hidden" name="csrf" value="{{ csrf }}"><label>مدت (ماه)<input name="months" type="number" min="1" required placeholder="مثلاً 3"></label><label>قیمت (تومان)<input name="price_toman" type="number" min="0" required placeholder="مثلاً 50000"></label><label><input name="enabled" type="checkbox" checked> فعال و قابل خرید</label><button type="submit">ذخیرهٔ گزینهٔ پیامک</button></form>
-{% for option in sms_plan_options %}<form class="finance-form" method="post" action="/finance/sms-plans"><input type="hidden" name="csrf" value="{{ csrf }}"><label>مدت (ماه)<input name="months" type="number" min="1" value="{{ option.months }}" readonly></label><label>قیمت (تومان)<input name="price_toman" type="number" min="0" value="{{ option.price_toman }}" required></label><label><input name="enabled" type="checkbox" {% if option.enabled %}checked{% endif %}> فعال و قابل خرید</label><button type="submit">ذخیرهٔ {{ option.months }} ماهه</button></form>{% else %}<p class="empty">هنوز گزینه‌ای ثبت نشده است.</p>{% endfor %}</section>
-<section class="panel"><div class="section-head"><div><p class="eyebrow">بدون کدنویسی</p><h2>ساخت یا ویرایش کد تخفیف</h2></div></div>
-<form class="finance-form" method="post" action="/finance/coupons">
-<input type="hidden" name="csrf" value="{{ csrf }}">
-<label>کد لاتین<input name="code" required minlength="3" maxlength="40" placeholder="KHATM20"></label>
-<label>نوع<select name="discount_type"><option value="PERCENT">درصدی</option><option value="FIXED">مبلغ ثابت</option></select></label>
-<label>مقدار<input name="value" type="number" min="1" required placeholder="20"></label>
-<label>حداقل خرید (تومان)<input name="min_purchase_toman" type="number" min="0" value="0" required></label>
-<label>سقف مصرف کل<input name="total_redemption_limit" type="number" min="1" placeholder="خالی = نامحدود"></label>
-<label>سقف هر کاربر<input name="per_user_limit" type="number" min="1" value="1" required></label>
-<label>حداکثر تخفیف تومان<input name="max_discount_toman" type="number" min="1" placeholder="برای درصدی، اختیاری"></label>
-<button type="submit">ذخیره و فعال‌سازی</button></form></section>
-<section class="panel"><div class="section-head"><h2>کدهای موجود</h2></div>
-{% for coupon in coupons %}<div class="list-row"><span><b>{{ coupon.code }}</b><small>{% if coupon.discount_type == 'PERCENT' %}{{ coupon.value }}٪{% else %}{{ "{:,}".format(coupon.value) }} تومان{% endif %} · حداقل {{ "{:,}".format(coupon.min_purchase_toman) }} · هر کاربر {{ coupon.per_user_limit }} بار</small></span><form method="post" action="/finance/coupons/{{ coupon.code }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="{% if coupon.enabled %}danger{% endif %}" type="submit">{% if coupon.enabled %}غیرفعال{% else %}فعال{% endif %}</button></form></div>{% else %}<p class="empty">هنوز کدی ساخته نشده است.</p>{% endfor %}</section>
-<section class="panel"><div class="section-head"><h2>آخرین فاکتورها</h2></div>
-{% for invoice,user in invoice_rows %}<div class="list-row static"><span><b>{{ user.display_name or 'کاربر بدون نام' }} · {{ "{:,}".format(invoice.net_amount_toman) }} تومان</b><small>{{ fa_label(invoice.kind) }} · مبلغ اصلی {{ "{:,}".format(invoice.gross_amount_toman) }} · تخفیف {{ "{:,}".format(invoice.discount_amount_toman) }} · {{ invoice.issued_at }}</small></span><em class="status {% if invoice.status == 'REFUNDED' %}cancelled{% else %}active{% endif %}">{{ fa_label(invoice.status) }}</em></div>{% else %}<p class="empty">هنوز فاکتوری ثبت نشده است.</p>{% endfor %}</section>
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">کیف پول و تخفیف</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مرکز مالی</h1>
+  <p class="text-slate-400 text-sm">فاکتورها حذف نمی‌شوند؛ بازپرداخت فقط وضعیت آن‌ها را تغییر می‌دهد.</p>
+</section>
+
+{% if saved %}
+<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  {% if saved == 'plan' %}تنظیمات پلن ذخیره شد ✅{% elif saved == 'sms' %}گزینهٔ اشتراک پیامک ذخیره شد ✅{% else %}کد تخفیف ذخیره و فعال شد ✅{% endif %}
+</div>
+{% endif %}
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-emerald-500">
+    <strong class="text-2xl font-bold text-emerald-400 mb-1 font-mono">{{ "{:,}".format(paid_total) }}</strong>
+    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">فاکتور پرداخت‌شده</span>
+  </article>
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-amber-500">
+    <strong class="text-2xl font-bold text-amber-400 mb-1 font-mono">{{ "{:,}".format(refunded_total) }}</strong>
+    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">بازپرداخت داخلی</span>
+  </article>
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-sky-500">
+    <strong class="text-2xl font-bold text-sky-400 mb-1 font-mono">{{ coupons|length }}</strong>
+    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">کد تخفیف</span>
+  </article>
+</section>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <section class="glass-panel p-6 rounded-3xl lg:col-span-2">
+    <div class="mb-6 border-b border-white/5 pb-4">
+      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">قابل تنظیم از مینی‌اپ</p>
+      <h2 class="text-xl font-bold text-white">پلن‌های ساخت ختم</h2>
+      <p class="text-slate-400 text-xs mt-2">هر کارت را جداگانه ذخیره کنید. خالی‌گذاشتن سقف یعنی آن بخش نامحدود است. خاموش‌کردن «اجازهٔ ساخت ختم» ساخت ختم تازه را برای کاربران آن پلن می‌بندد.</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {% for plan in plan_definitions %}
+      <form method="post" action="/finance/plans/{{ plan.plan }}" class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 flex flex-col gap-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        
+        <div class="flex justify-between items-center pb-2 border-b border-slate-700/50">
+          <span class="text-sm font-bold text-slate-300">شناسه پلن:</span>
+          <span class="text-emerald-400 font-mono text-sm px-2 py-1 bg-emerald-500/10 rounded">{{ plan.plan }}</span>
+          <input type="hidden" name="plan_id" value="{{ plan.plan }}">
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="space-y-1 sm:col-span-2">
+            <label class="text-xs font-bold text-slate-400">نام نمایشی</label>
+            <input name="title" value="{{ plan.title }}" required maxlength="80" class="input-field bg-slate-900/50">
+          </div>
+          
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">روش قیمت‌گذاری</label>
+            <select name="pricing_mode" class="input-field bg-slate-900/50">
+              <option value="FIXED" {% if plan.pricing_mode == 'FIXED' %}selected{% endif %}>مبلغ ثابت</option>
+              <option value="USAGE_BASED" {% if plan.pricing_mode == 'USAGE_BASED' %}selected{% endif %}>به‌ازای هر ساخت</option>
+            </select>
+          </div>
+          
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">قیمت (تومان)</label>
+            <input name="price_toman" type="number" min="0" value="{% if plan.pricing_mode == 'USAGE_BASED' %}{{ plan.unit_price_toman }}{% else %}{{ plan.price_toman }}{% endif %}" required class="input-field bg-slate-900/50 font-mono">
+          </div>
+          
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">سقف صلوات/دعا...</label>
+            <input name="max_devotional_members" type="number" min="1" value="{{ plan.entitlements.get('max_devotional_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
+          </div>
+          
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">سقف اعضای قرآن</label>
+            <input name="max_quran_members" type="number" min="1" value="{{ plan.entitlements.get('max_quran_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
+          </div>
+        </div>
+        
+        <div class="flex flex-col gap-2 mt-2 py-3 border-y border-slate-700/50">
+          <label class="flex items-center gap-2 cursor-pointer group">
+            <input name="khatm_create" type="checkbox" class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500" {% if plan.entitlements.get('khatm.create') %}checked{% endif %}>
+            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">اجازهٔ ساخت ختم</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer group">
+            <input name="enabled" type="checkbox" class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500" {% if plan.enabled %}checked{% endif %}>
+            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">خود پلن فعال باشد</span>
+          </label>
+        </div>
+        
+        <button type="submit" class="btn w-full mt-2">ذخیرهٔ پلن {{ plan.plan }}</button>
+      </form>
+      {% else %}
+      <div class="col-span-full p-8 text-center text-slate-500 border border-dashed border-slate-700 rounded-xl">
+        <p>تعریف پلنی پیدا نشد.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-6 border-b border-white/5 pb-4">
+      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">یادآوری پولی</p>
+      <h2 class="text-xl font-bold text-white">گزینه‌های اشتراک پیامک</h2>
+      <p class="text-slate-400 text-xs mt-2">برای ویرایش، همان تعداد ماه را دوباره وارد کنید. گزینهٔ غیرفعال به کاربر نمایش داده نمی‌شود.</p>
+    </div>
+    
+    <div class="flex flex-col gap-4">
+      <form method="post" action="/finance/sms-plans" class="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-end">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="space-y-1 w-full sm:w-1/4">
+          <label class="text-xs font-bold text-emerald-400">جدید (ماه)</label>
+          <input name="months" type="number" min="1" required placeholder="3" class="input-field bg-slate-900/50 font-mono text-center">
+        </div>
+        <div class="space-y-1 w-full sm:w-2/4">
+          <label class="text-xs font-bold text-emerald-400">قیمت (تومان)</label>
+          <input name="price_toman" type="number" min="0" required placeholder="50000" class="input-field bg-slate-900/50 font-mono">
+        </div>
+        <div class="w-full sm:w-1/4 flex flex-col gap-2">
+          <label class="flex items-center justify-center gap-1 cursor-pointer">
+            <input name="enabled" type="checkbox" checked class="w-3 h-3 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500">
+            <span class="text-[0.65rem] text-slate-300 whitespace-nowrap">فعال</span>
+          </label>
+          <button type="submit" class="btn py-2 text-sm w-full">افزودن</button>
+        </div>
+      </form>
+      
+      {% for option in sms_plan_options %}
+      <form method="post" action="/finance/sms-plans" class="bg-slate-800/20 border border-slate-700/50 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-end">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div class="space-y-1 w-full sm:w-1/4">
+          <label class="text-xs font-bold text-slate-400">مدت (ماه)</label>
+          <input name="months" type="number" min="1" value="{{ option.months }}" readonly class="input-field bg-slate-900/20 text-slate-500 cursor-not-allowed font-mono text-center">
+        </div>
+        <div class="space-y-1 w-full sm:w-2/4">
+          <label class="text-xs font-bold text-slate-400">قیمت (تومان)</label>
+          <input name="price_toman" type="number" min="0" value="{{ option.price_toman }}" required class="input-field bg-slate-900/50 font-mono">
+        </div>
+        <div class="w-full sm:w-1/4 flex flex-col gap-2">
+          <label class="flex items-center justify-center gap-1 cursor-pointer">
+            <input name="enabled" type="checkbox" {% if option.enabled %}checked{% endif %} class="w-3 h-3 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500">
+            <span class="text-[0.65rem] text-slate-300 whitespace-nowrap">فعال</span>
+          </label>
+          <button type="submit" class="text-sm font-bold text-slate-300 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 py-2 rounded-xl transition-colors w-full">ذخیره</button>
+        </div>
+      </form>
+      {% else %}
+      <p class="text-slate-500 text-center py-4">هنوز گزینه‌ای ثبت نشده است.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-6 border-b border-white/5 pb-4">
+      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">بدون کدنویسی</p>
+      <h2 class="text-xl font-bold text-white">کد تخفیف</h2>
+    </div>
+    
+    <form method="post" action="/finance/coupons" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      
+      <div class="space-y-1 sm:col-span-2">
+        <label class="text-xs font-bold text-slate-400">کد لاتین</label>
+        <input name="code" required minlength="3" maxlength="40" placeholder="KHATM20" class="input-field font-mono text-left" dir="ltr">
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">نوع</label>
+        <select name="discount_type" class="input-field">
+          <option value="PERCENT">درصدی</option>
+          <option value="FIXED">مبلغ ثابت</option>
+        </select>
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">مقدار</label>
+        <input name="value" type="number" min="1" required placeholder="20" class="input-field font-mono">
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">حداقل خرید (تومان)</label>
+        <input name="min_purchase_toman" type="number" min="0" value="0" required class="input-field font-mono">
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">سقف مصرف کل</label>
+        <input name="total_redemption_limit" type="number" min="1" placeholder="نامحدود" class="input-field font-mono">
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">سقف هر کاربر</label>
+        <input name="per_user_limit" type="number" min="1" value="1" required class="input-field font-mono">
+      </div>
+      
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">حداکثر تخفیف</label>
+        <input name="max_discount_toman" type="number" min="1" placeholder="تومان" class="input-field font-mono">
+      </div>
+      
+      <div class="sm:col-span-2 flex items-center justify-between mt-2 pt-4 border-t border-slate-700/50">
+        <label class="flex items-center gap-2 cursor-pointer group">
+          <input name="is_active" type="checkbox" checked class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500">
+          <span class="text-sm text-slate-300 group-hover:text-white transition-colors">کد فعال است</span>
+        </label>
+        <button type="submit" class="btn px-6 py-2">ثبت تخفیف</button>
+      </div>
+    </form>
+    
+    <div class="mt-8">
+      <h3 class="text-sm font-bold text-slate-400 mb-3">کدهای موجود</h3>
+      <div class="flex flex-col gap-2">
+        {% for coupon in coupons %}
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl bg-slate-800/20 border border-slate-700/30 gap-3">
+          <div class="flex flex-col gap-1">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-sky-400 font-bold bg-sky-500/10 px-2 py-0.5 rounded select-all">{{ coupon.code }}</span>
+              <span class="text-sm font-bold text-white">{% if coupon.discount_type == 'PERCENT' %}{{ coupon.value }}٪{% else %}{{ "{:,}".format(coupon.value) }} تومان{% endif %}</span>
+            </div>
+            <span class="text-[0.65rem] text-slate-400">حداقل {{ "{:,}".format(coupon.min_purchase_toman) }} · هر کاربر {{ coupon.per_user_limit }} بار</span>
+          </div>
+          
+          <form method="post" action="/finance/coupons/{{ coupon.code }}/toggle">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            {% if coupon.enabled %}
+            <button type="submit" class="text-xs font-bold bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors">غیرفعال کردن</button>
+            {% else %}
+            <button type="submit" class="text-xs font-bold bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors">فعال کردن</button>
+            {% endif %}
+          </form>
+        </div>
+        {% else %}
+        <p class="text-slate-500 text-center text-sm py-4">هنوز کدی ساخته نشده است.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="glass-panel p-6 rounded-3xl lg:col-span-2">
+    <div class="mb-6 border-b border-white/5 pb-4 flex justify-between items-end">
+      <h2 class="text-xl font-bold text-white">آخرین فاکتورها</h2>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-sm">
+        <thead class="text-xs text-slate-400 uppercase border-b border-slate-700/50">
+          <tr>
+            <th class="py-3 px-4 font-bold">کاربر</th>
+            <th class="py-3 px-4 font-bold">مبلغ (تومان)</th>
+            <th class="py-3 px-4 font-bold">تخفیف</th>
+            <th class="py-3 px-4 font-bold">بابت</th>
+            <th class="py-3 px-4 font-bold">تاریخ</th>
+            <th class="py-3 px-4 font-bold text-left">وضعیت</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/30">
+          {% for invoice, user in invoice_rows %}
+          <tr class="hover:bg-white/5 transition-colors">
+            <td class="py-3 px-4 font-bold text-white">{{ user.display_name or 'بدون نام' }}</td>
+            <td class="py-3 px-4 font-mono text-emerald-400">{{ "{:,}".format(invoice.net_amount_toman) }}</td>
+            <td class="py-3 px-4 font-mono text-amber-400">{{ "{:,}".format(invoice.discount_amount_toman) }}</td>
+            <td class="py-3 px-4 text-slate-300">{{ fa_label(invoice.kind) }}</td>
+            <td class="py-3 px-4 text-slate-400 font-mono text-xs" dir="ltr">{{ invoice.issued_at.strftime('%Y-%m-%d %H:%M') if invoice.issued_at else '' }}</td>
+            <td class="py-3 px-4 text-left">
+              {% if invoice.status == 'REFUNDED' %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/10 text-amber-500">مسترد شده</span>
+              {% elif invoice.status == 'PAID' %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-400">پرداخت شده</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-slate-500/10 text-slate-400">{{ fa_label(invoice.status) }}</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-500">هنوز فاکتوری ثبت نشده است.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
 {% endblock %}

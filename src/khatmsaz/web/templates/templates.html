@@ -1,5 +1,52 @@
-{% extends "base.html" %}{% block title %}قالب پیام | ختم‌ساز{% endblock %}
+{% extends "base.html" %}
+{% block title %}قالب پیام | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title"><p class="eyebrow">متن‌های سامانه</p><h1>نسخه‌های پیام</h1></section>
-<section class="cards">{% for item in items %}<article class="template-card"><header><b>{{ item.key }}</b><span>{{ item.locale }} · v{{ item.version }}</span></header><p>{{ item.body }}</p><form method="post" action="/templates/{{ item.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="{% if item.enabled %}danger{% endif %}" type="submit">{% if item.enabled %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button></form></article>{% else %}<p class="empty">قالبی ثبت نشده است.</p>{% endfor %}</section>
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">متن‌های سامانه</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">نسخه‌های پیام</h1>
+  <p class="text-slate-400 text-sm">متن قالب‌های مختلف سامانه در اینجا قابل مشاهده و تغییر وضعیت است.</p>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+  {% for item in items %}
+  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
+    <div class="mb-6">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white font-mono bg-slate-800/50 px-2 py-1 rounded inline-block select-all mb-1">{{ item.key }}</h2>
+          <div class="flex items-center gap-2 mt-2">
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400" dir="ltr">{{ item.locale }}</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500" dir="ltr">v{{ item.version }}</span>
+            {% if item.enabled %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">فعال</span>
+            {% else %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-slate-900/40 rounded-xl p-4 mb-4">
+        <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{{ item.body }}</p>
+      </div>
+    </div>
+    
+    <div class="border-t border-slate-700/50 pt-4 mt-auto">
+      <form method="post" action="/templates/{{ item.id }}/toggle" class="flex flex-col">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        {% if item.enabled %}
+        <button type="submit" class="w-full bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">غیرفعال کردن</button>
+        {% else %}
+        <button type="submit" class="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">فعال کردن</button>
+        {% endif %}
+      </form>
+    </div>
+  </article>
+  {% else %}
+  <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-700">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+    <p class="text-slate-400 font-medium">قالبی ثبت نشده است.</p>
+  </div>
+  {% endfor %}
+</section>
 {% endblock %}

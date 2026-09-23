@@ -1,7 +1,105 @@
-{% extends "base.html" %}{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
+{% extends "base.html" %}
+{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
 {% block content %}
-<a class="back" href="/khatms">→ بازگشت به ختم‌ها</a>
-<section class="page-title"><p class="eyebrow">{{ fa_label(khatm.template_type) }} · {{ fa_label(khatm.khatm_type) }}</p><h1>{{ khatm.title }}</h1><span class="status {{ khatm.status.value|lower }}">{{ fa_label(khatm.status) }}</span></section>
-<section class="metrics compact"><article><strong>{{ stats.active_members }}</strong><span>عضو فعال</span></article><article><strong>{{ stats.completed_portions }}/{{ stats.total_portions }}</strong><span>سهم تکمیل</span></article><article><strong>{{ stats.invitation_conversion_percent }}٪</strong><span>تبدیل دعوت</span></article></section>
-<section class="panel"><div class="section-head"><h2>اعضا</h2></div>{% for membership, user in members %}<div class="list-row static"><span><b>{{ user.display_name or 'بدون نام' }}</b><small>{{ fa_label(membership.status) }}{% if membership.is_committed %} · متعهد{% endif %}</small></span><code>{{ membership.id|string|truncate(13, true, '…') }}</code></div>{% else %}<p class="empty">هنوز عضوی ندارد.</p>{% endfor %}</section>
+<a href="/khatms" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm font-bold bg-slate-800/40 px-4 py-2 rounded-xl">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+  بازگشت به ختم‌ها
+</a>
+
+<section class="mb-8 relative">
+  <p class="text-xs font-bold text-sky-500 tracking-wider uppercase mb-1">{{ fa_label(khatm.template_type) }} <span class="text-slate-600 px-1">·</span> {{ fa_label(khatm.khatm_type) }}</p>
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <h1 class="text-3xl sm:text-4xl font-bold text-white">{{ khatm.title }}</h1>
+    
+    {% if khatm.status.value == 'ACTIVE' %}
+    <span class="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-bold rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+    {% elif khatm.status.value == 'DRAFT' %}
+    <span class="px-4 py-1.5 bg-slate-500/10 text-slate-400 text-sm font-bold rounded-xl border border-slate-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+    {% elif khatm.status.value == 'COMPLETED' %}
+    <span class="px-4 py-1.5 bg-sky-500/10 text-sky-400 text-sm font-bold rounded-xl border border-sky-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+    {% elif khatm.status.value == 'CANCELLED' %}
+    <span class="px-4 py-1.5 bg-rose-500/10 text-rose-500 text-sm font-bold rounded-xl border border-rose-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+    {% else %}
+    <span class="px-4 py-1.5 bg-slate-500/10 text-slate-400 text-sm font-bold rounded-xl border border-slate-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+    {% endif %}
+  </div>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+  <article class="glass-card p-5 rounded-2xl flex items-center gap-4">
+    <div class="p-3 bg-sky-500/10 text-sky-400 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+    </div>
+    <div>
+      <strong class="block text-2xl font-bold text-white">{{ stats.active_members }}</strong>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">عضو فعال</span>
+    </div>
+  </article>
+  
+  <article class="glass-card p-5 rounded-2xl flex items-center gap-4">
+    <div class="p-3 bg-emerald-500/10 text-emerald-400 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    </div>
+    <div>
+      <strong class="block text-2xl font-bold text-white font-mono flex items-baseline gap-1" dir="ltr">
+        <span class="text-emerald-400">{{ stats.completed_portions }}</span>
+        <span class="text-sm text-slate-500">/</span>
+        <span>{{ stats.total_portions }}</span>
+      </strong>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">سهم تکمیل‌شده</span>
+    </div>
+  </article>
+  
+  <article class="glass-card p-5 rounded-2xl flex items-center gap-4">
+    <div class="p-3 bg-amber-500/10 text-amber-400 rounded-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+    </div>
+    <div>
+      <strong class="block text-2xl font-bold text-white font-mono" dir="ltr">{{ stats.invitation_conversion_percent }}%</strong>
+      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">نرخ تبدیل دعوت</span>
+    </div>
+  </article>
+</section>
+
+<section class="glass-panel p-6 rounded-3xl">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <h2 class="text-xl font-bold text-white">اعضای ختم</h2>
+  </div>
+  
+  <div class="flex flex-col gap-3">
+    {% for membership, user in members %}
+    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
+      <div class="flex items-center gap-4">
+        <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold">
+          {{ (user.display_name or '؟')|first }}
+        </div>
+        <div>
+          <b class="block font-bold text-white mb-1">{{ user.display_name or 'کاربر بدون نام' }}</b>
+          <div class="flex items-center gap-2 text-xs">
+            {% if membership.status.value == 'ACTIVE' %}
+            <span class="text-emerald-400 font-medium">{{ fa_label(membership.status) }}</span>
+            {% else %}
+            <span class="text-slate-400 font-medium">{{ fa_label(membership.status) }}</span>
+            {% endif %}
+            
+            {% if membership.is_committed %}
+            <span class="text-slate-600 font-bold">·</span>
+            <span class="text-sky-400 font-medium flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+              متعهد
+            </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <code class="text-xs text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded" dir="ltr" title="{{ membership.id }}">{{ membership.id|string|truncate(13, true, '…') }}</code>
+    </div>
+    {% else %}
+    <div class="p-8 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+      <p class="text-slate-400 font-medium">این ختم هنوز هیچ عضوی ندارد.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

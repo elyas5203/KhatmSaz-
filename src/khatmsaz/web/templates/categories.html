@@ -1,64 +1,199 @@
-{% extends "base.html" %}{% block title %}دسته‌های محتوا | ختم‌ساز{% endblock %}
+{% extends "base.html" %}
+{% block title %}دسته‌های محتوا | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="page-title"><p class="eyebrow">محتوای ختم‌ها</p><h1>صلوات، لعن و ادعیه</h1><p>هر آیتمی که اینجا اضافه یا غیرفعال کنید، بلافاصله در ویزارد ساخت ختم بات دیده می‌شود؛ نیازی به دیپلوی نیست.</p></section>
-{% if saved %}<section class="notice-ok">تغییرات ذخیره شد ✅</section>{% endif %}
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ختم‌ها</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">صلوات، لعن و ادعیه</h1>
+  <p class="text-slate-400 text-sm">هر آیتمی که اینجا اضافه یا غیرفعال کنید، بلافاصله در ویزارد ساخت ختم بات دیده می‌شود؛ نیازی به دیپلوی نیست.</p>
+</section>
+
+{% if saved %}
+<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  تغییرات ذخیره شد
+</div>
+{% endif %}
 
 {% if requests %}
-<section class="panel"><div class="section-head"><h2>درخواست‌های دعای جدید</h2></div>
-{% for row in requests %}
-<div class="list-row static">
-  <span><b>{{ row.item.requested_title }}</b><small>درخواست‌دهنده: {{ row.requester.display_name if row.requester else 'نامشخص' }}</small></span>
-</div>
-<form class="finance-form" method="post" action="/categories/requests/{{ row.item.id }}/fulfill">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label>گروه<select name="group"><option value="DUA">دعا / زیارت</option><option value="LAAN">لعن</option><option value="SALAWAT">صلوات</option></select></label>
-  <label>عنوان نهایی<input name="title" value="{{ row.item.requested_title }}" required maxlength="200"></label>
-  <label>متن (اختیاری، از سایت خدمتگزاران کپی کنید)<textarea name="body_text" rows="4"></textarea></label>
-  <label>منبع (اختیاری)<input name="source_note" placeholder="khedmatgozaran.com"></label>
-  <button type="submit">افزودن به لیست دائمی</button>
-</form>
-<form method="post" action="/categories/requests/{{ row.item.id }}/decline">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <button class="danger" type="submit">رد درخواست</button>
-</form>
-{% endfor %}
+<section class="glass-panel p-6 rounded-3xl mb-8 border border-amber-500/20">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <h2 class="text-xl font-bold text-amber-400">درخواست‌های دعای جدید</h2>
+  </div>
+  
+  <div class="flex flex-col gap-6">
+    {% for row in requests %}
+    <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
+      <div class="flex justify-between items-start mb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white">{{ row.item.requested_title }}</h3>
+          <small class="text-xs text-slate-400">درخواست‌دهنده: {{ row.requester.display_name if row.requester else 'نامشخص' }}</small>
+        </div>
+        <form method="post" action="/categories/requests/{{ row.item.id }}/decline">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button class="text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-500 p-2 rounded-xl transition-colors" type="submit" title="رد درخواست">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </form>
+      </div>
+      
+      <form method="post" action="/categories/requests/{{ row.item.id }}/fulfill" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">گروه</label>
+          <select name="group" class="input-field">
+            <option value="DUA">دعا / زیارت</option>
+            <option value="LAAN">لعن</option>
+            <option value="SALAWAT">صلوات</option>
+          </select>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">عنوان نهایی</label>
+          <input name="title" value="{{ row.item.requested_title }}" required maxlength="200" class="input-field">
+        </div>
+        
+        <div class="space-y-1 md:col-span-2">
+          <label class="text-xs font-bold text-slate-400">متن (اختیاری، از سایت خدمتگزاران کپی کنید)</label>
+          <textarea name="body_text" rows="3" class="input-field"></textarea>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">منبع (اختیاری)</label>
+          <input name="source_note" placeholder="khedmatgozaran.com" class="input-field">
+        </div>
+        
+        <div class="flex items-end">
+          <button type="submit" class="btn w-full shadow-lg shadow-emerald-900/20">افزودن به لیست دائمی</button>
+        </div>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 {% endif %}
 
-<section class="panel"><div class="section-head"><div><p class="eyebrow">بدون کدنویسی</p><h2>افزودن دسته جدید</h2></div></div>
-<form class="finance-form" method="post" action="/categories/create">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label>گروه<select name="group">
-    <option value="SALAWAT">صلوات</option>
-    <option value="LAAN">لعن</option>
-    <option value="DUA">دعا / زیارت</option>
-  </select></label>
-  <label>عنوان<input name="title" required maxlength="200" placeholder="مثلاً «زیارت عاشورا»"></label>
-  <label>متن (اختیاری)<textarea name="body_text" rows="4" placeholder="متن دعا یا لعن، در صورت وجود"></textarea></label>
-  <label>لینک تصویر (اختیاری)<input name="image_url" placeholder="https://example.com/image.jpg"></label>
-  <label>منبع (اختیاری)<input name="source_note" placeholder="khedmatgozaran.com"></label>
-  <label>کد اتصال صوت/متن آماده (اختیاری)<input name="devotional_slug" placeholder="مثلاً ziyarat-ashura"></label>
-  <button type="submit">افزودن</button>
-</form>
+<section class="glass-panel p-6 rounded-3xl mb-8">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">بدون کدنویسی</p>
+    <h2 class="text-xl font-bold text-white">افزودن دسته جدید</h2>
+  </div>
+  
+  <form method="post" action="/categories/create" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">گروه</label>
+      <select name="group" class="input-field">
+        <option value="SALAWAT">صلوات</option>
+        <option value="LAAN">لعن</option>
+        <option value="DUA">دعا / زیارت</option>
+      </select>
+    </div>
+    
+    <div class="space-y-1 lg:col-span-2">
+      <label class="text-xs font-bold text-slate-400">عنوان</label>
+      <input name="title" required maxlength="200" placeholder="مثلاً «زیارت عاشورا»" class="input-field">
+    </div>
+    
+    <div class="space-y-1 md:col-span-2 lg:col-span-3">
+      <label class="text-xs font-bold text-slate-400">متن (اختیاری)</label>
+      <textarea name="body_text" rows="3" placeholder="متن دعا یا لعن، در صورت وجود" class="input-field"></textarea>
+    </div>
+    
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری)</label>
+      <input name="image_url" placeholder="https://example.com/image.jpg" class="input-field" dir="ltr">
+    </div>
+    
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری)</label>
+      <input name="devotional_slug" placeholder="مثلاً ziyarat-ashura" class="input-field" dir="ltr">
+    </div>
+    
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">منبع (اختیاری)</label>
+      <input name="source_note" placeholder="khedmatgozaran.com" class="input-field" dir="ltr">
+    </div>
+    
+    <div class="md:col-span-2 lg:col-span-3 flex justify-end">
+      <button type="submit" class="btn px-8">افزودن</button>
+    </div>
+  </form>
 </section>
 
-<section class="panel"><div class="section-head"><h2>دسته‌های موجود</h2></div>
-{% for category in items %}
-<div class="list-row">
-  <span><b>{{ category.title }}</b><small>{{ group_labels.get(category.group.value, category.group.value) }}{% if category.body_text %} · متن ثبت شده{% else %} · بدون متن{% endif %}</small></span>
-  <form method="post" action="/categories/{{ category.id }}/toggle"><input type="hidden" name="csrf" value="{{ csrf }}"><button class="{% if category.is_active %}danger{% endif %}" type="submit">{% if category.is_active %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button></form>
-</div>
-<form class="finance-form" method="post" action="/categories/{{ category.id }}/update">
-  <input type="hidden" name="csrf" value="{{ csrf }}">
-  <label>عنوان<input name="title" value="{{ category.title }}" required maxlength="200"></label>
-  <label>متن<textarea name="body_text" rows="4">{{ category.body_text or '' }}</textarea></label>
-  <label>لینک تصویر<input name="image_url" value="{{ category.image_url or '' }}" placeholder="https://..."></label>
-  <label>منبع<input name="source_note" value="{{ category.source_note or '' }}"></label>
-  <label>کد اتصال صوت/متن آماده<input name="devotional_slug" value="{{ category.devotional_slug or '' }}" placeholder="مثلاً ziyarat-ashura"></label>
-  <button type="submit">ذخیره ویرایش</button>
-</form>
-{% else %}
-<p class="empty">هنوز دسته‌ای ثبت نشده است.</p>
-{% endfor %}
+<section class="glass-panel p-6 rounded-3xl">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <h2 class="text-xl font-bold text-white">دسته‌های موجود</h2>
+  </div>
+  
+  <div class="flex flex-col gap-6">
+    {% for category in items %}
+    <div class="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-5 overflow-hidden">
+      <div class="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white">{{ category.title }}</h3>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">{{ group_labels.get(category.group.value, category.group.value) }}</span>
+            {% if category.body_text %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">متن ثبت شده</span>
+            {% else %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500">بدون متن</span>
+            {% endif %}
+            {% if not category.is_active %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>
+            {% endif %}
+          </div>
+        </div>
+        
+        <form method="post" action="/categories/{{ category.id }}/toggle">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          {% if category.is_active %}
+          <button class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">غیرفعال کردن</button>
+          {% else %}
+          <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">فعال کردن</button>
+          {% endif %}
+        </form>
+      </div>
+      
+      <form method="post" action="/categories/{{ category.id }}/update" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        
+        <div class="space-y-1 lg:col-span-3">
+          <label class="text-xs font-bold text-slate-400">عنوان</label>
+          <input name="title" value="{{ category.title }}" required maxlength="200" class="input-field bg-slate-900/50">
+        </div>
+        
+        <div class="space-y-1 lg:col-span-3">
+          <label class="text-xs font-bold text-slate-400">متن</label>
+          <textarea name="body_text" rows="3" class="input-field bg-slate-900/50">{{ category.body_text or '' }}</textarea>
+        </div>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">لینک تصویر</label>
+          <input name="image_url" value="{{ category.image_url or '' }}" placeholder="https://..." class="input-field bg-slate-900/50" dir="ltr">
+        </div>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن آماده</label>
+          <input name="devotional_slug" value="{{ category.devotional_slug or '' }}" placeholder="زیارت عاشورا..." class="input-field bg-slate-900/50" dir="ltr">
+        </div>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">منبع</label>
+          <input name="source_note" value="{{ category.source_note or '' }}" class="input-field bg-slate-900/50" dir="ltr">
+        </div>
+        
+        <div class="lg:col-span-3 flex justify-end">
+          <button type="submit" class="text-sm font-bold text-slate-300 hover:text-emerald-400 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">ذخیره ویرایش</button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-500">
+      <p>هنوز دسته‌ای ثبت نشده است.</p>
+    </div>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}
