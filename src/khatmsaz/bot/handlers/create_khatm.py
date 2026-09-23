@@ -104,6 +104,8 @@ async def _lang(state: FSMContext) -> str:
 async def start_wizard(message: Message, state: FSMContext) -> None:
     await state.clear()
     if not await ensure_creator_phone_verified(message, state):
+        if await state.get_state() is not None:
+            await state.update_data(resume_khatm_creation_from_start=True)
         return
     lang = await _resolve_lang(message)
     await state.update_data(lang=lang)
@@ -981,11 +983,22 @@ async def resume_khatm_creation_if_pending(message: Message, state: FSMContext) 
     the khatm. Returns True if it handled the message (caller should skip
     its own normal "all done" message), False if there was nothing pending."""
     data = await state.get_data()
+    lang = data.get("lang", "fa")
+    
+    if data.get("resume_khatm_creation_from_start"):
+        from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
+        verified = await ensure_creator_phone_verified(message, state)
+        if not verified:
+            if await state.get_state() is not None:
+                await state.update_data(**data)
+            return True
+        await start_wizard(message, state)
+        return True
+
     if not data.get("resume_khatm_creation"):
         return False
-    lang = data.get("lang", "fa")
+        
     from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
-
     verified = await ensure_creator_phone_verified(message, state)
     if not verified:
         if await state.get_state() is not None:
