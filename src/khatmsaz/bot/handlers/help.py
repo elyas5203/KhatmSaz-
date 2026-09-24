@@ -40,32 +40,36 @@ _TOPIC_KEYS = {
 HELP_TOPICS = {topic: t(key, "fa") for topic, key in _TOPIC_KEYS.items()}
 
 
-async def _resolve_lang(message: Message) -> str:
+from khatmsaz.modules.identity.models import Platform, UserRole
+
+async def _resolve_user_info(message: Message) -> tuple[str, bool, bool]:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
-        return settings.language
+        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+        is_admin = user.role == UserRole.SUPER_ADMIN
+        return settings.language, is_creator, is_admin
 
 
 @router.message(Command("help"))
 @router.message(F.text.in_(HELP_BUTTON_TEXTS))
 async def help_command(message: Message) -> None:
-    lang = await _resolve_lang(message)
-    await message.answer(t("help.home", lang), reply_markup=help_keyboard(lang))
+    lang, is_creator, is_admin = await _resolve_user_info(message)
+    await message.answer(t("help.home", lang), reply_markup=help_keyboard(lang, is_creator, is_admin))
 
 
 @router.callback_query(F.data.startswith("help:"))
 async def help_topic(callback: CallbackQuery) -> None:
     topic = callback.data.split(":", 1)[1]
-    lang = await _resolve_lang(callback.message)
+    lang, is_creator, is_admin = await _resolve_user_info(callback.message)
     text = t("help.home", lang) if topic == "home" else t(_TOPIC_KEYS.get(topic, "help.home"), lang)
     keyboard = (
         help_wallet_actions_keyboard(lang) if topic == "wallet"
         else help_settings_actions_keyboard(lang) if topic == "settings"
         else help_create_actions_keyboard(lang) if topic == "create"
-        else help_manage_actions_keyboard(lang) if topic == "manage"
-        else help_keyboard(lang)
+        else help_manage_actions_keyboard(lang, is_creator, is_admin) if topic == "manage"
+        else help_keyboard(lang, is_creator, is_admin)
     )
     await callback.message.answer(text, reply_markup=keyboard)
     await safe_answer_callback(callback)

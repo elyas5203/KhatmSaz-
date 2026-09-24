@@ -314,24 +314,29 @@ def settings_timezone_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def help_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text=t("help.button.join", lang), callback_data="help:join"),
-                InlineKeyboardButton(text=t("help.button.portion", lang), callback_data="help:portion"),
-            ],
-            [
-                InlineKeyboardButton(text=t("help.button.create", lang), callback_data="help:create"),
-                InlineKeyboardButton(text=t("help.button.wallet", lang), callback_data="help:wallet"),
-            ],
-            [
-                InlineKeyboardButton(text=t("help.button.settings", lang), callback_data="help:settings"),
-                InlineKeyboardButton(text=t("help.button.manage", lang), callback_data="help:manage"),
-            ],
-            [InlineKeyboardButton(text=t("suggestions.button.open", lang), callback_data="suggest:start")],
-        ]
-    )
+def help_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text=t("help.button.join", lang), callback_data="help:join"),
+            InlineKeyboardButton(text=t("help.button.portion", lang), callback_data="help:portion"),
+        ],
+    ]
+    if is_creator or is_admin:
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.create", lang), callback_data="help:create"),
+            InlineKeyboardButton(text=t("help.button.wallet", lang), callback_data="help:wallet"),
+        ])
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.settings", lang), callback_data="help:settings"),
+            InlineKeyboardButton(text=t("help.button.manage", lang), callback_data="help:manage"),
+        ])
+    else:
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.settings", lang), callback_data="help:settings"),
+        ])
+        
+    buttons.append([InlineKeyboardButton(text=t("suggestions.button.open", lang), callback_data="suggest:start")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def help_wallet_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
@@ -368,15 +373,15 @@ def help_create_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     )
 
 
-def help_manage_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")],
-            [InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")],
-            [InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")],
-            [InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")],
-        ]
-    )
+def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+    buttons = []
+    if is_creator or is_admin:
+        buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
+        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
+    if is_admin:
+        buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
+    buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def commitment_mode_keyboard() -> InlineKeyboardMarkup:

