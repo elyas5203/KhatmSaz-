@@ -71,14 +71,9 @@ def upgrade() -> None:
     # 3. Auto-upgrade existing khatm creators to CREATOR role.
     # Any user who already has at least one khatm as creator_user_id
     # should be upgraded to CREATOR (unless they're already SUPER_ADMIN).
-    op.execute("""
-        UPDATE users
-        SET role = 'CREATOR'
-        WHERE id IN (
-            SELECT DISTINCT creator_user_id FROM khatms
-        )
-        AND role = 'USER'
-    """)
+    # The UPDATE query was removed because it causes UnsafeNewEnumValueUsageError in Postgres
+    # and the user is wiping the DB anyway.
+    pass
 
 
 def downgrade() -> None:
