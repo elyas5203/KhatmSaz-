@@ -73,13 +73,13 @@ def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
-def support_inline_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")],
-            [InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")],
-        ]
-    )
+def support_inline_keyboard(lang: str = "fa", is_participant: bool = False, is_admin: bool = False, is_creator: bool = False) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")]
+    ]
+    if not is_participant and not is_creator and not is_admin:
+        buttons.append([InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
