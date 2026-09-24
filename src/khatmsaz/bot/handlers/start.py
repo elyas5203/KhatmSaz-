@@ -15,13 +15,14 @@ constructed (see bot/telegram/client.py, bot/bale/client.py).
 from html import escape
 
 from aiogram import F, Router
-from aiogram.filters import CommandObject, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard
 from khatmsaz.bot.notify_adapter import send_with_keyboard
+from khatmsaz.bot.navigation import home_markup_for_role, resolve_home_navigation
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation.models import PortionUnitKind
@@ -119,28 +120,49 @@ def build_join_preview_message(
 
 @router.message(CommandStart(deep_link=True))
 async def handle_start_with_payload(message: Message, command: CommandObject, state: FSMContext) -> None:
+    # A deep link starts a new navigation intent. Never let an abandoned
+    # profile/wizard state consume or contaminate its pending-join context.
+    await state.clear()
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     payload = command.args or ""
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        viewer_settings = await settings_service.get_or_create(session, user.id)
+        lang = viewer_settings.language
 
         if payload.startswith("join_"):
             token = payload.removeprefix("join_")
-            viewer_settings = await settings_service.get_or_create(session, user.id)
-            lang = viewer_settings.language
             try:
                 khatm_id = await invitation_service.resolve_khatm_id(session, token)
             except InvitationNotFoundError:
-                await message.answer(t("join.error.invalid_link", lang), reply_markup=main_menu_keyboard(lang))
+                await message.answer(
+                    t("join.error.invalid_link", lang),
+                    reply_markup=home_markup_for_role(lang, user.role),
+                )
                 return
             except InvitationExpiredError:
-                await message.answer(t("join.error.expired_link", lang), reply_markup=main_menu_keyboard(lang))
+                await message.answer(
+                    t("join.error.expired_link", lang),
+                    reply_markup=home_markup_for_role(lang, user.role),
+                )
                 return
             khatm = await khatm_service.get_khatm(session, khatm_id)
             if khatm is None:
-                await message.answer(t("join.error.khatm_gone", lang), reply_markup=main_menu_keyboard(lang))
+                await message.answer(
+                    t("join.error.khatm_gone", lang),
+                    reply_markup=home_markup_for_role(lang, user.role),
+                )
                 return
+                
+            allowed_p = getattr(khatm, "allowed_platforms", "BOTH")
+            if allowed_p != "BOTH" and allowed_p != platform.value:
+                await message.answer(
+                    f"این ختم فقط برای کاربران پیام‌رسان {allowed_p} ایجاد شده است.",
+                    reply_markup=home_markup_for_role(lang, user.role),
+                )
+                return
+                
             creator = await identity_service.find_by_id(session, khatm.creator_user_id)
             member_count = await participation_service.count_for_khatm(session, khatm.id)
             category_title = None
@@ -165,7 +187,7 @@ async def handle_start_with_payload(message: Message, command: CommandObject, st
             )
             return
 
-    await message.answer(WELCOME_TEXT, reply_markup=main_menu_keyboard())
+    await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
 
 
 @router.callback_query(F.data.startswith("join_preview:"))
@@ -179,7 +201,11 @@ async def accept_join_preview(callback, state: FSMContext) -> None:
             _user = await identity_service.resolve_or_provision_user(_sess, platform, callback.from_user.id)
             _settings = await settings_service.get_or_create(_sess, _user.id)
             _lang = _settings.language
-        await callback.message.answer(t("join.cancelled", _lang), reply_markup=main_menu_keyboard(_lang))
+        await callback.message.answer(
+            t("join.cancelled", _lang),
+            reply_markup=home_markup_for_role(_lang, _user.role),
+        )
+        await safe_answer_callback(callback)
         return
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
@@ -194,6 +220,7 @@ async def accept_join_preview(callback, state: FSMContext) -> None:
 
 @router.message(CommandStart())
 async def handle_start(message: Message, state: FSMContext) -> None:
+    await state.clear()
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
@@ -202,8 +229,7 @@ async def handle_start(message: Message, state: FSMContext) -> None:
         lang = settings.language
 
     if already_prompted:
-        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
-        await message.answer(t("welcome.text", lang), reply_markup=main_menu_keyboard(lang, is_creator))
+        await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -214,6 +240,15 @@ async def handle_start(message: Message, state: FSMContext) -> None:
     async with session_scope() as session:
         await settings_service.mark_language_prompted(session, user.id)
     await message.answer(t("language.prompt", lang), reply_markup=language_choice_keyboard())
+
+
+@router.message(Command("cancel"))
+async def cancel_current_flow(message: Message, state: FSMContext) -> None:
+    """Escape any active FSM flow and return to the correct home menu."""
+    await state.clear()
+    lang, role, keyboard = await resolve_home_navigation(message)
+    key = "navigation.admin_cancelled" if role == UserRole.SUPER_ADMIN else "navigation.cancelled"
+    await message.answer(t(key, lang), reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("first_lang:"))

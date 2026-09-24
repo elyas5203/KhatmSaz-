@@ -7,7 +7,8 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from khatmsaz.bot.handlers.registration import _phone_keyboard
 from khatmsaz.bot.iran_provinces import IRAN_PROVINCES, OUTSIDE_IRAN, province_labels
-from khatmsaz.bot.keyboards import bail_if_menu_button, main_menu_keyboard
+from khatmsaz.bot.keyboards import bail_if_menu_button
+from khatmsaz.bot.navigation import resolve_home_navigation
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
@@ -61,7 +62,7 @@ async def start_profile(message: Message, state: FSMContext) -> None:
     await begin_profile(message, state)
 
 
-@router.message(ProfileEdit.entering_name)
+@router.message(ProfileEdit.entering_name, ~F.text.startswith("/"))
 async def enter_name(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):
         return
@@ -75,7 +76,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
     await message.answer(t("profile.ask_phone", lang), reply_markup=_phone_keyboard(lang))
 
 
-@router.message(ProfileEdit.entering_phone)
+@router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
 async def enter_phone(message: Message, state: FSMContext) -> None:
     lang = (await state.get_data()).get("language", "fa")
     if message.contact:
@@ -101,9 +102,10 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         )
     if verified is not None and verified.e164 != phone:
         await state.clear()
+        _lang, _role, keyboard = await resolve_home_navigation(message, lang)
         await message.answer(
             t("profile.verified_phone_locked", lang),
-            reply_markup=main_menu_keyboard(lang),
+            reply_markup=keyboard,
         )
         return
     await state.update_data(phone=phone)
@@ -127,7 +129,7 @@ async def choose_province(callback: CallbackQuery, state: FSMContext) -> None:
     await callback.answer()
 
 
-@router.message(ProfileEdit.entering_city)
+@router.message(ProfileEdit.entering_city, ~F.text.startswith("/"))
 async def enter_city(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):
         return
@@ -171,4 +173,5 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
     if await resume_khatm_creation_if_pending(callback.message, state):
         return
     await state.clear()
-    await callback.message.answer(t("profile.updated", lang), reply_markup=main_menu_keyboard(lang))
+    _lang, _role, keyboard = await resolve_home_navigation(callback.message, lang)
+    await callback.message.answer(t("profile.updated", lang), reply_markup=keyboard)

@@ -42,6 +42,11 @@ HELP_BUTTON_TEXTS = variants("menu.help")
 PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
 SUPPORT_BUTTON_TEXTS = variants("menu.support")
 CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
+CREATOR_MANAGEMENT_BUTTON_TEXTS = variants("menu.creator.management")
+CREATOR_FINANCE_BUTTON_TEXTS = variants("menu.creator.finance")
+CREATOR_SUPPORT_BUTTON_TEXTS = variants("menu.creator.support")
+BACK_TO_MAIN_BUTTON_TEXTS = variants("menu.back_to_main")
+PHONE_SHARE_BUTTON_TEXTS = variants("registration.share_phone")
 
 # Every free-text step inside a wizard/FSM state (title, niyyat, target,
 # contribution amount...) must check incoming text against this set first.
@@ -53,6 +58,8 @@ RESERVED_MENU_TEXTS = (
     CREATE_BUTTON_TEXTS | MY_KHATMS_BUTTON_TEXTS | TODAY_BUTTON_TEXTS
     | REPORT_BUTTON_TEXTS | SETTINGS_BUTTON_TEXTS | HELP_BUTTON_TEXTS
     | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
+    | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
+    | CREATOR_SUPPORT_BUTTON_TEXTS | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
 )
 
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -60,8 +67,7 @@ def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=t("menu.today", lang))],
             [KeyboardButton(text=t("menu.public_khatms", lang))],
-            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.help", lang))],
-            [KeyboardButton(text=t("menu.support", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.support", lang))],
         ],
         resize_keyboard=True,
     )
@@ -97,8 +103,8 @@ def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
 def creator_management_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t("menu.create", lang))],
-            [KeyboardButton(text=t("menu.my_khatms", lang))],
+            [KeyboardButton(text=t("menu.create", lang)), KeyboardButton(text=t("menu.my_khatms", lang))],
+            [KeyboardButton(text="📢 ارسال پیام گروهی")],
             [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
@@ -827,11 +833,17 @@ async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
     already replied + cleared state) if the user pressed a menu button
     instead of answering — the caller should `return` immediately in that
     case rather than treating the button label as their answer."""
-    if (message.text or "").strip() not in RESERVED_MENU_TEXTS:
+    text = (message.text or "").strip()
+    if text not in RESERVED_MENU_TEXTS and not text.startswith("/"):
         return False
     await state.clear()
+    # Import lazily because navigation.py imports the keyboard builders.
+    from khatmsaz.bot.navigation import resolve_home_navigation
+
+    lang, role, keyboard = await resolve_home_navigation(message)
+    key = "navigation.admin_interrupted" if role.value == "SUPER_ADMIN" else "navigation.interrupted"
     await message.answer(
-        "این مرحله لغو شد. لطفاً دوباره روی همون دکمه بزنید.",
-        reply_markup=main_menu_keyboard(),
+        t(key, lang),
+        reply_markup=keyboard,
     )
     return True

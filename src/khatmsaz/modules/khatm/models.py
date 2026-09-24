@@ -137,6 +137,10 @@ class Khatm(Base):
     # DOMAIN_MODEL.md §2 Q65-66. All three modes are creator-selectable;
     # PUBLIC khatms appear in /public_khatms.
     visibility: Mapped[KhatmVisibility] = mapped_column(default=KhatmVisibility.UNLISTED)
+    
+    # "BOTH" (default), "TELEGRAM", or "BALE"
+    allowed_platforms: Mapped[str] = mapped_column(String(16), default="BOTH")
+    
     creation_price_toman: Mapped[int] = mapped_column(Integer, default=0)
     # Creator-controlled advertising opt-in; rewards are only accrued for
     # eligible active members after their first completed action.

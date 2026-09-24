@@ -8,6 +8,9 @@ from khatmsaz.bot.keyboards import (
     help_keyboard,
     help_settings_actions_keyboard,
     help_wallet_actions_keyboard,
+    MY_KHATMS_BUTTON_TEXT,
+    SUPPORT_BUTTON_TEXT,
+    CREATOR_REQUEST_BUTTON_TEXT,
     settings_home_keyboard,
     main_menu_keyboard,
 )
@@ -49,7 +52,9 @@ def test_help_is_complete_and_button_driven() -> None:
         for row in main_menu_keyboard().keyboard
         for button in row
     }
-    assert HELP_BUTTON_TEXT in main_menu_labels
+    # DEC-PY-0076 keeps participant Home to six task-oriented entries;
+    # help remains available through support and the /help command.
+    assert {MY_KHATMS_BUTTON_TEXT, SUPPORT_BUTTON_TEXT, CREATOR_REQUEST_BUTTON_TEXT} <= main_menu_labels
 
 
 def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None:

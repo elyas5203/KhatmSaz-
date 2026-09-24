@@ -6,6 +6,9 @@ from khatmsaz.bot.keyboards import (
     REPORT_BUTTON_TEXT,
     SETTINGS_BUTTON_TEXT,
     TODAY_BUTTON_TEXT,
+    RESERVED_MENU_TEXTS,
+    participant_menu_keyboard,
+    creator_menu_keyboard,
     main_menu_keyboard,
 )
 
@@ -19,6 +22,29 @@ def test_home_menu_exposes_today_report_settings_and_creation():
         t("menu.settings", "fa"),
         t("menu.creator.support", "fa"),
     ]
+
+
+def test_participant_menu_exactly_matches_dec_py_0076():
+    labels = [button.text for row in participant_menu_keyboard("fa").keyboard for button in row]
+    assert labels == [
+        t("menu.today", "fa"), t("menu.my_khatms", "fa"),
+        t("menu.public_khatms", "fa"), t("menu.settings", "fa"),
+        t("menu.support", "fa"), t("menu.creator_request", "fa"),
+    ]
+
+
+def test_every_emitted_navigation_reply_label_is_reserved_in_every_language():
+    for lang in ("fa", "ar", "en"):
+        keyboards = [participant_menu_keyboard(lang), creator_menu_keyboard(lang)]
+        from khatmsaz.bot.keyboards import (
+            creator_finance_keyboard, creator_management_keyboard, creator_support_keyboard,
+        )
+        keyboards.extend([
+            creator_management_keyboard(lang), creator_finance_keyboard(lang), creator_support_keyboard(lang),
+        ])
+        labels = {button.text for keyboard in keyboards for row in keyboard.keyboard for button in row}
+        assert labels <= RESERVED_MENU_TEXTS
+        assert t("registration.share_phone", lang) in RESERVED_MENU_TEXTS
 
 
 def test_visibility_keyboard_contains_all_three_modes():

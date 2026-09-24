@@ -28,6 +28,43 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
+@router.message(F.text.in_(CREATOR_REQUEST_BUTTON_TEXTS))
+async def handle_creator_request_message(message: Message) -> None:
+    """Submit the request directly from the participant reply-menu button."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        settings = await settings_service.get_or_create(session, user.id)
+        lang = settings.language
+        if user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+            await message.answer(t("creator_request.approved", lang))
+            return
+        if await request_service.has_pending_request(session, user.id):
+            await message.answer(t("creator_request.already_pending", lang))
+            return
+        try:
+            request = await request_service.submit_request(session, user.id)
+        except request_service.AlreadyCreatorError:
+            await message.answer(t("creator_request.approved", lang))
+            return
+        except request_service.PendingRequestExistsError:
+            await message.answer(t("creator_request.already_pending", lang))
+            return
+
+    notify = get_notify_fn()
+    admin_text = (
+        f"درخواست سازنده‌شدن جدید از {user.display_name or 'کاربر'} (ID: {user.id})\n\n"
+        f"برای تایید:\n/admin_approve_creator {request.id}\n\n"
+        f"برای رد:\n/admin_reject_creator {request.id}"
+    )
+    admin_ids = [
+        item.strip() for item in get_settings().super_admin_telegram_chat_ids.split(",") if item.strip()
+    ]
+    for admin_id in admin_ids:
+        await notify(Platform.TELEGRAM.value, admin_id, admin_text)
+    await message.answer(t("creator_request.submitted", lang))
+
+
 @router.callback_query(F.data == "creator_request:start")
 async def handle_creator_request_button(callback: CallbackQuery) -> None:
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)

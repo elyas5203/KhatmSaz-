@@ -141,5 +141,6 @@
 
 ## هماهنگی بین چند هوش مصنوعی و مستندسازی
 - `docs/ai/AI_HANDOFF_PROTOCOL.md` — قانون مشترک Codex/Claude Code/Antigravity.
+- `docs/ai/SHARED_EXECUTION_PLAN.md` — برنامهٔ اجرایی زنده و چک‌لیست مشترک سه عامل.
 - `docs/ai/BACKLOG.md` — کارهای درخواستی هنوز نساخته.
 - همین فایل (`INDEX.md`) — نقشهٔ موضوعی.

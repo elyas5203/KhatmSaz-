@@ -50,6 +50,7 @@ from khatmsaz.bot.handlers.start import router as start_router
 from khatmsaz.bot.handlers.sms_settings import router as sms_settings_router
 from khatmsaz.bot.handlers.timezone_settings import router as timezone_settings_router
 from khatmsaz.bot.handlers.wallet import router as wallet_router
+from khatmsaz.bot.handlers.creator_broadcast import router as creator_broadcast_router
 from khatmsaz.bot.middlewares import ModerationMiddleware
 from khatmsaz.bot.commands import install_command_menu
 from khatmsaz.bot.notify_adapter import build_notify_fn, build_send_quran_pages_fn
@@ -135,6 +136,7 @@ async def main() -> None:
     dp.include_router(creator_request_router)
     dp.include_router(join_requests_router)
     dp.include_router(manage_content_router)
+    dp.include_router(creator_broadcast_router)
     from khatmsaz.bot.handlers.creator_menu import router as creator_menu_router
     dp.include_router(creator_menu_router)
 

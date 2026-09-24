@@ -78,6 +78,7 @@ class CreateKhatm(StatesGroup):
     choosing_capacity_mode = State()
     entering_capacity_number = State()
     choosing_visibility = State()
+    choosing_allowed_platforms = State()
     choosing_reminder_tone = State()
     choosing_creator_display = State()
     entering_creator_pseudonym = State()
@@ -642,8 +643,33 @@ async def choose_reminder_tone(callback: CallbackQuery, state: FSMContext) -> No
 @router.callback_query(F.data.startswith("ck:visibility:"), StateFilter(CreateKhatm.choosing_visibility))
 async def choose_visibility(callback: CallbackQuery, state: FSMContext) -> None:
     value = callback.data.split(":")[2]
-    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     await state.update_data(visibility=value)
+    await safe_clear_inline_keyboard(callback.message)
+    
+    # Next step: Ask for allowed platforms
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_allowed_platforms)
+    
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="فقط تلگرام", callback_data="ck:platforms:TELEGRAM")],
+            [InlineKeyboardButton(text="فقط بله", callback_data="ck:platforms:BALE")],
+            [InlineKeyboardButton(text="هر دو (پیش‌فرض)", callback_data="ck:platforms:BOTH")],
+        ]
+    )
+    
+    await callback.message.answer(
+        "این ختم برای کاربران کدام پیام‌رسان‌ها قابل عضویت باشد؟",
+        reply_markup=markup
+    )
+    await safe_answer_callback(callback)
+
+@router.callback_query(F.data.startswith("ck:platforms:"), StateFilter(CreateKhatm.choosing_allowed_platforms))
+async def choose_allowed_platforms(callback: CallbackQuery, state: FSMContext) -> None:
+    value = callback.data.split(":")[2]
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    await state.update_data(allowed_platforms=value)
     await safe_clear_inline_keyboard(callback.message)
     await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
     await safe_answer_callback(callback)
@@ -710,6 +736,15 @@ async def _show_confirmation(
     lines.append(t("create_khatm.confirm.creator_display", lang, value=t(display_key, lang)))
     lines.append(t("create_khatm.confirm.mode", lang, value=t(_MODE_LABEL_KEYS[mode], lang)))
     lines.append(t("create_khatm.confirm.membership", lang, value=t(_VISIBILITY_LABEL_KEYS[data["visibility"]], lang)))
+    
+    platforms = data.get("allowed_platforms", "BOTH")
+    if platforms == "TELEGRAM":
+        lines.append("📱 پلتفرم‌های مجاز: فقط تلگرام")
+    elif platforms == "BALE":
+        lines.append("📱 پلتفرم‌های مجاز: فقط بله")
+    else:
+        lines.append("📱 پلتفرم‌های مجاز: همه (تلگرام و بله)")
+        
     tone_key = _TONE_LABEL_KEYS.get(data.get("reminder_tone", ReminderTone.FRIENDLY.value), _TONE_LABEL_KEYS["FRIENDLY"])
     lines.append(t("create_khatm.confirm.tone", lang, value=t(tone_key, lang)))
     if data.get("start_at"):
@@ -914,6 +949,7 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
                 daily_deadline_hour=data.get("daily_deadline_hour"),
                 capacity=data.get("capacity"),
                 visibility=KhatmVisibility(data["visibility"]),
+                allowed_platforms=data.get("allowed_platforms", "BOTH"),
                 advertising_enabled=bool(data.get("advertising_enabled", False)),
                 creation_price_toman=price,
                 content_delivery_mode=data.get("content_delivery_mode", ContentDeliveryMode.AUTO.value),
