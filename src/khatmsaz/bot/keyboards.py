@@ -117,11 +117,9 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa") -> InlineKe
             [InlineKeyboardButton(text=audio_text, callback_data=f"quran_audio:{audio_value}")],
             [
                 InlineKeyboardButton(text=t("settings.button.language", lang), callback_data="settings:language"),
-                InlineKeyboardButton(text=t("settings.button.font", lang), callback_data="settings:font"),
-            ],
-            [
                 InlineKeyboardButton(text=t("settings.button.reciter", lang), callback_data="settings:reciter"),
-                InlineKeyboardButton(text=t("settings.button.content", lang), callback_data="settings:content"),
+                # InlineKeyboardButton(text=t("settings.button.font", lang), callback_data="settings:font"),
+                # InlineKeyboardButton(text=t("settings.button.content", lang), callback_data="settings:content"),
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
