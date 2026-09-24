@@ -86,9 +86,39 @@ def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t("menu.today", lang)), KeyboardButton(text=t("menu.my_khatms", lang))],
-            [KeyboardButton(text=t("menu.report", lang)), KeyboardButton(text=t("menu.settings", lang))],
-            [KeyboardButton(text=t("menu.create", lang)), KeyboardButton(text=t("menu.help", lang))],
+            [KeyboardButton(text=t("menu.today", lang))],
+            [KeyboardButton(text=t("menu.creator.management", lang))],
+            [KeyboardButton(text=t("menu.creator.finance", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.creator.support", lang))],
+        ],
+        resize_keyboard=True,
+    )
+
+def creator_management_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu.create", lang))],
+            [KeyboardButton(text=t("menu.my_khatms", lang))],
+            [KeyboardButton(text=t("menu.back_to_main", lang))],
+        ],
+        resize_keyboard=True,
+    )
+
+def creator_finance_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu.report", lang))],
+            # Add wallet button later if needed
+            [KeyboardButton(text=t("menu.back_to_main", lang))],
+        ],
+        resize_keyboard=True,
+    )
+
+def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu.help", lang)), KeyboardButton(text=t("menu.support", lang))],
+            [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
     )

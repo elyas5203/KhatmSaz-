@@ -1,3 +1,4 @@
+from khatmsaz.i18n import t
 from khatmsaz.bot.keyboards import (
     CREATE_BUTTON_TEXT,
     HELP_BUTTON_TEXT,
@@ -12,12 +13,11 @@ from khatmsaz.bot.keyboards import (
 def test_home_menu_exposes_today_report_settings_and_creation():
     labels = [button.text for row in main_menu_keyboard(is_creator=True).keyboard for button in row]
     assert labels == [
-        TODAY_BUTTON_TEXT,
-        MY_KHATMS_BUTTON_TEXT,
-        REPORT_BUTTON_TEXT,
-        SETTINGS_BUTTON_TEXT,
-        CREATE_BUTTON_TEXT,
-        HELP_BUTTON_TEXT,
+        t("menu.today", "fa"),
+        t("menu.creator.management", "fa"),
+        t("menu.creator.finance", "fa"),
+        t("menu.settings", "fa"),
+        t("menu.creator.support", "fa"),
     ]
 
 

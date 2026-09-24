@@ -135,6 +135,8 @@ async def main() -> None:
     dp.include_router(creator_request_router)
     dp.include_router(join_requests_router)
     dp.include_router(manage_content_router)
+    from khatmsaz.bot.handlers.creator_menu import router as creator_menu_router
+    dp.include_router(creator_menu_router)
 
     for bot in bots:
         # Long polling requires no webhook to be set; clear any stale one so
