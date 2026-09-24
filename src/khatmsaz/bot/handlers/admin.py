@@ -1145,9 +1145,9 @@ async def admin_promote(message: Message, command: CommandObject) -> None:
         from khatmsaz.modules.identity.models import UserRole
         from khatmsaz.modules.identity import service as identity_service
         
-        user = await identity_service.find_by_platform_id(session, Platform.TELEGRAM, target_id)
+        user = await identity_service.find_by_platform(session, Platform.TELEGRAM, target_id)
         if not user:
-            user = await identity_service.find_by_platform_id(session, Platform.BALE, target_id)
+            user = await identity_service.find_by_platform(session, Platform.BALE, target_id)
         if not user:
             try:
                 user = await identity_service.find_by_id(session, target_id)
