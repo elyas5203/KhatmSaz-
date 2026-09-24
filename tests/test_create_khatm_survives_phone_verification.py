@@ -74,6 +74,8 @@ async def test_confirm_wizard_resumes_and_finishes_creation_after_otp():
     phone = f"+989{unique}"
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, chat_id)
+        from khatmsaz.modules.identity.models import UserRole
+        user.role = UserRole.CREATOR
         await identity_service.set_display_name(session, user.id, "کاربر تست")
         await settings_service.save_profile(
             session, user.id, contact_phone=phone, province="تهران", city="تهران", gender=Gender.MALE,
