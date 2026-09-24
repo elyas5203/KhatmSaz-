@@ -42,9 +42,8 @@ async def _lang_for(chat_id, bot) -> str:
 @router.message(F.text.in_(SUPPORT_BUTTON_TEXTS))
 async def start_suggestion_message(message: Message, state: FSMContext) -> None:
     lang = await _lang_for(message.chat.id, message.bot)
-    await state.set_state(Suggestion.entering_text)
-    await state.update_data(lang=lang)
-    await message.answer(t("suggestions.ask_text", lang))
+    from khatmsaz.bot.keyboards import support_inline_keyboard
+    await message.answer(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang))
 
 @router.callback_query(F.data == "suggest:start")
 async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:

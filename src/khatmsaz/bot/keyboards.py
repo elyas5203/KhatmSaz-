@@ -58,12 +58,23 @@ RESERVED_MENU_TEXTS = (
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t("menu.today", lang)), KeyboardButton(text=t("menu.my_khatms", lang))],
-            [KeyboardButton(text=t("menu.public_khatms", lang)), KeyboardButton(text=t("menu.settings", lang))],
-            [KeyboardButton(text=t("menu.support", lang)), KeyboardButton(text=t("menu.creator_request", lang))],
+            [KeyboardButton(text=t("menu.today", lang))],
+            [KeyboardButton(text=t("menu.public_khatms", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.help", lang))],
+            [KeyboardButton(text=t("menu.support", lang))],
         ],
         resize_keyboard=True,
     )
+
+def support_inline_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")],
+            [InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")],
+        ]
+    )
+
+
 
 def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(

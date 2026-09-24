@@ -28,43 +28,48 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
-@router.message(F.text.in_(CREATOR_REQUEST_BUTTON_TEXTS))
-async def handle_creator_request_button(message: Message) -> None:
-    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+@router.callback_query(F.data == "creator_request:start")
+async def handle_creator_request_button(callback: CallbackQuery) -> None:
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    chat_id = callback.message.chat.id
     async with session_scope() as session:
-        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        user = await identity_service.resolve_or_provision_user(session, platform, chat_id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         
         is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
         if is_creator:
-            await message.answer(
+            await callback.message.answer(
                 t("creator_request.approved", lang), 
                 reply_markup=main_menu_keyboard(lang, True)
             )
+            await callback.answer()
             return
 
         if await request_service.has_pending_request(session, user.id):
-            await message.answer(
+            await callback.message.answer(
                 t("creator_request.already_pending", lang),
                 reply_markup=main_menu_keyboard(lang, False)
             )
+            await callback.answer()
             return
             
         try:
             req = await request_service.submit_request(session, user.id)
             request_id = req.id
         except request_service.AlreadyCreatorError:
-            await message.answer(
+            await callback.message.answer(
                 t("creator_request.approved", lang), 
                 reply_markup=main_menu_keyboard(lang, True)
             )
+            await callback.answer()
             return
         except request_service.PendingRequestExistsError:
-            await message.answer(
+            await callback.message.answer(
                 t("creator_request.already_pending", lang),
                 reply_markup=main_menu_keyboard(lang, False)
             )
+            await callback.answer()
             return
 
     # Notify admins
@@ -80,10 +85,11 @@ async def handle_creator_request_button(message: Message) -> None:
     )
     # We could send inline keyboard to approve/reject, but for now just text to admins, 
     # they can use admin panel or command later.
-    for chat_id in admin_ids:
-        await notify(Platform.TELEGRAM.value, chat_id, admin_text)
+    for admin_id in admin_ids:
+        await notify(Platform.TELEGRAM.value, admin_id, admin_text)
 
-    await message.answer(t("creator_request.submitted", lang), reply_markup=main_menu_keyboard(lang, False))
+    await callback.message.answer(t("creator_request.submitted", lang), reply_markup=main_menu_keyboard(lang, False))
+    await callback.answer()
 
 from aiogram.filters import Command, CommandObject
 from khatmsaz.bot.filters import AdminFilter
