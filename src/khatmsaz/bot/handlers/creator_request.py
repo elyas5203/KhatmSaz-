@@ -37,19 +37,20 @@ async def handle_creator_request_button(callback: CallbackQuery) -> None:
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         
+        from khatmsaz.bot.keyboards import back_to_support_keyboard
         is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
         if is_creator:
-            await callback.message.answer(
+            await callback.message.edit_text(
                 t("creator_request.approved", lang), 
-                reply_markup=main_menu_keyboard(lang, True)
+                reply_markup=back_to_support_keyboard(lang)
             )
             await callback.answer()
             return
 
         if await request_service.has_pending_request(session, user.id):
-            await callback.message.answer(
+            await callback.message.edit_text(
                 t("creator_request.already_pending", lang),
-                reply_markup=main_menu_keyboard(lang, False)
+                reply_markup=back_to_support_keyboard(lang)
             )
             await callback.answer()
             return
@@ -58,16 +59,16 @@ async def handle_creator_request_button(callback: CallbackQuery) -> None:
             req = await request_service.submit_request(session, user.id)
             request_id = req.id
         except request_service.AlreadyCreatorError:
-            await callback.message.answer(
+            await callback.message.edit_text(
                 t("creator_request.approved", lang), 
-                reply_markup=main_menu_keyboard(lang, True)
+                reply_markup=back_to_support_keyboard(lang)
             )
             await callback.answer()
             return
         except request_service.PendingRequestExistsError:
-            await callback.message.answer(
+            await callback.message.edit_text(
                 t("creator_request.already_pending", lang),
-                reply_markup=main_menu_keyboard(lang, False)
+                reply_markup=back_to_support_keyboard(lang)
             )
             await callback.answer()
             return
@@ -88,7 +89,7 @@ async def handle_creator_request_button(callback: CallbackQuery) -> None:
     for admin_id in admin_ids:
         await notify(Platform.TELEGRAM.value, admin_id, admin_text)
 
-    await callback.message.answer(t("creator_request.submitted", lang), reply_markup=main_menu_keyboard(lang, False))
+    await callback.message.edit_text(t("creator_request.submitted", lang), reply_markup=back_to_support_keyboard(lang))
     await callback.answer()
 
 from aiogram.filters import Command, CommandObject

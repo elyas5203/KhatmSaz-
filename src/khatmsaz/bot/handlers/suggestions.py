@@ -50,8 +50,16 @@ async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     await state.set_state(Suggestion.entering_text)
     await state.update_data(lang=lang)
-    await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(t("suggestions.ask_text", lang))
+    from khatmsaz.bot.keyboards import back_to_support_keyboard
+    await callback.message.edit_text(t("suggestions.ask_text", lang), reply_markup=back_to_support_keyboard(lang))
+    await safe_answer_callback(callback)
+
+@router.callback_query(F.data == "support:menu")
+async def back_to_support_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    await state.clear()
+    from khatmsaz.bot.keyboards import support_inline_keyboard
+    await callback.message.edit_text(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang))
     await safe_answer_callback(callback)
 
 

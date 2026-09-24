@@ -74,6 +74,13 @@ def support_inline_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
         ]
     )
 
+def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("button.back", lang), callback_data="support:menu")]
+        ]
+    )
+
 
 
 def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
