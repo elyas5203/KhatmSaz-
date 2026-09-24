@@ -1128,3 +1128,31 @@ async def admin_role_grant(message: Message, command: CommandObject) -> None:
 @router.message(Command("admin_role_revoke"))
 async def admin_role_revoke(message: Message, command: CommandObject) -> None:
     await _change_admin_role(message, command, revoke=True)
+
+@router.message(Command("admin_promote"), AdminFilter())
+async def admin_promote(message: Message, command: CommandObject) -> None:
+    args = (command.args or "").split()
+    if not args:
+        await message.answer("فرمت درست: /admin_promote <chat_id>")
+        return
+    
+    target_id = args[0]
+    async with session_scope() as session:
+        from khatmsaz.modules.identity.models import UserRole
+        from khatmsaz.modules.identity import service as identity_service
+        
+        user = await identity_service.find_by_platform_id(session, Platform.TELEGRAM, target_id)
+        if not user:
+            user = await identity_service.find_by_platform_id(session, Platform.BALE, target_id)
+        if not user:
+            try:
+                user = await identity_service.find_by_id(session, target_id)
+            except:
+                pass
+                
+        if not user:
+            await message.answer(f"کاربری با شناسه {target_id} یافت نشد.")
+            return
+            
+        user.role = UserRole.CREATOR
+        await message.answer(f"✅ کاربر {user.display_name or user.id} با موفقیت به سازنده ارتقا یافت.")
