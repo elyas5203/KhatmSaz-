@@ -1,4 +1,5 @@
 ## 2026-09-24
+- Updated Help texts and keyboards to reflect the participant/creator menu separation and new features.
 - Implemented Creator Mass Broadcasts with tiered pricing logic based on 1000 members and platform restrictions.
 - Reworked Participant support routing to allow participants to message their specific Khatm creators, and creators to reply.
 - Added allowed_platforms restriction (Telegram/Bale/Both) to Khatm creation.
