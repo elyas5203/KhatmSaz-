@@ -1159,4 +1159,24 @@ async def admin_promote(message: Message, command: CommandObject) -> None:
             return
             
         user.role = UserRole.CREATOR
+        
         await message.answer(f"✅ کاربر {user.display_name or user.id} با موفقیت به سازنده ارتقا یافت.")
+        
+        from khatmsaz.bot.keyboards import main_menu_keyboard
+        from khatmsaz.modules.settings import service as settings_service
+        
+        user_settings = await settings_service.get_or_create(session, user.id)
+        lang = user_settings.language
+        
+        if user.platform_identities:
+            pi = user.platform_identities[0]
+            if pi.platform == platform:
+                try:
+                    await message.bot.send_message(
+                        chat_id=pi.subject,
+                        text="🎉 تبریک! حساب شما به **سازنده ختم** ارتقا یافت.\n\nهم‌اکنون منوی اختصاصی مدیریت ختم‌ها برای شما فعال شد. می‌توانید از دکمه‌های پایین صفحه استفاده کنید.",
+                        reply_markup=main_menu_keyboard(lang, is_creator=True)
+                    )
+                except Exception as e:
+                    import logging
+                    logging.exception(f"Failed to notify promoted user {user.id}")
