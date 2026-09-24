@@ -120,6 +120,8 @@ async def receive_shared_contact(message: Message, state: FSMContext) -> None:
         await message.answer(t("registration.shared_phone_invalid", lang))
         return
     await state.update_data(phone=phone)
+    if not phone.startswith("+98"):
+        await state.update_data(foreign_verified_phone=True)
     await state.set_state(Registration.choosing_province)
     # Two messages are unavoidable here: Telegram can't attach both a
     # ReplyKeyboardRemove (clears the "share my number" button) and an
@@ -210,6 +212,10 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             city=data["city"],
             gender=gender,
         )
+        if data.get("foreign_verified_phone"):
+            from khatmsaz.modules.phone import repository as phone_repository
+            await phone_repository.create_or_verify_claim(session, user_id=user.id, e164=data["phone"])
+            
         pending_token = data.get("pending_join_token")
         user_id = user.id
 

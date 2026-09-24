@@ -76,7 +76,7 @@ def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None
 
 def test_create_and_manage_help_expose_normal_actions_as_buttons() -> None:
     assert "/" not in HELP_TOPICS["create"]
-    # assert "/" not in HELP_TOPICS["manage"]
+    # # assert "/" not in HELP_TOPICS["manage"]
     create_callbacks = {
         button.callback_data
         for row in help_create_actions_keyboard().inline_keyboard
