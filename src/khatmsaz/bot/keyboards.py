@@ -133,7 +133,7 @@ def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
 def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     from aiogram.types import WebAppInfo
     from khatmsaz.config import get_settings
-    base_url = get_settings().base_url
+    base_url = get_settings().admin_web_base_url
     login_url = f"{base_url}/mini/admin"
     return ReplyKeyboardMarkup(
         keyboard=[
