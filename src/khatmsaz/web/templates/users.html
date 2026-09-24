@@ -32,7 +32,15 @@
         </h2>
         <span class="status {{ user.status.value|lower }}">{{ fa_label(user.status) }}</span>
       </div>
-      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all">{{ user.id }}</p>
+      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all mt-1" dir="ltr">UUID: {{ user.id }}</p>
+      {% if user.platform_identities %}
+        <p class="text-xs text-sky-400 font-mono bg-sky-900/30 inline-block px-2 py-1 rounded select-all mt-1" dir="ltr">
+          ID: {{ user.platform_identities[0].subject }}
+          {% if user.platform_identities[0].username %}
+            | @{{ user.platform_identities[0].username }}
+          {% endif %}
+        </p>
+      {% endif %}
     </div>
     
     <div class="border-t border-slate-700/50 pt-4 mt-auto">
@@ -43,6 +51,11 @@
         <button name="action" value="suspend" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-orange-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">تعلیق</button>
         <button name="action" value="reactivate" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-emerald-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">فعال</button>
         <button name="action" value="ban" onclick="return confirm('این کاربر به‌طور نهایی مسدود شود؟')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors">بن نهایی</button>
+        {% if user.role.value == 'USER' %}
+          <button name="action" value="promote" class="bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors col-span-2 mt-2">ارتقا به سازنده ⭐️</button>
+        {% elif user.role.value == 'CREATOR' %}
+          <button name="action" value="demote" onclick="return confirm('آیا از حذف دسترسی سازنده این کاربر مطمئن هستید؟')" class="bg-slate-500/10 text-slate-400 hover:bg-slate-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors col-span-2 mt-2">حذف از سازندگان</button>
+        {% endif %}
       </form>
     </div>
   </article>
