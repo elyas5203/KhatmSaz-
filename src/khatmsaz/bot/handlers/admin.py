@@ -1129,8 +1129,12 @@ async def admin_role_grant(message: Message, command: CommandObject) -> None:
 async def admin_role_revoke(message: Message, command: CommandObject) -> None:
     await _change_admin_role(message, command, revoke=True)
 
-@router.message(Command("admin_promote"), AdminFilter())
+@router.message(Command("admin_promote"))
 async def admin_promote(message: Message, command: CommandObject) -> None:
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.MODERATION_MANAGE):
+        return
+
     args = (command.args or "").split()
     if not args:
         await message.answer("فرمت درست: /admin_promote <chat_id>")
