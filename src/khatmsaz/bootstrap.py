@@ -137,8 +137,6 @@ async def main() -> None:
     dp.include_router(join_requests_router)
     dp.include_router(manage_content_router)
     dp.include_router(creator_broadcast_router)
-    from khatmsaz.bot.handlers.creator_menu import router as creator_menu_router
-    dp.include_router(creator_menu_router)
     from khatmsaz.bot.handlers.panel import router as panel_router
     dp.include_router(panel_router)
 
