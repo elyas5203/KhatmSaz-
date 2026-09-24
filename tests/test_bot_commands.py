@@ -16,7 +16,7 @@ class FakeBot:
 def test_command_menu_has_unique_realistic_commands():
     names = [item.command for item in USER_COMMANDS]
     assert len(names) == len(set(names))
-    assert {"start", "help", "new_khatm", "my_khatms", "verify_phone"} <= set(names)
+    assert {"start", "help", "my_khatms"} <= set(names)
     assert all(1 <= len(item.description) <= 256 for item in USER_COMMANDS)
 
 

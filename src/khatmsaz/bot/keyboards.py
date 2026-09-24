@@ -73,13 +73,13 @@ def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
-def support_inline_keyboard(lang: str = "fa", is_participant: bool = False, is_admin: bool = False, is_creator: bool = False) -> InlineKeyboardMarkup:
-    buttons = [
-        [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")]
-    ]
-    if not is_participant and not is_admin and not is_creator:
-        buttons.append([InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+def support_inline_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")],
+            [InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")],
+        ]
+    )
 
 def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -90,12 +90,13 @@ def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 
-def creator_menu_keyboard(lang: str = 'fa') -> ReplyKeyboardMarkup:
+def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t('menu.creator.management', lang))],
-            [KeyboardButton(text=t('menu.today', lang)), KeyboardButton(text=t('menu.support', lang))],
-            [KeyboardButton(text=t('menu.settings', lang))],
+            [KeyboardButton(text=t("menu.today", lang))],
+            [KeyboardButton(text=t("menu.creator.management", lang))],
+            [KeyboardButton(text=t("menu.creator.finance", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.creator.support", lang))],
         ],
         resize_keyboard=True,
     )
@@ -129,15 +130,350 @@ def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
-def admin_menu_keyboard(lang: str = 'fa') -> ReplyKeyboardMarkup:
+def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    from aiogram.types import WebAppInfo
+    from khatmsaz.config import get_settings
+    base_url = get_settings().admin_web_base_url
+    login_url = f"{base_url}/mini/admin"
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t('help.button.admin_panel', lang))],
-            [KeyboardButton(text=t('menu.today', lang)), KeyboardButton(text=t('menu.support', lang))],
-            [KeyboardButton(text=t('menu.settings', lang))],
+            [KeyboardButton(text=t("help.button.admin_panel", lang), web_app=WebAppInfo(url=login_url))],
+            [KeyboardButton(text=t("menu.settings", lang))],
         ],
         resize_keyboard=True,
     )
+
+def main_menu_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
+    if is_admin:
+        return admin_menu_keyboard(lang)
+    if is_creator:
+        return creator_menu_keyboard(lang)
+    return participant_menu_keyboard(lang)
+
+
+def language_choice_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="فارسی", callback_data="first_lang:fa"),
+                InlineKeyboardButton(text="العربية", callback_data="first_lang:ar"),
+                InlineKeyboardButton(text="English", callback_data="first_lang:en"),
+            ]
+        ]
+    )
+
+
+def content_preferences_keyboard(*, audio_enabled: bool) -> InlineKeyboardMarkup:
+    audio_text = "🔇 خاموش کردن صوت" if audio_enabled else "🔊 روشن کردن صوت قرآن"
+    audio_value = "off" if audio_enabled else "on"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=audio_text, callback_data=f"quran_audio:{audio_value}")],
+            [InlineKeyboardButton(text="📖 راهنمای سهم قرآن", callback_data="quran_help")],
+            [InlineKeyboardButton(text="❓ راهنمای کامل بات", callback_data="help:home")],
+        ]
+    )
+
+
+def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:
+    """Every personal setting reachable by tapping — no slash command is
+    required for any of these (user request, 2026-09-18): the old screen
+    listed `/language`, `/timezone`, `/font`, etc. as text to type, which
+    contradicts the project's "click, don't type" principle."""
+    audio_text = t("settings.button.audio_off", lang) if audio_enabled else t("settings.button.audio_on", lang)
+    audio_value = "off" if audio_enabled else "on"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=audio_text, callback_data=f"quran_audio:{audio_value}")],
+            [
+                InlineKeyboardButton(text=t("settings.button.language", lang), callback_data="settings:language"),
+                InlineKeyboardButton(text=t("settings.button.reciter", lang), callback_data="settings:reciter"),
+                # InlineKeyboardButton(text=t("settings.button.font", lang), callback_data="settings:font"),
+                # InlineKeyboardButton(text=t("settings.button.content", lang), callback_data="settings:content"),
+            ],
+            [
+                InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
+                InlineKeyboardButton(text=t("settings.button.digest", lang), callback_data="settings:digest"),
+            ],
+            [
+                InlineKeyboardButton(text=t("settings.button.sms_menu", lang), callback_data="settings:sms"),
+                InlineKeyboardButton(text=t("settings.button.timezone", lang), callback_data="settings:timezone"),
+            ],
+            [InlineKeyboardButton(text=t("settings.button.profile", lang), callback_data="settings:profile")],
+            [
+                InlineKeyboardButton(text=t("settings.button.change_phone", lang), callback_data="settings:change_phone"),
+                InlineKeyboardButton(text=t("settings.button.link_account", lang), callback_data="settings:link_account"),
+            ],
+        ]
+    )
+
+
+def settings_back_row(lang: str = "fa") -> list[InlineKeyboardButton]:
+    return [InlineKeyboardButton(text=t("settings.button.back", lang), callback_data="settings:home")]
+
+
+def settings_language_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="فارسی", callback_data="set_language:fa"),
+                InlineKeyboardButton(text="العربية", callback_data="set_language:ar"),
+                InlineKeyboardButton(text="English", callback_data="set_language:en"),
+            ],
+            settings_back_row(lang),
+        ]
+    )
+
+
+def settings_font_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=t("settings.button.font_normal", lang), callback_data="set_font:normal"),
+                InlineKeyboardButton(text=t("settings.button.font_large", lang), callback_data="set_font:large"),
+            ],
+            settings_back_row(lang),
+        ]
+    )
+
+
+def settings_reciter_keyboard(reciters: list[tuple[str, str]], lang: str = "fa") -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text=name, callback_data=f"set_reciter:{key}")] for key, name in reciters]
+    rows.append(settings_back_row(lang))
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def settings_content_keyboard(*, translation_enabled: bool, tafsir_enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:
+    def _label(key: str, enabled: bool) -> str:
+        toggle = t("settings.button.turn_off", lang) if enabled else t("settings.button.turn_on", lang)
+        return f"{t(key, lang)}: {toggle}"
+
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=_label("settings.label.translation", translation_enabled),
+                    callback_data=f"set_content:translation:{'off' if translation_enabled else 'on'}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=_label("settings.label.tafsir", tafsir_enabled),
+                    callback_data=f"set_content:tafsir:{'off' if tafsir_enabled else 'on'}",
+                )
+            ],
+            settings_back_row(lang),
+        ]
+    )
+
+
+_REMINDER_HOURS = [7, 8, 9, 10, 12, 14, 16, 18, 20, 22]
+
+
+def settings_reminder_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    hour_buttons = [InlineKeyboardButton(text=f"{h}:۰۰", callback_data=f"set_reminder:{h}") for h in _REMINDER_HOURS]
+    rows = [hour_buttons[i : i + 5] for i in range(0, len(hour_buttons), 5)]
+    rows.append([InlineKeyboardButton(text=t("settings.button.reminder_off", lang), callback_data="set_reminder:off")])
+    rows.append(settings_back_row(lang))
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def settings_on_off_keyboard(*, prefix: str, enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:
+    on_text = t("settings.button.on_active", lang) if enabled else t("settings.button.turn_on", lang)
+    off_text = t("settings.button.turn_off", lang) if enabled else t("settings.button.off_active", lang)
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text=on_text, callback_data=f"{prefix}:on"),
+                InlineKeyboardButton(text=off_text, callback_data=f"{prefix}:off"),
+            ],
+            settings_back_row(lang),
+        ]
+    )
+
+
+def sms_subscription_keyboard(options, *, active: bool, lang: str = "fa") -> InlineKeyboardMarkup:
+    """Owner request (2026-09-20): SMS reminders need a paid, time-limited
+    subscription — this replaces a plain on/off toggle with plan-purchase
+    buttons. `options` is a list of `SmsPlanOption` (months, price_toman)."""
+    rows = [
+        [InlineKeyboardButton(
+            text=t("settings.button.sms_buy", lang, months=option.months, price=f"{option.price_toman:,}"),
+            callback_data=f"sms_buy:{option.months}",
+        )]
+        for option in options
+    ]
+    if active:
+        rows.append([InlineKeyboardButton(text=t("settings.button.sms_off", lang), callback_data="set_sms:off")])
+    rows.append(settings_back_row(lang))
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+_TIMEZONE_CHOICES = [
+    ("تهران", "Asia/Tehran"),
+    ("دبی", "Asia/Dubai"),
+    ("استانبول", "Europe/Istanbul"),
+    ("لندن", "Europe/London"),
+    ("برلین", "Europe/Berlin"),
+    ("نیویورک", "America/New_York"),
+    ("کوالالامپور", "Asia/Kuala_Lumpur"),
+    ("سیدنی", "Australia/Sydney"),
+]
+
+
+def settings_timezone_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=label, callback_data=f"set_timezone:{tz}")]
+        for label, tz in _TIMEZONE_CHOICES
+    ]
+    rows.append(settings_back_row(lang))
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def help_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+    buttons = [
+        [
+            InlineKeyboardButton(text=t("help.button.join", lang), callback_data="help:join"),
+            InlineKeyboardButton(text=t("help.button.portion", lang), callback_data="help:portion"),
+        ],
+    ]
+    if is_creator or is_admin:
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.create", lang), callback_data="help:create"),
+            InlineKeyboardButton(text=t("help.button.wallet", lang), callback_data="help:wallet"),
+        ])
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.settings", lang), callback_data="help:settings"),
+            InlineKeyboardButton(text=t("help.button.manage", lang), callback_data="help:manage"),
+        ])
+    else:
+        buttons.append([
+            InlineKeyboardButton(text=t("help.button.settings", lang), callback_data="help:settings"),
+        ])
+        
+    buttons.append([InlineKeyboardButton(text=t("suggestions.button.open", lang), callback_data="suggest:start")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def help_wallet_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("help.button.balance", lang), callback_data="wallet:open")],
+            [InlineKeyboardButton(text=t("help.button.invoices", lang), callback_data="wallet:invoices")],
+            [InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")],
+        ]
+    )
+
+
+def help_settings_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("help.button.open_settings", lang), callback_data="settings:home")],
+            [
+                InlineKeyboardButton(text=t("help.button.edit_profile", lang), callback_data="settings:profile"),
+                InlineKeyboardButton(text=t("help.button.change_phone", lang), callback_data="settings:change_phone"),
+            ],
+            [InlineKeyboardButton(text=t("help.button.link_account", lang), callback_data="settings:link_account")],
+            [InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")],
+        ]
+    )
+
+
+def help_create_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("help.button.start_create", lang), callback_data="create:start_from_help")],
+            [InlineKeyboardButton(text=t("help.button.request_type", lang), callback_data="request_khatm:start")],
+            [InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")],
+        ]
+    )
+
+
+def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+    buttons = []
+    if is_creator or is_admin:
+        buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
+        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
+    if is_admin:
+        buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
+    buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def commitment_mode_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🔒 تعهدی (سهم مشخص برای هرکس)", callback_data="ck:mode:COMMITMENT")],
+            [InlineKeyboardButton(text="🌿 آزاد (هرکس با میل خودش)", callback_data="ck:mode:OPEN")],
+        ]
+    )
+
+
+def template_choice_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📖 ختم صفحات قرآن", callback_data="ck:tpl:QURAN_PAGE")],
+            [InlineKeyboardButton(text="📿 ختم صلوات", callback_data="ck:group:SALAWAT")],
+            [InlineKeyboardButton(text="🤲 ختم دعا و زیارت", callback_data="ck:group:DUA")],
+            [InlineKeyboardButton(text="🗡 ختم لعن", callback_data="ck:group:LAAN")],
+        ]
+    )
+
+
+_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲"}
+
+
+def category_choice_keyboard(
+    categories: list, *, group: str, allow_custom_request: bool = False
+) -> InlineKeyboardMarkup:
+    """Show only children of one explicit top-level devotional family."""
+    rows = [
+        [InlineKeyboardButton(
+            text=f"{_CATEGORY_GROUP_EMOJI.get(category.group.value, '•')} {category.title}",
+            callback_data=f"ck:cat:{category.id}",
+        )]
+        for category in categories
+    ]
+    if allow_custom_request:
+        rows.append([InlineKeyboardButton(text="➕ دعا یا زیارت دیگر", callback_data="ck:cat:custom")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def skip_niyyat_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="رد کردن ⏭", callback_data="ck:skip_niyyat")]]
+    )
+
+
+def edition_choice_keyboard() -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=info["label"], callback_data=f"ck:edition:{key}")]
+        for key in QURAN_CREATION_EDITION_IDS
+        for info in [QURAN_EDITIONS[key]]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def content_delivery_mode_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="⚙️ خودکار (هرچه موجود بود)", callback_data="ck:content_mode:AUTO")],
+            [InlineKeyboardButton(text="🖼 فقط تصویر صفحات", callback_data="ck:content_mode:PHOTO")],
+            [InlineKeyboardButton(text="📝 فقط متن صفحات", callback_data="ck:content_mode:TEXT")],
+        ]
+    )
+
+
+def reminder_tone_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🌱 صمیمی", callback_data="ck:tone:FRIENDLY")],
+            [InlineKeyboardButton(text="📜 رسمی", callback_data="ck:tone:FORMAL")],
+            [InlineKeyboardButton(text="🤍 معنوی", callback_data="ck:tone:DEVOTIONAL")],
+            [InlineKeyboardButton(text="⚡ کوتاه", callback_data="ck:tone:SHORT")],
+        ]
+    )
+
 
 def creator_display_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
