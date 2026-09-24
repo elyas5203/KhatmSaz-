@@ -34,33 +34,44 @@ class Suggestion(StatesGroup):
     replying_to_user = State()
 
 
-async def _lang_for(chat_id, bot) -> str:
+async def _resolve_user_context(chat_id, bot) -> tuple[str, bool, bool, bool]:
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, chat_id)
         settings = await settings_service.get_or_create(session, user.id)
-        return settings.language
+        
+        is_admin = user.role == UserRole.SUPER_ADMIN
+        is_creator = user.role == UserRole.CREATOR
+        
+        is_participant = False
+        if not is_admin and not is_creator:
+            stmt = select(Participation).where(Participation.user_id == user.id, Participation.status == ParticipationStatus.ACTIVE)
+            result = await session.execute(stmt)
+            if result.first():
+                is_participant = True
+                
+        return settings.language, is_participant, is_admin, is_creator
 
 
 @router.message(F.text.in_(SUPPORT_BUTTON_TEXTS))
 async def start_suggestion_message(message: Message, state: FSMContext) -> None:
-    lang = await _lang_for(message.chat.id, message.bot)
+    lang, is_participant, is_admin, is_creator = await _resolve_user_context(message.chat.id, message.bot)
     from khatmsaz.bot.keyboards import support_inline_keyboard
-    await message.answer(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang))
+    await message.answer(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang, is_participant, is_admin, is_creator))
 
 
 @router.callback_query(F.data == "support:menu")
 async def back_to_support_menu(callback: CallbackQuery, state: FSMContext) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    lang, is_participant, is_admin, is_creator = await _resolve_user_context(callback.message.chat.id, callback.bot)
     await state.clear()
     from khatmsaz.bot.keyboards import support_inline_keyboard
-    await callback.message.edit_text(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang))
+    await callback.message.edit_text(t("support.menu_text", lang), reply_markup=support_inline_keyboard(lang, is_participant, is_admin, is_creator))
     await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data == "suggest:start")
 async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    lang, _, _, _ = await _resolve_user_context(callback.message.chat.id, callback.bot)
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
     
     async with session_scope() as session:
