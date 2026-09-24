@@ -1,3 +1,9 @@
+## 2026-09-24
+- Implemented Creator Mass Broadcasts with tiered pricing logic based on 1000 members and platform restrictions.
+- Reworked Participant support routing to allow participants to message their specific Khatm creators, and creators to reply.
+- Added allowed_platforms restriction (Telegram/Bale/Both) to Khatm creation.
+- Removed developer-centric settings (font, content) from Participant keyboard.
+
 # PROJECT_STATE
 
 > Newest entry is always at the top. Read this file first in every session.

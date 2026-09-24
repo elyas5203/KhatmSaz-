@@ -1,3 +1,9 @@
+## 2026-09-24
+- **Feature**: Creator Mass Broadcasts with media support and pricing logic (free under 3, 43k or 93k depending on audience size).
+- **Feature**: Platform restriction (Telegram/Bale/Both) for joining Khatms.
+- **Feature**: User support requests now dynamically route to their active Khatm creators.
+- **UX**: Cleaned up the main menu and disabled unused settings buttons (font/content).
+
 ﻿# CHANGELOG
 
 ## 2026-09-24
