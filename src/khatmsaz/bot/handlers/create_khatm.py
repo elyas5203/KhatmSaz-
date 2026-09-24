@@ -123,6 +123,7 @@ async def start_wizard(message: Message, state: FSMContext) -> None:
 
 
 @router.message(Command("new_khatm"))
+@router.message(Command("create"))
 async def start_wizard_command(message: Message, state: FSMContext) -> None:
     await start_wizard(message, state)
 
