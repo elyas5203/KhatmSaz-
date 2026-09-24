@@ -40,22 +40,28 @@ async def search_users(
 ) -> list[User]:
     """Find canonical users by a bounded name, phone, identity, or UUID query."""
     needle = query.strip()
-    if not needle:
-        return []
-    pattern = f"%{needle}%"
-    stmt = (
-        select(User)
-        .outerjoin(PlatformIdentity, PlatformIdentity.user_id == User.id)
-        .outerjoin(UserSettings, UserSettings.user_id == User.id)
-        .where(
-            or_(
-                User.display_name.ilike(pattern),
-                UserSettings.contact_phone.ilike(pattern),
-                PlatformIdentity.subject == needle,
-                User.id.cast(String).ilike(pattern),
+    
+    stmt = select(User)
+    
+    if needle:
+        pattern = f"%{needle}%"
+        stmt = (
+            stmt
+            .outerjoin(PlatformIdentity, PlatformIdentity.user_id == User.id)
+            .outerjoin(UserSettings, UserSettings.user_id == User.id)
+            .where(
+                or_(
+                    User.display_name.ilike(pattern),
+                    UserSettings.contact_phone.ilike(pattern),
+                    PlatformIdentity.subject == needle,
+                    User.id.cast(String).ilike(pattern),
+                )
             )
+            .distinct()
         )
-        .distinct()
+        
+    stmt = (
+        stmt
         .order_by(User.created_at.desc())
         .offset(max(0, offset))
         .limit(max(1, min(limit, 50)))

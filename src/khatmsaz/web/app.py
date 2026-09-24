@@ -992,12 +992,10 @@ async def users(request: Request, q: str = "", page: int = 1):
     page = max(1, min(page, 10_000))
     page_size = 25
     query = q.strip()[:100]
-    found = []
-    if query:
-        async with session_scope() as session:
-            found = await identity_service.search_users(
-                session, query, limit=page_size + 1, offset=(page - 1) * page_size
-            )
+    async with session_scope() as session:
+        found = await identity_service.search_users(
+            session, query, limit=page_size + 1, offset=(page - 1) * page_size
+        )
     has_next = len(found) > page_size
     found = found[:page_size]
     return templates.TemplateResponse(
