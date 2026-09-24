@@ -7,6 +7,16 @@
 ﻿# CHANGELOG
 
 ## 2026-09-24
+- **UX**: Unified and redesigned the Creator and Admin management panels to use inline parent-child navigation (edit_message_text).
+- **Feature**: Added bypass for SMS OTP if a foreign number is shared via Telegram contacts.
+- **Feature**: Added instructions in the admin panel on how to manually approve a creator request.
+- **Bugfix**: Fixed AttributeError for Khatm.creator_id in suggestions.py.
+- **Feature**: Creator Mass Broadcasts with media support and pricing logic.
+- **Feature**: Platform restriction (Telegram/Bale/Both) for joining Khatms.
+- **Feature**: User support requests now dynamically route to their active Khatm creators.
+
+
+## 2026-09-24
 
 - **UX**: Auto-start khatm creation wizard on /start or immediately after language selection in src/khatmsaz/bot/handlers/start.py.
 

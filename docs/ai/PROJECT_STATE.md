@@ -11,8 +11,14 @@
 
 > Newest entry is always at the top. Read this file first in every session.
 
-## Current state — 2026-09-24 — Menu & UX Redesign: Participant vs Creator [Antigravity]
-- **What changed**: 
+## Current state — 2026-09-24 — Unified Inline Creator & Admin Panels [Antigravity]
+- **What changed**:
+  - Implemented a parent-child UI for the Creator and Admin management panels using inline keyboards and `edit_message_text` to prevent chat clutter (`panel.py`).
+  - Flattened `creator_menu_keyboard` and `admin_menu_keyboard` to a simple set of reply buttons with a `🎛 پنل مدیریت` button.
+  - Added specific instructions in the Admin panel on how to manually approve a creator request (`/admin_approve_creator <request_id>`).
+  - Fixed a `Khatm.creator_id` to `creator_user_id` fatal error in `suggestions.py`.
+  - Added an auto-bypass for SMS OTP for foreign numbers shared via Telegram contacts.
+  - Addressed user questions about `/start` text (it was already updated in `i18n/__init__.py` but required a bot restart/sync on the VPS).
   - Added `CREATOR` to `UserRole` in the identity module.
   - Split the `main_menu_keyboard` into `participant_menu_keyboard` and `creator_menu_keyboard`. The participant menu hides creation and reporting, offering access to Public Khatms, Contact Support, and Request Creator Access instead.
   - Implemented the `creator_request` module (models, repository, service, handler) to allow normal users to apply for creator access.
