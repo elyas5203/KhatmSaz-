@@ -16,9 +16,7 @@ def home_markup_for_role(lang: str, role: UserRole):
     enter through the existing `/admin_web_login` flow, so recovery removes a
     stale wizard keyboard instead of incorrectly showing creator controls.
     """
-    if role == UserRole.SUPER_ADMIN:
-        return ReplyKeyboardRemove()
-    return main_menu_keyboard(lang, is_creator=role == UserRole.CREATOR)
+    return main_menu_keyboard(lang, is_creator=role == UserRole.CREATOR, is_admin=role == UserRole.SUPER_ADMIN)
 
 
 async def resolve_home_navigation(message: Message, lang: str | None = None):

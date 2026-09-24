@@ -12,7 +12,7 @@ from khatmsaz.modules.identity.models import PlatformIdentity
 
 async def get_creator_audience_count(session: AsyncSession, creator_id: uuid.UUID) -> int:
     stmt = (
-        select(func.count(Participation.id.distinct()))
+        select(func.count(Participation.user_id.distinct()))
         .select_from(Participation)
         .join(Khatm, Khatm.id == Participation.khatm_id)
         .where(Khatm.creator_user_id == creator_id)

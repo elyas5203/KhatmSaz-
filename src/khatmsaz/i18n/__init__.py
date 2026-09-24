@@ -1,6 +1,6 @@
 """Central translation registry for the bot's user-facing text.
 
-**Why this exists (owner request, 2026-09-20):** the bot must become fully
+<b>Why this exists (owner request, 2026-09-20):</b> the bot must become fully
 multi-language (fa/ar/en) — buttons, menus, help text, everything — not
 just the reminder templates that already had per-locale rows in the
 `message_template` module.
@@ -15,7 +15,7 @@ language variants of that button. This module's `variants(key)` gives you
 exactly that set; see `bot/keyboards.py`'s `*_BUTTON_TEXTS` frozensets and
 every `F.text.in_(...)` filter in `bot/handlers/*.py` for the pattern.
 
-**How to add a new translated string:**
+<b>How to add a new translated string:</b>
 1. Pick a short dotted key, grouped by feature area (e.g. `"menu.create"`,
    `"settings.home.title"`).
 2. Add it to `_STRINGS` below with all three languages. Never omit `fa` —
@@ -25,7 +25,7 @@ every `F.text.in_(...)` filter in `bot/handlers/*.py` for the pattern.
    `F.text == ...` anywhere, use `variants(key)` + `F.text.in_(...)`
    instead — see the constraint above.
 
-**Where the user's language actually lives:** `UserSettings.language`
+<b>Where the user's language actually lives:</b> `UserSettings.language`
 (module `settings`, already existed before this — `settings_service.set_language`,
 `SUPPORTED_LANGUAGES`). This module does not store or fetch it; callers
 pass whatever language string they already loaded from a session.
@@ -51,9 +51,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     "menu.back_to_main": {"fa": "🔙 بازگشت به منوی اصلی", "ar": "🔙 العودة للقائمة الرئيسية", "en": "🔙 Back to Main Menu"},
     
     # Text for menus
-    "text.creator.management": {"fa": "👑 **بخش مدیریت ختم‌ها**\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "👑 **قسم إدارة الختمات**", "en": "👑 **Khatm Management**"},
-    "text.creator.finance": {"fa": "📊 **بخش گزارشات و مالی**\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "📊 **قسم التقارير**", "en": "📊 **Reports & Finance**"},
-    "text.creator.support": {"fa": "❓ **بخش راهنما و پشتیبانی**\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "❓ **قسم الدعم**", "en": "❓ **Help & Support**"},
+    "text.creator.management": {"fa": "👑 <b>بخش مدیریت ختم‌ها</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "👑 <b>قسم إدارة الختمات</b>", "en": "👑 <b>Khatm Management</b>"},
+    "text.creator.finance": {"fa": "📊 <b>بخش گزارشات و مالی</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "📊 <b>قسم التقارير</b>", "en": "📊 <b>Reports & Finance</b>"},
+    "text.creator.support": {"fa": "❓ <b>بخش راهنما و پشتیبانی</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "❓ <b>قسم الدعم</b>", "en": "❓ <b>Help & Support</b>"},
     
     "welcome.text": {
         "fa": (
@@ -206,7 +206,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Your profile was updated successfully ✅",
     },
     "help.home": {
-        "fa": "📖 **راهنمای ختم‌ها (به زبان ساده)**\n\nلازم نیست دستورها را حفظ کنید؛ همهٔ کارها با دکمه‌ها انجام می‌شود.\n\nدر ختم‌ساز، ما ۴ مدل ختم داریم که می‌تونید انتخاب کنید:\n\n۱. **ختم تعهدی (Commitment)** ⏳\nمثل مسابقه دو امدادی! همه باید سهمشون رو سر وقت بخونن (مثلاً روزی یک جزء). اگه یکی نخونه، ختم اون روز ناقص می‌مونه.\n\n۲. **ختم آزاد (Free)** 🕊️\nآرامش‌بخش و بدون استرس. هر وقت تونستی و فرصت داشتی می‌خونی. هیچ محدودیت زمانی نداره.\n\n۳. **ختم عمومی (Public)** 🌍\nدرِ این ختم‌ها به روی همه بازه! هر کسی تو ربات می‌تونه این ختم‌ها رو ببینه و سهم برداره.\n\n۴. **ختم شخصی/خصوصی (Private)** 🔒\nمثل یه مهمونی خانوادگی. فقط کسایی می‌تونن شرکت کنن که شما لینک دعوت رو براشون بفرستید.\n\n💡 **یک مثال برای روشن شدن ماجرا:**\nفرض کنید می‌خواید برای رفتگان، با اعضای فامیل یک دور قرآن بخونید. کافیه از بخش `مدیریت ختم‌ها` روی `ساخت ختم جدید` بزنید.\nنوعش رو «خصوصی» (Private) و «آزاد» (Free) انتخاب کنید که فقط فامیل باشن و فشاری هم روشون نباشه.\nبعد از اینکه ساختید، ربات به شما یه لینک میده. اون لینک رو تو گروه تلگرامی فامیل می‌فرستید!\nهرکس روی لینک بزنه، مستقیم عضو میشه و سهمش (مثلا حزب ۱) رو همون لحظه از بات می‌گیره. به همین سادگی!\n\n👇 برای اطلاعات بیشتر در مورد سایر بخش‌ها، یکی از دکمه‌های زیر رو بزنید:",
+        "fa": "📖 <b>راهنمای ختم‌ها (به زبان ساده)</b>\n\nلازم نیست دستورها را حفظ کنید؛ همهٔ کارها با دکمه‌ها انجام می‌شود.\n\nدر ختم‌ساز، ما ۴ مدل ختم داریم که می‌تونید انتخاب کنید:\n\n۱. <b>ختم تعهدی (Commitment)</b> ⏳\nمثل مسابقه دو امدادی! همه باید سهمشون رو سر وقت بخونن (مثلاً روزی یک جزء). اگه یکی نخونه، ختم اون روز ناقص می‌مونه.\n\n۲. <b>ختم آزاد (Free)</b> 🕊️\nآرامش‌بخش و بدون استرس. هر وقت تونستی و فرصت داشتی می‌خونی. هیچ محدودیت زمانی نداره.\n\n۳. <b>ختم عمومی (Public)</b> 🌍\nدرِ این ختم‌ها به روی همه بازه! هر کسی تو ربات می‌تونه این ختم‌ها رو ببینه و سهم برداره.\n\n۴. <b>ختم شخصی/خصوصی (Private)</b> 🔒\nمثل یه مهمونی خانوادگی. فقط کسایی می‌تونن شرکت کنن که شما لینک دعوت رو براشون بفرستید.\n\n💡 <b>یک مثال برای روشن شدن ماجرا:</b>\nفرض کنید می‌خواید برای رفتگان، با اعضای فامیل یک دور قرآن بخونید. کافیه از بخش `مدیریت ختم‌ها` روی `ساخت ختم جدید` بزنید.\nنوعش رو «خصوصی» (Private) و «آزاد» (Free) انتخاب کنید که فقط فامیل باشن و فشاری هم روشون نباشه.\nبعد از اینکه ساختید، ربات به شما یه لینک میده. اون لینک رو تو گروه تلگرامی فامیل می‌فرستید!\nهرکس روی لینک بزنه، مستقیم عضو میشه و سهمش (مثلا حزب ۱) رو همون لحظه از بات می‌گیره. به همین سادگی!\n\n👇 برای اطلاعات بیشتر در مورد سایر بخش‌ها، یکی از دکمه‌های زیر رو بزنید:",
         "ar": "❓ دليل ختم‌ساز\n\nلا تحتاج إلى حفظ الأوامر. اختر الموضوع المطلوب من الأزرار أدناه؛ كل قسم مشروح خطوة بخطوة.\n\nإذا أردت فقط رؤية حصة اليوم فاضغط «📅 اليوم» من القائمة السفلية.",
         "en": "❓ KhatmSaz Guide\n\nYou do not need to memorize commands. Choose a topic with the buttons below; every section is explained step by step.\n\nIf you only want today's portion, tap “📅 Today” in the bottom menu.",
     },
@@ -2812,9 +2812,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "🎉 Your creator request has been approved!\nYou can now create new khatms from the main menu.",
     },
     "support.menu_text": {
-        "fa": "📞 **بخش پشتیبانی و ارتباط با ما**\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:",
-        "ar": "📞 **الدعم الفني**\n\nالرجاء اختيار أحد الخيارات التالية:",
-        "en": "📞 **Support & Contact**\n\nPlease select an option:",
+        "fa": "📞 <b>بخش پشتیبانی و ارتباط با ما</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:",
+        "ar": "📞 <b>الدعم الفني</b>\n\nالرجاء اختيار أحد الخيارات التالية:",
+        "en": "📞 <b>Support & Contact</b>\n\nPlease select an option:",
     },
     "support.button.send_message": {
         "fa": "💬 ارسال تیکت / پیام",
@@ -2827,9 +2827,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "🔙 Back",
     },
     "guide.simple": {
-        "fa": "📖 **راهنمای انواع ختم‌ها**\n\nدر ختم‌ساز، ما ۴ مدل ختم داریم که می‌تونید توشون شرکت کنید:\n\n۱. **ختم تعهدی (Commitment)** ⏳\nمثل مسابقه امدادی! همه باید سهمشون رو سر وقت بخونن (مثلاً روزی یک جزء). اگه یکی نخونه، ختم اون روز ناقص می‌مونه و شرمنده‌ی بقیه میشه.\n\n۲. **ختم آزاد (Free)** 🕊️\nآرامش‌بخش و بدون استرس. هر وقت تونستی و فرصت داشتی می‌خونی. هیچ محدودیت زمانی نداره.\n\n۳. **ختم عمومی (Public)** 🌍\nدرِ این ختم‌ها به روی همه بازه! هر کسی تو ربات می‌تونه این ختم‌ها رو ببینه و سهم برداره.\n\n۴. **ختم شخصی/خصوصی (Private)** 🔒\nمثل یه مهمونی خانوادگی. فقط کسایی می‌تونن شرکت کنن که شما لینک دعوت رو براشون بفرستید. بقیه اصلاً این ختم رو نمی‌بینن.",
-        "ar": "📖 **دليل أنواع الختمات**...",
-        "en": "📖 **Khatm Types Guide**...",
+        "fa": "📖 <b>راهنمای انواع ختم‌ها</b>\n\nدر ختم‌ساز، ما ۴ مدل ختم داریم که می‌تونید توشون شرکت کنید:\n\n۱. <b>ختم تعهدی (Commitment)</b> ⏳\nمثل مسابقه امدادی! همه باید سهمشون رو سر وقت بخونن (مثلاً روزی یک جزء). اگه یکی نخونه، ختم اون روز ناقص می‌مونه و شرمنده‌ی بقیه میشه.\n\n۲. <b>ختم آزاد (Free)</b> 🕊️\nآرامش‌بخش و بدون استرس. هر وقت تونستی و فرصت داشتی می‌خونی. هیچ محدودیت زمانی نداره.\n\n۳. <b>ختم عمومی (Public)</b> 🌍\nدرِ این ختم‌ها به روی همه بازه! هر کسی تو ربات می‌تونه این ختم‌ها رو ببینه و سهم برداره.\n\n۴. <b>ختم شخصی/خصوصی (Private)</b> 🔒\nمثل یه مهمونی خانوادگی. فقط کسایی می‌تونن شرکت کنن که شما لینک دعوت رو براشون بفرستید. بقیه اصلاً این ختم رو نمی‌بینن.",
+        "ar": "📖 <b>دليل أنواع الختمات</b>...",
+        "en": "📖 <b>Khatm Types Guide</b>...",
     }
 }
 

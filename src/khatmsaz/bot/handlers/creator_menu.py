@@ -56,9 +56,10 @@ async def handle_back_to_main(message: Message, state: FSMContext) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+        is_creator = user.role == UserRole.CREATOR
+        is_admin = user.role == UserRole.SUPER_ADMIN
 
     await message.answer(
-        t("welcome.text", lang) if not is_creator else t("welcome.text", lang), # fallback, maybe a simpler text
-        reply_markup=main_menu_keyboard(lang, is_creator)
+        t("welcome.text", lang),
+        reply_markup=main_menu_keyboard(lang, is_creator=is_creator, is_admin=is_admin)
     )

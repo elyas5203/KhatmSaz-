@@ -121,7 +121,15 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     media_file_id = data.get("media_file_id")
     media_type = data["media_type"]
     
-    # Ideally, handle payment here if cost > 0. For now, mark as paid.
+    if cost > 0:
+        await safe_clear_inline_keyboard(callback.message)
+        await callback.message.answer(
+            "⚠️ ارسال پیام گروهی پولی در حال حاضر غیرفعال است (در حال توسعه سیستم پرداخت). لطفاً بعداً تلاش کنید."
+        )
+        await state.clear()
+        await safe_answer_callback(callback)
+        return
+
     is_paid = True
     
     await safe_clear_inline_keyboard(callback.message)
@@ -137,6 +145,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
         
     # Send
     success = 0
+    failed = 0
     bot = callback.bot
     for chat_id in targets:
         try:
@@ -149,11 +158,13 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
             elif media_type == "document":
                 await bot.send_document(chat_id, media_file_id, caption=text)
             success += 1
-        except Exception:
-            pass
+        except Exception as e:
+            failed += 1
+            import logging
+            logging.getLogger("khatmsaz.broadcast").error(f"Failed to send broadcast to {chat_id}: {e}")
             
     await state.clear()
-    await callback.message.answer(f"✅ پیام شما با موفقیت برای {success} نفر ارسال شد.", reply_markup=main_menu_keyboard("fa"))
+    await callback.message.answer(f"✅ پیام شما با موفقیت برای {success} نفر ارسال شد.\n❌ تعداد ناموفق: {failed}", reply_markup=main_menu_keyboard("fa"))
     await safe_answer_callback(callback)
 
 @router.callback_query(CreatorBroadcastFlow.confirming, F.data == "cbroadcast:cancel")

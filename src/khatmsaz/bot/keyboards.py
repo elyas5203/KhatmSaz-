@@ -60,6 +60,7 @@ RESERVED_MENU_TEXTS = (
     | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
     | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
     | CREATOR_SUPPORT_BUTTON_TEXTS | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
+    | {"📢 ارسال پیام گروهی"}
 )
 
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -129,7 +130,22 @@ def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
-def main_menu_keyboard(lang: str = "fa", is_creator: bool = False) -> ReplyKeyboardMarkup:
+def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    from aiogram.types import WebAppInfo
+    from khatmsaz.config import get_settings
+    base_url = get_settings().base_url
+    login_url = f"{base_url}/mini/admin"
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("help.button.admin_panel", lang), web_app=WebAppInfo(url=login_url))],
+            [KeyboardButton(text=t("menu.settings", lang))],
+        ],
+        resize_keyboard=True,
+    )
+
+def main_menu_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
+    if is_admin:
+        return admin_menu_keyboard(lang)
     if is_creator:
         return creator_menu_keyboard(lang)
     return participant_menu_keyboard(lang)

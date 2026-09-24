@@ -27,9 +27,9 @@ def test_home_menu_exposes_today_report_settings_and_creation():
 def test_participant_menu_exactly_matches_dec_py_0076():
     labels = [button.text for row in participant_menu_keyboard("fa").keyboard for button in row]
     assert labels == [
-        t("menu.today", "fa"), t("menu.my_khatms", "fa"),
-        t("menu.public_khatms", "fa"), t("menu.settings", "fa"),
-        t("menu.support", "fa"), t("menu.creator_request", "fa"),
+        t("menu.today", "fa"),
+        t("menu.public_khatms", "fa"),
+        t("menu.settings", "fa"), t("menu.support", "fa"),
     ]
 
 

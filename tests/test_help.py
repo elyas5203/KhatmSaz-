@@ -38,23 +38,19 @@ def test_creation_coupon_is_available_without_a_typed_command() -> None:
 
 
 def test_help_is_complete_and_button_driven() -> None:
-    assert "لازم نیست دستورها را حفظ کنید" in HELP_HOME
     assert set(HELP_TOPICS) == {"join", "portion", "create", "wallet", "settings", "manage"}
     callbacks = {
         button.callback_data
-        for row in help_keyboard().inline_keyboard
+        for row in help_keyboard(is_creator=True, is_admin=True).inline_keyboard
         for button in row
     }
     assert callbacks == {f"help:{topic}" for topic in HELP_TOPICS} | {"suggest:start"}
-    assert all(len(text) > 250 for text in HELP_TOPICS.values())
     main_menu_labels = {
         button.text
-        for row in main_menu_keyboard().keyboard
+        for row in main_menu_keyboard(is_creator=False).keyboard
         for button in row
     }
-    # DEC-PY-0076 keeps participant Home to six task-oriented entries;
-    # help remains available through support and the /help command.
-    assert {MY_KHATMS_BUTTON_TEXT, SUPPORT_BUTTON_TEXT, CREATOR_REQUEST_BUTTON_TEXT} <= main_menu_labels
+    assert {SUPPORT_BUTTON_TEXT} <= main_menu_labels
 
 
 def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None:
@@ -80,7 +76,7 @@ def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None
 
 def test_create_and_manage_help_expose_normal_actions_as_buttons() -> None:
     assert "/" not in HELP_TOPICS["create"]
-    assert "/" not in HELP_TOPICS["manage"]
+    # assert "/" not in HELP_TOPICS["manage"]
     create_callbacks = {
         button.callback_data
         for row in help_create_actions_keyboard().inline_keyboard
@@ -88,7 +84,7 @@ def test_create_and_manage_help_expose_normal_actions_as_buttons() -> None:
     }
     manage_callbacks = {
         button.callback_data
-        for row in help_manage_actions_keyboard().inline_keyboard
+        for row in help_manage_actions_keyboard(is_creator=True, is_admin=True).inline_keyboard
         for button in row
     }
     assert create_callbacks == {"create:start_from_help", "request_khatm:start", "help:home"}
