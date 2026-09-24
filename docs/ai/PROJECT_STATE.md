@@ -1,4 +1,6 @@
 ## 2026-09-24
+- Fixed broadcast audience counting and blocked unpaid premium broadcasts.
+- Added dedicated Admin menu and fixed Markdown rendering in Creator menu.
 - Updated Help texts and keyboards to reflect the participant/creator menu separation and new features.
 - Implemented Creator Mass Broadcasts with tiered pricing logic based on 1000 members and platform restrictions.
 - Reworked Participant support routing to allow participants to message their specific Khatm creators, and creators to reply.
