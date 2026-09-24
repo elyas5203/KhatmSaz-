@@ -1,6 +1,20 @@
-﻿# PROJECT_STATE
+# PROJECT_STATE
 
 > Newest entry is always at the top. Read this file first in every session.
+
+## Current state — 2026-09-24 — Menu & UX Redesign: Participant vs Creator [Antigravity]
+- **What changed**: 
+  - Added `CREATOR` to `UserRole` in the identity module.
+  - Split the `main_menu_keyboard` into `participant_menu_keyboard` and `creator_menu_keyboard`. The participant menu hides creation and reporting, offering access to Public Khatms, Contact Support, and Request Creator Access instead.
+  - Implemented the `creator_request` module (models, repository, service, handler) to allow normal users to apply for creator access.
+  - Modified the `/start` handler so that it no longer forces new users directly into the `start_wizard`. Instead, it provides educational onboarding text and drops them into the appropriate menu.
+  - Shifted the "Contact Support" button from the deep help menu to the participant main menu, mapped directly to the `suggestions` FSM.
+  - Added `/admin_approve_creator` and `/admin_reject_creator` commands.
+  - Wrote a new Alembic migration to add the CREATOR enum, build the `creator_requests` table, and automatically upgrade any user who already has a khatm to the CREATOR role.
+- **Why**: Owner request to simplify the experience for ordinary participants who just want to join a Khatm and find the creation tools confusing. (DEC-PY-0076)
+- **Status**: Implemented.
+- **Next steps**: Apply the migration in production and review translations.
+
 
 ## Current state â€” 2026-09-23 â€” Admin Panel Glassmorphism & Media Ingestion Tool [Antigravity]
 

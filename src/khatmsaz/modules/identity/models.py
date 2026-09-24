@@ -27,6 +27,7 @@ class UserStatus(str, enum.Enum):
 
 class UserRole(str, enum.Enum):
     USER = "USER"
+    CREATOR = "CREATOR"
     SUPER_ADMIN = "SUPER_ADMIN"
 
 

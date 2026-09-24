@@ -10,7 +10,7 @@ from khatmsaz.bot.keyboards import (
 
 
 def test_home_menu_exposes_today_report_settings_and_creation():
-    labels = [button.text for row in main_menu_keyboard().keyboard for button in row]
+    labels = [button.text for row in main_menu_keyboard(is_creator=True).keyboard for button in row]
     assert labels == [
         TODAY_BUTTON_TEXT,
         MY_KHATMS_BUTTON_TEXT,

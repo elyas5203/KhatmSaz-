@@ -29,12 +29,19 @@ REPORT_BUTTON_TEXT = t("menu.report", "fa")
 SETTINGS_BUTTON_TEXT = t("menu.settings", "fa")
 HELP_BUTTON_TEXT = t("menu.help", "fa")
 
+PUBLIC_KHATMS_BUTTON_TEXT = t("menu.public_khatms", "fa")
+SUPPORT_BUTTON_TEXT = t("menu.support", "fa")
+CREATOR_REQUEST_BUTTON_TEXT = t("menu.creator_request", "fa")
+
 CREATE_BUTTON_TEXTS = variants("menu.create")
 MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
 TODAY_BUTTON_TEXTS = variants("menu.today")
 REPORT_BUTTON_TEXTS = variants("menu.report")
 SETTINGS_BUTTON_TEXTS = variants("menu.settings")
 HELP_BUTTON_TEXTS = variants("menu.help")
+PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
+SUPPORT_BUTTON_TEXTS = variants("menu.support")
+CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
 
 # Every free-text step inside a wizard/FSM state (title, niyyat, target,
 # contribution amount...) must check incoming text against this set first.
@@ -45,10 +52,20 @@ HELP_BUTTON_TEXTS = variants("menu.help")
 RESERVED_MENU_TEXTS = (
     CREATE_BUTTON_TEXTS | MY_KHATMS_BUTTON_TEXTS | TODAY_BUTTON_TEXTS
     | REPORT_BUTTON_TEXTS | SETTINGS_BUTTON_TEXTS | HELP_BUTTON_TEXTS
+    | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
 )
 
+def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu.today", lang)), KeyboardButton(text=t("menu.my_khatms", lang))],
+            [KeyboardButton(text=t("menu.public_khatms", lang)), KeyboardButton(text=t("menu.settings", lang))],
+            [KeyboardButton(text=t("menu.support", lang)), KeyboardButton(text=t("menu.creator_request", lang))],
+        ],
+        resize_keyboard=True,
+    )
 
-def main_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=t("menu.today", lang)), KeyboardButton(text=t("menu.my_khatms", lang))],
@@ -57,6 +74,11 @@ def main_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         ],
         resize_keyboard=True,
     )
+
+def main_menu_keyboard(lang: str = "fa", is_creator: bool = False) -> ReplyKeyboardMarkup:
+    if is_creator:
+        return creator_menu_keyboard(lang)
+    return participant_menu_keyboard(lang)
 
 
 def language_choice_keyboard() -> InlineKeyboardMarkup:

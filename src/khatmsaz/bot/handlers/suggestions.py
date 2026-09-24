@@ -14,7 +14,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import SUPPORT_BUTTON_TEXTS, bail_if_menu_button, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
 from khatmsaz.bot.notify_adapter import get_notify_fn
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
@@ -38,6 +38,13 @@ async def _lang_for(chat_id, bot) -> str:
         settings = await settings_service.get_or_create(session, user.id)
         return settings.language
 
+
+@router.message(F.text.in_(SUPPORT_BUTTON_TEXTS))
+async def start_suggestion_message(message: Message, state: FSMContext) -> None:
+    lang = await _lang_for(message.chat.id, message.bot)
+    await state.set_state(Suggestion.entering_text)
+    await state.update_data(lang=lang)
+    await message.answer(t("suggestions.ask_text", lang))
 
 @router.callback_query(F.data == "suggest:start")
 async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:

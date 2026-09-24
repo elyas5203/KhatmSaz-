@@ -2721,6 +2721,67 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "غلاف الختمة",
         "en": "Khatm cover",
     },
+    "menu.public_khatms": {
+        "fa": "🌍 ختم‌های عمومی",
+        "ar": "🌍 الختمات العامة",
+        "en": "🌍 Public Khatms",
+    },
+    "menu.support": {
+        "fa": "📞 ارتباط با پشتیبانی",
+        "ar": "📞 الدعم الفني",
+        "en": "📞 Contact Support",
+    },
+    "menu.creator_request": {
+        "fa": "🌱 درخواست سازنده‌شدن",
+        "ar": "🌱 طلب صلاحية الإنشاء",
+        "en": "🌱 Request Creator Access",
+    },
+    "creator_request.info_text": {
+        "fa": (
+            "🕋 به ختم‌ساز خوش آمدید!\n\n"
+            "ختم‌ساز ابزاری برای برگزاری ختم‌های دسته‌جمعی قرآن، صلوات، دعا و زیارت است.\n\n"
+            "📖 ختم تعهدی: سهم مشخصی به شما داده می‌شه و متعهد می‌شید هر روز انجامش بدید.\n"
+            "📿 ختم آزاد: به هر اندازه که دوست دارید مشارکت کنید.\n"
+            "🌍 ختم عمومی: هر کسی می‌تونه شرکت کنه.\n\n"
+            "این بات توسط تیم خدمتگزاران تِک طراحی و ساخته شده. اگر می‌خواهید خودتان ختمی ایجاد کنید، می‌توانید درخواست سازنده‌شدن بدهید."
+        ),
+        "ar": (
+            "🕋 مرحباً بك في ختم‌ساز!\n\n"
+            "ختم‌ساز هو أداة لإقامة الختمات الجماعية للقرآن، الصلوات، الأدعية والزيارات.\n\n"
+            "📖 الختمة الإلزامية: يتم تخصيص ورد محدد تلتزم بأدائه يومياً.\n"
+            "📿 الختمة الحرة: يمكنك المشاركة بالقدر الذي ترغب به.\n"
+            "🌍 الختمة العامة: يمكن لأي شخص المشاركة.\n\n"
+            "تم تصميم هذا البوت بواسطة فريق خدمتگزاران تك. إذا كنت ترغب في إنشاء ختمتك الخاصة، يمكنك تقديم طلب للحصول على صلاحية الإنشاء."
+        ),
+        "en": (
+            "🕋 Welcome to KhatmSaz!\n\n"
+            "KhatmSaz is a tool for organizing collective recitations of the Quran, Salawat, Duas, and Ziyarats.\n\n"
+            "📖 Commitment Khatm: You get a specific portion and commit to doing it daily.\n"
+            "📿 Free Khatm: Contribute as much as you like.\n"
+            "🌍 Public Khatm: Anyone can participate.\n\n"
+            "This bot is developed by the KhedmatGozaran Tech team. If you want to create your own khatms, you can request creator access."
+        ),
+    },
+    "creator_request.submit_btn": {
+        "fa": "📝 ارسال درخواست",
+        "ar": "📝 إرسال الطلب",
+        "en": "📝 Submit Request",
+    },
+    "creator_request.submitted": {
+        "fa": "درخواست شما ثبت شد و به‌زودی بررسی می‌شه ✅",
+        "ar": "تم تسجيل طلبك وسيتم مراجعته قريباً ✅",
+        "en": "Your request has been submitted and will be reviewed soon ✅",
+    },
+    "creator_request.already_pending": {
+        "fa": "شما قبلاً یک درخواست در حال بررسی دارید. لطفاً شکیبا باشید ⏳",
+        "ar": "لديك طلب قيد المراجعة بالفعل. يرجى الانتظار ⏳",
+        "en": "You already have a pending request. Please be patient ⏳",
+    },
+    "creator_request.approved": {
+        "fa": "🎉 درخواست سازنده‌شدن شما تایید شد!\nحالا می‌تونید از منوی اصلی ختم جدید بسازید.",
+        "ar": "🎉 تمت الموافقة على طلبك!\nالآن يمكنك إنشاء ختمة جديدة من القائمة الرئيسية.",
+        "en": "🎉 Your creator request has been approved!\nYou can now create new khatms from the main menu.",
+    },
 }
 
 

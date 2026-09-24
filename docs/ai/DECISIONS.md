@@ -5,6 +5,14 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0076 — Separate participant and creator menus
+**Date:** 2026-09-24
+**Decision:** Introduce a new `CREATOR` UserRole and separate the main menu keyboard based on this role.
+1. Regular users (Participants) see a shallow menu with "Today", "My Khatms", "Public Khatms", "Settings", "Contact Support", and "Request Creator Access".
+2. Users with the `CREATOR` role see the original menu which includes "Create New Khatm" and "My Report".
+3. The `/start` command no longer forces new users immediately into the khatm creation wizard; instead it shows the onboarding info and appropriate menu.
+**Why:** To reduce confusion for normal participants who just want to join a khatm and don't need to see creator-specific options. Only users explicitly approved by admins (via the new `creator_requests` table) get to create khatms.
+
 ### DEC-PY-0075 — i18n scope: admin bot commands stay Persian-only; admin web panel gets translated; legacy typed settings commands get translated
 **Date:** 2026-09-20
 **Decision:** Three open i18n-scope questions resolved directly by the

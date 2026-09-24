@@ -202,9 +202,8 @@ async def handle_start(message: Message, state: FSMContext) -> None:
         lang = settings.language
 
     if already_prompted:
-        await message.answer(t("welcome.text", lang), reply_markup=main_menu_keyboard(lang))
-        from khatmsaz.bot.handlers.create_khatm import start_wizard
-        await start_wizard(message, state)
+        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+        await message.answer(t("welcome.text", lang), reply_markup=main_menu_keyboard(lang, is_creator))
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -222,7 +221,8 @@ async def choose_first_language(callback, state: FSMContext) -> None:
     lang = callback.data.split(":", 1)[1]
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
-        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.fromuser.id if hasattr(callback, 'fromuser') else callback.from_user.id)
+        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
         try:
             await settings_service.set_language(session, user.id, lang)
         except ValueError:
@@ -232,11 +232,11 @@ async def choose_first_language(callback, state: FSMContext) -> None:
         await callback.message.edit_reply_markup(reply_markup=None)
     except Exception:
         pass
-    await callback.message.answer(t("language.saved", lang), reply_markup=main_menu_keyboard(lang))
-    await callback.answer()
     
-    from khatmsaz.bot.handlers.create_khatm import start_wizard
-    await start_wizard(callback.message, state)
+    # Send the onboarding info text
+    await callback.message.answer(t("creator_request.info_text", lang))
+    await callback.message.answer(t("language.saved", lang), reply_markup=main_menu_keyboard(lang, is_creator))
+    await callback.answer()
 
 
 def build_join_success_message(
