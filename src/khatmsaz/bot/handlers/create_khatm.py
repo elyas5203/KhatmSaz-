@@ -103,6 +103,14 @@ async def _lang(state: FSMContext) -> str:
 
 @router.message(F.text.in_(CREATE_BUTTON_TEXTS))
 async def start_wizard(message: Message, state: FSMContext) -> None:
+    from khatmsaz.modules.identity.models import UserRole
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+            await message.answer("❌ شما دسترسی ساخت ختم را ندارید. لطفاً ابتدا از منوی پشتیبانی درخواست سازنده شدن ارسال کنید.")
+            return
+
     await state.clear()
     if not await ensure_creator_phone_verified(message, state):
         if await state.get_state() is not None:

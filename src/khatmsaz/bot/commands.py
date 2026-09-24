@@ -8,16 +8,9 @@ from khatmsaz.modules.identity.models import Platform
 
 USER_COMMANDS = [
     BotCommand(command="start", description="شروع و نمایش منوی اصلی"),
-    BotCommand(command="help", description="راهنمای کامل و مرحله‌به‌مرحله"),
-    BotCommand(command="new_khatm", description="ساخت ختم جدید"),
-    BotCommand(command="my_khatms", description="دیدن ختم‌های من"),
-    BotCommand(command="report", description="گزارش شخصی من"),
-    BotCommand(command="public_khatms", description="ختم‌های عمومی قابل عضویت"),
-    BotCommand(command="wallet", description="کیف پول و شارژ"),
-    BotCommand(command="profile", description="ویرایش مشخصات شخصی"),
-    BotCommand(command="verify_phone", description="تأیید شماره برای ساخت ختم"),
-    BotCommand(command="change_phone", description="تغییر امن شماره با حفظ سوابق"),
-    BotCommand(command="creator_app", description="باز کردن مینی‌اپ سازنده"),
+    BotCommand(command="help", description="راهنما و پشتیبانی"),
+    BotCommand(command="public_khatms", description="ختم‌های در حال برگزاری"),
+    BotCommand(command="my_khatms", description="ختم‌های من (مشارکت‌ها)"),
 ]
 
 
