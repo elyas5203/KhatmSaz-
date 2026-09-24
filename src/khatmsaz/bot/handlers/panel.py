@@ -64,14 +64,28 @@ async def handle_admin_panel(message: Message) -> None:
         reply_markup=admin_panel_keyboard(lang)
     )
 
+from aiogram.fsm.context import FSMContext
+
 @router.callback_query(F.data == "creator_panel:create")
-async def handle_creator_panel_create(callback: CallbackQuery) -> None:
-    await callback.message.answer("برای ساخت ختم جدید، می‌توانید مستقیماً عبارت /create را ارسال کنید یا از منوی پایین صفحه اقدام کنید.")
+async def handle_creator_panel_create(callback: CallbackQuery, state: FSMContext) -> None:
+    from khatmsaz.bot.handlers.create_khatm import start_wizard
+    try:
+        await callback.message.delete()
+    except:
+        pass
+    # start_wizard expects a message to reply to.
+    # since we deleted the panel, we construct a dummy message or just pass callback.message
+    await start_wizard(callback.message, state)
     await callback.answer()
 
 @router.callback_query(F.data == "creator_panel:my_khatms")
 async def handle_creator_panel_my_khatms(callback: CallbackQuery) -> None:
-    await callback.message.answer("برای مشاهده ختم‌های خود، می‌توانید مستقیماً دستور /my_khatms را ارسال کنید.")
+    from khatmsaz.bot.handlers.my_khatms import list_my_khatms
+    try:
+        await callback.message.delete()
+    except:
+        pass
+    await list_my_khatms(callback.message)
     await callback.answer()
 
 @router.callback_query(F.data == "creator_panel:broadcast")
