@@ -86,9 +86,9 @@ async def handle_creator_request_button(message: Message) -> None:
     await message.answer(t("creator_request.submitted", lang), reply_markup=main_menu_keyboard(lang, False))
 
 from aiogram.filters import Command, CommandObject
-from khatmsaz.bot.filters import RequireSuperAdmin
+from khatmsaz.bot.filters import AdminFilter
 
-@router.message(Command("admin_approve_creator"), RequireSuperAdmin())
+@router.message(Command("admin_approve_creator"), AdminFilter())
 async def admin_approve_creator(message: Message, command: CommandObject) -> None:
     args = (command.args or "").split(maxsplit=1)
     if not args:
@@ -123,7 +123,7 @@ async def admin_approve_creator(message: Message, command: CommandObject) -> Non
             await notify(pi.platform.value, pi.subject, t("creator_request.approved", user_settings.language))
 
 
-@router.message(Command("admin_reject_creator"), RequireSuperAdmin())
+@router.message(Command("admin_reject_creator"), AdminFilter())
 async def admin_reject_creator(message: Message, command: CommandObject) -> None:
     args = (command.args or "").split(maxsplit=1)
     if not args:
