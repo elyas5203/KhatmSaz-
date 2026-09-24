@@ -26,7 +26,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation.models import PortionUnitKind
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmTemplateType, KhatmTypeEnum
