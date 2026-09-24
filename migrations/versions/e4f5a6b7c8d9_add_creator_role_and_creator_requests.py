@@ -21,6 +21,8 @@ down_revision = "175a9ceb2d73"
 branch_labels = None
 depends_on = None
 
+# Disable transaction to allow adding enum value and using it in the same run (PostgreSQL limitation)
+disable_ddl_transaction = True
 
 def upgrade() -> None:
     # 1. Add CREATOR to the userrole enum.
