@@ -10,7 +10,8 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, ForeignKey, String, func, Enum
+
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,6 +34,7 @@ class CreatorRequest(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False,
     )
     status: Mapped[CreatorRequestStatus] = mapped_column(
+        Enum(CreatorRequestStatus, native_enum=False, length=50),
         default=CreatorRequestStatus.PENDING,
     )
     # Optional note from the admin when approving/rejecting.
