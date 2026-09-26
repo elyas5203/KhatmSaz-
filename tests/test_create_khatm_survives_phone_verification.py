@@ -67,6 +67,7 @@ class FakeCallback:
         pass
 
 
+@pytest.mark.integration
 async def test_confirm_wizard_resumes_and_finishes_creation_after_otp():
     import time
     unique = str(int(time.time() * 1000))[-8:]

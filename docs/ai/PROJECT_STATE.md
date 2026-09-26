@@ -1,3 +1,13 @@
+## 2026-09-26 — Audit & Fix Antigravity's Phases 3-5 Work [Claude Code]
+- **What changed**:
+  - Replaced fragile `reload_router` / `sys.modules` manipulation in `bootstrap.py` with `importlib.util.find_spec` + `module_from_spec` + `exec_module` approach. Each shared router is now loaded into a fresh anonymous module per Dispatcher — no global state mutation.
+  - Fixed `test_daily_digest.py`: `SimpleNamespace` participation mocks now include `joined_via_bot_instance_id=None`; `fake_notify` now accepts `bot_instance_id=None` keyword arg to match the updated `_notify_user` signature.
+  - Added missing `@pytest.mark.integration` to `test_create_khatm_survives_phone_verification.py` (test hits real DB but was running without the marker, causing noise in the unit-test run).
+  - Confirmed Antigravity's reformatted files (`admin.py`, `portions.py`, `i18n/__init__.py`) have no real content changes (whitespace-only via `git diff --ignore-all-space`).
+- **Why**: Antigravity's `reload_router` hack worked by accident but mutated `sys.modules` mid-startup, which is fragile and wrong per aiogram's documented single-parent-router rule.
+- **How verified**: `PYTHONPATH=src python -m pytest -m "not integration"` → 79 passed, 0 failed.
+- **What's still outstanding**: Full end-to-end test on the VPS (member bot `/start`, join flow, `ختم‌های من`). The reformatted files can be reverted to reduce git noise if desired.
+
 ## 2026-09-26 — Multi-Bot Architecture: Phases 3-5 (Handler Routing, Invite Links, Notifications) [Antigravity]
 - **What changed**:
   - Separated dispatcher into `dp_creator` and `dp_member` to isolate member-specific behavior.

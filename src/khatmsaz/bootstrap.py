@@ -220,22 +220,19 @@ async def main() -> None:
     dp_creator.include_router(panel_router)
 
     # --- Shared routers ---
-    # We must instantiate shared routers twice due to aiogram's single-parent rule.
-    import importlib
-    import sys
-    
-    def reload_router(module_path: str):
-        # Temporarily remove from sys.modules to force a fresh load
-        original = sys.modules.get(module_path)
-        if original:
-            del sys.modules[module_path]
-        mod = importlib.import_module(module_path)
-        r = getattr(mod, "router")
-        if original:
-            sys.modules[module_path] = original
-        return r
+    # aiogram enforces a single-parent rule: a Router can only be included
+    # in one Dispatcher. To share handlers across dp_creator and dp_member we
+    # load each module fresh for each Dispatcher using importlib.util, which
+    # produces a new Router object per call without touching sys.modules.
+    import importlib.util
 
-    shared_modules = [
+    def _fresh_router(module_path: str):
+        spec = importlib.util.find_spec(module_path)
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+        return getattr(fresh, "router")
+
+    _shared_module_paths = [
         "khatmsaz.bot.handlers.help",
         "khatmsaz.bot.handlers.settings_menu",
         "khatmsaz.bot.handlers.timezone_settings",
@@ -249,10 +246,10 @@ async def main() -> None:
         "khatmsaz.bot.handlers.report",
         "khatmsaz.bot.handlers.suggestions",
     ]
-    
-    for mod in shared_modules:
-        dp_creator.include_router(reload_router(mod))
-        dp_member.include_router(reload_router(mod))
+
+    for _path in _shared_module_paths:
+        dp_creator.include_router(_fresh_router(_path))
+        dp_member.include_router(_fresh_router(_path))
 
     # --- Clear stale webhooks ---
     for bot in all_bots:

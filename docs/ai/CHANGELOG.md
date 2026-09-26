@@ -1,3 +1,8 @@
+## 2026-09-26 (audit pass)
+- **Fix**: Replaced `reload_router`/`sys.modules` hack in `bootstrap.py` with clean `importlib.util` approach for sharing routers across two Dispatchers.
+- **Fix**: Updated `test_daily_digest.py` mocks to include `joined_via_bot_instance_id` and accept the `bot_instance_id` kwarg.
+- **Fix**: Added missing `@pytest.mark.integration` to `test_create_khatm_survives_phone_verification.py`.
+
 ## 2026-09-26
 - **Architecture**: Multi-bot 26-bot split — `bot_registry` module, `bot_instances` table, Fernet token encryption.
 - **Architecture**: `BotRegistry` singleton + dual Dispatchers (`dp_creator`/`dp_member`) in `bootstrap.py`.
