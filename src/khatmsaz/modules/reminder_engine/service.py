@@ -324,15 +324,15 @@ async def delegate_inactive_portions(session: AsyncSession, notify: NotifyFn) ->
             moved += 1
             await _notify_user(
                 session, notify, backup.user_id,
-                bot_instance_id=backup.joined_via_bot_instance_id,
                 f"📖 یک سهم از ختم «{khatm.title}» به‌دلیل عدم فعالیت عضو اصلی، برای همراهی شما واگذار شد: "
                 f"صفحات {claimed.unit_start} تا {claimed.unit_end}",
+                bot_instance_id=backup.joined_via_bot_instance_id,
             )
             await _notify_user(
                 session, notify, participation.user_id,
-                bot_instance_id=participation.joined_via_bot_instance_id,
                 f"اطلاع‌رسانی: سهم شما در ختم «{khatm.title}» به‌دلیل ۳۰ روز عدم فعالیت، به پشتیبان واگذار شد؛ "
                 "برای بازگشت کافی است دوباره با ربات تعامل کنید.",
+                bot_instance_id=participation.joined_via_bot_instance_id,
             )
             break
     return moved

@@ -1,7 +1,7 @@
 """Add joined_via_bot_instance_id to participations
 
 Revision ID: b8c9d0e1f2b4
-Revises: zz9999_add_broadcast_media_and_payment
+Revises: zz9999
 Create Date: 2026-09-26 13:52:00.000000
 
 """
@@ -13,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = 'b8c9d0e1f2b4'
-down_revision: Union[str, None] = 'zz9999_add_broadcast_media_and_payment'
+down_revision: Union[str, None] = 'zz9999'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
