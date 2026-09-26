@@ -2375,6 +2375,16 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "QR دعوت «{title}»\n\n{url}", "ar": "رمز دعوة QR لـ«{title}»\n\n{url}",
         "en": "Invite QR code for “{title}”\n\n{url}",
     },
+    "my_khatms.creator.qr_caption_with_links": {
+        "fa": "QR دعوت «{title}»\n\n🔗 لینک‌های شرکت در ختم:\n\n{invite_lines}",
+        "ar": "رمز دعوة QR لـ«{title}»\n\n🔗 روابط المشاركة في الختمة:\n\n{invite_lines}",
+        "en": "Invite QR code for “{title}”\n\n🔗 Join links:\n\n{invite_lines}",
+    },
+    "my_khatms.creator.qr_no_member_bots": {
+        "fa": "⚠️ هنوز هیچ ربات عضوی با توکن فعال برای این دسته تنظیم نشده.\nبعد از تنظیم توکن ربات‌ها در پنل مدیریت، دوباره تلاش کنید.",
+        "ar": "⚠️ لا يوجد بوت عضو فعّال لهذه الفئة بعد.\nبعد ضبط رموز البوتات في لوحة الإدارة، حاول مرة أخرى.",
+        "en": "⚠️ No active member bot is configured for this category yet.\nSet the bot tokens in the admin panel, then try again.",
+    },
     "my_khatms.creator.content_mode_usage": {
         "fa": "فرمت درست: /khatm_content_mode شناسه‌ی ختم auto یا photo یا text",
         "ar": "الصيغة الصحيحة: /khatm_content_mode معرّف الختمة auto أو photo أو text",

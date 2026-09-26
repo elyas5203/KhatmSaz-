@@ -8,6 +8,17 @@
 - **How verified**: `python -m py_compile` on all changed files; import smoke-test of every changed module + the two affected tests (with a stub `asyncpg`, since the local box has no Postgres driver). `is_member_bot` returns True for MEMBER / False for CREATOR. Full pytest NOT run locally — `asyncpg` has no installable wheel on this Python 3.13 box.
 - **What's still outstanding**: Live VPS run of the member-bot commitment-join + delivery-hour flow, and non-Quran invite-link generation. `/cancel` is still creator-only (minor).
 
+## 2026-09-26 — QR دعوت now shows member-bot join links (not just web landing) [Claude Code]
+- **What changed**:
+  - Owner report (with screenshot): pressing "🔗 QR دعوت" in khatm management produced a QR + a single `api.khatmsaz.com/join/{token}` web link, with **no member-bot links** — so the creator had nothing to share that opens the right category/language member bot.
+  - New shared module `src/khatmsaz/bot/invite_links.py` is now the single source of truth for member-bot invite links: `resolve_khatm_category_value`, `build_member_invite_links`, `format_invite_lines`, `pick_primary_link`.
+  - `my_khatms.khatm_qr` rewritten to resolve the khatm's `BotCategory`, list every configured member-bot deep link (Telegram + Bale, per language) in the caption, and encode the creator's own language/platform link in the QR. Graceful fallback to the web landing page or a "set up member bots" message when no member bot exists for the category.
+  - `create_khatm.finish_invite_links` refactored to use the same helper (removed the duplicated inline category-resolution + loop; now uses canonical `resolve_bot_category`).
+  - Added i18n keys `my_khatms.creator.qr_caption_with_links` and `my_khatms.creator.qr_no_member_bots` (fa/ar/en).
+- **Why**: The multi-bot split's core promise is that a khatm's invite opens the correct member bot; the management-panel QR button never delivered that. Consolidating the two link builders prevents future drift.
+- **How verified**: `PYTHONPATH=src python -m pytest -m "not integration"` → 79 passed, 0 failed. Helper logic unit-smoke-tested with fake bots (category filtering, TG/Bale split, primary-link selection all correct).
+- **What's still outstanding**: Live VPS test — press "QR دعوت" on an active khatm and confirm the member-bot links appear. Note only 3 member bots currently have valid tokens (per journalctl); languages/platforms without a configured bot simply won't appear in the list.
+
 ## 2026-09-26 — Fix Member Bot Keyboards, Invite Links, and Language Isolation [Claude Code]
 - **What changed**:
   - Added `khatmsaz_username` tag to all bots at startup (creator + member) from `await bot.get_me()`.

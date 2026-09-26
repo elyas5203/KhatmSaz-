@@ -43,6 +43,7 @@ from khatmsaz.bot.keyboards import (
     visibility_choice_keyboard,
 )
 from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
+from khatmsaz.bot import invite_links
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
@@ -1186,25 +1187,10 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
-        from khatmsaz.modules.khatm_category import service as category_service
-        from khatmsaz.modules.bot_registry.models import BotCategory
-        
-        khatm_bot_cat = None
-        if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
-            khatm_bot_cat = BotCategory.QURAN.value
-        else:
-            cat = await category_service.get(session, khatm.content_category_id) if khatm.content_category_id else None
-            if cat:
-                if cat.group.name == "SALAWAT":
-                    khatm_bot_cat = BotCategory.SALAWAT.value
-                elif cat.group.name == "LAAN":
-                    khatm_bot_cat = BotCategory.LAAN.value
-                elif cat.group.name == "DUA":
-                    khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
 
-    registry = get_registry()
     settings = get_settings()
-    
+
     landing_line = ""
     if settings.public_web_base_url:
         landing_line = t(
@@ -1212,41 +1198,16 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
             lang,
             url=f"{settings.public_web_base_url.rstrip('/')}/join/{token}",
         )
-        
-    invite_lines = []
-    lang_flags = {"fa": "🇮🇷 فارسی", "ar": "🇸🇦 عربی", "en": "🇬🇧 انگلیسی"}
-    
-    # Build per-language member bot invite links.
-    # invite_lines remains empty if no member bots match — the web landing
-    # page link (shown below) is always included as the primary share target.
-    for sl in selected_langs:
-        tg_bot = None
-        bale_bot = None
-        for b in registry.member_bots():
-            b_cat = getattr(b, "khatmsaz_category", None)
-            b_lang = getattr(b, "khatmsaz_language", None)
-            b_username = getattr(b, "khatmsaz_username", None)
-            if b_cat == khatm_bot_cat and b_lang == sl and b_username:
-                pl = getattr(b, "khatmsaz_platform")
-                if plat_choice == "ALL" or pl.value == plat_choice:
-                    if pl == Platform.TELEGRAM:
-                        tg_bot = b
-                    elif pl == Platform.BALE:
-                        bale_bot = b
 
-        if tg_bot or bale_bot:
-            invite_lines.append(f"{lang_flags.get(sl, sl)}:")
-        if tg_bot:
-            invite_lines.append(f"▫️ تلگرام: https://t.me/{tg_bot.khatmsaz_username}?start=join_{token}")
-        if bale_bot:
-            invite_lines.append(f"▫️ بله: https://ble.ir/{bale_bot.khatmsaz_username}?start=join_{token}")
-        if tg_bot or bale_bot:
-            invite_lines.append("")
-
-    if not invite_lines:
+    # Build per-language member bot invite links via the shared helper so this
+    # wizard and the "QR دعوت" button in khatm management never drift apart.
+    by_lang = invite_links.build_member_invite_links(
+        khatm_bot_cat, token, langs=selected_langs, plat_choice=plat_choice,
+    )
+    invite_lines_str = invite_links.format_invite_lines(by_lang)
+    if not invite_lines_str:
         # No member bots have active tokens configured yet.
-        invite_lines = ["⚠️ هیچ ربات عضوی با توکن فعال تنظیم نشده.\nبعد از تنظیم توکن ربات‌ها در پنل مدیریت، لینک را از «🔗 QR دعوت» در مدیریت این ختم دریافت کنید."]
-    invite_lines_str = "\n".join(invite_lines)
+        invite_lines_str = "⚠️ هیچ ربات عضوی با توکن فعال تنظیم نشده.\nبعد از تنظیم توکن ربات‌ها در پنل مدیریت، لینک را از «🔗 QR دعوت» در مدیریت این ختم دریافت کنید."
 
     await safe_clear_inline_keyboard(message)
     await state.clear()

@@ -23,6 +23,7 @@ from khatmsaz.bot.keyboards import (
     safe_clear_inline_keyboard,
 )
 from khatmsaz.bot.qr import build_qr_png
+from khatmsaz.bot import invite_links
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.allocation import service as allocation_service
@@ -722,7 +723,7 @@ async def khatm_stats(message: Message, command: CommandObject) -> None:
 
 @router.message(Command("khatm_qr"))
 async def khatm_qr(message: Message, command: CommandObject) -> None:
-    """Issue a tracked invitation and return its QR image in memory."""
+    """Issue a tracked invitation and return the member-bot join links + QR."""
     lang = await _lang_for(message.chat.id, message.bot)
     raw_id = (command.args or "").strip()
     try:
@@ -732,15 +733,6 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
         return
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     settings = get_settings()
-    if platform == Platform.TELEGRAM:
-        username = settings.telegram_bot_username
-        base_url = f"https://t.me/{username}" if username else ""
-    else:
-        username = settings.bale_bot_username
-        base_url = f"https://ble.ir/{username}" if username else ""
-    if not base_url:
-        await message.answer(t("my_khatms.creator.qr_username_missing", lang))
-        return
     async with session_scope() as session:
         user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
         khatm = await khatm_service.get_khatm(session, khatm_id)
@@ -751,16 +743,41 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
             await message.answer(t("my_khatms.creator.qr_active_only", lang))
             return
         token = await invitation_service.create_invitation(session, khatm.id, user.id)
-    invite_url = (
-        f"{settings.public_web_base_url.rstrip('/')}/join/{token}"
-        if settings.public_web_base_url
-        else f"{base_url}?start=join_{token}"
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+
+    # Build the correct per-language member-bot deep links (the whole point of
+    # the multi-bot split — the creator must be able to share the member links,
+    # not just the web landing page).
+    by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
+    if not by_lang:
+        # No member bot configured for this category yet — fall back to the web
+        # landing page so the creator still has something shareable.
+        if settings.public_web_base_url:
+            invite_url = f"{settings.public_web_base_url.rstrip('/')}/join/{token}"
+            photo = BufferedInputFile(build_qr_png(invite_url), filename="khatm_invite_qr.png")
+            await message.answer_photo(
+                photo=photo,
+                caption=t("my_khatms.creator.qr_caption", lang, title=escape(khatm.title), url=invite_url),
+            )
+        else:
+            await message.answer(t("my_khatms.creator.qr_no_member_bots", lang))
+        return
+
+    invite_lines = invite_links.format_invite_lines(by_lang)
+    primary = invite_links.pick_primary_link(
+        by_lang, preferred_lang=lang, preferred_platform=platform.value
     )
-    photo = BufferedInputFile(build_qr_png(invite_url), filename="khatm_invite_qr.png")
-    await message.answer_photo(
-        photo=photo,
-        caption=t("my_khatms.creator.qr_caption", lang, title=escape(khatm.title), url=invite_url),
+    from aiogram.types import LinkPreviewOptions
+
+    caption = t(
+        "my_khatms.creator.qr_caption_with_links",
+        lang, title=escape(khatm.title), invite_lines=invite_lines,
     )
+    if primary:
+        photo = BufferedInputFile(build_qr_png(primary), filename="khatm_invite_qr.png")
+        await message.answer_photo(photo=photo, caption=caption)
+    else:
+        await message.answer(caption, link_preview_options=LinkPreviewOptions(is_disabled=True))
 
 
 @router.callback_query(F.data.startswith("creator_report:"))
