@@ -200,36 +200,28 @@ async def main() -> None:
     from khatmsaz.bot.handlers.panel import router as panel_router
     dp_creator.include_router(panel_router)
 
-    # --- Member Dispatcher (only if member bots exist) ---
-    dp_member: Dispatcher | None = None
-    if member_bots:
-        dp_member = Dispatcher(storage=MemoryStorage())
-        dp_member.message.outer_middleware(ModerationMiddleware())
-        dp_member.callback_query.outer_middleware(ModerationMiddleware())
-
-        dp_member.include_router(start_router)
-        dp_member.include_router(registration_router)
-        dp_member.include_router(portions_router)
-        dp_member.include_router(devotional_router)
-        dp_member.include_router(leave_router)
-        dp_member.include_router(join_requests_router)
-        dp_member.include_router(public_khatms_router)
-        dp_member.include_router(my_khatms_router)
-
-    # --- Shared routers on both dispatchers ---
-    for dp in ([dp_creator] + ([dp_member] if dp_member else [])):
-        dp.include_router(help_router)
-        dp.include_router(settings_menu_router)
-        dp.include_router(timezone_settings_router)
-        dp.include_router(font_settings_router)
-        dp.include_router(content_settings_router)
-        dp.include_router(reciter_settings_router)
-        dp.include_router(reminder_settings_router)
-        dp.include_router(digest_settings_router)
-        dp.include_router(sms_settings_router)
-        dp.include_router(profile_router)
-        dp.include_router(report_router)
-        dp.include_router(suggestions_router)
+    # --- Shared routers (on dp_creator for now) ---
+    # NOTE: aiogram routers can only attach to ONE dispatcher. Until Phase 3
+    # creates dedicated member handlers, ALL bots (creator + member) share
+    # dp_creator. When member-specific routers exist, a second dp_member
+    # dispatcher will be created and member bots will move to it.
+    dp_creator.include_router(help_router)
+    dp_creator.include_router(settings_menu_router)
+    dp_creator.include_router(timezone_settings_router)
+    dp_creator.include_router(font_settings_router)
+    dp_creator.include_router(content_settings_router)
+    dp_creator.include_router(reciter_settings_router)
+    dp_creator.include_router(reminder_settings_router)
+    dp_creator.include_router(digest_settings_router)
+    dp_creator.include_router(sms_settings_router)
+    dp_creator.include_router(profile_router)
+    dp_creator.include_router(report_router)
+    dp_creator.include_router(suggestions_router)
+    dp_creator.include_router(portions_router)
+    dp_creator.include_router(devotional_router)
+    dp_creator.include_router(leave_router)
+    dp_creator.include_router(join_requests_router)
+    dp_creator.include_router(public_khatms_router)
 
     # --- Clear stale webhooks ---
     for bot in all_bots:
@@ -287,9 +279,7 @@ async def main() -> None:
     logger.info("Starting polling for %d bot(s) (%d creator, %d member)...",
                 len(all_bots), len(creator_bots), len(member_bots))
     tasks: list[asyncio.Task] = []
-    tasks.append(asyncio.create_task(dp_creator.start_polling(*creator_bots)))
-    if dp_member and member_bots:
-        tasks.append(asyncio.create_task(dp_member.start_polling(*member_bots)))
+    tasks.append(asyncio.create_task(dp_creator.start_polling(*all_bots)))
 
     if settings.admin_web_enabled:
         web_server = uvicorn.Server(
