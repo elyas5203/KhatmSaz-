@@ -75,7 +75,7 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                     elif cat_obj.group.name == "DUA":
                         khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
 
-            if bot_category and khatm_bot_cat != bot_category.value:
+            if bot_category and khatm_bot_cat != bot_category:
                 await message.answer("این ختم مربوط به بات دیگری است.", reply_markup=member_menu_keyboard(lang))
                 return
 

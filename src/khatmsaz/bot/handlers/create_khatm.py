@@ -1112,7 +1112,7 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
     
     for bot in registry.member_bots():
         # filter by category
-        if getattr(bot, "khatmsaz_category", None) and getattr(bot, "khatmsaz_category").value == khatm_bot_cat:
+        if getattr(bot, "khatmsaz_category", None) and getattr(bot, "khatmsaz_category") == khatm_bot_cat:
             # filter by platform if not ALL
             if plat_choice != "ALL" and getattr(bot, "khatmsaz_platform", None) != Platform(plat_choice):
                 continue
@@ -1216,7 +1216,7 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
             tg_bot = None
             bale_bot = None
             for b in registry.member_bots():
-                if getattr(b, "khatmsaz_category", None) and getattr(b, "khatmsaz_category").value == khatm_bot_cat and getattr(b, "khatmsaz_language", None) == sl:
+                if getattr(b, "khatmsaz_category", None) and getattr(b, "khatmsaz_category") == khatm_bot_cat and getattr(b, "khatmsaz_language", None) == sl:
                     pl = getattr(b, "khatmsaz_platform")
                     if plat_choice == "ALL" or plat_choice == pl.value:
                         if pl == Platform.TELEGRAM:
