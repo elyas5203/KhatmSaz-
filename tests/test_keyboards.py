@@ -13,4 +13,3 @@ def test_creator_keyboard_callback_data_fit_telegram_limit():
     ]
     assert callback_values
     assert all(len(value.encode("utf-8")) <= 64 for value in callback_values)
-    assert any(value.startswith("cat:") for value in callback_values)

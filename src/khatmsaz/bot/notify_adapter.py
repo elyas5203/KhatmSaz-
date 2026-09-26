@@ -112,8 +112,9 @@ def build_send_quran_pages_fn(bots_by_platform: dict[Platform, Bot]):
     return send_quran_pages
 
 
+from aiogram.types import ReplyKeyboardMarkup
 async def send_with_keyboard(
-    platform_value: str, chat_id: str, text: str, reply_markup: InlineKeyboardMarkup
+    platform_value: str, chat_id: str, text: str, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup
 ) -> None:
     bot = _bots_by_platform.get(Platform(platform_value))
     if bot is None:

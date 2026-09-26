@@ -177,11 +177,11 @@ async def deliver_due_next_portions(
     fallback exists anymore — a missed portion is simply read the next
     day the member is ready; nobody else is notified."""
     delivered = 0
-    for last_completed in await allocation_service.list_awaiting_next_portion(session):
-        participation = await participation_repository.get_by_id(session, last_completed.participation_id)
+    for latest_portion in await allocation_service.list_latest_portion_per_participation(session):
+        participation = await participation_repository.get_by_id(session, latest_portion.participation_id)
         if participation is None:
             continue
-        khatm = await khatm_service.get_khatm(session, last_completed.khatm_id)
+        khatm = await khatm_service.get_khatm(session, latest_portion.khatm_id)
         if khatm is None or not khatm_service.has_started(khatm):
             continue
 
@@ -199,11 +199,13 @@ async def deliver_due_next_portions(
         reminder_minute = getattr(preference, "reminder_minute", 0) if (preference is not None and preference.enabled) else 0
         if not _is_reminder_due(now_local, reminder_hour, reminder_minute):
             continue
-        if last_completed.completed_at is None:
-            continue
-        completed_local_date = last_completed.completed_at.astimezone(user_tz).date()
-        if now_local.date() <= completed_local_date:
-            continue
+        
+        # updated_at records the last status change (e.g. to ASSIGNED or COMPLETED)
+        # If it happened today, they already got a portion today, don't send another one.
+        if latest_portion.updated_at is not None:
+            updated_local_date = latest_portion.updated_at.astimezone(user_tz).date()
+            if now_local.date() <= updated_local_date:
+                continue
 
         next_portion = await allocation_service.allocate_next_portion_to(session, khatm.id, participation.id)
         if next_portion is None:

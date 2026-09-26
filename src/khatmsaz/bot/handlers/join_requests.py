@@ -12,7 +12,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery
 
 from khatmsaz.bot.handlers.start import build_join_success_message
-from khatmsaz.bot.keyboards import safe_answer_callback, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import safe_answer_callback, safe_clear_inline_keyboard, unpack_join_callback_data
 from khatmsaz.bot.notify_adapter import get_notify_fn, send_with_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
@@ -41,7 +41,7 @@ async def _lang_for(chat_id, bot) -> str:
 
 @router.callback_query(F.data.startswith("approve_join:"))
 async def approve_join(callback: CallbackQuery) -> None:
-    _, khatm_id, user_id = callback.data.split(":", 2)
+    khatm_id, user_id = unpack_join_callback_data(callback.data.split(":", 1)[1])
 
     async with session_scope() as session:
         platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -99,7 +99,7 @@ async def approve_join(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("reject_join:"))
 async def reject_join(callback: CallbackQuery) -> None:
-    _, khatm_id, user_id = callback.data.split(":", 2)
+    khatm_id, user_id = unpack_join_callback_data(callback.data.split(":", 1)[1])
 
     async with session_scope() as session:
         khatm = await khatm_service.get_khatm(session, khatm_id)

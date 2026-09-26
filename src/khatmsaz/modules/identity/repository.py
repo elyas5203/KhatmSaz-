@@ -60,8 +60,10 @@ async def search_users(
             .distinct()
         )
         
+    from sqlalchemy.orm import selectinload
     stmt = (
         stmt
+        .options(selectinload(User.platform_identities))
         .order_by(User.created_at.desc())
         .offset(max(0, offset))
         .limit(max(1, min(limit, 50)))

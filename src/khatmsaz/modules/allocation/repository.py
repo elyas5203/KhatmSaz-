@@ -88,26 +88,17 @@ async def bulk_create_positional_portions_from_boundaries(
     return portions
 
 
-async def list_latest_completed_without_current_assignment(session: AsyncSession) -> list[KhatmPortion]:
-    """Owner request (2026-09-21): "one portion per day" — a committed
-    Quran participant who just completed their portion no longer gets the
-    next one auto-assigned in the same request (see
-    `service.complete_current_portion_and_advance`). This returns each
-    such participant's most recently completed portion, one row per
-    participation, so the reminder engine can decide (per their own
-    timezone/reminder hour, on a later calendar day) when to hand them
-    the next one — see `reminder_engine.service.deliver_due_next_portions`.
+async def list_latest_portion_per_participation(session: AsyncSession) -> list[KhatmPortion]:
+    """Owner request (2026-09-26): "portions should advance daily regardless of completion" — 
+    a committed Quran participant gets a new portion every calendar day. This returns each 
+    participant's most recent portion (either ASSIGNED or COMPLETED), so the reminder engine 
+    can check if they already received one today.
     """
-    assigned_subq = select(KhatmPortion.participation_id).where(
-        KhatmPortion.status == PortionStatus.ASSIGNED,
-        KhatmPortion.participation_id.isnot(None),
-    )
     stmt = (
         select(KhatmPortion)
         .where(
-            KhatmPortion.status == PortionStatus.COMPLETED,
+            KhatmPortion.status.in_([PortionStatus.COMPLETED, PortionStatus.ASSIGNED]),
             KhatmPortion.participation_id.isnot(None),
-            KhatmPortion.participation_id.notin_(assigned_subq),
         )
         .order_by(KhatmPortion.participation_id, KhatmPortion.sequence.desc())
     )
@@ -198,10 +189,15 @@ async def record_quantity_progress(session: AsyncSession, portion_id, amount: in
 
 
 async def get_current_assigned_portion(session: AsyncSession, plan_id, participation_id) -> KhatmPortion | None:
-    stmt = select(KhatmPortion).where(
-        KhatmPortion.plan_id == plan_id,
-        KhatmPortion.participation_id == participation_id,
-        KhatmPortion.status == PortionStatus.ASSIGNED,
+    stmt = (
+        select(KhatmPortion)
+        .where(
+            KhatmPortion.plan_id == plan_id,
+            KhatmPortion.participation_id == participation_id,
+            KhatmPortion.status == PortionStatus.ASSIGNED,
+        )
+        .order_by(KhatmPortion.sequence.asc())
+        .limit(1)
     )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()

@@ -94,9 +94,9 @@ async def complete_current_portion_and_advance(
     return completed, None
 
 
-async def list_awaiting_next_portion(session: AsyncSession) -> list[KhatmPortion]:
-    """See `repository.list_latest_completed_without_current_assignment`."""
-    return await repository.list_latest_completed_without_current_assignment(session)
+async def list_latest_portion_per_participation(session: AsyncSession) -> list[KhatmPortion]:
+    """See `repository.list_latest_portion_per_participation`."""
+    return await repository.list_latest_portion_per_participation(session)
 
 
 async def peek_next_open_portion(session: AsyncSession, khatm_id) -> KhatmPortion | None:

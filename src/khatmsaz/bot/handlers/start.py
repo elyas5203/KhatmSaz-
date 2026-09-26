@@ -20,7 +20,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard, pack_join_callback_data
 from khatmsaz.bot.notify_adapter import send_with_keyboard
 from khatmsaz.bot.navigation import home_markup_for_role, resolve_home_navigation
 from khatmsaz.core.db import session_scope
@@ -519,8 +519,8 @@ async def _request_private_join(message: Message, session, khatm: Khatm, user_id
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ تایید عضویت", callback_data=f"approve_join:{khatm.id}:{user_id}"),
-                InlineKeyboardButton(text="❌ رد", callback_data=f"reject_join:{khatm.id}:{user_id}"),
+                InlineKeyboardButton(text="✅ تایید عضویت", callback_data=pack_join_callback_data("approve_join", khatm.id, user_id)),
+                InlineKeyboardButton(text="❌ رد", callback_data=pack_join_callback_data("reject_join", khatm.id, user_id)),
             ]
         ]
     )

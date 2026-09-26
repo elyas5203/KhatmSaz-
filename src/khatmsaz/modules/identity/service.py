@@ -170,3 +170,13 @@ async def delete_account(session: AsyncSession, user_id) -> None:
         settings.province = None
         settings.gender = None
         settings.sms_enabled = False
+
+async def promote_creator(session: AsyncSession, user_id) -> None:
+    user = await find_by_id(session, user_id)
+    if user and user.role != UserRole.SUPER_ADMIN:
+        user.role = UserRole.CREATOR
+
+async def demote_creator(session: AsyncSession, user_id) -> None:
+    user = await find_by_id(session, user_id)
+    if user and user.role != UserRole.SUPER_ADMIN:
+        user.role = UserRole.USER

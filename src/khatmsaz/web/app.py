@@ -1314,6 +1314,8 @@ async def moderate_user(
         "suspend": identity_service.suspend,
         "ban": identity_service.ban,
         "reactivate": identity_service.reactivate,
+        "promote": identity_service.promote_creator,
+        "demote": identity_service.demote_creator,
     }
     if action not in actions or user_id == admin.id:
         return HTMLResponse("عملیات مجاز نیست.", status_code=400)
@@ -1322,6 +1324,23 @@ async def moderate_user(
         if target is None:
             return HTMLResponse("کاربر پیدا نشد.", status_code=404)
         await actions[action](session, user_id)
+        if action in ("promote", "demote"):
+            from khatmsaz.bot.keyboards import main_menu_keyboard
+            from khatmsaz.modules.settings import service as settings_service
+            user_settings = await settings_service.get_or_create(session, target.id)
+            if target.platform_identities:
+                pi = target.platform_identities[0]
+                if action == "promote":
+                    msg = "🎉 تبریک! حساب شما به **سازنده ختم** ارتقا یافت.\n\nهم‌اکنون منوی اختصاصی مدیریت ختم‌ها برای شما فعال شد. می‌توانید از دکمه‌های پایین صفحه استفاده کنید."
+                    kb = main_menu_keyboard(user_settings.language, is_creator=True)
+                else:
+                    msg = "حساب شما از سطح سازنده به **کاربر عادی** تغییر یافت."
+                    kb = main_menu_keyboard(user_settings.language, is_creator=False)
+                from khatmsaz.bot.notify_adapter import send_with_keyboard
+                import asyncio
+                asyncio.create_task(
+                    send_with_keyboard(pi.platform.value, pi.subject, msg, kb)
+                )
         await audit_service.record(
             session,
             actor_user_id=admin.id,

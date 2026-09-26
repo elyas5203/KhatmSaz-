@@ -714,26 +714,21 @@ def leave_all_keyboard(targets: list[tuple[str, str]]) -> InlineKeyboardMarkup |
 
 
 def creator_khatm_keyboard(
-    khatm_id: str, *, can_cancel: bool = True, completion_announcement_enabled: bool = True
+    khatm_id: str, *, can_cancel: bool = True
 ) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton(text="👥 اعضا", callback_data=f"creator_report:members:{khatm_id}"),
-            InlineKeyboardButton(text="⚠️ توجه", callback_data=f"creator_report:attention:{khatm_id}"),
+            InlineKeyboardButton(text="👥 لیست اعضا", callback_data=f"creator_report:members:{khatm_id}"),
+            InlineKeyboardButton(text="📄 خروجی CSV", callback_data=f"creator_report:export:{khatm_id}"),
         ],
-        [InlineKeyboardButton(text="📄 خروجی CSV", callback_data=f"creator_report:export:{khatm_id}")],
         [
-            InlineKeyboardButton(text="📈 آمار ختم", callback_data=f"creator_report:stats:{khatm_id}"),
             InlineKeyboardButton(text="🔳 QR دعوت", callback_data=f"creator_report:qr:{khatm_id}"),
+            InlineKeyboardButton(text="📈 آمار ختم", callback_data=f"creator_report:stats:{khatm_id}"),
         ],
-        [InlineKeyboardButton(
-            text=("🔔 پیام پایان: روشن" if completion_announcement_enabled else "🔕 پیام پایان: خاموش"),
-            callback_data=f"cat:{khatm_id}",
-        )],
         [InlineKeyboardButton(text="⚙️ تنظیمات ختم", callback_data=f"cs:menu:{khatm_id}")],
     ]
     if can_cancel:
-        rows.append([InlineKeyboardButton(text="🗑 لغو ختم", callback_data=f"cancel_khatm_ask:{khatm_id}")])
+        rows[-1].append(InlineKeyboardButton(text="🗑 لغو ختم", callback_data=f"cancel_khatm_ask:{khatm_id}"))
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
@@ -847,6 +842,24 @@ async def safe_answer_callback(callback: CallbackQuery, text: str | None = None,
         await callback.answer(text=text, show_alert=show_alert)
     except Exception:
         pass
+
+
+import base64
+import uuid
+
+def pack_join_callback_data(prefix: str, khatm_id, user_id) -> str:
+    """Pack two UUIDs into a short base64 string to fit in Telegram's 64-byte limit."""
+    if isinstance(khatm_id, str): khatm_id = uuid.UUID(khatm_id)
+    if isinstance(user_id, str): user_id = uuid.UUID(user_id)
+    data = base64.urlsafe_b64encode(khatm_id.bytes + user_id.bytes).decode("ascii").rstrip("=")
+    return f"{prefix}:{data}"
+
+def unpack_join_callback_data(data: str) -> tuple[str, str]:
+    """Unpack two UUIDs from a short base64 string."""
+    b = base64.urlsafe_b64decode(data + "==")
+    khatm_id = str(uuid.UUID(bytes=b[:16]))
+    user_id = str(uuid.UUID(bytes=b[16:]))
+    return khatm_id, user_id
 
 
 async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:

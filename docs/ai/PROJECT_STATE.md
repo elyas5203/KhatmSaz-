@@ -1,3 +1,10 @@
+## 2026-09-26
+- Fixed `aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: BUTTON_DATA_INVALID` when users requested to join private khatms by using base64 encoding to pack the two UUIDs into a compact string that fits Telegram's 64-byte callback size limit (`bot/keyboards.py`, `join_requests.py`, `start.py`).
+- Handled `aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message is not modified` when clearing the end date (`bot/handlers/my_khatms.py`).
+- Implemented stacked daily portions for positional Khatms: missed daily portions now queue up sequentially (overriding the prior one-portion-per-day lock), and users can complete their missed portions successively without waiting. Modified `list_latest_portion_per_participation` and `reminder_engine.service` to assign new portions regardless of completion status. Updated `mark_portion_done` to appropriately prompt the user to continue if they have stacked portions.
+- Unified the Creator Settings buttons to exactly match the documented UI screenshot (لیست اعضا, خروجی CSV, QR دعوت, آمار ختم, تنظیمات ختم, لغو ختم) by removing the "Attention" and "Completion Announcement" toggles from `creator_khatm_keyboard`.
+- Note: This overrides a prior design decision documented in `DECISIONS.md`.
+
 ## 2026-09-24
 - Fixed broadcast audience counting and blocked unpaid premium broadcasts.
 - Added dedicated Admin menu and fixed Markdown rendering in Creator menu.

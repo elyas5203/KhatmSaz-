@@ -83,7 +83,7 @@ async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:
                 select(User.id, User.display_name)
                 .select_from(Participation)
                 .join(Khatm, Khatm.id == Participation.khatm_id)
-                .join(User, User.id == Khatm.creator_id)
+                .join(User, User.id == Khatm.creator_user_id)
                 .where(Participation.user_id == user.id)
                 .where(Participation.status == ParticipationStatus.ACTIVE)
                 .group_by(User.id, User.display_name)

@@ -374,17 +374,17 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
         khatm = await khatm_service.get_khatm(session, khatm_id)
         plan_completed = False
         has_more_ahead = False
+        stacked_portion = None
         if completed is not None:
             done_count, total_count = await allocation_service.progress(session, khatm_id)
             plan_completed = total_count > 0 and done_count >= total_count
             if plan_completed:
                 await khatm_service.complete_khatm(session, khatm_id)
             else:
-                # One portion per day (owner decision, 2026-09-21): the next
-                # portion isn't assigned now — it arrives tomorrow at the
-                # participant's own reminder hour (reminder_engine.service
-                # .deliver_due_next_portions). This is only a read-only peek
-                # to phrase the confirmation correctly.
+                # Check if they have another portion already assigned (stacked up).
+                # If they do, we'll prompt them to continue.
+                # Otherwise, it arrives tomorrow at the participant's own reminder hour.
+                stacked_portion = await allocation_service.get_current_portion(session, khatm_id, participation.id)
                 has_more_ahead = (
                     await allocation_service.peek_next_open_portion(session, khatm_id) is not None
                 )
@@ -402,6 +402,15 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
             t("portions.plan_completed", lang),
             reply_markup=post_completion_keyboard(
                 khatm_id, undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
+            ),
+        )
+    elif stacked_portion is not None:
+        allow_snooze = bool(khatm and khatm.allow_snooze)
+        await callback.message.answer(
+            f"✅ سهم شما ({completed.unit_start} تا {completed.unit_end}) با موفقیت ثبت شد.\n\nشما هنوز سهم‌های عقب‌افتاده دارید (سهم بعدی: {stacked_portion.unit_start} تا {stacked_portion.unit_end}). هر زمان آماده بودید، دکمه «امروز» را از منو انتخاب کنید.{invite_line}",
+            reply_markup=post_completion_keyboard(
+                khatm_id, allow_snooze=allow_snooze,
+                undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
             ),
         )
     elif has_more_ahead:

@@ -195,3 +195,9 @@ tone required by SPEC Q105/Q143.
 
 Decisions DEC-PY-0064 and earlier were moved to keep this file
 readable: [docs/ai/archive/DECISIONS_until_DEC-PY-0064.md](archive/DECISIONS_until_DEC-PY-0064.md).
+
+## DEC-PY-0077: Daily Portions Stack Up
+- **Date**: 2026-09-26
+- **Context**: The user explicitly requested that positional portions must stack up daily, even if the user misses them.
+- **Decision**: Implemented stacked_portion processing by querying the oldest uncompleted assigned portion, rather than enforcing a strict one-portion-per-day completion lock.
+- **Consequences**: Overrides the prior owner decision to lock users to a single portion per day. Allows successive completion of stacked portions.

@@ -219,9 +219,13 @@ async def creator_clear_end_at(callback) -> None:
         except ValueError:
             await safe_answer_callback(callback, t("my_khatms.creator.end_at_cannot_clear", lang), show_alert=True)
             return
-    await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
-    )
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await callback.message.edit_text(
+            _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        )
+    except TelegramBadRequest:
+        pass
     await safe_answer_callback(callback, t("my_khatms.creator.end_at_cleared", lang))
 
 
@@ -1259,7 +1263,6 @@ async def open_creator_management(callback) -> None:
         reply_markup=creator_khatm_keyboard(
             khatm_id,
             can_cancel=khatm.status.value == "ACTIVE",
-            completion_announcement_enabled=bool(khatm.completion_announcement_enabled),
         ),
     )
     await safe_answer_callback(callback)
