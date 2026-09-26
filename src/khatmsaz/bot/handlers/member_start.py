@@ -2,7 +2,7 @@ from html import escape
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
 from khatmsaz.bot.keyboards import member_menu_keyboard, join_preview_keyboard, pack_join_callback_data
 from khatmsaz.core.db import session_scope

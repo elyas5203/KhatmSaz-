@@ -55,6 +55,9 @@ class AskDeliveryHour(StatesGroup):
 
     entering_hour = State()
 
+class JoinWorkflow(StatesGroup):
+    previewing = State()
+
 
 def _creator_display_name(khatm: Khatm, creator) -> str:
     mode = getattr(khatm, "creator_display_mode", CreatorDisplayMode.FULL_NAME.value)
