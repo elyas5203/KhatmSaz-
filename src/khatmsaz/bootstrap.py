@@ -102,6 +102,17 @@ async def _build_member_bots() -> list[Bot]:
             else:
                 logger.warning("Unknown platform %s for %s — skipping.", inst.platform, inst.display_name)
                 continue
+            try:
+                # Validate the token before adding to the pool — a revoked
+                # token would crash the entire polling gather otherwise.
+                await bot.get_me()
+            except Exception as exc:
+                logger.warning(
+                    "Member bot %s (%s) has an invalid token (%s) — skipping.",
+                    inst.display_name, inst.platform, type(exc).__name__,
+                )
+                await bot.session.close()
+                continue
             _tag_bot(
                 bot,
                 role=BotRole.MEMBER,
