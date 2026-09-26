@@ -14,7 +14,8 @@ from khatmsaz.bot.keyboards import bail_if_menu_button, member_menu_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform, Gender
+from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.settings.models import Gender
 from khatmsaz.modules.phone import service as phone_service
 from khatmsaz.modules.settings import service as settings_service
 
