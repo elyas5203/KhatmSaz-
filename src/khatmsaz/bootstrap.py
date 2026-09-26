@@ -5,6 +5,9 @@ one Dispatcher / one set of handlers. Long polling — not a webhook — is a
 deliberate choice: it needs no public domain, no reverse proxy, and no
 tunnel, which removes the exact failure point the previous TypeScript
 deployment got stuck on (see docs/ai/DECISIONS.md, DEC-PY-0001).
+
+Multi-bot architecture (DEC-PY-0080): up to 26 bots share one process.
+Two Dispatchers — dp_creator for management, dp_member for participation.
 """
 
 import asyncio
@@ -58,6 +61,9 @@ from khatmsaz.bot.telegram.client import build_telegram_bot
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
 from khatmsaz.core import runtime_status
+from khatmsaz.core.bot_registry import BotRegistry, set_registry
+from khatmsaz.modules.bot_registry.models import BotRole
+from khatmsaz.modules.bot_registry import service as bot_registry_service
 from khatmsaz.modules.reminder_engine import service as reminder_engine
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.web.app import app as admin_web_app
@@ -73,95 +79,172 @@ def _configure_logging() -> None:
     )
 
 
+def _tag_bot(
+    bot: Bot,
+    *,
+    role: str,
+    instance_id=None,
+    category=None,
+    language=None,
+) -> None:
+    bot.khatmsaz_role = role  # type: ignore[attr-defined]
+    bot.khatmsaz_category = category  # type: ignore[attr-defined]
+    bot.khatmsaz_language = language  # type: ignore[attr-defined]
+    bot.khatmsaz_instance_id = instance_id  # type: ignore[attr-defined]
+
+
+async def _build_member_bots() -> list[Bot]:
+    settings = get_settings()
+    if not settings.bot_token_encryption_key:
+        logger.info("BOT_TOKEN_ENCRYPTION_KEY not set — skipping member bot loading.")
+        return []
+
+    member_bots: list[Bot] = []
+    async with session_scope() as session:
+        instances = await bot_registry_service.list_configured_member_bots(session)
+        for inst in instances:
+            token = await bot_registry_service.get_decrypted_token(inst)
+            if not token:
+                logger.warning("Could not decrypt token for %s — skipping.", inst.display_name)
+                continue
+            if inst.platform == "TELEGRAM":
+                bot = build_telegram_bot(token)
+            elif inst.platform == "BALE":
+                bot = build_bale_bot(token)
+            else:
+                logger.warning("Unknown platform %s for %s — skipping.", inst.platform, inst.display_name)
+                continue
+            _tag_bot(
+                bot,
+                role=BotRole.MEMBER,
+                instance_id=inst.id,
+                category=inst.category,
+                language=inst.language,
+            )
+            member_bots.append(bot)
+            logger.info("Member bot loaded: %s (%s/%s/%s)", inst.display_name, inst.platform, inst.category, inst.language)
+    return member_bots
+
+
 async def main() -> None:
     _configure_logging()
     settings = get_settings()
 
-    bots: list[Bot] = []
+    # --- Creator bots (from .env, as before) ---
+    creator_bots: list[Bot] = []
 
     if settings.telegram_bot_token:
-        bots.append(build_telegram_bot())
-        logger.info("Telegram bot configured.")
+        bot = build_telegram_bot()
+        _tag_bot(bot, role=BotRole.CREATOR)
+        creator_bots.append(bot)
+        logger.info("Telegram creator bot configured.")
     else:
-        logger.warning("TELEGRAM_BOT_TOKEN not set — Telegram bot disabled.")
+        logger.warning("TELEGRAM_BOT_TOKEN not set — Telegram creator bot disabled.")
 
     if settings.bale_bot_token:
-        bots.append(build_bale_bot())
-        logger.info("Bale bot configured.")
+        bot = build_bale_bot()
+        _tag_bot(bot, role=BotRole.CREATOR)
+        creator_bots.append(bot)
+        logger.info("Bale creator bot configured.")
     else:
-        logger.warning("BALE_BOT_TOKEN not set — Bale bot disabled.")
+        logger.warning("BALE_BOT_TOKEN not set — Bale creator bot disabled.")
 
-    if not bots:
+    if not creator_bots:
         raise SystemExit(
             "No bot tokens configured. Set TELEGRAM_BOT_TOKEN and/or BALE_BOT_TOKEN in .env"
         )
 
-    # MemoryStorage: conversation state (creation wizard, contribution log)
-    # lives in process memory and is lost on restart. Fine for a single-
-    # process MVP; move to Redis-backed storage (see .env REDIS_URL) once
-    # that stops being acceptable — see ROADMAP.md.
-    dp = Dispatcher(storage=MemoryStorage())
-    dp.message.outer_middleware(ModerationMiddleware())
-    dp.callback_query.outer_middleware(ModerationMiddleware())
-    dp.include_router(start_router)
-    dp.include_router(help_router)
-    dp.include_router(suggestions_router)
-    dp.include_router(account_router)
-    dp.include_router(account_link_router)
-    dp.include_router(change_phone_router)
-    dp.include_router(manual_phone_verification_router)
-    dp.include_router(sms_settings_router)
-    dp.include_router(timezone_settings_router)
-    dp.include_router(language_settings_router)
-    dp.include_router(registration_router)
-    dp.include_router(report_router)
-    dp.include_router(settings_menu_router)
-    dp.include_router(reciter_settings_router)
-    dp.include_router(create_khatm_router)
-    dp.include_router(digest_settings_router)
-    dp.include_router(creator_decisions_router)
-    dp.include_router(portions_router)
-    dp.include_router(profile_router)
-    dp.include_router(font_settings_router)
-    dp.include_router(content_settings_router)
-    dp.include_router(devotional_router)
-    dp.include_router(public_khatms_router)
-    dp.include_router(reminder_settings_router)
-    dp.include_router(my_khatms_router)
-    dp.include_router(leave_router)
-    dp.include_router(wallet_router)
-    dp.include_router(admin_router)
-    dp.include_router(broadcast_router)
-    dp.include_router(khatm_request_router)
-    dp.include_router(creator_request_router)
-    dp.include_router(join_requests_router)
-    dp.include_router(manage_content_router)
-    dp.include_router(creator_broadcast_router)
-    from khatmsaz.bot.handlers.panel import router as panel_router
-    dp.include_router(panel_router)
+    # Sync creator tokens into bot_instances table
+    if settings.bot_token_encryption_key:
+        try:
+            async with session_scope() as session:
+                await bot_registry_service.sync_creator_from_env(session)
+            logger.info("Creator bot tokens synced to bot_instances.")
+        except Exception:
+            logger.warning("Could not sync creator tokens to DB.", exc_info=True)
 
-    for bot in bots:
-        # Long polling requires no webhook to be set; clear any stale one so
-        # Telegram/Bale actually deliver updates to getUpdates.
+    # --- Member bots (from DB) ---
+    member_bots = await _build_member_bots()
+
+    # --- Build registry ---
+    all_bots = creator_bots + member_bots
+    registry = BotRegistry(all_bots)
+    set_registry(registry)
+    logger.info(
+        "BotRegistry: %d creator(s), %d member(s).",
+        len(creator_bots), len(member_bots),
+    )
+
+    # --- Creator Dispatcher ---
+    dp_creator = Dispatcher(storage=MemoryStorage())
+    dp_creator.message.outer_middleware(ModerationMiddleware())
+    dp_creator.callback_query.outer_middleware(ModerationMiddleware())
+
+    dp_creator.include_router(start_router)
+    dp_creator.include_router(registration_router)
+    dp_creator.include_router(create_khatm_router)
+    dp_creator.include_router(my_khatms_router)
+    dp_creator.include_router(admin_router)
+    dp_creator.include_router(broadcast_router)
+    dp_creator.include_router(manage_content_router)
+    dp_creator.include_router(wallet_router)
+    dp_creator.include_router(creator_decisions_router)
+    dp_creator.include_router(creator_request_router)
+    dp_creator.include_router(creator_broadcast_router)
+    dp_creator.include_router(manual_phone_verification_router)
+    dp_creator.include_router(account_router)
+    dp_creator.include_router(account_link_router)
+    dp_creator.include_router(change_phone_router)
+    dp_creator.include_router(language_settings_router)
+    dp_creator.include_router(khatm_request_router)
+    from khatmsaz.bot.handlers.panel import router as panel_router
+    dp_creator.include_router(panel_router)
+
+    # --- Member Dispatcher (only if member bots exist) ---
+    dp_member: Dispatcher | None = None
+    if member_bots:
+        dp_member = Dispatcher(storage=MemoryStorage())
+        dp_member.message.outer_middleware(ModerationMiddleware())
+        dp_member.callback_query.outer_middleware(ModerationMiddleware())
+
+        dp_member.include_router(start_router)
+        dp_member.include_router(registration_router)
+        dp_member.include_router(portions_router)
+        dp_member.include_router(devotional_router)
+        dp_member.include_router(leave_router)
+        dp_member.include_router(join_requests_router)
+        dp_member.include_router(public_khatms_router)
+        dp_member.include_router(my_khatms_router)
+
+    # --- Shared routers on both dispatchers ---
+    for dp in ([dp_creator] + ([dp_member] if dp_member else [])):
+        dp.include_router(help_router)
+        dp.include_router(settings_menu_router)
+        dp.include_router(timezone_settings_router)
+        dp.include_router(font_settings_router)
+        dp.include_router(content_settings_router)
+        dp.include_router(reciter_settings_router)
+        dp.include_router(reminder_settings_router)
+        dp.include_router(digest_settings_router)
+        dp.include_router(sms_settings_router)
+        dp.include_router(profile_router)
+        dp.include_router(report_router)
+        dp.include_router(suggestions_router)
+
+    # --- Clear stale webhooks ---
+    for bot in all_bots:
         await bot.delete_webhook(drop_pending_updates=False)
         try:
             if await install_command_menu(bot):
-                logger.info("Telegram command menu installed.")
+                logger.info("Command menu installed for %s.", getattr(bot, "khatmsaz_platform", "?"))
         except Exception as exc:
             logger.warning("Could not install bot command menu: %s", type(exc).__name__)
 
-    bots_by_platform = {bot.khatmsaz_platform: bot for bot in bots}  # type: ignore[attr-defined]
-    notify = build_notify_fn(bots_by_platform)  # also registers the get_notify_fn() singleton
+    bots_by_platform = {bot.khatmsaz_platform: bot for bot in creator_bots}  # type: ignore[attr-defined]
+    notify = build_notify_fn(bots_by_platform)
     send_quran_pages = build_send_quran_pages_fn(bots_by_platform)
 
-    # Self-heal on every startup (2026-09-21): the canonical Quran channel
-    # map (`quran_page_assets`) has now gone empty twice this session after
-    # unrelated local-dev Postgres crashes/WAL recovery, silently breaking
-    # all Quran page/audio delivery until someone happened to notice and
-    # re-ran the seed by hand. `seed_verified_quran_channel_map` is
-    # idempotent (safe to re-run, never creates duplicates), so just always
-    # run it here — a real failure (e.g. DB genuinely down) only logs a
-    # warning, it must never block the bot from starting.
+    # Self-heal Quran channel map on every startup
     try:
         from khatmsaz.modules.content import service as content_service
         async with session_scope() as session:
@@ -190,11 +273,6 @@ async def main() -> None:
         else:
             runtime_status.mark_scan_succeeded()
 
-    # Cron trigger at :00, :15, :30, :45 (every 15 min) so reminder delivery
-    # is predictable regardless of when the bot starts. The 15-minute
-    # granularity also supports per-minute delivery times (e.g. 7:45) that
-    # users can now set. `reminder_scan_interval_minutes` is kept in config
-    # for backward compatibility but the cron overrides it.
     scheduler = AsyncIOScheduler(timezone=settings.app_timezone)
     scheduler.add_job(
         _run_reminder_scan,
@@ -205,9 +283,14 @@ async def main() -> None:
     runtime_status.mark_scheduler_started()
     logger.info("Reminder scan scheduled at :00, :15, :30, :45 of every hour.")
 
-    logger.info("Starting polling for %d bot(s)...", len(bots))
-    polling = asyncio.create_task(dp.start_polling(*bots))
-    tasks = [polling]
+    # --- Start polling ---
+    logger.info("Starting polling for %d bot(s) (%d creator, %d member)...",
+                len(all_bots), len(creator_bots), len(member_bots))
+    tasks: list[asyncio.Task] = []
+    tasks.append(asyncio.create_task(dp_creator.start_polling(*creator_bots)))
+    if dp_member and member_bots:
+        tasks.append(asyncio.create_task(dp_member.start_polling(*member_bots)))
+
     if settings.admin_web_enabled:
         web_server = uvicorn.Server(
             uvicorn.Config(
@@ -229,10 +312,5 @@ async def main() -> None:
 
 if __name__ == "__main__":
     if sys.platform == "win32":
-        # asyncio's default ProactorEventLoop has a known bug with TLS
-        # negotiated over an already-open connection (e.g. HTTPS through an
-        # HTTP CONNECT proxy) — it hangs instead of completing the
-        # handshake. The SelectorEventLoop doesn't have this bug. See
-        # DEBUGGING.md "Bot can't reach Telegram on Windows".
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

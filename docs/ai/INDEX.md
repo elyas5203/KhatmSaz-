@@ -129,6 +129,21 @@
   (تابع `creator_khatm_export`).
 - پیام گروهی از پنل ادمین — `src/khatmsaz/web/app.py` (`/broadcasts`).
 
+## معماری چند-باتی (۲۶ بات)
+- DEC-PY-0080 — تقسیم به ۱ بات سازنده + ۱۲ بات ممبر در هر پلتفرم: `DECISIONS.md` (بالای فایل)
+- مستندات کامل: `docs/ai/multibot/OVERVIEW.md` (نقطه شروع)
+- جدول bot_instances و رمزنگاری توکن: `docs/ai/multibot/BOT_REGISTRY.md`
+- بات سازنده (وظایف، هندلرها، منوها): `docs/ai/multibot/CREATOR_BOT.md`
+- بات‌های ممبر (عضویت، زبان ثابت): `docs/ai/multibot/MEMBER_BOTS.md`
+- لینک‌های دعوت چند-باتی: `docs/ai/multibot/INVITE_LINKS.md`
+- مسیریابی هندلرها (دو Dispatcher): `docs/ai/multibot/HANDLER_ROUTING.md`
+- دو مسیر ثبت‌نام (سازنده OTP / ممبر contact-share): `docs/ai/multibot/REGISTRATION.md`
+- پنل ادمین مدیریت توکن‌ها: `docs/ai/multibot/ADMIN_TOKEN_PANEL.md`
+- مسیریابی نوتیفیکیشن‌ها: `docs/ai/multibot/NOTIFICATION_ROUTING.md`
+- کد ماژول: `src/khatmsaz/modules/bot_registry/`
+- کلاس BotRegistry: `src/khatmsaz/core/bot_registry.py`
+- هندلرهای ممبر: `src/khatmsaz/bot/handlers/member_*.py`
+
 ## معماری کلی و زیرساخت
 - DEC-PY-0001 — Long polling نه webhook: `archive/...:531`
 - DEC-PY-0002 — جداسازی ماژول‌ها: `archive/...:550`

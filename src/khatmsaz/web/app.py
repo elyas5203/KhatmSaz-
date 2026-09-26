@@ -18,6 +18,7 @@ from sqlalchemy.orm import aliased
 
 from khatmsaz.core.db import session_scope
 from khatmsaz.core import runtime_status
+from khatmsaz.modules.bot_registry import service as bot_registry_service
 from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.authorization import service as authorization_service
 from khatmsaz.modules.authorization.models import AdminPermission, AdminRole, AdminRoleGrant
@@ -1797,3 +1798,115 @@ async def toggle_template(
             },
         )
     return RedirectResponse("/templates", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Bot token management
+# ---------------------------------------------------------------------------
+
+@app.get("/bots", response_class=HTMLResponse)
+async def bots_page(request: Request, platform: str = "TELEGRAM"):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if platform not in ("TELEGRAM", "BALE"):
+        platform = "TELEGRAM"
+    async with session_scope() as session:
+        all_bots = await bot_registry_service.list_all_instances(session)
+    filtered = [b for b in all_bots if b.platform == platform]
+    needs_restart = any(
+        b.updated_at and b.updated_at > runtime_status.process_started_at()
+        for b in all_bots
+        if b.bot_role == "MEMBER"
+    )
+    return templates.TemplateResponse(
+        request=request,
+        name="bot_tokens.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            bots=filtered,
+            platform=platform,
+            needs_restart=needs_restart,
+            saved=request.query_params.get("saved", ""),
+            error=request.query_params.get("error", ""),
+        ),
+    )
+
+
+@app.post("/bots/{instance_id}/token")
+async def save_bot_token(
+    request: Request,
+    instance_id: UUID,
+    csrf: str = Form(...),
+    token: str = Form(""),
+    username: str = Form(""),
+    confirm_name: str = Form(""),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    async with session_scope() as session:
+        instance = await bot_registry_service.get_instance(session, instance_id)
+        if instance is None:
+            return HTMLResponse("بات پیدا نشد.", status_code=404)
+        if instance.bot_role == "CREATOR":
+            return RedirectResponse(
+                f"/bots?platform={instance.platform}&error=توکن+بات+سازنده+از+env.+بارگذاری+می‌شود",
+                status_code=303,
+            )
+        if confirm_name.strip() != instance.display_name.strip():
+            return RedirectResponse(
+                f"/bots?platform={instance.platform}&error=نام+تایید+با+نام+نمایشی+بات+مطابقت+ندارد",
+                status_code=303,
+            )
+        await bot_registry_service.set_bot_token(
+            session, instance_id, token.strip(), username.strip(),
+        )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="BOT_TOKEN_CHANGED",
+            details={"instance_id": str(instance_id), "display_name": instance.display_name},
+        )
+    return RedirectResponse(
+        f"/bots?platform={instance.platform}&saved=1", status_code=303,
+    )
+
+
+@app.post("/bots/{instance_id}/toggle")
+async def toggle_bot(
+    request: Request,
+    instance_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    async with session_scope() as session:
+        instance = await bot_registry_service.get_instance(session, instance_id)
+        if instance is None:
+            return HTMLResponse("بات پیدا نشد.", status_code=404)
+        await bot_registry_service.toggle_bot_active(
+            session, instance_id, not instance.is_active,
+        )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="BOT_ACTIVE_TOGGLED",
+            details={
+                "instance_id": str(instance_id),
+                "display_name": instance.display_name,
+                "is_active": not instance.is_active,
+            },
+        )
+    return RedirectResponse(
+        f"/bots?platform={instance.platform}&saved=1", status_code=303,
+    )

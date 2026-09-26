@@ -5,6 +5,32 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0080 — Multi-bot split: 1 creator + 12 member bots per platform
+**Date:** 2026-09-26
+**Decision:** Split the single KhatmSaz bot into 26 bots:
+- 1 creator bot (ختم‌ساز) per platform — handles creation, management, admin.
+  Supports all 3 languages (fa/ar/en) internally.
+- 12 member bots per platform — 4 categories (QURAN, SALAWAT, DUA_ZIYARAT,
+  LAAN) × 3 languages. Each member bot is single-language.
+- Total: 13 Telegram + 13 Bale = 26 bot tokens.
+- All run in one Python process, one PostgreSQL database, one event loop.
+- Two `Dispatcher` instances: `dp_creator` (creator routers) + `dp_member`
+  (member routers). Shared routers on both.
+- Bot tokens stored encrypted in `bot_instances` table, managed via admin
+  web panel with 2-step confirmation. Creator tokens also in `.env` for
+  bootstrapping.
+- Invite links point to the correct member bot based on khatm category +
+  chosen language. Same token across all language variants.
+- Participations track `joined_via_bot_instance_id` so notifications are
+  sent from the correct bot.
+**Why:** Owner request — better UX (members only see relevant content),
+language isolation per bot, separation of creator and member responsibilities,
+cleaner menus. The existing single-bot UX had too many buttons and features
+visible to users who couldn't use them.
+**Full docs:** `docs/ai/multibot/OVERVIEW.md`
+
+---
+
 ### DEC-PY-0076 — Separate participant and creator menus
 **Date:** 2026-09-24
 **Decision:** Introduce a new `CREATOR` UserRole and separate the main menu keyboard based on this role.

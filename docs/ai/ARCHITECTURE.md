@@ -119,6 +119,27 @@ module's `models.py` there the moment it exists, even before it has a
   starts polling, and starts an `AsyncIOScheduler` job that periodically
   calls `reminder_engine.run_once()` in its own `session_scope()`.
 
+## Multi-Bot Architecture (26 bots)
+
+> **Full documentation**: `docs/ai/multibot/OVERVIEW.md` (start here)
+
+The system is evolving from 2 bots (1 Telegram + 1 Bale) to **26 bots**:
+1 creator bot + 12 member bots per platform (4 categories × 3 languages).
+
+- **Creator bot** (ختم‌ساز): khatm creation, management, admin. Multi-language.
+- **Member bots**: joining and participating. Each is single-language, single-category.
+- **Two Dispatchers**: `dp_creator` (creator routers) + `dp_member` (member routers).
+- **One process, one DB**: all bots share the same PostgreSQL and event loop.
+- **Bot tokens in DB**: `bot_instances` table, managed via admin web panel.
+
+See `docs/ai/multibot/` for per-topic docs:
+- `BOT_REGISTRY.md` — token storage, BotRegistry class
+- `HANDLER_ROUTING.md` — Dispatcher setup, router classification
+- `INVITE_LINKS.md` — multi-bot invite link generation
+- `NOTIFICATION_ROUTING.md` — sending via the correct bot
+
+Decision: DEC-PY-0080 in `DECISIONS.md`.
+
 ## Why long polling, not a webhook
 
 See `DECISIONS.md` DEC-PY-0001. Short version: no public domain, reverse

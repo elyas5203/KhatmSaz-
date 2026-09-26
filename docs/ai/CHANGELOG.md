@@ -1,3 +1,9 @@
+## 2026-09-26
+- **Architecture**: Multi-bot 26-bot split — `bot_registry` module, `bot_instances` table, Fernet token encryption.
+- **Architecture**: `BotRegistry` singleton + dual Dispatchers (`dp_creator`/`dp_member`) in `bootstrap.py`.
+- **Feature**: Admin panel `/bots` page for managing 26 bot tokens with 2-step name confirmation.
+- **Docs**: Multi-bot architecture documentation in `docs/ai/multibot/` (10 files).
+
 ## 2026-09-24
 - **Feature**: Creator Mass Broadcasts with media support and pricing logic (free under 3, 43k or 93k depending on audience size).
 - **Feature**: Platform restriction (Telegram/Bale/Both) for joining Khatms.

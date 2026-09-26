@@ -3,6 +3,8 @@
 from datetime import datetime, timezone
 
 
+_process_started_at = datetime.now(timezone.utc)
+
 _state = {
     "scheduler_started_at": None,
     "last_scan_started_at": None,
@@ -10,6 +12,10 @@ _state = {
     "last_scan_failed_at": None,
     "last_scan_error": None,
 }
+
+
+def process_started_at() -> datetime:
+    return _process_started_at
 
 
 def mark_scheduler_started() -> None:

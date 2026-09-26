@@ -88,6 +88,10 @@ class Settings(BaseSettings):
     # the wrong person if the ids ever coincide.
     super_admin_bale_chat_ids: str = ""
 
+    # Fernet key for encrypting member bot tokens stored in `bot_instances`.
+    # Generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    bot_token_encryption_key: str = ""
+
     app_timezone: str = "Asia/Tehran"
     log_level: str = "INFO"
 

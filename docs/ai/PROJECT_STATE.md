@@ -1,3 +1,22 @@
+## 2026-09-26 — Multi-Bot Architecture: Phase 2 (Bootstrap) [Claude Code]
+- **What changed**:
+  - Created `BotRegistry` singleton class at `src/khatmsaz/core/bot_registry.py` with lookup by platform, category/language, and instance_id.
+  - Rewrote `bootstrap.py` with dual Dispatchers (`dp_creator` + `dp_member`), member bot loading from DB, and graceful fallback to creator-only mode.
+  - Modified `bot/telegram/client.py` and `bot/bale/client.py` to accept optional token param for member bot construction.
+  - Each `Bot` instance tagged with `khatmsaz_role`, `khatmsaz_category`, `khatmsaz_language`, `khatmsaz_instance_id`.
+- **Next**: Phase 3 (Handler Routing) — create member-specific start/registration handlers, member keyboards, split routers.
+
+## 2026-09-26 — Multi-Bot Architecture: Phase 1 (Data Model) + Phase 6 (Admin Panel) [Claude Code]
+- **What changed**:
+  - Created `bot_registry` module (`src/khatmsaz/modules/bot_registry/`) with models, repository, and service for the 26-bot architecture.
+  - Added `bot_instances` table via Alembic migration `a1b2c3d4e5f6` with 26 pre-seeded rows (2 creator + 24 member bots).
+  - Added Fernet token encryption for member bot tokens (`BOT_TOKEN_ENCRYPTION_KEY` in `.env`).
+  - Built admin token management page at `/bots` with platform tabs, inline edit forms, 2-step name confirmation, and active/inactive toggle.
+  - Added `process_started_at()` to `runtime_status` for restart-needed detection.
+  - Added "باتها" nav link in admin panel for `OPERATIONS_VIEW` permission.
+  - Multi-bot documentation complete in `docs/ai/multibot/` (10 files).
+- **Next**: Phase 2 (Bootstrap) — `BotRegistry` class and dual-Dispatcher startup in `bootstrap.py`.
+
 ## 2026-09-26
 - Fixed `aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: BUTTON_DATA_INVALID` when users requested to join private khatms by using base64 encoding to pack the two UUIDs into a compact string that fits Telegram's 64-byte callback size limit (`bot/keyboards.py`, `join_requests.py`, `start.py`).
 - Handled `aiogram.exceptions.TelegramBadRequest: Telegram server says - Bad Request: message is not modified` when clearing the end date (`bot/handlers/my_khatms.py`).
