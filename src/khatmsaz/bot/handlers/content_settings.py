@@ -4,7 +4,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import CallbackQuery, Message
 
-from khatmsaz.bot.keyboards import content_preferences_keyboard, main_menu_keyboard, safe_answer_callback
+from khatmsaz.bot.keyboards import content_preferences_keyboard, home_keyboard_for_bot, main_menu_keyboard, safe_answer_callback
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
@@ -72,12 +72,16 @@ async def set_content_option(message: Message, command: CommandObject) -> None:
         return
     option, value = parts
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    lang = getattr(message.bot, "khatmsaz_language", "fa")
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        if not getattr(message.bot, "khatmsaz_language", None):
+            settings = await settings_service.get_or_create(session, user.id)
+            lang = settings.language
         await settings_service.set_content_option(session, user.id, option, value == "on")
     label = "ترجمه" if option == "translation" else "تفسیر"
     state = "روشن" if value == "on" else "خاموش"
     await message.answer(
         f"نمایش {label} {state} شد ✅\nاگر asset مربوط در کتابخانه موجود باشد، هنگام ارسال محتوا اعمال می‌شود.",
-        reply_markup=main_menu_keyboard(),
+        reply_markup=home_keyboard_for_bot(message.bot, lang),
     )

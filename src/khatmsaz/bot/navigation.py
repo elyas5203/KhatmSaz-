@@ -2,7 +2,7 @@
 
 from aiogram.types import Message, ReplyKeyboardRemove
 
-from khatmsaz.bot.keyboards import main_menu_keyboard
+from khatmsaz.bot.keyboards import main_menu_keyboard, member_menu_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, UserRole
@@ -20,7 +20,15 @@ def home_markup_for_role(lang: str, role: UserRole):
 
 
 async def resolve_home_navigation(message: Message, lang: str | None = None):
-    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    bot = message.bot
+    bot_role = getattr(bot, "khatmsaz_role", None)
+
+    if bot_role is not None and str(bot_role) == "MEMBER":
+        if lang is None:
+            lang = getattr(bot, "khatmsaz_language", "fa")
+        return lang, None, member_menu_keyboard(lang)
+
+    platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         if lang is None:

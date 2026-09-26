@@ -5,7 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from khatmsaz.bot.keyboards import (
     REPORT_BUTTON_TEXTS, TODAY_BUTTON_TEXTS,
-    main_menu_keyboard, portion_done_keyboard,
+    home_keyboard_for_bot, main_menu_keyboard, portion_done_keyboard,
 )
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation import service as allocation_service
@@ -26,10 +26,14 @@ router = Router(name="report")
 async def today_overview(message: Message) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     pending: list[tuple[object, object, object]] = []
+    bot_lang = getattr(message.bot, "khatmsaz_language", None)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        settings = await settings_service.get_or_create(session, user.id)
-        lang = settings.language
+        if bot_lang:
+            lang = bot_lang
+        else:
+            settings = await settings_service.get_or_create(session, user.id)
+            lang = settings.language
         for participation in await participation_service.list_my_active(session, user.id):
             khatm = await khatm_service.get_khatm(session, participation.khatm_id)
             if khatm is None:
@@ -40,7 +44,7 @@ async def today_overview(message: Message) -> None:
             if portion is not None:
                 pending.append((khatm, participation, portion))
     if not pending:
-        await message.answer(t("report.no_portion_today", lang), reply_markup=main_menu_keyboard(lang))
+        await message.answer(t("report.no_portion_today", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
         return
     await message.answer(t("report.today_count", lang, count=len(pending)))
     for khatm, _participation, portion in pending:
@@ -50,7 +54,7 @@ async def today_overview(message: Message) -> None:
         else:
             await message.answer(
                 t("report.today_quantity_label", lang, title=khatm.title, quantity=portion.quantity),
-                reply_markup=main_menu_keyboard(lang),
+                reply_markup=home_keyboard_for_bot(message.bot, lang),
             )
 
 

@@ -1,3 +1,11 @@
+## 2026-09-26 (member bot UX fix)
+- **Fix**: Invite links in khatm creation now use `bot.khatmsaz_username` (fetched at startup) and point to the correct member bots; no more fallback to creator bot.
+- **Fix**: All shared handlers now return `member_menu_keyboard` on member bots via `home_keyboard_for_bot` helper — creator-only buttons no longer appear in member bot menus.
+- **Fix**: `_lang_for` helpers in shared handlers use `bot.khatmsaz_language` instead of DB lookup for member bots.
+- **Fix**: Language setting is blocked on member bots (language is fixed per bot).
+- **Fix**: `help.py` hides creator/admin topics from member bot users; `create:start_from_help` callback rejects on member bots.
+- **Fix**: `show_invite_platform_keyboard` skips platform selection and shows warning immediately when no member bots are configured.
+
 ## 2026-09-26 (audit pass)
 - **Fix**: Replaced `reload_router`/`sys.modules` hack in `bootstrap.py` with clean `importlib.util` approach for sharing routers across two Dispatchers.
 - **Fix**: Updated `test_daily_digest.py` mocks to include `joined_via_bot_instance_id` and accept the `bot_instance_id` kwarg.

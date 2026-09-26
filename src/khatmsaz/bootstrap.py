@@ -105,7 +105,7 @@ async def _build_member_bots() -> list[Bot]:
             try:
                 # Validate the token before adding to the pool — a revoked
                 # token would crash the entire polling gather otherwise.
-                await bot.get_me()
+                me = await bot.get_me()
             except Exception as exc:
                 logger.warning(
                     "Member bot %s (%s) has an invalid token (%s) — skipping.",
@@ -113,6 +113,7 @@ async def _build_member_bots() -> list[Bot]:
                 )
                 await bot.session.close()
                 continue
+            bot.khatmsaz_username = me.username  # type: ignore[attr-defined]
             _tag_bot(
                 bot,
                 role=BotRole.MEMBER,
@@ -250,6 +251,14 @@ async def main() -> None:
     for _path in _shared_module_paths:
         dp_creator.include_router(_fresh_router(_path))
         dp_member.include_router(_fresh_router(_path))
+
+    # Fetch and tag usernames for creator bots (member bots already tagged during token validation above).
+    for bot in creator_bots:
+        try:
+            me = await bot.get_me()
+            bot.khatmsaz_username = me.username  # type: ignore[attr-defined]
+        except Exception:
+            bot.khatmsaz_username = None  # type: ignore[attr-defined]
 
     # --- Clear stale webhooks ---
     for bot in all_bots:

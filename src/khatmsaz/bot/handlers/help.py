@@ -43,6 +43,11 @@ HELP_TOPICS = {topic: t(key, "fa") for topic, key in _TOPIC_KEYS.items()}
 from khatmsaz.modules.identity.models import Platform, UserRole
 
 async def _resolve_user_info(message: Message) -> tuple[str, bool, bool]:
+    # Member bots: language is fixed per bot, and members are never creators/admins.
+    bot_lang = getattr(message.bot, "khatmsaz_language", None)
+    if bot_lang:
+        return bot_lang, False, False
+
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
@@ -77,6 +82,10 @@ async def help_topic(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "create:start_from_help")
 async def help_start_creation(callback: CallbackQuery, state: FSMContext) -> None:
+    if getattr(callback.bot, "khatmsaz_language", None):
+        # Member bot — creation is not available here
+        await safe_answer_callback(callback, "ساخت ختم از این ربات امکان‌پذیر نیست.")
+        return
     # Route through the same verified-phone creation entry point as the Home
     # button, without asking an inexperienced user to hunt for that button.
     from khatmsaz.bot.handlers.create_khatm import start_wizard

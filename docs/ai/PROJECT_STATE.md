@@ -1,3 +1,17 @@
+## 2026-09-26 — Fix Member Bot Keyboards, Invite Links, and Language Isolation [Claude Code]
+- **What changed**:
+  - Added `khatmsaz_username` tag to all bots at startup (creator + member) from `await bot.get_me()`.
+  - `create_khatm.py` `finish_invite_links`: invite links now use `bot.khatmsaz_username`; shows warning message instead of falling back to creator bot when no member bots configured. `show_invite_platform_keyboard` short-circuits to warning immediately if no member bots are registered.
+  - Added `home_keyboard_for_bot(bot, lang)` helper in `keyboards.py` — returns `member_menu_keyboard` for MEMBER bots and `main_menu_keyboard` for CREATOR bots.
+  - `navigation.py` `resolve_home_navigation`: short-circuits for MEMBER bots (uses `bot.khatmsaz_language`, returns `member_menu_keyboard`).
+  - All shared handlers (portions, settings_menu, suggestions, font_settings, reciter_settings, sms_settings, report, content_settings, help) now use `home_keyboard_for_bot` instead of `main_menu_keyboard`.
+  - `_lang_for` helpers in `portions.py` and `settings_menu.py` use `bot.khatmsaz_language` for member bots instead of reading DB.
+  - `settings_menu.py` `set_language`: blocks language changes on member bots (language is fixed per bot).
+  - `help.py` `_resolve_user_info`: member bots short-circuit without DB query, and `is_creator`/`is_admin` always false; `create:start_from_help` callback rejects on member bots.
+- **Why**: The multi-bot architecture assumed shared handlers would magically show the right keyboard — they didn't. Creator-specific buttons (ساخت ختم, etc.) appeared in member bot menus, and invite links pointed to the wrong bot.
+- **How verified**: `PYTHONPATH=src python -m pytest -m "not integration"` → 79 passed, 0 failed.
+- **What's still outstanding**: Live VPS test on a real member bot instance.
+
 ## 2026-09-26 — Audit & Fix Antigravity's Phases 3-5 Work [Claude Code]
 - **What changed**:
   - Replaced fragile `reload_router` / `sys.modules` manipulation in `bootstrap.py` with `importlib.util.find_spec` + `module_from_spec` + `exec_module` approach. Each shared router is now loaded into a fresh anonymous module per Dispatcher — no global state mutation.

@@ -9,7 +9,7 @@ in `settings_menu.py`; it never silently turns SMS on for free.
 from aiogram import Router
 from aiogram.types import Message
 
-from khatmsaz.bot.keyboards import main_menu_keyboard
+from khatmsaz.bot.keyboards import home_keyboard_for_bot, main_menu_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
@@ -24,10 +24,14 @@ async def set_sms(message: Message) -> None:
     parts = (message.text or "").split(maxsplit=1)
     value = parts[1].strip().lower() if len(parts) == 2 else ""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as session:
-        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        settings = await settings_service.get_or_create(session, user.id)
-        lang = settings.language
+    bot_lang = getattr(message.bot, "khatmsaz_language", None)
+    if bot_lang:
+        lang = bot_lang
+    else:
+        async with session_scope() as session:
+            user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+            settings = await settings_service.get_or_create(session, user.id)
+            lang = settings.language
     if value not in {"on", "off"}:
         await message.answer(t("sms_settings.usage", lang))
         return
@@ -42,4 +46,4 @@ async def set_sms(message: Message) -> None:
             await settings_service.set_sms_enabled(session, user.id, False)
         except ValueError:
             pass
-    await message.answer(t("sms_settings.turned_off", lang), reply_markup=main_menu_keyboard(lang))
+    await message.answer(t("sms_settings.turned_off", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))

@@ -16,7 +16,9 @@ from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.keyboards import (
     SETTINGS_BUTTON_TEXTS,
+    home_keyboard_for_bot,
     main_menu_keyboard,
+    member_menu_keyboard,
     settings_content_keyboard,
     settings_font_keyboard,
     settings_home_keyboard,
@@ -54,6 +56,8 @@ async def _current_platform_user(message: Message):
 
 
 async def _lang_for(chat_id, bot) -> str:
+    if getattr(bot, "khatmsaz_role", None) is not None and str(getattr(bot, "khatmsaz_role")) == "MEMBER":
+        return getattr(bot, "khatmsaz_language", "fa")
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, chat_id)
@@ -94,6 +98,13 @@ async def settings_language_menu(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("set_language:"))
 async def set_language(callback: CallbackQuery) -> None:
+    # Member bots have a fixed language per bot — ignore language change attempts.
+    if getattr(callback.bot, "khatmsaz_role", None) is not None and str(getattr(callback.bot, "khatmsaz_role")) == "MEMBER":
+        lang = getattr(callback.bot, "khatmsaz_language", "fa")
+        await callback.answer(t("settings.language_saved", lang))
+        await settings_home(callback)
+        await callback.message.answer(t("settings.language_saved", lang), reply_markup=member_menu_keyboard(lang))
+        return
     value = callback.data.split(":", 1)[1]
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -107,7 +118,7 @@ async def set_language(callback: CallbackQuery) -> None:
     # only refreshes when a *new* message carries a new reply_markup — so
     # it silently stayed in the old language until some other action sent
     # a fresh main-menu message. Send one now so it updates immediately.
-    await callback.message.answer(t("settings.language_saved", value), reply_markup=main_menu_keyboard(value))
+    await callback.message.answer(t("settings.language_saved", value), reply_markup=home_keyboard_for_bot(callback.message.bot, value))
 
 
 @router.callback_query(F.data == "settings:font")

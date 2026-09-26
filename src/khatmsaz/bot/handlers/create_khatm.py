@@ -1054,14 +1054,21 @@ from khatmsaz.modules.khatm.models import Khatm
 
 async def show_invite_platform_keyboard(message: Message, state: FSMContext, lang: str):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    
+
+    # If no member bots are configured at all, skip the platform/language
+    # selection steps entirely and go straight to the result screen.
+    if not get_registry().member_bots():
+        await state.update_data(selected_invite_platform="ALL", selected_invite_languages=["fa"])
+        await finish_invite_links(message, state, lang)
+        return
+
     buttons = [
         [InlineKeyboardButton(text="تلگرام", callback_data="invite_plat:TELEGRAM"),
          InlineKeyboardButton(text="بله", callback_data="invite_plat:BALE")],
         [InlineKeyboardButton(text="همه ربات‌ها", callback_data="invite_plat:ALL")]
     ]
     kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-    
+
     text = "لینک دعوت برای کدام پیام‌رسان ساخته شود؟"
     if isinstance(message, CallbackQuery):
         try:
@@ -1209,44 +1216,38 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     invite_lines = []
     lang_flags = {"fa": "🇮🇷 فارسی", "ar": "🇸🇦 عربی", "en": "🇬🇧 انگلیسی"}
     
-    # Try finding multi-bots
-    found_any_bot = False
-    if registry.member_bots():
-        for sl in selected_langs:
-            tg_bot = None
-            bale_bot = None
-            for b in registry.member_bots():
-                if getattr(b, "khatmsaz_category", None) and getattr(b, "khatmsaz_category") == khatm_bot_cat and getattr(b, "khatmsaz_language", None) == sl:
-                    pl = getattr(b, "khatmsaz_platform")
-                    if plat_choice == "ALL" or plat_choice == pl.value:
-                        if pl == Platform.TELEGRAM:
-                            tg_bot = b
-                        elif pl == Platform.BALE:
-                            bale_bot = b
-                            
-            if tg_bot or bale_bot:
-                found_any_bot = True
-                invite_lines.append(f"{lang_flags.get(sl, sl)}:")
-            if tg_bot:
-                invite_lines.append(f"▫️ تلگرام: https://t.me/{tg_bot.username}?start=join_{token}")
-            if bale_bot:
-                invite_lines.append(f"▫️ بله: https://ble.ir/{bale_bot.username}?start=join_{token}")
-            
-            if tg_bot or bale_bot:
-                invite_lines.append("")
-                
-    if not found_any_bot:
-        # Fallback to creator bot if no member bots match
-        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-        if (plat_choice == "ALL" or plat_choice == "TELEGRAM") and platform == Platform.TELEGRAM and settings.telegram_bot_username:
-            invite_lines.append(f"https://t.me/{settings.telegram_bot_username}?start=join_{token}")
-        elif (plat_choice == "ALL" or plat_choice == "BALE") and platform == Platform.BALE and settings.bale_bot_username:
-            invite_lines.append(f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}")
-        else:
-            invite_lines.append(t("create_khatm.bale_invite_instruction", lang, token=token))
+    # Build per-language member bot invite links.
+    # invite_lines remains empty if no member bots match — the web landing
+    # page link (shown below) is always included as the primary share target.
+    for sl in selected_langs:
+        tg_bot = None
+        bale_bot = None
+        for b in registry.member_bots():
+            b_cat = getattr(b, "khatmsaz_category", None)
+            b_lang = getattr(b, "khatmsaz_language", None)
+            b_username = getattr(b, "khatmsaz_username", None)
+            if b_cat == khatm_bot_cat and b_lang == sl and b_username:
+                pl = getattr(b, "khatmsaz_platform")
+                if plat_choice == "ALL" or pl.value == plat_choice:
+                    if pl == Platform.TELEGRAM:
+                        tg_bot = b
+                    elif pl == Platform.BALE:
+                        bale_bot = b
 
+        if tg_bot or bale_bot:
+            invite_lines.append(f"{lang_flags.get(sl, sl)}:")
+        if tg_bot:
+            invite_lines.append(f"▫️ تلگرام: https://t.me/{tg_bot.khatmsaz_username}?start=join_{token}")
+        if bale_bot:
+            invite_lines.append(f"▫️ بله: https://ble.ir/{bale_bot.khatmsaz_username}?start=join_{token}")
+        if tg_bot or bale_bot:
+            invite_lines.append("")
+
+    if not invite_lines:
+        # No member bots have active tokens configured yet.
+        invite_lines = ["⚠️ هیچ ربات عضوی با توکن فعال تنظیم نشده.\nبعد از تنظیم توکن ربات‌ها در پنل مدیریت، لینک را از «🔗 QR دعوت» در مدیریت این ختم دریافت کنید."]
     invite_lines_str = "\n".join(invite_lines)
-    
+
     await safe_clear_inline_keyboard(message)
     await state.clear()
     

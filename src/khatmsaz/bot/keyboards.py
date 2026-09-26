@@ -74,6 +74,15 @@ def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
+def home_keyboard_for_bot(bot, lang: str) -> ReplyKeyboardMarkup:
+    """Return the correct home keyboard based on whether bot is MEMBER or CREATOR.
+    Always use this instead of bare main_menu_keyboard() in shared handlers."""
+    role = getattr(bot, "khatmsaz_role", None)
+    if role is not None and str(role) == "MEMBER":
+        return member_menu_keyboard(lang)
+    return main_menu_keyboard(lang)
+
+
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[

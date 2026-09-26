@@ -9,7 +9,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
-from khatmsaz.bot.keyboards import SUPPORT_BUTTON_TEXTS, bail_if_menu_button, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import SUPPORT_BUTTON_TEXTS, bail_if_menu_button, home_keyboard_for_bot, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
 from khatmsaz.bot.notify_adapter import get_notify_fn, send_with_keyboard
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
@@ -205,7 +205,7 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
                     await send_with_keyboard(creator_pid.platform.value, creator_pid.subject, admin_text, markup)
 
     await state.clear()
-    await message.answer(t("suggestions.submitted", lang), reply_markup=main_menu_keyboard(lang))
+    await message.answer(t("suggestions.submitted", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 
 @router.callback_query(F.data.startswith("reply_user:"))
@@ -250,7 +250,7 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                 reply_text = f"📨 پیام از طرف سازنده ختم شما ({sender.display_name or 'سازنده'}):\n\n{text}"
                 try:
                     await notify(user_pid.platform.value, user_pid.subject, reply_text)
-                    await message.answer("پاسخ شما با موفقیت به کاربر ارسال شد.", reply_markup=main_menu_keyboard("fa"))
+                    await message.answer("پاسخ شما با موفقیت به کاربر ارسال شد.", reply_markup=home_keyboard_for_bot(message.bot, "fa"))
                 except Exception as e:
                     logger.error(f"Failed to send reply to user {target_user_id}: {e}")
                     await message.answer("خطا در ارسال پیام به کاربر.")

@@ -18,6 +18,7 @@ from khatmsaz.bot.keyboards import (
     contribute_keyboard,
     commitment_quantity_keyboard,
     delivery_hour_keyboard,
+    home_keyboard_for_bot,
     main_menu_keyboard,
     pause_duration_keyboard,
     portion_done_keyboard,
@@ -72,6 +73,8 @@ class CustomSnooze(StatesGroup):
 
 
 async def _lang_for(chat_id, bot) -> str:
+    if getattr(bot, "khatmsaz_role", None) is not None and str(getattr(bot, "khatmsaz_role")) == "MEMBER":
+        return getattr(bot, "khatmsaz_language", "fa")
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, chat_id)
@@ -142,19 +145,28 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
     await deliver_devotional_media(session, message, slug=slug, asset=asset, platform=platform, lang=lang)
 
 
-async def _invite_friends_line(session, khatm, creator_user_id, platform: Platform, lang: str) -> str:
+async def _invite_friends_line(session, khatm, creator_user_id, platform: Platform, lang: str, *, bot=None) -> str:
     """Owner request (2026-09-20): every "your portion was logged" message
     ends with an invite link to this same khatm, so a participant can share
     their own moment of sawab with friends — mirrors a sample message from a
     comparable bot. Same URL-building rule as the QR invite in
     `my_khatms.py::send_invite_qr`."""
     settings = get_settings()
-    if platform == Platform.TELEGRAM:
-        username = settings.telegram_bot_username
-        base_url = f"https://t.me/{username}" if username else ""
+    # For member bots, use that bot's own username so the link points to the
+    # correct member bot rather than the creator bot.
+    member_username = getattr(bot, "khatmsaz_username", None) if bot else None
+    if member_username:
+        if platform == Platform.TELEGRAM:
+            base_url = f"https://t.me/{member_username}"
+        else:
+            base_url = f"https://ble.ir/{member_username}"
     else:
-        username = settings.bale_bot_username
-        base_url = f"https://ble.ir/{username}" if username else ""
+        if platform == Platform.TELEGRAM:
+            username = settings.telegram_bot_username
+            base_url = f"https://t.me/{username}" if username else ""
+        else:
+            username = settings.bale_bot_username
+            base_url = f"https://ble.ir/{username}" if username else ""
     if not base_url:
         return ""
     token = await invitation_service.create_invitation(session, khatm.id, creator_user_id)
@@ -253,7 +265,7 @@ async def receive_custom_snooze(message: Message, state: FSMContext) -> None:
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None or not khatm.allow_snooze:
             await state.clear()
-            await message.answer(t("portions.khatm_inactive_or_not_member", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.khatm_inactive_or_not_member", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
         try:
             await notification_service.snooze_until(session, participation.id, until)
@@ -261,7 +273,7 @@ async def receive_custom_snooze(message: Message, state: FSMContext) -> None:
             await message.answer(t("portions.snooze_must_be_future", lang))
             return
     await state.clear()
-    await message.answer(t("portions.snooze_custom_saved", lang), reply_markup=main_menu_keyboard(lang))
+    await message.answer(t("portions.snooze_custom_saved", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 
 def _unit_label(template_type: KhatmTemplateType, lang: str = "fa") -> str:
@@ -463,7 +475,7 @@ async def undo_last_completion(callback: CallbackQuery) -> None:
         await safe_answer_callback(callback, t("portions.undo_expired", lang), show_alert=True)
         return
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(t("portions.undo_done", lang), reply_markup=main_menu_keyboard(lang))
+    await callback.message.answer(t("portions.undo_done", lang), reply_markup=home_keyboard_for_bot(callback.message.bot, lang))
     await safe_answer_callback(callback)
 
 
@@ -530,7 +542,7 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None:
             await state.clear()
-            await message.answer(t("portions.not_a_member", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.not_a_member", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
         await participation_service.set_open_reading_pages_per_day(session, participation.id, pages_per_day)
         await notification_service.set_reminder_preference(
@@ -541,7 +553,7 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
         first_batch = min(pages_per_day, remaining)
         if first_batch <= 0:
             await state.clear()
-            await message.answer(t("portions.open_quran.already_finished", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.open_quran.already_finished", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
         reserved = await participation_service.advance_open_reading(session, participation.id, first_batch)
         start, end = reserved
@@ -611,13 +623,13 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         participation = await participation_repository.get_active(session, khatm_id, user.id)
         if participation is None:
             await state.clear()
-            await message.answer(t("portions.not_a_member", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.not_a_member", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
 
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if khatm is None or khatm.status.name != "ACTIVE":
             await state.clear()
-            await message.answer(t("portions.khatm_not_active", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.khatm_not_active", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
         if data.get("commitment"):
             portion, counted, surplus = await allocation_service.record_quantity_commitment_progress(
@@ -625,7 +637,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             )
             if portion is None:
                 await state.clear()
-                await message.answer(t("portions.no_active_commitment", lang), reply_markup=main_menu_keyboard(lang))
+                await message.answer(t("portions.no_active_commitment", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
                 return
             done = portion.status.name == "COMPLETED"
             target = portion.quantity or 0
@@ -652,7 +664,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             await state.clear()
             await message.answer(
                 "\n".join(lines),
-                reply_markup=main_menu_keyboard(lang) if done else commitment_quantity_keyboard(khatm_id, lang),
+                reply_markup=home_keyboard_for_bot(message.bot, lang) if done else commitment_quantity_keyboard(khatm_id, lang),
             )
             await _send_recitation_content(session, message, khatm)
             return
@@ -718,7 +730,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         lines.append(t("portions.goal_reached", lang))
         async with session_scope() as session:
             await khatm_service.complete_khatm(session, khatm_id)
-        await message.answer("\n".join(lines), reply_markup=main_menu_keyboard(lang))
+        await message.answer("\n".join(lines), reply_markup=home_keyboard_for_bot(message.bot, lang))
     else:
         await message.answer("\n".join(lines), reply_markup=contribute_keyboard(khatm_id, lang))
 
@@ -785,11 +797,11 @@ async def receive_custom_pause_until(message: Message, state: FSMContext) -> Non
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None or not khatm.allow_pause:
             await state.clear()
-            await message.answer(t("portions.khatm_inactive_or_not_yours", lang), reply_markup=main_menu_keyboard(lang))
+            await message.answer(t("portions.khatm_inactive_or_not_yours", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
         await workflow_service.pause_commitment(session, participation.id, khatm_id, until)
     await state.clear()
-    await message.answer(t("portions.pause_custom_saved", lang), reply_markup=main_menu_keyboard(lang))
+    await message.answer(t("portions.pause_custom_saved", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 
 @router.callback_query(F.data.startswith("pause:"))
