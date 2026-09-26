@@ -86,6 +86,7 @@ class CreateKhatm(StatesGroup):
     entering_start_at = State()
     entering_coupon = State()
     confirming = State()
+    choosing_invite_platform = State()
     choosing_invite_languages = State()
 
 
@@ -982,39 +983,11 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
             )
             return
 
-    await state.clear()
-
-    settings = get_settings()
-    landing_line = ""
-    if settings.public_web_base_url:
-        landing_line = t(
-            "create_khatm.landing_line",
-            lang,
-            url=f"{settings.public_web_base_url.rstrip('/')}/join/{token}",
-        )
-    if platform == Platform.TELEGRAM and settings.telegram_bot_username:
-        invite_line = f"https://t.me/{settings.telegram_bot_username}?start=join_{token}"
-    elif platform == Platform.BALE and settings.bale_bot_username:
-        # Owner-reported bug (2026-09-22): the raw "/start join_<token>"
-        # text instruction wasn't usable as a real invite ("لینک... خرابه") —
-        # a manually-typed command is error-prone (typos, no clickable
-        # link). Use the same ble.ir deep-link format `_invite_friends_line`
-        # in portions.py already relies on elsewhere in this codebase, for
-        # consistency — a real clickable link instead of dictated text.
-        invite_line = f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}"
-    else:
-        invite_line = t("create_khatm.bale_invite_instruction", lang, token=token)
-
-    await message.answer(
-        t(
-            "create_khatm.success",
-            lang,
-            title=khatm.title,
-            invite_line=invite_line,
-            landing_line=landing_line,
-        ),
-        reply_markup=main_menu_keyboard(lang),
-    )
+    # DO NOT clear state here. We need to preserve created_khatm_id and created_token.
+    # We also need to save them into the state.
+    await state.update_data(created_khatm_id=str(khatm.id), created_token=token)
+    await state.set_state(CreateKhatm.choosing_invite_platform)
+    await show_invite_platform_keyboard(message, state, lang)
 
 
 async def resume_khatm_creation_if_pending(message: Message, state: FSMContext) -> bool:
@@ -1079,10 +1052,40 @@ async def confirm_wizard(callback: CallbackQuery, state: FSMContext) -> None:
 from khatmsaz.core.bot_registry import get_registry
 from khatmsaz.modules.khatm.models import Khatm
 
-async def show_invite_languages_keyboard(message: Message, state: FSMContext, lang: str):
+async def show_invite_platform_keyboard(message: Message, state: FSMContext, lang: str):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
+    buttons = [
+        [InlineKeyboardButton(text="تلگرام", callback_data="invite_plat:TELEGRAM"),
+         InlineKeyboardButton(text="بله", callback_data="invite_plat:BALE")],
+        [InlineKeyboardButton(text="همه ربات‌ها", callback_data="invite_plat:ALL")]
+    ]
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    text = "لینک دعوت برای کدام پیام‌رسان ساخته شود؟"
+    if isinstance(message, CallbackQuery):
+        try:
+            await message.message.edit_text(text, reply_markup=kb)
+        except Exception:
+            pass
+    else:
+        await message.answer(text, reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("invite_plat:"), CreateKhatm.choosing_invite_platform)
+async def handle_invite_platform(callback: CallbackQuery, state: FSMContext) -> None:
+    plat = callback.data.split(":")[1]
+    await state.update_data(selected_invite_platform=plat)
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_invite_languages)
+    await show_invite_languages_keyboard(callback, state, lang)
+    await callback.answer()
+
+
+async def show_invite_languages_keyboard(message: Message | CallbackQuery, state: FSMContext, lang: str):
     data = await state.get_data()
     khatm_id = data["created_khatm_id"]
-    selected = data.get("selected_invite_languages", [lang])
+    selected = data.get("selected_invite_languages", ["fa"])
     
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
@@ -1102,15 +1105,21 @@ async def show_invite_languages_keyboard(message: Message, state: FSMContext, la
                 elif cat.group.name == "DUA":
                     khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
     
-    # Find available languages for this category
+    # Find available languages for this category and selected platform
     available_langs = set()
     registry = get_registry()
+    plat_choice = data.get("selected_invite_platform", "ALL")
+    
     for bot in registry.member_bots():
+        # filter by category
         if getattr(bot, "khatmsaz_category", None) and getattr(bot, "khatmsaz_category").value == khatm_bot_cat:
+            # filter by platform if not ALL
+            if plat_choice != "ALL" and getattr(bot, "khatmsaz_platform", None) != Platform(plat_choice):
+                continue
             available_langs.add(getattr(bot, "khatmsaz_language"))
             
     if not available_langs:
-        # Fallback to single-bot if no member bots
+        # Fallback to single-bot if no member bots match
         await finish_invite_links(message, state, lang)
         return
         
@@ -1138,7 +1147,7 @@ async def show_invite_languages_keyboard(message: Message, state: FSMContext, la
 async def handle_toggle_lang(callback: CallbackQuery, state: FSMContext) -> None:
     l = callback.data.split(":")[1]
     data = await state.get_data()
-    selected = set(data.get("selected_invite_languages", []))
+    selected = set(data.get("selected_invite_languages", ["fa"]))
     if l in selected:
         selected.remove(l)
     else:
@@ -1163,9 +1172,10 @@ async def handle_confirm_invite_langs(callback: CallbackQuery, state: FSMContext
 
 async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     data = await state.get_data()
-    khatm_id = data["created_khatm_id"]
-    token = data["created_token"]
-    selected_langs = data.get("selected_invite_languages", [lang])
+    khatm_id = data.get("created_khatm_id")
+    token = data.get("created_token")
+    selected_langs = data.get("selected_invite_languages", ["fa"])
+    plat_choice = data.get("selected_invite_platform", "ALL")
     
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
@@ -1197,34 +1207,40 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         )
         
     invite_lines = []
-    lang_flags = {"fa": "🇮🇷 فارسی:", "ar": "🇸🇦 عربی:", "en": "🇬🇧 انگلیسی:"}
+    lang_flags = {"fa": "🇮🇷 فارسی", "ar": "🇸🇦 عربی", "en": "🇬🇧 انگلیسی"}
     
+    # Try finding multi-bots
+    found_any_bot = False
     if registry.member_bots():
         for sl in selected_langs:
-            invite_lines.append(lang_flags.get(sl, sl))
-            
             tg_bot = None
             bale_bot = None
             for b in registry.member_bots():
                 if getattr(b, "khatmsaz_category", None) and getattr(b, "khatmsaz_category").value == khatm_bot_cat and getattr(b, "khatmsaz_language", None) == sl:
                     pl = getattr(b, "khatmsaz_platform")
-                    if pl == Platform.TELEGRAM:
-                        tg_bot = b
-                    elif pl == Platform.BALE:
-                        bale_bot = b
-                        
+                    if plat_choice == "ALL" or plat_choice == pl.value:
+                        if pl == Platform.TELEGRAM:
+                            tg_bot = b
+                        elif pl == Platform.BALE:
+                            bale_bot = b
+                            
+            if tg_bot or bale_bot:
+                found_any_bot = True
+                invite_lines.append(f"{lang_flags.get(sl, sl)}:")
             if tg_bot:
-                invite_lines.append(f"  تلگرام: https://t.me/{tg_bot.username}?start=join_{token}")
+                invite_lines.append(f"▫️ تلگرام: https://t.me/{tg_bot.username}?start=join_{token}")
             if bale_bot:
-                invite_lines.append(f"  بله: https://ble.ir/{bale_bot.username}?start=join_{token}")
+                invite_lines.append(f"▫️ بله: https://ble.ir/{bale_bot.username}?start=join_{token}")
             
-            invite_lines.append("")
-    else:
-        # Fallback to creator bot
+            if tg_bot or bale_bot:
+                invite_lines.append("")
+                
+    if not found_any_bot:
+        # Fallback to creator bot if no member bots match
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-        if platform == Platform.TELEGRAM and settings.telegram_bot_username:
+        if (plat_choice == "ALL" or plat_choice == "TELEGRAM") and platform == Platform.TELEGRAM and settings.telegram_bot_username:
             invite_lines.append(f"https://t.me/{settings.telegram_bot_username}?start=join_{token}")
-        elif platform == Platform.BALE and settings.bale_bot_username:
+        elif (plat_choice == "ALL" or plat_choice == "BALE") and platform == Platform.BALE and settings.bale_bot_username:
             invite_lines.append(f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}")
         else:
             invite_lines.append(t("create_khatm.bale_invite_instruction", lang, token=token))
@@ -1234,7 +1250,18 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     await safe_clear_inline_keyboard(message)
     await state.clear()
     
-    await message.answer(
+    from aiogram.types import LinkPreviewOptions
+    # Clean up edit message if it was a callback
+    if hasattr(message, "edit_text"):
+        try:
+            await message.delete()
+        except Exception:
+            pass
+            
+    # Need original message or callback's message for answer
+    target_msg = message if isinstance(message, Message) else message.message
+    
+    await target_msg.answer(
         t(
             "create_khatm.success",
             lang,
@@ -1243,5 +1270,5 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
             landing_line=landing_line,
         ),
         reply_markup=main_menu_keyboard(lang, is_creator=True),
-        disable_web_page_preview=True,
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
