@@ -74,11 +74,23 @@ def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         resize_keyboard=True,
     )
 
+def is_member_bot(bot) -> bool:
+    """True when this Bot instance is a category-specific MEMBER bot.
+
+    `khatmsaz_role` holds a `BotRole` enum (a `str, Enum`), so `str(role)`
+    yields ``'BotRole.MEMBER'`` — never the bare ``'MEMBER'``. Compare the
+    enum value instead; this also tolerates a plain string being stored.
+    """
+    role = getattr(bot, "khatmsaz_role", None)
+    if role is None:
+        return False
+    return getattr(role, "value", role) == "MEMBER"
+
+
 def home_keyboard_for_bot(bot, lang: str) -> ReplyKeyboardMarkup:
     """Return the correct home keyboard based on whether bot is MEMBER or CREATOR.
     Always use this instead of bare main_menu_keyboard() in shared handlers."""
-    role = getattr(bot, "khatmsaz_role", None)
-    if role is not None and str(role) == "MEMBER":
+    if is_member_bot(bot):
         return member_menu_keyboard(lang)
     return main_menu_keyboard(lang)
 

@@ -1103,7 +1103,7 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
         if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
             khatm_bot_cat = BotCategory.QURAN.value
         else:
-            cat = await category_service.get_category(session, khatm.content_category_id)
+            cat = await category_service.get(session, khatm.content_category_id) if khatm.content_category_id else None
             if cat:
                 if cat.group.name == "SALAWAT":
                     khatm_bot_cat = BotCategory.SALAWAT.value
@@ -1193,7 +1193,7 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
             khatm_bot_cat = BotCategory.QURAN.value
         else:
-            cat = await category_service.get_category(session, khatm.content_category_id)
+            cat = await category_service.get(session, khatm.content_category_id) if khatm.content_category_id else None
             if cat:
                 if cat.group.name == "SALAWAT":
                     khatm_bot_cat = BotCategory.SALAWAT.value

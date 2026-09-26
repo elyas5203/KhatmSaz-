@@ -259,7 +259,7 @@ async def choose_first_language(callback, state: FSMContext) -> None:
     lang = callback.data.split(":", 1)[1]
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
-        user = await identity_service.resolve_or_provision_user(session, platform, callback.fromuser.id if hasattr(callback, 'fromuser') else callback.from_user.id)
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
         try:
             await settings_service.set_language(session, user.id, lang)
@@ -417,113 +417,12 @@ async def resume_join_after_registration(
         await message.answer(t("join.ask_delivery_hour", lang), reply_markup=delivery_hour_keyboard("join_hour", lang))
 
 
-async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0) -> None:
-    async with session_scope() as session:
-        await notification_service.set_reminder_preference(
-            session, participation_id, reminder_hour=hour, reminder_minute=minute, enabled=True
-        )
-
-
-def _parse_delivery_time(raw: str) -> tuple[int, int] | None:
-    """Parse 'H', 'HH', or 'HH:MM' into (hour, minute). Returns None if invalid."""
-    raw = raw.strip()
-    if ":" in raw:
-        parts = raw.split(":", 1)
-        if not parts[0].isdigit() or not parts[1].isdigit():
-            return None
-        h, m = int(parts[0]), int(parts[1])
-        if 0 <= h <= 23 and 0 <= m <= 59:
-            return h, m
-        return None
-    if raw.isdigit():
-        h = int(raw)
-        if 0 <= h <= 23:
-            return h, 0
-    return None
-
 def _get_fallback_markup_for_bot(bot, lang):
     bot_role = getattr(bot, "khatmsaz_role", BotRole.CREATOR)
     if bot_role == BotRole.MEMBER:
         from khatmsaz.bot.keyboards import member_menu_keyboard
         return member_menu_keyboard(lang)
     return main_menu_keyboard(lang)
-
-
-@router.callback_query(F.data.startswith("join_hour:"), AskDeliveryHour.entering_hour)
-async def receive_delivery_hour_button(callback, state: FSMContext) -> None:
-    hour = int(callback.data.split(":", 1)[1])
-    data = await state.get_data()
-    lang = data.get("lang", "fa")
-    participation_id = data.get("delivery_hour_participation_id")
-    await state.clear()
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
-    if participation_id:
-        await _save_delivery_time(participation_id, hour, 0)
-    await callback.message.answer(t("join.delivery_hour_saved", lang, hour=hour), reply_markup=_get_fallback_markup_for_bot(callback.message.bot, lang))
-    await callback.answer()
-
-
-@router.message(AskDeliveryHour.entering_hour)
-async def receive_delivery_hour(message: Message, state: FSMContext) -> None:
-    if await bail_if_menu_button(message, state):
-        return
-    data = await state.get_data()
-    lang = data.get("lang", "fa")
-    raw = (message.text or "").strip()
-    parsed = _parse_delivery_time(raw)
-    if parsed is None:
-        await message.answer(t("join.delivery_hour_invalid", lang))
-        return
-    hour, minute = parsed
-    participation_id = data.get("delivery_hour_participation_id")
-    await state.clear()
-    if participation_id:
-        await _save_delivery_time(participation_id, hour, minute)
-    time_str = f"{hour:02d}:{minute:02d}"
-    await message.answer(t("join.delivery_hour_saved", lang, hour=time_str), reply_markup=_get_fallback_markup_for_bot(message.bot, lang))
-
-
-@router.callback_query(F.data.startswith("commitment_consent:accept"))
-async def accept_commitment(callback, state: FSMContext) -> None:
-    data = await state.get_data()
-    callback_parts = callback.data.split(":", 2)
-    token = callback_parts[2] if len(callback_parts) == 3 else data.get("pending_commitment_token")
-    if not token:
-        # Lang not available here without a DB call; use fa as safe default for a transient error message.
-        await callback.answer(t("join.commitment_expired", "fa"), show_alert=True)
-        return
-    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as session:
-        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        await state.update_data(pending_commitment_token=None)
-        await callback.answer()
-        try:
-            await callback.message.edit_reply_markup(reply_markup=None)
-        except Exception:
-            pass
-        await state.clear()
-        await resume_join_after_registration(
-            callback.message, session, user.id, token, state=state, consent_accepted=True
-        )
-
-
-@router.callback_query(F.data.startswith("commitment_consent:cancel"))
-async def cancel_commitment(callback, state: FSMContext) -> None:
-    await state.clear()
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
-    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as _sess:
-        _u = await identity_service.resolve_or_provision_user(_sess, platform, callback.from_user.id)
-        _s = await settings_service.get_or_create(_sess, _u.id)
-        _lang = _s.language
-    await callback.answer(t("join.commitment_expired", _lang), show_alert=False)
-    await callback.message.answer(t("join.commitment_cancelled", _lang), reply_markup=main_menu_keyboard(_lang))
 
 
 async def _request_private_join(message: Message, session, khatm: Khatm, user_id, lang: str = "fa") -> None:

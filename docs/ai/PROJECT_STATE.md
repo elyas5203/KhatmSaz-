@@ -1,3 +1,13 @@
+## 2026-09-26 — Member & Creator Bot Bug Fixes (code review) [Claude Code]
+- **What changed**:
+  - Added `keyboards.is_member_bot(bot)` and replaced the broken `str(role) == "MEMBER"` check in 5 places (`keyboards.home_keyboard_for_bot`, `navigation.resolve_home_navigation`, `settings_menu._lang_for` + `set_language`, `portions._lang_for`). `BotRole` is a `str, Enum`, so `str(BotRole.MEMBER)` is `"BotRole.MEMBER"` — the old check never matched and member bots got creator menus + DB language.
+  - Fixed `create_khatm.py` invite links: `category_service.get_category` → `category_service.get` (the former does not exist; it raised AttributeError for every non-Quran khatm).
+  - Rewrote `member_my_khatms.py` dead buttons: `leave:{khatm_id}` → `leave_ask:{participation_id}` (correct handler + correct id) and replaced the no-op `portions:{id}` button with a real `mk_portion:{khatm_id}` handler.
+  - Extracted commitment-consent + delivery-hour handlers from `start.py` into new `bot/handlers/join_flow.py`, registered on **both** dispatchers (shared-router list). These were creator-only, so members could not complete a commitment join or set a delivery hour. Updated the two tests importing them.
+- **Why**: Code-review pass on the multi-bot member/creator flows — the owner reported "the system has a lot of bugs". These are the concrete, confirmed defects found in that review.
+- **How verified**: `python -m py_compile` on all changed files; import smoke-test of every changed module + the two affected tests (with a stub `asyncpg`, since the local box has no Postgres driver). `is_member_bot` returns True for MEMBER / False for CREATOR. Full pytest NOT run locally — `asyncpg` has no installable wheel on this Python 3.13 box.
+- **What's still outstanding**: Live VPS run of the member-bot commitment-join + delivery-hour flow, and non-Quran invite-link generation. `/cancel` is still creator-only (minor).
+
 ## 2026-09-26 — Fix Member Bot Keyboards, Invite Links, and Language Isolation [Claude Code]
 - **What changed**:
   - Added `khatmsaz_username` tag to all bots at startup (creator + member) from `await bot.get_me()`.

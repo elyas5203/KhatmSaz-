@@ -17,6 +17,7 @@ from aiogram.types import CallbackQuery, Message
 from khatmsaz.bot.keyboards import (
     SETTINGS_BUTTON_TEXTS,
     home_keyboard_for_bot,
+    is_member_bot,
     main_menu_keyboard,
     member_menu_keyboard,
     settings_content_keyboard,
@@ -56,7 +57,7 @@ async def _current_platform_user(message: Message):
 
 
 async def _lang_for(chat_id, bot) -> str:
-    if getattr(bot, "khatmsaz_role", None) is not None and str(getattr(bot, "khatmsaz_role")) == "MEMBER":
+    if is_member_bot(bot):
         return getattr(bot, "khatmsaz_language", "fa")
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -99,7 +100,7 @@ async def settings_language_menu(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("set_language:"))
 async def set_language(callback: CallbackQuery) -> None:
     # Member bots have a fixed language per bot — ignore language change attempts.
-    if getattr(callback.bot, "khatmsaz_role", None) is not None and str(getattr(callback.bot, "khatmsaz_role")) == "MEMBER":
+    if is_member_bot(callback.bot):
         lang = getattr(callback.bot, "khatmsaz_language", "fa")
         await callback.answer(t("settings.language_saved", lang))
         await settings_home(callback)

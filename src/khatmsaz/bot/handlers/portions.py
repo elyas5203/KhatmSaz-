@@ -19,6 +19,7 @@ from khatmsaz.bot.keyboards import (
     commitment_quantity_keyboard,
     delivery_hour_keyboard,
     home_keyboard_for_bot,
+    is_member_bot,
     main_menu_keyboard,
     pause_duration_keyboard,
     portion_done_keyboard,
@@ -73,7 +74,7 @@ class CustomSnooze(StatesGroup):
 
 
 async def _lang_for(chat_id, bot) -> str:
-    if getattr(bot, "khatmsaz_role", None) is not None and str(getattr(bot, "khatmsaz_role")) == "MEMBER":
+    if is_member_bot(bot):
         return getattr(bot, "khatmsaz_language", "fa")
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:

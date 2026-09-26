@@ -12,7 +12,8 @@ from types import SimpleNamespace
 import pytest
 from sqlalchemy import delete
 
-from khatmsaz.bot.handlers.start import AskDeliveryHour, receive_delivery_hour_button
+from khatmsaz.bot.handlers.start import AskDeliveryHour
+from khatmsaz.bot.handlers.join_flow import receive_delivery_hour_button
 from khatmsaz.core.db import session_scope
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User
