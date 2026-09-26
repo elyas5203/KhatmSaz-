@@ -26,7 +26,6 @@ from khatmsaz.bot.handlers.account_link import router as account_link_router
 from khatmsaz.bot.handlers.change_phone import router as change_phone_router
 from khatmsaz.bot.handlers.broadcast import router as broadcast_router
 from khatmsaz.bot.handlers.create_khatm import router as create_khatm_router
-from khatmsaz.bot.handlers.digest_settings import router as digest_settings_router
 from khatmsaz.bot.handlers.devotional import router as devotional_router
 from khatmsaz.bot.handlers.creator_decisions import router as creator_decisions_router
 from khatmsaz.bot.handlers.join_requests import router as join_requests_router
@@ -38,20 +37,9 @@ from khatmsaz.bot.handlers.leave import router as leave_router
 from khatmsaz.bot.handlers.manage_content import router as manage_content_router
 from khatmsaz.bot.handlers.my_khatms import router as my_khatms_router
 from khatmsaz.bot.handlers.portions import router as portions_router
-from khatmsaz.bot.handlers.profile import router as profile_router
-from khatmsaz.bot.handlers.font_settings import router as font_settings_router
-from khatmsaz.bot.handlers.help import router as help_router
-from khatmsaz.bot.handlers.suggestions import router as suggestions_router
-from khatmsaz.bot.handlers.content_settings import router as content_settings_router
 from khatmsaz.bot.handlers.public_khatms import router as public_khatms_router
-from khatmsaz.bot.handlers.reminder_settings import router as reminder_settings_router
 from khatmsaz.bot.handlers.registration import router as registration_router
-from khatmsaz.bot.handlers.report import router as report_router
-from khatmsaz.bot.handlers.settings_menu import router as settings_menu_router
-from khatmsaz.bot.handlers.reciter_settings import router as reciter_settings_router
 from khatmsaz.bot.handlers.start import router as start_router
-from khatmsaz.bot.handlers.sms_settings import router as sms_settings_router
-from khatmsaz.bot.handlers.timezone_settings import router as timezone_settings_router
 from khatmsaz.bot.handlers.wallet import router as wallet_router
 from khatmsaz.bot.handlers.creator_broadcast import router as creator_broadcast_router
 from khatmsaz.bot.middlewares import ModerationMiddleware
@@ -180,6 +168,26 @@ async def main() -> None:
     dp_creator.message.outer_middleware(ModerationMiddleware())
     dp_creator.callback_query.outer_middleware(ModerationMiddleware())
 
+    # --- Member Dispatcher ---
+    dp_member = Dispatcher(storage=MemoryStorage())
+    dp_member.message.outer_middleware(ModerationMiddleware())
+    dp_member.callback_query.outer_middleware(ModerationMiddleware())
+
+    # --- Member-only routers ---
+    from khatmsaz.bot.handlers.member_start import router as member_start_router
+    from khatmsaz.bot.handlers.member_registration import router as member_registration_router
+    from khatmsaz.bot.handlers.member_my_khatms import router as member_my_khatms_router
+    
+    dp_member.include_router(member_start_router)
+    dp_member.include_router(member_registration_router)
+    dp_member.include_router(member_my_khatms_router)
+    dp_member.include_router(portions_router)
+    dp_member.include_router(devotional_router)
+    dp_member.include_router(leave_router)
+    dp_member.include_router(join_requests_router)
+    dp_member.include_router(public_khatms_router)
+
+    # --- Creator-only routers ---
     dp_creator.include_router(start_router)
     dp_creator.include_router(registration_router)
     dp_creator.include_router(create_khatm_router)
@@ -200,28 +208,40 @@ async def main() -> None:
     from khatmsaz.bot.handlers.panel import router as panel_router
     dp_creator.include_router(panel_router)
 
-    # --- Shared routers (on dp_creator for now) ---
-    # NOTE: aiogram routers can only attach to ONE dispatcher. Until Phase 3
-    # creates dedicated member handlers, ALL bots (creator + member) share
-    # dp_creator. When member-specific routers exist, a second dp_member
-    # dispatcher will be created and member bots will move to it.
-    dp_creator.include_router(help_router)
-    dp_creator.include_router(settings_menu_router)
-    dp_creator.include_router(timezone_settings_router)
-    dp_creator.include_router(font_settings_router)
-    dp_creator.include_router(content_settings_router)
-    dp_creator.include_router(reciter_settings_router)
-    dp_creator.include_router(reminder_settings_router)
-    dp_creator.include_router(digest_settings_router)
-    dp_creator.include_router(sms_settings_router)
-    dp_creator.include_router(profile_router)
-    dp_creator.include_router(report_router)
-    dp_creator.include_router(suggestions_router)
-    dp_creator.include_router(portions_router)
-    dp_creator.include_router(devotional_router)
-    dp_creator.include_router(leave_router)
-    dp_creator.include_router(join_requests_router)
-    dp_creator.include_router(public_khatms_router)
+    # --- Shared routers ---
+    # We must instantiate shared routers twice due to aiogram's single-parent rule.
+    import importlib
+    import sys
+    
+    def reload_router(module_path: str):
+        # Temporarily remove from sys.modules to force a fresh load
+        original = sys.modules.get(module_path)
+        if original:
+            del sys.modules[module_path]
+        mod = importlib.import_module(module_path)
+        r = getattr(mod, "router")
+        if original:
+            sys.modules[module_path] = original
+        return r
+
+    shared_modules = [
+        "khatmsaz.bot.handlers.help",
+        "khatmsaz.bot.handlers.settings_menu",
+        "khatmsaz.bot.handlers.timezone_settings",
+        "khatmsaz.bot.handlers.font_settings",
+        "khatmsaz.bot.handlers.content_settings",
+        "khatmsaz.bot.handlers.reciter_settings",
+        "khatmsaz.bot.handlers.reminder_settings",
+        "khatmsaz.bot.handlers.digest_settings",
+        "khatmsaz.bot.handlers.sms_settings",
+        "khatmsaz.bot.handlers.profile",
+        "khatmsaz.bot.handlers.report",
+        "khatmsaz.bot.handlers.suggestions",
+    ]
+    
+    for mod in shared_modules:
+        dp_creator.include_router(reload_router(mod))
+        dp_member.include_router(reload_router(mod))
 
     # --- Clear stale webhooks ---
     for bot in all_bots:
@@ -279,7 +299,10 @@ async def main() -> None:
     logger.info("Starting polling for %d bot(s) (%d creator, %d member)...",
                 len(all_bots), len(creator_bots), len(member_bots))
     tasks: list[asyncio.Task] = []
-    tasks.append(asyncio.create_task(dp_creator.start_polling(*all_bots)))
+    
+    tasks.append(asyncio.create_task(dp_creator.start_polling(*creator_bots)))
+    if member_bots:
+        tasks.append(asyncio.create_task(dp_member.start_polling(*member_bots)))
 
     if settings.admin_web_enabled:
         web_server = uvicorn.Server(

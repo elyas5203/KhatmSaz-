@@ -40,18 +40,21 @@ def build_notify_fn(bots_by_platform: dict[Platform, Bot]) -> NotifyFn:
     global _bots_by_platform
     _bots_by_platform = bots_by_platform
 
-    async def notify(platform_value: str, chat_id: str, text: str) -> None:
-        bot = _bots_by_platform.get(Platform(platform_value))
-        if bot is None:
+    async def notify(platform_value: str, chat_id: str, text: str, *, bot_instance_id=None) -> None:
+        from khatmsaz.core.bot_registry import get_registry
+        registry = get_registry()
+        
+        if bot_instance_id:
+            bot = registry.get_by_instance_id(bot_instance_id)
+        else:
+            bot = registry.get_creator_bot(Platform(platform_value))
+            
+        if not bot:
+            logger.warning("No bot for %s/%s", platform_value, bot_instance_id)
             return
         try:
             await bot.send_message(chat_id=int(chat_id), text=text)
         except Exception:
-            # Best-effort: one blocked bot / deleted chat must not crash the
-            # caller for everyone else in the same batch. A quiet failure
-            # here is preferable to losing every other notification in the
-            # same run — proper delivery-failure tracking is a later ROADMAP
-            # item, not silently accepted forever.
             logger.warning("Failed to deliver message to %s:%s", platform_value, chat_id, exc_info=True)
 
     global _notify_fn
@@ -75,8 +78,14 @@ def build_send_quran_pages_fn(bots_by_platform: dict[Platform, Bot]):
     global _bots_by_platform
     _bots_by_platform = bots_by_platform
 
-    async def send_quran_pages(session, platform_value: str, chat_id: str, *, khatm, user_id, page_start: int, page_end: int) -> None:
-        bot = _bots_by_platform.get(Platform(platform_value))
+    async def send_quran_pages(session, platform_value: str, chat_id: str, *, khatm, user_id, page_start: int, page_end: int, bot_instance_id=None) -> None:
+        from khatmsaz.core.bot_registry import get_registry
+        registry = get_registry()
+        
+        if bot_instance_id:
+            bot = registry.get_by_instance_id(bot_instance_id)
+        else:
+            bot = registry.get_creator_bot(Platform(platform_value))
         if bot is None:
             return
         delivery = await content_service.resolve_current_quran_delivery(
@@ -114,9 +123,14 @@ def build_send_quran_pages_fn(bots_by_platform: dict[Platform, Bot]):
 
 from aiogram.types import ReplyKeyboardMarkup
 async def send_with_keyboard(
-    platform_value: str, chat_id: str, text: str, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup
+    platform_value: str, chat_id: str, text: str, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup, *, bot_instance_id=None
 ) -> None:
-    bot = _bots_by_platform.get(Platform(platform_value))
+    from khatmsaz.core.bot_registry import get_registry
+    registry = get_registry()
+    if bot_instance_id:
+        bot = registry.get_by_instance_id(bot_instance_id)
+    else:
+        bot = registry.get_creator_bot(Platform(platform_value))
     if bot is None:
         return
     try:

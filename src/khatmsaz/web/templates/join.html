@@ -197,34 +197,26 @@
 
           <!-- دکمه‌های اکشن -->
           <div class="flex flex-col gap-4">
-            {% if telegram_url %}
-            <a class="w-full relative group" href="{{ telegram_url }}">
-              <!-- افکت هاله پشت دکمه تلگرام -->
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-[#2AABEE] to-[#229ED9] rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
-              <!-- دکمه اصلی تلگرام -->
-              <div class="relative w-full bg-gradient-to-r from-[#2AABEE]/90 to-[#229ED9]/90 hover:from-[#2AABEE] hover:to-[#229ED9] text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] shimmer-button">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.11.03-1.84 1.18-5.2 3.45-.49.33-.94.5-1.34.49-.45-.01-1.3-.25-1.93-.46-.78-.26-1.4-.4-1.35-.85.03-.23.33-.48.91-.74 3.56-1.55 5.94-2.58 7.13-3.07 3.39-1.41 4.09-1.66 4.54-1.67.1 0 .32.02.44.13.1.1.13.23.14.33 0 .04.01.12 0 .22z"/></svg>
-                <span class="text-lg tracking-wide">ورود از تلگرام</span>
-              </div>
-            </a>
-            {% endif %}
-
-            {% if bale_url %}
-            <a class="w-full relative group" href="{{ bale_url }}">
-              <div class="absolute -inset-0.5 bg-gradient-to-r from-[#4EAA8C] to-[#3B8F73] rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
-              <div class="relative w-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-slate-200 hover:text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3">
-                <span class="text-lg tracking-wide">ورود از بله</span>
-              </div>
-            </a>
-            {% elif bale_command %}
-            <details class="w-full bg-white/[0.02] border border-white/5 rounded-2xl overflow-hidden group transition-all">
-              <summary class="w-full cursor-pointer text-slate-400 text-center py-4 font-bold outline-none hover:bg-white/[0.05] hover:text-slate-200 transition-all tracking-wide">ورود از بله (کپی کد)</summary>
-              <div class="p-5 bg-black/40 text-center border-t border-white/5">
-                <p class="text-[11px] text-slate-500 mb-3">این متن را کپی کنید و داخل گفت‌وگوی بات بله بفرستید:</p>
-                <code class="block text-emerald-400 bg-emerald-900/10 py-3 px-4 rounded-xl text-sm font-mono tracking-wider break-all select-all border border-emerald-500/10 shadow-inner">{{ bale_command }}</code>
-              </div>
-            </details>
-            {% endif %}
+            {% for link in links %}
+              {% if link.is_telegram %}
+              <a class="w-full relative group" href="{{ link.url }}">
+                <!-- افکت هاله پشت دکمه تلگرام -->
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-[#2AABEE] to-[#229ED9] rounded-2xl blur opacity-40 group-hover:opacity-100 transition duration-500"></div>
+                <!-- دکمه اصلی تلگرام -->
+                <div class="relative w-full bg-gradient-to-r from-[#2AABEE]/90 to-[#229ED9]/90 hover:from-[#2AABEE] hover:to-[#229ED9] text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)] shimmer-button">
+                  <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.19-.08-.05-.19-.02-.27 0-.11.03-1.84 1.18-5.2 3.45-.49.33-.94.5-1.34.49-.45-.01-1.3-.25-1.93-.46-.78-.26-1.4-.4-1.35-.85.03-.23.33-.48.91-.74 3.56-1.55 5.94-2.58 7.13-3.07 3.39-1.41 4.09-1.66 4.54-1.67.1 0 .32.02.44.13.1.1.13.23.14.33 0 .04.01.12 0 .22z"/></svg>
+                  <span class="text-lg tracking-wide">{{ link.name }}</span>
+                </div>
+              </a>
+              {% else %}
+              <a class="w-full relative group" href="{{ link.url }}">
+                <div class="absolute -inset-0.5 bg-gradient-to-r from-[#4EAA8C] to-[#3B8F73] rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
+                <div class="relative w-full bg-white/[0.03] hover:bg-white/[0.08] border border-white/10 text-slate-200 hover:text-white text-center py-4 rounded-2xl font-bold transition-all flex items-center justify-center gap-3">
+                  <span class="text-lg tracking-wide">{{ link.name }}</span>
+                </div>
+              </a>
+              {% endif %}
+            {% endfor %}
           </div>
         {% endif %}
       </div>

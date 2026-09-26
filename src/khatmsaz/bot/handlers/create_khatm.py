@@ -86,6 +86,7 @@ class CreateKhatm(StatesGroup):
     entering_start_at = State()
     entering_coupon = State()
     confirming = State()
+    choosing_invite_languages = State()
 
 
 async def _resolve_lang(message: Message) -> str:
@@ -1074,3 +1075,173 @@ async def confirm_wizard(callback: CallbackQuery, state: FSMContext) -> None:
         return
     await _finish_creating_khatm(callback.message, state, lang, data)
     await safe_answer_callback(callback)
+
+from khatmsaz.core.bot_registry import get_registry
+from khatmsaz.modules.khatm.models import Khatm
+
+async def show_invite_languages_keyboard(message: Message, state: FSMContext, lang: str):
+    data = await state.get_data()
+    khatm_id = data["created_khatm_id"]
+    selected = data.get("selected_invite_languages", [lang])
+    
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        from khatmsaz.modules.khatm_category import service as category_service
+        from khatmsaz.modules.bot_registry.models import BotCategory
+        
+        khatm_bot_cat = None
+        if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
+            khatm_bot_cat = BotCategory.QURAN.value
+        else:
+            cat = await category_service.get_category(session, khatm.content_category_id)
+            if cat:
+                if cat.group.name == "SALAWAT":
+                    khatm_bot_cat = BotCategory.SALAWAT.value
+                elif cat.group.name == "LAAN":
+                    khatm_bot_cat = BotCategory.LAAN.value
+                elif cat.group.name == "DUA":
+                    khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
+    
+    # Find available languages for this category
+    available_langs = set()
+    registry = get_registry()
+    for bot in registry.member_bots():
+        if getattr(bot, "khatmsaz_category", None) and getattr(bot, "khatmsaz_category").value == khatm_bot_cat:
+            available_langs.add(getattr(bot, "khatmsaz_language"))
+            
+    if not available_langs:
+        # Fallback to single-bot if no member bots
+        await finish_invite_links(message, state, lang)
+        return
+        
+    # Build keyboard
+    buttons = []
+    lang_names = {"fa": "فارسی", "ar": "عربی", "en": "انگلیسی"}
+    for l in sorted(available_langs):
+        mark = "✅ " if l in selected else ""
+        buttons.append([InlineKeyboardButton(text=f"{mark}{lang_names.get(l, l)}", callback_data=f"toggle_lang:{l}")])
+        
+    buttons.append([InlineKeyboardButton(text=t("button.confirm", lang), callback_data="confirm_invite_langs")])
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    
+    text = "لینک دعوت برای کدام زبان‌ها ساخته شود؟"
+    if isinstance(message, CallbackQuery):
+        try:
+            await message.message.edit_text(text, reply_markup=kb)
+        except Exception:
+            pass
+    else:
+        await message.answer(text, reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("toggle_lang:"), CreateKhatm.choosing_invite_languages)
+async def handle_toggle_lang(callback: CallbackQuery, state: FSMContext) -> None:
+    l = callback.data.split(":")[1]
+    data = await state.get_data()
+    selected = set(data.get("selected_invite_languages", []))
+    if l in selected:
+        selected.remove(l)
+    else:
+        selected.add(l)
+    
+    if not selected:
+        await callback.answer("حداقل یک زبان باید انتخاب شود.", show_alert=True)
+        return
+        
+    await state.update_data(selected_invite_languages=list(selected))
+    lang = await _lang(state)
+    await show_invite_languages_keyboard(callback, state, lang)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "confirm_invite_langs", CreateKhatm.choosing_invite_languages)
+async def handle_confirm_invite_langs(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await finish_invite_links(callback.message, state, lang)
+    await callback.answer()
+
+
+async def finish_invite_links(message: Message, state: FSMContext, lang: str):
+    data = await state.get_data()
+    khatm_id = data["created_khatm_id"]
+    token = data["created_token"]
+    selected_langs = data.get("selected_invite_languages", [lang])
+    
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        from khatmsaz.modules.khatm_category import service as category_service
+        from khatmsaz.modules.bot_registry.models import BotCategory
+        
+        khatm_bot_cat = None
+        if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
+            khatm_bot_cat = BotCategory.QURAN.value
+        else:
+            cat = await category_service.get_category(session, khatm.content_category_id)
+            if cat:
+                if cat.group.name == "SALAWAT":
+                    khatm_bot_cat = BotCategory.SALAWAT.value
+                elif cat.group.name == "LAAN":
+                    khatm_bot_cat = BotCategory.LAAN.value
+                elif cat.group.name == "DUA":
+                    khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
+
+    registry = get_registry()
+    settings = get_settings()
+    
+    landing_line = ""
+    if settings.public_web_base_url:
+        landing_line = t(
+            "create_khatm.landing_line",
+            lang,
+            url=f"{settings.public_web_base_url.rstrip('/')}/join/{token}",
+        )
+        
+    invite_lines = []
+    lang_flags = {"fa": "🇮🇷 فارسی:", "ar": "🇸🇦 عربی:", "en": "🇬🇧 انگلیسی:"}
+    
+    if registry.member_bots():
+        for sl in selected_langs:
+            invite_lines.append(lang_flags.get(sl, sl))
+            
+            tg_bot = None
+            bale_bot = None
+            for b in registry.member_bots():
+                if getattr(b, "khatmsaz_category", None) and getattr(b, "khatmsaz_category").value == khatm_bot_cat and getattr(b, "khatmsaz_language", None) == sl:
+                    pl = getattr(b, "khatmsaz_platform")
+                    if pl == Platform.TELEGRAM:
+                        tg_bot = b
+                    elif pl == Platform.BALE:
+                        bale_bot = b
+                        
+            if tg_bot:
+                invite_lines.append(f"  تلگرام: https://t.me/{tg_bot.username}?start=join_{token}")
+            if bale_bot:
+                invite_lines.append(f"  بله: https://ble.ir/{bale_bot.username}?start=join_{token}")
+            
+            invite_lines.append("")
+    else:
+        # Fallback to creator bot
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        if platform == Platform.TELEGRAM and settings.telegram_bot_username:
+            invite_lines.append(f"https://t.me/{settings.telegram_bot_username}?start=join_{token}")
+        elif platform == Platform.BALE and settings.bale_bot_username:
+            invite_lines.append(f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}")
+        else:
+            invite_lines.append(t("create_khatm.bale_invite_instruction", lang, token=token))
+
+    invite_lines_str = "\n".join(invite_lines)
+    
+    await safe_clear_inline_keyboard(message)
+    await state.clear()
+    
+    await message.answer(
+        t(
+            "create_khatm.success",
+            lang,
+            title=khatm.title,
+            invite_line=invite_lines_str,
+            landing_line=landing_line,
+        ),
+        reply_markup=main_menu_keyboard(lang, is_creator=True),
+        disable_web_page_preview=True,
+    )

@@ -1,3 +1,14 @@
+## 2026-09-26 — Multi-Bot Architecture: Phases 3-5 (Handler Routing, Invite Links, Notifications) [Antigravity]
+- **What changed**:
+  - Separated dispatcher into `dp_creator` and `dp_member` to isolate member-specific behavior.
+  - Added member start handler with language isolation.
+  - Added simplified member registration via `member_registration.py` (no OTP).
+  - Added participant-only Khatm view via `member_my_khatms.py`.
+  - Modified `create_khatm.py` wizard to ask for invite link languages and generate correct per-language bot links.
+  - Modified web landing page `/join/{token}` to list context-aware member bot invite links.
+  - Added `joined_via_bot_instance_id` to `khatm_participations` with an Alembic migration to record origin.
+  - Modified `notify_adapter.py` and `reminder_engine/service.py` to route notifications to the exact member bot instance ID recorded during joining.
+
 ## 2026-09-26 — Multi-Bot Architecture: Phase 2 (Bootstrap) [Claude Code]
 - **What changed**:
   - Created `BotRegistry` singleton class at `src/khatmsaz/core/bot_registry.py` with lookup by platform, category/language, and instance_id.

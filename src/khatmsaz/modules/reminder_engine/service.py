@@ -158,6 +158,7 @@ async def _push_portion_content(session, send_quran_pages, participation, khatm,
                 session, identity.platform.value, identity.subject,
                 khatm=khatm, user_id=participation.user_id,
                 page_start=portion.unit_start, page_end=portion.unit_end,
+                bot_instance_id=participation.joined_via_bot_instance_id,
             )
     except Exception:
         pass
@@ -221,7 +222,7 @@ async def deliver_due_next_portions(
                 "هر وقت خواندید، دکمهٔ «✅ انجام دادم» را بزنید."
             ),
         )
-        await _notify_user(session, notify, participation.user_id, text)
+        await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
     return delivered
 
 
@@ -282,13 +283,14 @@ async def deliver_due_open_quran_reading(
             await send_quran_pages(
                 session, identity.platform.value, identity.subject,
                 khatm=khatm, user_id=participation.user_id, page_start=start, page_end=end,
+                bot_instance_id=participation.joined_via_bot_instance_id,
             )
         text = await _render_or_default(
             session, "reminder.open_quran_daily", locale=user_settings.language,
             title=khatm.title, start=start, end=end,
             default=f"🌱 سهم امروزتان از «{khatm.title}» فرستاده شد: صفحات {start} تا {end}.",
         )
-        await _notify_user(session, notify, participation.user_id, text)
+        await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
         delivered += 1
     return delivered
 
@@ -322,11 +324,13 @@ async def delegate_inactive_portions(session: AsyncSession, notify: NotifyFn) ->
             moved += 1
             await _notify_user(
                 session, notify, backup.user_id,
+                bot_instance_id=backup.joined_via_bot_instance_id,
                 f"📖 یک سهم از ختم «{khatm.title}» به‌دلیل عدم فعالیت عضو اصلی، برای همراهی شما واگذار شد: "
                 f"صفحات {claimed.unit_start} تا {claimed.unit_end}",
             )
             await _notify_user(
                 session, notify, participation.user_id,
+                bot_instance_id=participation.joined_via_bot_instance_id,
                 f"اطلاع‌رسانی: سهم شما در ختم «{khatm.title}» به‌دلیل ۳۰ روز عدم فعالیت، به پشتیبان واگذار شد؛ "
                 "برای بازگشت کافی است دوباره با ربات تعامل کنید.",
             )
@@ -366,7 +370,7 @@ async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
                 title=khatm.title,
                 default=f"یادآوری همراهی 🌱\nامروز می‌توانید در «{khatm.title}» مشارکت کنید.",
             )
-            await _notify_user(session, notify, participation.user_id, text)
+            await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
             await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
 
 
@@ -394,7 +398,7 @@ async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_p
                         "این سهم واقعاً روی بقیهٔ اعضا اثر داره 🤍"
                     ),
                 )
-                await _notify_user(session, notify, participation.user_id, text)
+                await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
                 await notification_service.record_sent(
                     session, participation.id, NotificationKind.DAILY_REMINDER
                 )
@@ -421,7 +425,7 @@ async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_p
         if len(rendered_entries) > 1:
             text = "📖 سهم‌های امروز شما:\n\n" + "\n\n".join(rendered_entries)
         user_id = entries[0][0].user_id
-        await _notify_user(session, notify, user_id, text)
+        await _notify_user(session, notify, user_id, text, bot_instance_id=entries[0][0].joined_via_bot_instance_id)
         for participation, _, _, _, _ in entries:
             await notification_service.record_sent(
                 session, participation.id, NotificationKind.DAILY_REMINDER
@@ -436,7 +440,7 @@ async def _maybe_send_reminder(session, notify: NotifyFn, participation, khatm, 
         start=portion.unit_start, end=portion.unit_end,
         default=f"یادآوری 🌱\nسهم امروزتان در «{khatm.title}»: صفحات {portion.unit_start} تا {portion.unit_end}",
     )
-    await _notify_user(session, notify, participation.user_id, text)
+    await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
     await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
 
 
@@ -456,7 +460,7 @@ async def _maybe_send_staged_reminder(
             f"مهلت انجام تا ساعت {khatm.daily_deadline_hour}:00 است."
         ),
     )
-    await _notify_user(session, notify, participation.user_id, text)
+    await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
     await notification_service.record_sent(session, participation.id, kind)
 
 
@@ -498,9 +502,9 @@ async def _maybe_record_miss_and_notify_creator(session, notify, participation, 
     await _notify_user(session, notify, khatm.creator_user_id, creator_text)
 
 
-async def _notify_user(session, notify, user_id, text: str) -> None:
+async def _notify_user(session, notify, user_id, text: str, *, bot_instance_id=None) -> None:
     for identity in await identity_service.list_identities_for_user(session, user_id):
-        await notify(identity.platform.value, identity.subject, text)
+        await notify(identity.platform.value, identity.subject, text, bot_instance_id=bot_instance_id)
 
 
 async def _render_or_default(

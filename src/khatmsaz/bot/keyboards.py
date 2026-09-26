@@ -63,6 +63,17 @@ RESERVED_MENU_TEXTS = (
     | {"📢 ارسال پیام گروهی"}
 )
 
+def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text=t("menu.today", lang))],
+            [KeyboardButton(text=t("menu.my_khatms", lang))],
+            [KeyboardButton(text=t("menu.public_khatms", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.support", lang))],
+        ],
+        resize_keyboard=True,
+    )
+
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
