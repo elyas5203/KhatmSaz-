@@ -325,6 +325,16 @@ async def resume_join_after_registration(
     once a first-time joiner finishes their profile."""
     _user_settings = await settings_service.get_or_create(session, user_id)
     _lang = _user_settings.language
+    
+    bot_role = getattr(message.bot, "khatmsaz_role", BotRole.CREATOR)
+    if bot_role == BotRole.MEMBER:
+        from khatmsaz.bot.keyboards import member_menu_keyboard
+        def get_fallback_markup():
+            return member_menu_keyboard(_lang)
+    else:
+        def get_fallback_markup():
+            return main_menu_keyboard(_lang)
+
     if not consent_accepted:
         khatm_id = await invitation_service.resolve_khatm_id(session, token)
         khatm_preview = await khatm_service.get_khatm(session, khatm_id)
@@ -338,26 +348,27 @@ async def resume_join_after_registration(
             return
     try:
         khatm, participation, first_portion, was_waitlisted = await workflow_service.join_via_token(
-            session, token=token, user_id=user_id
+            session, token=token, user_id=user_id,
+            joined_via_bot_instance_id=getattr(message.bot, "khatmsaz_instance_id", None)
         )
     except InvitationNotFoundError:
-        await message.answer(t("join.error.invalid_link", _lang), reply_markup=main_menu_keyboard(_lang))
+        await message.answer(t("join.error.invalid_link", _lang), reply_markup=get_fallback_markup())
         return
     except InvitationExpiredError:
-        await message.answer(t("join.error.expired_link", _lang), reply_markup=main_menu_keyboard(_lang))
+        await message.answer(t("join.error.expired_link", _lang), reply_markup=get_fallback_markup())
         return
     except AlreadyParticipatingError:
-        await message.answer(t("join.error.already_member", _lang), reply_markup=main_menu_keyboard(_lang))
+        await message.answer(t("join.error.already_member", _lang), reply_markup=get_fallback_markup())
         return
     except JoinRequiresApprovalError as exc:
         await _request_private_join(message, session, exc.khatm, user_id, _lang)
         return
     except workflow_service.KhatmUnavailableError:
-        await message.answer(t("join.error.khatm_ended", _lang), reply_markup=main_menu_keyboard(_lang))
+        await message.answer(t("join.error.khatm_ended", _lang), reply_markup=get_fallback_markup())
         return
 
     if khatm is None:
-        await message.answer(t("join.error.khatm_gone", _lang), reply_markup=main_menu_keyboard(_lang))
+        await message.answer(t("join.error.khatm_gone", _lang), reply_markup=get_fallback_markup())
         return
 
     await invitation_service.mark_accepted(session, token, user_id)
@@ -430,6 +441,13 @@ def _parse_delivery_time(raw: str) -> tuple[int, int] | None:
             return h, 0
     return None
 
+def _get_fallback_markup_for_bot(bot, lang):
+    bot_role = getattr(bot, "khatmsaz_role", BotRole.CREATOR)
+    if bot_role == BotRole.MEMBER:
+        from khatmsaz.bot.keyboards import member_menu_keyboard
+        return member_menu_keyboard(lang)
+    return main_menu_keyboard(lang)
+
 
 @router.callback_query(F.data.startswith("join_hour:"), AskDeliveryHour.entering_hour)
 async def receive_delivery_hour_button(callback, state: FSMContext) -> None:
@@ -444,7 +462,7 @@ async def receive_delivery_hour_button(callback, state: FSMContext) -> None:
         pass
     if participation_id:
         await _save_delivery_time(participation_id, hour, 0)
-    await callback.message.answer(t("join.delivery_hour_saved", lang, hour=hour), reply_markup=main_menu_keyboard(lang))
+    await callback.message.answer(t("join.delivery_hour_saved", lang, hour=hour), reply_markup=_get_fallback_markup_for_bot(callback.message.bot, lang))
     await callback.answer()
 
 
@@ -465,7 +483,7 @@ async def receive_delivery_hour(message: Message, state: FSMContext) -> None:
     if participation_id:
         await _save_delivery_time(participation_id, hour, minute)
     time_str = f"{hour:02d}:{minute:02d}"
-    await message.answer(t("join.delivery_hour_saved", lang, hour=time_str), reply_markup=main_menu_keyboard(lang))
+    await message.answer(t("join.delivery_hour_saved", lang, hour=time_str), reply_markup=_get_fallback_markup_for_bot(message.bot, lang))
 
 
 @router.callback_query(F.data.startswith("commitment_consent:accept"))
@@ -515,7 +533,7 @@ async def _request_private_join(message: Message, session, khatm: Khatm, user_id
 
     await message.answer(
         t("join.private_request_sent", lang, title=khatm.title),
-        reply_markup=main_menu_keyboard(lang),
+        reply_markup=_get_fallback_markup_for_bot(message.bot, lang),
     )
 
     text = f"{requester_name} می‌خواد به ختم خصوصی «{khatm.title}» بپیونده."
