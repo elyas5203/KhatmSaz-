@@ -54,6 +54,26 @@ async def handle_creator_management(message: Message) -> None:
         reply_markup=creator_panel_keyboard(lang)
     )
 
+@router.message(F.text.in_(variants("menu.creator.finance")))
+async def handle_creator_finance(message: Message) -> None:
+    """The creator reply-menu button «📊 گزارش و مالی» previously had no
+    handler at all (reported by QA 2026-09-27) — tapping it did nothing.
+    Route it to the personal report, which is the closest existing view."""
+    user, _lang = await _get_context(message)
+    if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+        return
+    from khatmsaz.bot.handlers.report import personal_report
+    await personal_report(message)
+
+
+@router.message(F.text.in_(variants("menu.creator.support")))
+async def handle_creator_support(message: Message) -> None:
+    """«❓ راهنما و پشتیبانی» reply button had no handler either — route it to
+    the help home, which already offers the contact-support entry."""
+    from khatmsaz.bot.handlers.help import help_command
+    await help_command(message)
+
+
 @router.message(F.text.in_(variants("help.button.admin_panel")))
 async def handle_admin_panel(message: Message) -> None:
     user, lang = await _get_context(message)

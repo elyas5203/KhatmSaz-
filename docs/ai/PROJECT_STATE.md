@@ -1,3 +1,9 @@
+## 2026-09-27 — Phase-1 QA matrix + fix dead creator menu buttons [Claude Code]
+- **What changed**: Started the owner's stabilization goal (Phase 1). Built `docs/ai/QA_MATRIX.md` (requirement→code→test→result, code-verified). Verified a real Codex finding: the creator reply-menu buttons «📊 گزارش و مالی» and «❓ راهنما و پشتیبانی» had no handler (deleted `creator_menu.py`, never re-registered), so they were dead. Wired them in `panel.py` to the existing personal-report and help handlers; added `tests/test_creator_menu_buttons.py`.
+- **Why**: Goal = make KhatmSaz stable, fully tested, and dead-simple for non-technical users; a menu button that does nothing violates that.
+- **How verified**: `PYTHONPATH=src python -m pytest -m "not integration"` → 80 passed, 0 failed (new test included). Live Telegram + integration/Postgres NOT run (no access this session — logged as blockers in QA_MATRIX.md).
+- **What's still outstanding**: Phase-1 matrix rows flagged 🔵 NEEDS-LIVE / 🔒 BLOCKED need the owner (live Telegram, second account, test Postgres, push approval, valid dua-bot tokens). Open findings: private-join help-text ambiguity, technical wording in help/`/cancel`. Nothing pushed — awaiting owner approval.
+
 ## 2026-09-26 — Member & Creator Bot Bug Fixes (code review) [Claude Code]
 - **What changed**:
   - Added `keyboards.is_member_bot(bot)` and replaced the broken `str(role) == "MEMBER"` check in 5 places (`keyboards.home_keyboard_for_bot`, `navigation.resolve_home_navigation`, `settings_menu._lang_for` + `set_language`, `portions._lang_for`). `BotRole` is a `str, Enum`, so `str(BotRole.MEMBER)` is `"BotRole.MEMBER"` — the old check never matched and member bots got creator menus + DB language.
