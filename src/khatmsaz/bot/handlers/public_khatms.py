@@ -1,12 +1,12 @@
 """Discovery and joining for active PUBLIC khatms."""
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.handlers.start import resume_join_after_registration
-from khatmsaz.bot.keyboards import commitment_consent_keyboard, main_menu_keyboard, public_khatms_keyboard
+from khatmsaz.bot.keyboards import PUBLIC_KHATMS_BUTTON_TEXTS, commitment_consent_keyboard, home_keyboard_for_bot, main_menu_keyboard, public_khatms_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
@@ -27,13 +27,14 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
+@router.message(F.text.in_(PUBLIC_KHATMS_BUTTON_TEXTS))
 @router.message(Command("public_khatms"))
 async def list_public_khatms(message: Message) -> None:
     lang = await _lang_for(message.chat.id, message.bot)
     async with session_scope() as session:
         khatms = await khatm_service.list_public_active(session, limit=20)
     if not khatms:
-        await message.answer(t("public_khatms.none_active", lang), reply_markup=main_menu_keyboard(lang))
+        await message.answer(t("public_khatms.none_active", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
         return
     await message.answer(
         t("public_khatms.list_prompt", lang),

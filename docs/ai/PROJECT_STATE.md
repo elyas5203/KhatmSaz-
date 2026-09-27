@@ -1,3 +1,9 @@
+## 2026-09-27 — Phase-2 dead-button + member i18n fixes [Claude Code]
+- **What changed**: Systematic code-level bug scan (owner asked to fix all code bugs before they live-test). Imported every handler module (0 failures). Cross-checked every reply-menu button against its handler and found two more dead buttons: «🕋 ختم‌های عمومی» (only a command, no text handler) and — earlier this session — the creator finance/support buttons. Fixed public_khatms button (+ member-correct home keyboard) with `tests/test_public_khatms_button.py`. Also made the member-facing `snooze_keyboard` language-aware (was hardcoded Persian on ar/en bots).
+- **Why**: Goal = stable, fully-tested, dead-simple UX; a menu button that does nothing, or Persian buttons on an Arabic bot, both violate it.
+- **How verified**: `PYTHONPATH=src pytest -m "not integration"` → 81 passed, 0 failed. Integration/live NOT run (owner has no test Postgres; owner will live-test after code fixes — logged in QA_MATRIX.md).
+- **What's still outstanding**: Broad wizard/management-keyboard i18n (BACKLOG #1, creator-only, large). Open findings: private-join help-text ambiguity, technical wording in help/`/cancel`. Live flows (join/second-account/notifications) await owner testing.
+
 ## 2026-09-27 — Phase-1 QA matrix + fix dead creator menu buttons [Claude Code]
 - **What changed**: Started the owner's stabilization goal (Phase 1). Built `docs/ai/QA_MATRIX.md` (requirement→code→test→result, code-verified). Verified a real Codex finding: the creator reply-menu buttons «📊 گزارش و مالی» and «❓ راهنما و پشتیبانی» had no handler (deleted `creator_menu.py`, never re-registered), so they were dead. Wired them in `panel.py` to the existing personal-report and help handlers; added `tests/test_creator_menu_buttons.py`.
 - **Why**: Goal = make KhatmSaz stable, fully tested, and dead-simple for non-technical users; a menu button that does nothing violates that.

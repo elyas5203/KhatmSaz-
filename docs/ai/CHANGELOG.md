@@ -1,3 +1,8 @@
+## 2026-09-27 (more dead-button + member i18n fixes, Phase 2)
+- **Fix**: «🕋 ختم‌های عمومی» (`menu.public_khatms`) reply button was only wired as the `/public_khatms` command, so tapping it in the participant/member menu did nothing. Added an `F.text.in_(PUBLIC_KHATMS_BUTTON_TEXTS)` handler; the empty-state reply keyboard now uses `home_keyboard_for_bot` so a member bot shows the member menu, not the participant one. Regression test `tests/test_public_khatms_button.py`.
+- **Fix**: `snooze_keyboard` had hardcoded Persian labels («۳۰ دقیقه»…), so a member on the Arabic/English bot saw Persian snooze buttons. Now takes `lang` and uses the existing `portions.snooze_label.*` i18n keys (+ new `portions.snooze_label.custom`).
+- Note: broader wizard/khatm-management keyboards still hold hardcoded Persian — that is the tracked BACKLOG #1 i18n migration (creator bot only; those keyboards never render on member bots), not a regression.
+
 ## 2026-09-27 (fix dead creator reply-menu buttons + Phase-1 QA matrix)
 - **Fix**: The creator reply-menu buttons «📊 گزارش و مالی» (`menu.creator.finance`) and «❓ راهنما و پشتیبانی» (`menu.creator.support`) had NO handler anywhere — the old `creator_menu.py` was deleted (only a stale .pyc remained) and never re-registered, so tapping either did nothing (confirmed QA finding). Added `panel.handle_creator_finance` → `report.personal_report` and `panel.handle_creator_support` → `help.help_command`. Regression test `tests/test_creator_menu_buttons.py` feeds each button's fa/ar/en label through a real Dispatcher and asserts the handler fires.
 - **Docs**: Added `docs/ai/QA_MATRIX.md` — the requirement→code→test→result matrix for Phase 1 of the stabilization goal, with honest status flags and the live/decision blockers.

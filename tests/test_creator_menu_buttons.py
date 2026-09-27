@@ -49,6 +49,7 @@ async def test_creator_finance_and_support_buttons_are_wired(monkeypatch):
     bot = Bot("123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi")
     bot._me = User(id=123456, is_bot=True, first_name="KhatmSaz", username="khatmsaz_test_bot")
     dp = Dispatcher(storage=MemoryStorage())
+    panel.router._parent_router = None
     dp.include_router(panel.router)
     uid = 0
     try:

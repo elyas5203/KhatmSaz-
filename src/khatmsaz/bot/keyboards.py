@@ -656,15 +656,15 @@ def delivery_hour_keyboard(callback_prefix: str, lang: str = "fa") -> InlineKeyb
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def snooze_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def snooze_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="۳۰ دقیقه", callback_data=f"snooze:{khatm_id}:30"),
-                InlineKeyboardButton(text="۱ ساعت", callback_data=f"snooze:{khatm_id}:60"),
-                InlineKeyboardButton(text="۳ ساعت", callback_data=f"snooze:{khatm_id}:180"),
+                InlineKeyboardButton(text=t("portions.snooze_label.30", lang), callback_data=f"snooze:{khatm_id}:30"),
+                InlineKeyboardButton(text=t("portions.snooze_label.60", lang), callback_data=f"snooze:{khatm_id}:60"),
+                InlineKeyboardButton(text=t("portions.snooze_label.180", lang), callback_data=f"snooze:{khatm_id}:180"),
             ],
-            [InlineKeyboardButton(text="🗓 زمان دلخواه", callback_data=f"snooze_custom:{khatm_id}")],
+            [InlineKeyboardButton(text=t("portions.snooze_label.custom", lang), callback_data=f"snooze_custom:{khatm_id}")],
         ]
     )
 

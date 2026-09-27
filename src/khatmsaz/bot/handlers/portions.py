@@ -190,7 +190,7 @@ async def ask_snooze(callback: CallbackQuery) -> None:
         return
     await callback.message.answer(
         t("portions.ask_snooze_duration", lang),
-        reply_markup=snooze_keyboard(khatm_id),
+        reply_markup=snooze_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 

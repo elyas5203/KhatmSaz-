@@ -928,6 +928,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "portions.snooze_label.30": {"fa": "۳۰ دقیقه", "ar": "۳۰ دقيقة", "en": "30 minutes"},
     "portions.snooze_label.60": {"fa": "۱ ساعت", "ar": "ساعة واحدة", "en": "1 hour"},
     "portions.snooze_label.180": {"fa": "۳ ساعت", "ar": "۳ ساعات", "en": "3 hours"},
+    "portions.snooze_label.custom": {"fa": "🗓 زمان دلخواه", "ar": "🗓 وقت مخصص", "en": "🗓 Custom time"},
     "portions.snoozed": {
         "fa": "یادآوری این ختم برای {label} به تعویق افتاد ✅", "ar": "تم تأجيل تذكير هذه الختمة لمدة {label} ✅",
         "en": "This khatm's reminder was delayed by {label} ✅",
