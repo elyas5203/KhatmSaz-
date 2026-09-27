@@ -32,6 +32,7 @@ from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus
+from khatmsaz.bot import invite_links
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_category.models import KhatmCategoryRequest, KhatmCategoryRequestStatus
@@ -392,6 +393,7 @@ async def public_join_landing(request: Request, token: str):
     unavailable = False
     khatm = creator = None
     member_count = 0
+    khatm_bot_cat = None
     try:
         async with session_scope() as session:
             khatm_id = await invitation_service.resolve_khatm_id(session, token)
@@ -409,20 +411,33 @@ async def public_join_landing(request: Request, token: str):
                     )
                     or 0
                 )
+                khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
     except (InvitationNotFoundError, InvitationExpiredError):
         unavailable = True
 
-    settings = get_settings()
-    telegram_url = (
-        f"https://t.me/{settings.telegram_bot_username}?start=join_{token}"
-        if settings.telegram_bot_username and not unavailable
-        else ""
-    )
-    bale_url = (
-        f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}"
-        if settings.bale_bot_username and not unavailable
-        else ""
-    )
+    # Build one button per configured member bot (category + language), so a
+    # visitor lands directly in the correct member bot. Falls back to the
+    # creator bot only if no member bot is configured for this category.
+    links: list[dict] = []
+    if not unavailable:
+        lang_names = {"fa": "فارسی", "ar": "عربی", "en": "English"}
+        try:
+            by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
+        except Exception:
+            by_lang = {}
+        for lang_code, urls in by_lang.items():
+            label = lang_names.get(lang_code, lang_code)
+            if urls.get("telegram"):
+                links.append({"name": f"تلگرام · {label}", "url": urls["telegram"], "is_telegram": True})
+            if urls.get("bale"):
+                links.append({"name": f"بله · {label}", "url": urls["bale"], "is_telegram": False})
+        if not links:
+            settings = get_settings()
+            if settings.telegram_bot_username:
+                links.append({"name": "ورود با تلگرام", "url": f"https://t.me/{settings.telegram_bot_username}?start=join_{token}", "is_telegram": True})
+            if settings.bale_bot_username:
+                links.append({"name": "ورود با بله", "url": f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}", "is_telegram": False})
+
     return templates.TemplateResponse(
         request=request,
         name="join.html",
@@ -432,9 +447,8 @@ async def public_join_landing(request: Request, token: str):
             "khatm": khatm,
             "creator_name": _public_creator_name(khatm, creator) if khatm else "",
             "member_count": member_count,
-            "telegram_url": telegram_url,
-            "bale_url": bale_url,
-            "bale_command": f"/start join_{token}" if not unavailable else "",
+            "links": links,
+            "no_bots": not links,
         },
         status_code=404 if unavailable else 200,
     )
