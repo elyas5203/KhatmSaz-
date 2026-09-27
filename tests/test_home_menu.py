@@ -55,10 +55,13 @@ def test_visibility_keyboard_contains_all_three_modes():
         for row in visibility_choice_keyboard().inline_keyboard
         for button in row
     ]
+    # The three visibility modes, plus a cancel row now added to every wizard
+    # step (goal: «انصراف» available at every step).
     assert callbacks == [
         "ck:visibility:PUBLIC",
         "ck:visibility:UNLISTED",
         "ck:visibility:PRIVATE",
+        "ck:cancel",
     ]
 
 

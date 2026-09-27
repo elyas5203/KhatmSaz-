@@ -432,22 +432,28 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def commitment_mode_keyboard() -> InlineKeyboardMarkup:
+def _ck_cancel_row(lang: str) -> list[InlineKeyboardButton]:
+    return [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")]
+
+
+def commitment_mode_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔒 تعهدی (سهم مشخص برای هرکس)", callback_data="ck:mode:COMMITMENT")],
-            [InlineKeyboardButton(text="🌿 آزاد (هرکس با میل خودش)", callback_data="ck:mode:OPEN")],
+            [InlineKeyboardButton(text=t("ck.mode.commitment", lang), callback_data="ck:mode:COMMITMENT")],
+            [InlineKeyboardButton(text=t("ck.mode.open", lang), callback_data="ck:mode:OPEN")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def template_choice_keyboard() -> InlineKeyboardMarkup:
+def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="📖 ختم صفحات قرآن", callback_data="ck:tpl:QURAN_PAGE")],
-            [InlineKeyboardButton(text="📿 ختم صلوات", callback_data="ck:group:SALAWAT")],
-            [InlineKeyboardButton(text="🤲 ختم دعا و زیارت", callback_data="ck:group:DUA")],
-            [InlineKeyboardButton(text="🗡 ختم لعن", callback_data="ck:group:LAAN")],
+            [InlineKeyboardButton(text=t("ck.tpl.quran", lang), callback_data="ck:tpl:QURAN_PAGE")],
+            [InlineKeyboardButton(text=t("ck.tpl.salawat", lang), callback_data="ck:group:SALAWAT")],
+            [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
+            [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
+            _ck_cancel_row(lang),
         ]
     )
 
@@ -456,7 +462,7 @@ _CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲"}
 
 
 def category_choice_keyboard(
-    categories: list, *, group: str, allow_custom_request: bool = False
+    categories: list, *, group: str, allow_custom_request: bool = False, lang: str = "fa"
 ) -> InlineKeyboardMarkup:
     """Show only children of one explicit top-level devotional family."""
     rows = [
@@ -467,13 +473,17 @@ def category_choice_keyboard(
         for category in categories
     ]
     if allow_custom_request:
-        rows.append([InlineKeyboardButton(text="➕ دعا یا زیارت دیگر", callback_data="ck:cat:custom")])
+        rows.append([InlineKeyboardButton(text=t("ck.cat.custom", lang), callback_data="ck:cat:custom")])
+    rows.append(_ck_cancel_row(lang))
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def skip_niyyat_keyboard() -> InlineKeyboardMarkup:
+def skip_niyyat_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="رد کردن ⏭", callback_data="ck:skip_niyyat")]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("ck.skip_niyyat", lang), callback_data="ck:skip_niyyat")],
+            _ck_cancel_row(lang),
+        ]
     )
 
 
@@ -486,62 +496,68 @@ def edition_choice_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def content_delivery_mode_keyboard() -> InlineKeyboardMarkup:
+def content_delivery_mode_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="⚙️ خودکار (هرچه موجود بود)", callback_data="ck:content_mode:AUTO")],
-            [InlineKeyboardButton(text="🖼 فقط تصویر صفحات", callback_data="ck:content_mode:PHOTO")],
-            [InlineKeyboardButton(text="📝 فقط متن صفحات", callback_data="ck:content_mode:TEXT")],
+            [InlineKeyboardButton(text=t("ck.content_mode.auto", lang), callback_data="ck:content_mode:AUTO")],
+            [InlineKeyboardButton(text=t("ck.content_mode.photo", lang), callback_data="ck:content_mode:PHOTO")],
+            [InlineKeyboardButton(text=t("ck.content_mode.text", lang), callback_data="ck:content_mode:TEXT")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def reminder_tone_keyboard() -> InlineKeyboardMarkup:
+def reminder_tone_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🌱 صمیمی", callback_data="ck:tone:FRIENDLY")],
-            [InlineKeyboardButton(text="📜 رسمی", callback_data="ck:tone:FORMAL")],
-            [InlineKeyboardButton(text="🤍 معنوی", callback_data="ck:tone:DEVOTIONAL")],
-            [InlineKeyboardButton(text="⚡ کوتاه", callback_data="ck:tone:SHORT")],
+            [InlineKeyboardButton(text=t("ck.tone.friendly", lang), callback_data="ck:tone:FRIENDLY")],
+            [InlineKeyboardButton(text=t("ck.tone.formal", lang), callback_data="ck:tone:FORMAL")],
+            [InlineKeyboardButton(text=t("ck.tone.devotional", lang), callback_data="ck:tone:DEVOTIONAL")],
+            [InlineKeyboardButton(text=t("ck.tone.short", lang), callback_data="ck:tone:SHORT")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def creator_display_keyboard() -> InlineKeyboardMarkup:
+def creator_display_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="👤 نام کامل", callback_data="ck:creator_display:FULL_NAME")],
-            [InlineKeyboardButton(text="🙂 فقط نام کوچک", callback_data="ck:creator_display:FIRST_NAME")],
-            [InlineKeyboardButton(text="🪪 نام مستعار", callback_data="ck:creator_display:PSEUDONYM")],
-            [InlineKeyboardButton(text="🤲 ناشناس / نیکوکار", callback_data="ck:creator_display:ANONYMOUS")],
+            [InlineKeyboardButton(text=t("ck.display.full", lang), callback_data="ck:creator_display:FULL_NAME")],
+            [InlineKeyboardButton(text=t("ck.display.first", lang), callback_data="ck:creator_display:FIRST_NAME")],
+            [InlineKeyboardButton(text=t("ck.display.pseudonym", lang), callback_data="ck:creator_display:PSEUDONYM")],
+            [InlineKeyboardButton(text=t("ck.display.anonymous", lang), callback_data="ck:creator_display:ANONYMOUS")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def start_schedule_keyboard() -> InlineKeyboardMarkup:
+def start_schedule_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="▶️ همین حالا", callback_data="ck:start:now")],
-            [InlineKeyboardButton(text="🗓 شروع در تاریخ آینده", callback_data="ck:start:future")],
+            [InlineKeyboardButton(text=t("ck.start.now", lang), callback_data="ck:start:now")],
+            [InlineKeyboardButton(text=t("ck.start.future", lang), callback_data="ck:start:future")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def capacity_choice_keyboard() -> InlineKeyboardMarkup:
+def capacity_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔢 ظرفیت محدود", callback_data="ck:capacity:limited")],
-            [InlineKeyboardButton(text="♾ نامحدود", callback_data="ck:capacity:unlimited")],
+            [InlineKeyboardButton(text=t("ck.capacity.limited", lang), callback_data="ck:capacity:limited")],
+            [InlineKeyboardButton(text=t("ck.capacity.unlimited", lang), callback_data="ck:capacity:unlimited")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def visibility_choice_keyboard() -> InlineKeyboardMarkup:
+def visibility_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🌍 عمومی (در فهرست ختم‌ها نمایش داده شود)", callback_data="ck:visibility:PUBLIC")],
-            [InlineKeyboardButton(text="🔗 با لینک، برای همه باز", callback_data="ck:visibility:UNLISTED")],
-            [InlineKeyboardButton(text="🔒 عضویت نیاز به تایید من داره", callback_data="ck:visibility:PRIVATE")],
+            [InlineKeyboardButton(text=t("ck.visibility.public", lang), callback_data="ck:visibility:PUBLIC")],
+            [InlineKeyboardButton(text=t("ck.visibility.unlisted", lang), callback_data="ck:visibility:UNLISTED")],
+            [InlineKeyboardButton(text=t("ck.visibility.private", lang), callback_data="ck:visibility:PRIVATE")],
+            _ck_cancel_row(lang),
         ]
     )
 
@@ -557,30 +573,31 @@ def public_khatms_keyboard(khatms) -> InlineKeyboardMarkup | None:
     )
 
 
-def advertising_choice_keyboard() -> InlineKeyboardMarkup:
+def advertising_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ بله، تبلیغات فعال باشد", callback_data="ck:ads:ON")],
-            [InlineKeyboardButton(text="🚫 خیر، بدون تبلیغات", callback_data="ck:ads:OFF")],
+            [InlineKeyboardButton(text=t("ck.ads.on", lang), callback_data="ck:ads:ON")],
+            [InlineKeyboardButton(text=t("ck.ads.off", lang), callback_data="ck:ads:OFF")],
+            _ck_cancel_row(lang),
         ]
     )
 
 
-def confirm_keyboard(*, allow_coupon: bool = False) -> InlineKeyboardMarkup:
-    rows = [[InlineKeyboardButton(text="✅ تایید و شروع ختم", callback_data="ck:confirm")]]
+def confirm_keyboard(*, allow_coupon: bool = False, lang: str = "fa") -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton(text=t("ck.confirm", lang), callback_data="ck:confirm")]]
     if allow_coupon:
-        rows.append([InlineKeyboardButton(text="🎟 کد تخفیف دارم", callback_data="ck:coupon")])
-    rows.append([InlineKeyboardButton(text="❌ انصراف", callback_data="ck:cancel")])
+        rows.append([InlineKeyboardButton(text=t("ck.coupon", lang), callback_data="ck:coupon")])
+    rows.append(_ck_cancel_row(lang))
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
 
 
-def coupon_entry_keyboard() -> InlineKeyboardMarkup:
+def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🔙 ادامه بدون کد", callback_data="ck:coupon_back")],
-            [InlineKeyboardButton(text="❌ انصراف", callback_data="ck:cancel")],
+            [InlineKeyboardButton(text=t("ck.coupon_back", lang), callback_data="ck:coupon_back")],
+            _ck_cancel_row(lang),
         ]
     )
 

@@ -1,3 +1,9 @@
+## 2026-09-27 — Create-khatm wizard keyboards i18n + cancel-everywhere [Claude Code]
+- **What changed**: Started goal options 2 (wizard i18n) and 3 (cancel/back). The wizard TEXT prompts were already i18n; the KEYBOARDS were hardcoded Persian. Localized all 13 wizard keyboards (new `ck.*` keys, fa/ar/en) and added a localized cancel row to every step (wired to the existing `ck:cancel` handler). Added `tests/test_wizard_keyboards_i18n.py`.
+- **Why**: Goal — simple UX, correct language per role/bot; a creator on the ar/en bot was seeing Persian wizard buttons, and several steps had no visible cancel.
+- **How verified**: `PYTHONPATH=src pytest -m "not integration"` → 86 passed, 0 failed. Non-breaking by design (lang defaults to fa). Live NOT run (owner will test).
+- **What's still outstanding**: «مرحلهٔ قبل» (back) navigation across wizard steps (needs per-step prior-state re-render — deferred). Broader i18n of khatm-MANAGEMENT keyboards (cs:* tree) still hardcoded. New goal item recorded in QA_MATRIX: full admin+creator panel redesign with very simple UX.
+
 ## 2026-09-27 — Fix cross-platform notification routing [Claude Code]
 - **What changed**: Continued Phase-2 systematic scan. Audited every inline `callback_data` prefix against its handler — all wired (the `cs:miss` keyboard is orphaned dead code from the removed miss system, unreachable, left as-is). Found and fixed a real notification-routing bug: `notify_adapter` applied a member bot's `bot_instance_id` to every platform identity, so a dual-platform user got the other-platform reminder from the wrong bot (silent failure). Now the member bot is used only for its own platform; other platforms fall back to their creator bot. Test: `tests/test_notify_routing.py`.
 - **Why**: Goal explicitly flags "notification from the correct bot" as a must-check path; a member who linked both platforms was silently missing reminders on one.

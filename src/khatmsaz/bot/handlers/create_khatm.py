@@ -122,7 +122,7 @@ async def start_wizard(message: Message, state: FSMContext) -> None:
     lang = await _resolve_lang(message)
     await state.update_data(lang=lang)
     await state.set_state(CreateKhatm.choosing_template)
-    await message.answer(t("create_khatm.ask_template", lang), reply_markup=template_choice_keyboard())
+    await message.answer(t("create_khatm.ask_template", lang), reply_markup=template_choice_keyboard(lang))
 
 
 @router.message(Command("new_khatm"))
@@ -189,6 +189,7 @@ async def _show_category_group(
             categories,
             group=group.value,
             allow_custom_request=group == KhatmCategoryGroup.DUA,
+            lang=lang,
         ),
     )
     await safe_answer_callback(callback)
@@ -271,7 +272,7 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.choosing_mode)
     await message.answer(
         t("create_khatm.ask_mode", lang, explanation=t(explanation_key, lang)),
-        reply_markup=commitment_mode_keyboard(),
+        reply_markup=commitment_mode_keyboard(lang),
     )
 
 
@@ -305,7 +306,7 @@ async def enter_title(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.entering_niyyat)
     await message.answer(
         t("create_khatm.ask_niyyat", lang),
-        reply_markup=skip_niyyat_keyboard(),
+        reply_markup=skip_niyyat_keyboard(lang),
     )
 
 
@@ -342,7 +343,7 @@ async def _ask_welcome(message: Message, state: FSMContext) -> None:
     key = (data.get("template_type"), data.get("category_group"))
     example_key = _WELCOME_EXAMPLE_KEYS.get(key, _WELCOME_EXAMPLE_KEYS[(KhatmTemplateType.QURAN_PAGE.value, None)])
     text = t("create_khatm.welcome_intro", lang) + t(example_key, lang) + t("create_khatm.welcome_suffix", lang)
-    await message.answer(text, reply_markup=skip_niyyat_keyboard())
+    await message.answer(text, reply_markup=skip_niyyat_keyboard(lang))
 
 
 @router.message(StateFilter(CreateKhatm.entering_welcome))
@@ -381,7 +382,7 @@ async def _after_welcome(message: Message, state: FSMContext) -> None:
         await state.set_state(CreateKhatm.entering_recitation_text)
         await message.answer(
             t("create_khatm.ask_recitation_text", lang),
-            reply_markup=skip_niyyat_keyboard(),
+            reply_markup=skip_niyyat_keyboard(lang),
         )
         return
     await _after_recitation_text(message, state)
@@ -413,7 +414,7 @@ async def _after_recitation_text(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.choosing_creator_display)
     await message.answer(
         t("create_khatm.ask_creator_display", lang),
-        reply_markup=creator_display_keyboard(),
+        reply_markup=creator_display_keyboard(lang),
     )
 
 
@@ -449,7 +450,7 @@ async def _after_creator_display(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.choosing_start_schedule)
     await message.answer(
         t("create_khatm.ask_start_schedule", lang),
-        reply_markup=start_schedule_keyboard(),
+        reply_markup=start_schedule_keyboard(lang),
     )
 
 
@@ -545,7 +546,7 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
     await state.set_state(CreateKhatm.choosing_capacity_mode)
     await message.answer(
         t("create_khatm.ask_capacity_salawat", lang),
-        reply_markup=capacity_choice_keyboard(),
+        reply_markup=capacity_choice_keyboard(lang),
     )
 
 
@@ -558,7 +559,7 @@ async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
 
     await state.set_state(CreateKhatm.choosing_content_delivery_mode)
     await callback.message.answer(
-        t("create_khatm.ask_content_delivery_mode", lang), reply_markup=content_delivery_mode_keyboard()
+        t("create_khatm.ask_content_delivery_mode", lang), reply_markup=content_delivery_mode_keyboard(lang)
     )
     await safe_answer_callback(callback)
 
@@ -591,7 +592,7 @@ async def enter_deadline_hour(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.choosing_capacity_mode)
     await message.answer(
         t("create_khatm.ask_capacity_quran", lang),
-        reply_markup=capacity_choice_keyboard(),
+        reply_markup=capacity_choice_keyboard(lang),
     )
 
 
@@ -630,7 +631,7 @@ async def _ask_visibility(message: Message, state: FSMContext) -> None:
     await state.set_state(CreateKhatm.choosing_reminder_tone)
     await message.answer(
         t("create_khatm.ask_reminder_tone", lang),
-        reply_markup=reminder_tone_keyboard(),
+        reply_markup=reminder_tone_keyboard(lang),
     )
 
 
@@ -647,7 +648,7 @@ async def choose_reminder_tone(callback: CallbackQuery, state: FSMContext) -> No
     # rebuilt properly, rather than guessing at it now.
     await state.set_state(CreateKhatm.choosing_visibility)
     await callback.message.answer(
-        t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard()
+        t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang)
     )
     await safe_answer_callback(callback)
 
@@ -817,7 +818,7 @@ async def _show_confirmation(
 
     lines.append(t("create_khatm.confirm.final_warning", lang))
     await state.set_state(CreateKhatm.confirming)
-    await message.answer("\n".join(lines), reply_markup=confirm_keyboard(allow_coupon=price > 0))
+    await message.answer("\n".join(lines), reply_markup=confirm_keyboard(allow_coupon=price > 0, lang=lang))
 
 
 @router.callback_query(F.data == "ck:coupon", StateFilter(CreateKhatm.confirming))
@@ -831,7 +832,7 @@ async def ask_creation_coupon(callback: CallbackQuery, state: FSMContext) -> Non
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("create_khatm.ask_coupon", lang),
-        reply_markup=coupon_entry_keyboard(),
+        reply_markup=coupon_entry_keyboard(lang),
     )
     await safe_answer_callback(callback)
 
@@ -874,7 +875,7 @@ async def _apply_coupon_code(message: Message, state: FSMContext, code: str) -> 
         except wallet_service.InvalidCouponError:
             await message.answer(
                 t("create_khatm.coupon_invalid", lang),
-                reply_markup=coupon_entry_keyboard(),
+                reply_markup=coupon_entry_keyboard(lang),
             )
             return False
     await state.update_data(coupon_code=code, coupon_discount_toman=discount)
@@ -887,7 +888,7 @@ async def _apply_coupon_code(message: Message, state: FSMContext, code: str) -> 
             discount=f"{discount:,}",
             net=f"{gross - discount:,}",
         ),
-        reply_markup=confirm_keyboard(allow_coupon=True),
+        reply_markup=confirm_keyboard(allow_coupon=True, lang=lang),
     )
     return True
 
@@ -909,7 +910,7 @@ async def apply_creation_coupon(
         await state.set_state(CreateKhatm.entering_coupon)
         await message.answer(
             t("create_khatm.ask_coupon_command", lang),
-            reply_markup=coupon_entry_keyboard(),
+            reply_markup=coupon_entry_keyboard(lang),
         )
         return
     await _apply_coupon_code(message, state, code)
@@ -980,7 +981,7 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
             await state.update_data(coupon_code=None, coupon_discount_toman=None)
             await message.answer(
                 t("create_khatm.coupon_expired_at_confirm", lang),
-                reply_markup=confirm_keyboard(allow_coupon=price > 0),
+                reply_markup=confirm_keyboard(allow_coupon=price > 0, lang=lang),
             )
             return
 
