@@ -1075,7 +1075,10 @@ async def show_invite_platform_keyboard(message: Message, state: FSMContext, lan
         try:
             await message.message.edit_text(text, reply_markup=kb)
         except Exception:
-            pass
+            # Editing can fail (message too old, deleted, or the client raced
+            # two taps). Never leave the creator on a dead screen — send the
+            # step as a fresh message so the flow always visibly advances.
+            await message.message.answer(text, reply_markup=kb)
     else:
         await message.answer(text, reply_markup=kb)
 
@@ -1097,22 +1100,8 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
     
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
-        from khatmsaz.modules.khatm_category import service as category_service
-        from khatmsaz.modules.bot_registry.models import BotCategory
-        
-        khatm_bot_cat = None
-        if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
-            khatm_bot_cat = BotCategory.QURAN.value
-        else:
-            cat = await category_service.get(session, khatm.content_category_id) if khatm.content_category_id else None
-            if cat:
-                if cat.group.name == "SALAWAT":
-                    khatm_bot_cat = BotCategory.SALAWAT.value
-                elif cat.group.name == "LAAN":
-                    khatm_bot_cat = BotCategory.LAAN.value
-                elif cat.group.name == "DUA":
-                    khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
-    
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+
     # Find available languages for this category and selected platform
     available_langs = set()
     registry = get_registry()
@@ -1146,7 +1135,9 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
         try:
             await message.message.edit_text(text, reply_markup=kb)
         except Exception:
-            pass
+            # Fall back to a fresh message so the language step never silently
+            # disappears when the edit fails.
+            await message.message.answer(text, reply_markup=kb)
     else:
         await message.answer(text, reply_markup=kb)
 
