@@ -677,20 +677,20 @@ def commitment_quantity_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeybo
     )
 
 
-def commitment_consent_keyboard(token: str) -> InlineKeyboardMarkup:
+def commitment_consent_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ تعهد را می‌پذیرم", callback_data=f"commitment_consent:accept:{token}")],
-            [InlineKeyboardButton(text="❌ انصراف", callback_data=f"commitment_consent:cancel:{token}")],
+            [InlineKeyboardButton(text=t("join.button.accept_commitment", lang), callback_data=f"commitment_consent:accept:{token}")],
+            [InlineKeyboardButton(text=t("join.button.cancel", lang), callback_data=f"commitment_consent:cancel:{token}")],
         ]
     )
 
 
-def join_preview_keyboard(token: str) -> InlineKeyboardMarkup:
+def join_preview_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ شرکت در این ختم", callback_data=f"join_preview:{token}")],
-            [InlineKeyboardButton(text="❌ انصراف", callback_data="join_preview:cancel")],
+            [InlineKeyboardButton(text=t("join.button.join", lang), callback_data=f"join_preview:{token}")],
+            [InlineKeyboardButton(text=t("join.button.cancel", lang), callback_data="join_preview:cancel")],
         ]
     )
 

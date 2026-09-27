@@ -187,7 +187,7 @@ async def handle_start_with_payload(message: Message, command: CommandObject, st
                     khatm, _creator_display_name(khatm, creator), member_count, lang,
                     category_title=category_title, category_group=category_group,
                 ),
-                reply_markup=join_preview_keyboard(token),
+                reply_markup=join_preview_keyboard(token, lang),
             )
             return
 
@@ -344,7 +344,7 @@ async def resume_join_after_registration(
                 await state.update_data(pending_commitment_token=token)
             await message.answer(
                 t("join.commitment_consent", _lang),
-                reply_markup=commitment_consent_keyboard(token),
+                reply_markup=commitment_consent_keyboard(token, _lang),
             )
             return
     try:
@@ -407,10 +407,16 @@ async def resume_join_after_registration(
     # fires for both: a fresh commitment portion, OR a fresh OPEN-khatm
     # join. Only once — skipped if this participation already has a
     # preference (e.g. re-joined via some other path, or already set one).
-    is_fresh_commitment = not was_waitlisted and first_portion is not None
-    is_fresh_open_join = not was_waitlisted and first_portion is None and khatm.khatm_type == KhatmTypeEnum.OPEN
+    # Owner request: ask the delivery hour on EVERY fresh (non-waitlisted)
+    # join, commitment or open — previously it only fired when a first
+    # portion existed, so committing to a Quran khatm with no immediate
+    # portion silently skipped the question (reported 2026-09-27).
+    is_fresh_join = (
+        not was_waitlisted
+        and khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN)
+    )
     if (
-        state is not None and (is_fresh_commitment or is_fresh_open_join)
+        state is not None and is_fresh_join
         and await notification_service.get_preference(session, participation.id) is None
     ):
         await state.set_state(AskDeliveryHour.entering_hour)

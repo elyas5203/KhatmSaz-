@@ -107,7 +107,7 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
             )
             await state.set_state(JoinWorkflow.previewing)
 
-            kb = join_preview_keyboard(token)
+            kb = join_preview_keyboard(token, lang)
             await message.answer(text, reply_markup=kb)
 
 

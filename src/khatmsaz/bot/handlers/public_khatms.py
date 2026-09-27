@@ -64,7 +64,7 @@ async def join_public_khatm(callback: CallbackQuery, state: FSMContext) -> None:
             await state.update_data(pending_commitment_token=token)
             await callback.message.answer(
                 t("public_khatms.commitment_consent_prompt", lang),
-                reply_markup=commitment_consent_keyboard(token),
+                reply_markup=commitment_consent_keyboard(token, lang),
             )
         else:
             await resume_join_after_registration(

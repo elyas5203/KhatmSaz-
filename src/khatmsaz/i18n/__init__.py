@@ -1105,6 +1105,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "مرحباً بك 🌿\n\nمن هنا يمكنك المشاركة في الختمات واستلام حصتك اليومية.\nادخل ختمة عبر رابط الدعوة، أو استخدم الأزرار في الأسفل.",
         "en": "Welcome 🌿\n\nHere you can join khatms and receive your daily portion.\nJoin a khatm through an invite link, or use the buttons below.",
     },
+    "join.button.join": {
+        "fa": "✅ شرکت در این ختم", "ar": "✅ المشاركة في هذه الختمة", "en": "✅ Join this khatm",
+    },
+    "join.button.cancel": {
+        "fa": "❌ انصراف", "ar": "❌ إلغاء", "en": "❌ Cancel",
+    },
+    "join.button.accept_commitment": {
+        "fa": "✅ تعهد را می‌پذیرم", "ar": "✅ أقبل الالتزام", "en": "✅ I accept the commitment",
+    },
     "join.ask_delivery_hour": {
         "fa": "یک سؤال کوتاه دیگه 🌱\n\nچه موقعی از روز دوست دارید سهم هر روزتون خودکار براتون فرستاده بشه؟ یکی از دکمه‌های زیر رو بزنید، یا اگه ساعت دقیق‌تری مدنظرتونه، فقط عددش رو بنویسید (بین 0 تا 23):",
         "ar": "سؤال قصير آخر 🌱\n\nفي أي وقت من اليوم تحب أن تصلك حصتك اليومية تلقائياً؟ اضغط أحد الأزرار أدناه، أو إذا أردت ساعة دقيقة أرسل رقمها (بين 0 و23):",
