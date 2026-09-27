@@ -117,12 +117,18 @@ async def handle_member_start(message: Message, state: FSMContext) -> None:
     bot = message.bot
     lang = getattr(bot, "khatmsaz_language", "fa")
 
-    welcome_text = "سلام!\nبا لینک دعوت می‌توانید در ختم شرکت کنید."
-    await message.answer(welcome_text, reply_markup=member_menu_keyboard(lang))
+    await message.answer(t("member.welcome", lang), reply_markup=member_menu_keyboard(lang))
 
 
-@router.callback_query(F.data.startswith("join_preview:"), JoinWorkflow.previewing)
+@router.callback_query(F.data.startswith("join_preview:"))
 async def handle_member_join_callback(callback: CallbackQuery, state: FSMContext) -> None:
+    # NOTE: intentionally NOT filtered on `JoinWorkflow.previewing`. The token
+    # is carried in the callback data, so this must work even after the FSM
+    # state is gone — e.g. the service was restarted between showing the
+    # preview and the user tapping "شرکت" (MemoryStorage is wiped on restart).
+    # The creator-side handler (`start.accept_join_preview`) is likewise
+    # state-independent; the member one used to require the state, so on a
+    # member bot the join button silently died after any restart.
     from khatmsaz.modules.settings import service as settings_service
     from khatmsaz.bot.handlers.member_registration import start_member_registration
     from khatmsaz.bot.handlers.start import resume_join_after_registration
