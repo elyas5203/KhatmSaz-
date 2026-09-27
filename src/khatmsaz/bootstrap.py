@@ -283,6 +283,16 @@ async def main() -> None:
     except Exception:
         logger.warning("Quran channel map self-heal check failed — will retry next restart.", exc_info=True)
 
+    # Seed admin-curated devotional texts (Ziyarat Ashura, Al-Yasin, Faraj,
+    # Ahd) on every startup — idempotent upsert keyed on slug.
+    try:
+        from khatmsaz.modules.content.devotional_seed import seed_devotional_texts
+        async with session_scope() as session:
+            devotional_result = await seed_devotional_texts(session)
+        logger.info("Devotional text seed: %s", devotional_result)
+    except Exception:
+        logger.warning("Devotional text seed failed — will retry next restart.", exc_info=True)
+
     async def _run_reminder_scan() -> None:
         runtime_status.mark_scan_started()
         try:
