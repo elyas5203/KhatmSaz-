@@ -32,6 +32,7 @@ from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus
+from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_category.models import KhatmCategoryRequest, KhatmCategoryRequestStatus
 from khatmsaz.modules.manual_phone_verification.models import ManualPhoneVerification
@@ -1519,6 +1520,122 @@ async def fulfill_category_request(
                 f"درخواست شما «{category.title}» به لیست دعاها اضافه شد ✅\nحالا می‌تونید ختمش رو بسازید.",
             )
     return RedirectResponse("/categories?saved=fulfilled", status_code=303)
+
+
+# --- Devotional texts (dua / ziyarat) library ---------------------------------
+# Owner request (2026-09-27): add/edit dua & ziyarat texts from a graphical
+# admin page instead of code + git pull. Text is stored in `devotional_assets`
+# (same rows the startup seed writes and the member bots deliver). The long
+# body is chunked into <=~3500-char pieces joined by \x1e at save time, the
+# same delimiter `portions._send_recitation_content` splits on.
+_DEVOTIONAL_TYPE_LABELS = {"DUA": "دعا", "ZIYARAT": "زیارت"}
+_DEVOTIONAL_CHUNK_LIMIT = 3500
+_DEVOTIONAL_SEP = "\x1e"
+
+
+def _chunk_devotional(text: str) -> str:
+    paragraphs = [p.strip() for p in text.strip().replace("\r\n", "\n").split("\n\n") if p.strip()]
+    chunks: list[str] = []
+    current = ""
+    for para in paragraphs:
+        candidate = f"{current}\n\n{para}" if current else para
+        if len(candidate) > _DEVOTIONAL_CHUNK_LIMIT and current:
+            chunks.append(current)
+            current = para
+        else:
+            current = candidate
+    if current:
+        chunks.append(current)
+    return _DEVOTIONAL_SEP.join(chunks)
+
+
+@app.get("/devotionals", response_class=HTMLResponse)
+async def devotionals_page(request: Request):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    async with session_scope() as session:
+        assets = await content_service.list_all_devotional_assets(session)
+    rows = []
+    for a in assets:
+        # Re-join chunks with blank lines for editing; the separator is a
+        # storage detail the admin never needs to see.
+        display_text = (a.text_body or "").replace(_DEVOTIONAL_SEP, "\n\n")
+        rows.append({
+            "slug": a.slug,
+            "title": a.title,
+            "content_type": a.content_type,
+            "type_label": _DEVOTIONAL_TYPE_LABELS.get(a.content_type, a.content_type),
+            "enabled": a.enabled,
+            "text": display_text,
+            "char_count": len(a.text_body or ""),
+            "has_image": bool(a.image_ref),
+            "has_audio": bool(a.audio_ref),
+        })
+    return templates.TemplateResponse(
+        request=request,
+        name="devotionals.html",
+        context=_ctx(
+            request, admin, raw, items=rows,
+            type_labels=_DEVOTIONAL_TYPE_LABELS,
+            saved=request.query_params.get("saved", ""),
+        ),
+    )
+
+
+@app.post("/devotionals/save")
+async def save_devotional(
+    request: Request,
+    slug: str = Form(...),
+    title: str = Form(...),
+    content_type: str = Form(...),
+    text_body: str = Form(...),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            asset = await content_service.register_devotional_text(
+                session,
+                content_type=content_type,
+                slug=slug,
+                title=title,
+                text_body=_chunk_devotional(text_body),
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="DEVOTIONAL_TEXT_SAVE",
+            details={"slug": asset.slug, "title": asset.title, "content_type": asset.content_type},
+        )
+    return RedirectResponse("/devotionals?saved=saved", status_code=303)
+
+
+@app.post("/devotionals/{slug}/toggle")
+async def toggle_devotional(request: Request, slug: str, csrf: str = Form(...)):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        current = await session.scalar(
+            select(content_service.DevotionalAsset).where(
+                content_service.DevotionalAsset.slug == slug.strip().lower()
+            )
+        )
+        if current is None:
+            return HTMLResponse("پیدا نشد.", status_code=404)
+        asset = await content_service.set_devotional_enabled(session, slug, not current.enabled)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="DEVOTIONAL_TEXT_TOGGLE",
+            details={"slug": asset.slug, "enabled": asset.enabled},
+        )
+    return RedirectResponse("/devotionals?saved=toggled", status_code=303)
 
 
 @app.get("/templates", response_class=HTMLResponse)

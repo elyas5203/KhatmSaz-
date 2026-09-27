@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% from "components.html" import tooltip %}
+{% block title %}دعاها و زیارات | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-8 pt-4">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">کتابخانهٔ محتوا</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">دعاها و زیارات</h1>
+  <p class="text-slate-400 text-sm leading-relaxed">
+    متن هر دعا یا زیارت را اینجا وارد یا ویرایش کنید؛ همان لحظه در بات ذخیره می‌شود، بدون نیاز به کد یا ری‌استارت.
+    متن‌های طولانی خودکار به چند پیام تقسیم می‌شوند.
+  </p>
+</section>
+
+{% if saved %}
+<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  {% if saved == 'toggled' %}وضعیت نمایش تغییر کرد{% else %}متن ذخیره شد ✅{% endif %}
+</div>
+{% endif %}
+
+<!-- Add new -->
+<section class="glass-panel p-6 rounded-3xl mb-8">
+  <div class="mb-6 border-b border-white/5 pb-4">
+    <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">بدون کدنویسی</p>
+    <h2 class="text-xl font-bold text-white">افزودن دعا / زیارت جدید</h2>
+  </div>
+
+  <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">نوع</label>
+      <select name="content_type" class="input-field">
+        <option value="DUA">دعا</option>
+        <option value="ZIYARAT">زیارت</option>
+      </select>
+    </div>
+
+    <div class="space-y-1 md:col-span-2">
+      <label class="text-xs font-bold text-slate-400">عنوان</label>
+      <input name="title" required maxlength="200" placeholder="مثلاً «دعای عهد»" class="input-field">
+    </div>
+
+    <div class="space-y-1 md:col-span-3">
+      <label class="text-xs font-bold text-slate-400">کد یکتا (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی برای این دعا، مثل dua-ahd یا ziyarat-ashura. فقط حروف کوچک انگلیسی و خط تیره. این کد را در «دسته‌ها» به ختم وصل می‌کنید.") }}</label>
+      <input name="slug" required maxlength="100" placeholder="dua-ahd" class="input-field" dir="ltr" pattern="[a-z0-9\-]+">
+    </div>
+
+    <div class="space-y-1 md:col-span-3">
+      <label class="text-xs font-bold text-slate-400">متن کامل {{ tooltip("متن عربی و ترجمهٔ فارسی را اینجا پیست کنید. بین هر بخش یک خط خالی بگذارید؛ متن‌های طولانی خودکار به چند پیام تقسیم می‌شوند.") }}</label>
+      <textarea name="text_body" rows="10" required placeholder="متن دعا یا زیارت را اینجا پیست کنید…" class="input-field font-mono text-sm leading-loose"></textarea>
+    </div>
+
+    <div class="md:col-span-3 flex justify-end">
+      <button type="submit" class="btn px-8 shadow-lg shadow-emerald-900/20">افزودن</button>
+    </div>
+  </form>
+</section>
+
+<!-- Existing -->
+<section class="glass-panel p-6 rounded-3xl">
+  <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+    <h2 class="text-xl font-bold text-white">متن‌های موجود</h2>
+    <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-700/50 text-slate-300">{{ items|length }} مورد</span>
+  </div>
+
+  <div class="flex flex-col gap-6">
+    {% for item in items %}
+    <div class="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-5">
+      <div class="flex justify-between items-start mb-4 border-b border-slate-700/50 pb-4 gap-3">
+        <div class="min-w-0">
+          <h3 class="text-lg font-bold text-white truncate">{{ item.title }}</h3>
+          <div class="flex flex-wrap items-center gap-2 mt-2">
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">{{ item.type_label }}</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-900/60 text-slate-400" dir="ltr">{{ item.slug }}</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-900/60 text-slate-500">{{ item.char_count }} نویسه</span>
+            {% if item.has_image %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-300">🖼 تصویر</span>{% endif %}
+            {% if item.has_audio %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-violet-500/10 text-violet-300">🎧 صوت</span>{% endif %}
+            {% if not item.enabled %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>{% endif %}
+          </div>
+        </div>
+
+        <form method="post" action="/devotionals/{{ item.slug }}/toggle" class="flex-none">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          {% if item.enabled %}
+          <button class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">غیرفعال</button>
+          {% else %}
+          <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">فعال</button>
+          {% endif %}
+        </form>
+      </div>
+
+      <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="slug" value="{{ item.slug }}">
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">نوع</label>
+          <select name="content_type" class="input-field bg-slate-900/50">
+            <option value="DUA" {% if item.content_type == 'DUA' %}selected{% endif %}>دعا</option>
+            <option value="ZIYARAT" {% if item.content_type == 'ZIYARAT' %}selected{% endif %}>زیارت</option>
+          </select>
+        </div>
+
+        <div class="space-y-1 md:col-span-2">
+          <label class="text-xs font-bold text-slate-400">عنوان</label>
+          <input name="title" value="{{ item.title }}" required maxlength="200" class="input-field bg-slate-900/50">
+        </div>
+
+        <div class="space-y-1 md:col-span-3">
+          <label class="text-xs font-bold text-slate-400">متن کامل</label>
+          <textarea name="text_body" rows="8" required class="input-field bg-slate-900/50 font-mono text-sm leading-loose">{{ item.text }}</textarea>
+        </div>
+
+        <div class="md:col-span-3 flex justify-end">
+          <button type="submit" class="text-sm font-bold text-slate-300 hover:text-emerald-400 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">ذخیره ویرایش</button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-500">
+      <p>هنوز متنی ثبت نشده است. از فرم بالا اولین دعا را اضافه کنید.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="mt-6 p-4 bg-sky-500/5 border border-sky-500/15 rounded-2xl text-sm text-slate-400 leading-relaxed">
+  <span class="font-bold text-sky-300">راهنما:</span>
+  برای اینکه یک ختم این متن را بفرستد، به بخش «دسته‌ها» بروید و در فیلد «کد اتصال» همان کد یکتای این دعا را وارد کنید
+  (مثلاً <span dir="ltr" class="font-mono text-sky-300">dua-ahd</span>).
+</div>
+{% endblock %}

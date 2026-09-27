@@ -508,6 +508,29 @@ async def get_devotional_asset(session: AsyncSession, slug: str) -> DevotionalAs
     return row
 
 
+async def list_all_devotional_assets(session: AsyncSession) -> list[DevotionalAsset]:
+    """Every devotional asset (enabled or not), newest first — for the admin
+    management page."""
+    result = await session.scalars(
+        select(DevotionalAsset).order_by(DevotionalAsset.created_at.desc())
+    )
+    return list(result)
+
+
+async def set_devotional_enabled(
+    session: AsyncSession, slug: str, enabled: bool
+) -> DevotionalAsset | None:
+    """Enable/disable a devotional asset by slug (admin toggle). Returns the
+    row, or None if the slug does not exist."""
+    slug = slug.strip().lower()
+    row = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
+    if row is None:
+        return None
+    row.enabled = enabled
+    await session.flush()
+    return row
+
+
 def list_reciters() -> list[tuple[str, str]]:
     return [(rid, SYSTEM_RECITERS[rid]) for rid in RECITERS_WITH_REGISTERED_AUDIO]
 
