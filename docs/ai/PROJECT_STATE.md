@@ -1,3 +1,9 @@
+## 2026-09-27 — Fix cross-platform notification routing [Claude Code]
+- **What changed**: Continued Phase-2 systematic scan. Audited every inline `callback_data` prefix against its handler — all wired (the `cs:miss` keyboard is orphaned dead code from the removed miss system, unreachable, left as-is). Found and fixed a real notification-routing bug: `notify_adapter` applied a member bot's `bot_instance_id` to every platform identity, so a dual-platform user got the other-platform reminder from the wrong bot (silent failure). Now the member bot is used only for its own platform; other platforms fall back to their creator bot. Test: `tests/test_notify_routing.py`.
+- **Why**: Goal explicitly flags "notification from the correct bot" as a must-check path; a member who linked both platforms was silently missing reminders on one.
+- **How verified**: `PYTHONPATH=src pytest -m "not integration"` → 82 passed, 0 failed (new test reproduces the bug pre-fix). Live/integration NOT run (owner has no test Postgres; owner will live-test).
+- **What's still outstanding**: Live flows await owner. Broad wizard i18n (BACKLOG #1). Tone review of help/`/cancel` wording.
+
 ## 2026-09-27 — Phase-2 dead-button + member i18n fixes [Claude Code]
 - **What changed**: Systematic code-level bug scan (owner asked to fix all code bugs before they live-test). Imported every handler module (0 failures). Cross-checked every reply-menu button against its handler and found two more dead buttons: «🕋 ختم‌های عمومی» (only a command, no text handler) and — earlier this session — the creator finance/support buttons. Fixed public_khatms button (+ member-correct home keyboard) with `tests/test_public_khatms_button.py`. Also made the member-facing `snooze_keyboard` language-aware (was hardcoded Persian on ar/en bots).
 - **Why**: Goal = stable, fully-tested, dead-simple UX; a menu button that does nothing, or Persian buttons on an Arabic bot, both violate it.

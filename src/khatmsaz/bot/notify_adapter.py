@@ -44,11 +44,20 @@ def build_notify_fn(bots_by_platform: dict[Platform, Bot]) -> NotifyFn:
         from khatmsaz.core.bot_registry import get_registry
         registry = get_registry()
         
+        # bot_instance_id records the member bot a participant joined through —
+        # but a user can have identities on BOTH platforms while joining via a
+        # single-platform member bot. Only route through that member bot for the
+        # matching platform; for any other platform fall back to that platform's
+        # creator bot, otherwise the message is sent from the wrong-platform bot
+        # and silently fails to reach the user (they'd get no reminder at all).
+        bot = None
         if bot_instance_id:
-            bot = registry.get_by_instance_id(bot_instance_id)
-        else:
+            candidate = registry.get_by_instance_id(bot_instance_id)
+            if candidate is not None and getattr(candidate, "khatmsaz_platform", None) == Platform(platform_value):
+                bot = candidate
+        if bot is None:
             bot = registry.get_creator_bot(Platform(platform_value))
-            
+
         if not bot:
             logger.warning("No bot for %s/%s", platform_value, bot_instance_id)
             return
