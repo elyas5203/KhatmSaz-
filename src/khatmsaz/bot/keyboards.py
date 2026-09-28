@@ -123,9 +123,13 @@ def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    # Owner (2026-09-28): the creator bot is ONLY for building khatms — a creator
+    # never receives their own portions here (they join member bots to take part).
+    # So the top button is «➕ ساخت ختم جدید» (handy, front-and-centre) instead of
+    # «امروز», which belonged to the participation flow that doesn't apply here.
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t("menu.today", lang))],
+            [KeyboardButton(text=t("menu.create", lang))],
             [KeyboardButton(text=t("menu.creator.management", lang))],
             [KeyboardButton(text=t("menu.creator.finance", lang))],
             [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.creator.support", lang))],

@@ -13,15 +13,18 @@ from khatmsaz.bot.keyboards import (
 )
 
 
-def test_home_menu_exposes_today_report_settings_and_creation():
+def test_creator_home_menu_leads_with_create_not_today():
+    # Owner (2026-09-28): the creator bot is only for building khatms — creators
+    # don't receive portions here — so the top button is «ساخت ختم جدید», not «امروز».
     labels = [button.text for row in main_menu_keyboard(is_creator=True).keyboard for button in row]
     assert labels == [
-        t("menu.today", "fa"),
+        t("menu.create", "fa"),
         t("menu.creator.management", "fa"),
         t("menu.creator.finance", "fa"),
         t("menu.settings", "fa"),
         t("menu.creator.support", "fa"),
     ]
+    assert t("menu.today", "fa") not in labels
 
 
 def test_participant_menu_exactly_matches_dec_py_0076():

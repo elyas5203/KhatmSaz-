@@ -1,3 +1,9 @@
+## 2026-09-28 — Deploy fix: final alembic merge + creator menu (create replaces today) [Claude Code]
+- **Multiple-heads on VPS**: `alembic upgrade head` still failed because the history had a 4th tip — a pre-existing merge `506f73c6ae72` (from 2026-09-26, merging b7c8d9e0f1a2 + b8c9d0e1f2b4) that my first merge didn't include. Added final no-op merge `fin2026092804` (Revises: 506f73c6ae72 + bii2026092803). `alembic heads` now shows exactly one head → `upgrade head` works.
+- **Creator menu**: owner — the creator bot is ONLY for building khatms; a creator never receives their own portions there (they join member bots to take part). Replaced the top «امروز» button in `creator_menu_keyboard` with «➕ ساخت ختم جدید» so creation is front-and-centre. Updated `tests/test_home_menu.py`.
+- **How verified**: `alembic heads` → single head `fin2026092804`; `pytest -q` → 142 passed, 85 skipped.
+- **Deploy**: `git pull && python -m alembic upgrade head && systemctl restart khatmsaz` now applies all pending migrations cleanly.
+
 ## 2026-09-28 — R2 per-bot intro image + admin upload [Claude Code]
 - **What changed**: Per owner's choice (per-bot column). Added `bot_instances.intro_image_url` (migration `bii2026092803` on the current head) + model column. Admin panel: new form on `/bots` (`bot_tokens.html`) per member bot to set an intro image (URL or Telegram file_id), route `POST /bots/{id}/intro_image` + audit `BOT_INTRO_IMAGE_CHANGED`. Wizard: right after the creator picks commitment/free, `_show_intro_image` shows that category's member-bot image (resolved via `bot_registry_service.get_intro_image_for_category`) with the fixed caption «همه ختم‌ها به نیت ظهور امام زمان…»; falls back to text-only caption when no image is set. Guarded (a send/DB failure never breaks the wizard).
 - **Why**: Owner R2 — «بعد از انتخاب تعهدی/آزاد یک عکس مخصوص همان بات، آپلود در پنل ادمین».
