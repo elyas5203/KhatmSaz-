@@ -1311,3 +1311,8 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - **UX**: `/categories` now uses a devotional-library dropdown instead of requiring admins to copy a slug, distinguishes short inline content from full devotional text, links directly to `/devotionals`, and always shows explicit active/hidden status pills.
 - **UX**: `/devotionals` describes the library→category workflow and treats the slug as an internal identifier rather than an admin workflow step.
 - **Tests**: added real Jinja rendering coverage for all three redesigned pages (`tests/test_admin_template_render.py`); non-integration suite is 93 passed.
+## 2026-09-28 (creator web panel khatm settings)
+- **Feature**: Creator khatm detail now includes a simple settings panel alongside its existing stats, searchable member list, and Excel export.
+- **Settings**: creators can edit title/welcome text and the applicable existing domain settings: pause, snooze, Quran skip-today, missed-commitment follow-up window, open-khatm schedule, and completion announcement.
+- **Security**: the settings POST requires a valid creator session, CSRF token, khatm ownership, and active status; mutations call the same domain services used by the bot and are audited.
+- **i18n/tests**: all new creator copy is present in fa/ar/en; real Jinja render and i18n coverage pass. Full non-integration suite: 94 passed.

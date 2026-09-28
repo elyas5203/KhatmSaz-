@@ -11,6 +11,7 @@ from uuid import uuid4
 from starlette.requests import Request
 
 from khatmsaz.web.app import templates
+from khatmsaz.i18n import t
 
 
 def _request(path: str) -> Request:
@@ -91,3 +92,32 @@ def test_devotionals_page_renders_clear_library_workflow_and_statuses():
     assert "✅ فعال (به کاربران نمایش داده می‌شود)" in html
     assert "⛔ غیرفعال (پنهان)" in html
 
+
+def test_creator_detail_renders_manage_stats_members_export_and_settings():
+    enum_value = lambda value: SimpleNamespace(value=value)
+    khatm = SimpleNamespace(
+        id=uuid4(), title="ختم آزمایشی", welcome_text="خوش آمدید",
+        status=enum_value("ACTIVE"), khatm_type=enum_value("COMMITMENT"),
+        template_type=enum_value("QURAN_PAGE"), allow_pause=True,
+        allow_snooze=False, allow_skip_today=True, miss_notice_threshold=3,
+        miss_notice_window_days=7, completion_announcement_enabled=True,
+        schedule_kind="NONE", schedule_value=None,
+    )
+    stats = SimpleNamespace(
+        active_members=2, completed_portions=4, total_portions=10,
+        contribution_total=0,
+    )
+    html = templates.get_template("creator_khatm_detail.html").render(
+        request=_request(f"/creator/khatms/{khatm.id}"),
+        creator=SimpleNamespace(display_name="سازنده"), csrf="test-csrf",
+        lang="fa", t=t, label=lambda value: value.value,
+        khatm=khatm, stats=stats, rows=[], query="", page=1,
+        has_next=False, saved="",
+    )
+
+    assert "تنظیمات این ختم" in html
+    assert "عضوی با این جست‌وجو پیدا نشد." in html
+    assert "دریافت اکسل کامل اعضا" in html
+    assert 'name="allow_pause"' in html
+    assert 'name="allow_skip_today"' in html
+    assert 'action="/creator/khatms/' in html

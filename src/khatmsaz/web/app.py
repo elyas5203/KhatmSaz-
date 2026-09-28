@@ -31,7 +31,13 @@ from khatmsaz.modules.identity.models import Platform, User
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus
+from khatmsaz.modules.khatm.models import (
+    CreatorDisplayMode,
+    Khatm,
+    KhatmStatus,
+    KhatmTemplateType,
+    KhatmTypeEnum,
+)
 from khatmsaz.bot import invite_links
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.khatm_category import service as category_service
@@ -794,8 +800,84 @@ async def creator_khatm_detail(
         context=_creator_ctx(
             request, creator, raw, lang=lang, khatm=khatm, stats=stats, rows=rows,
             query=query, page=page, has_next=has_next,
+            saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/creator/khatms/{khatm_id}/settings")
+async def creator_khatm_settings(
+    request: Request,
+    khatm_id: UUID,
+    csrf: str = Form(...),
+    title: str = Form(...),
+    welcome_text: str = Form(""),
+    allow_pause: str = Form(""),
+    allow_snooze: str = Form(""),
+    allow_skip_today: str = Form(""),
+    completion_announcement: str = Form(""),
+    miss_threshold: int = Form(3),
+    miss_window_days: int = Form(7),
+    schedule: str = Form("off"),
+):
+    """Update only settings already supported by the khatm domain service."""
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        if khatm is None or khatm.creator_user_id != creator.id:
+            return HTMLResponse(web_t("web.creator.khatm_not_found", lang), status_code=404)
+        if khatm.status != KhatmStatus.ACTIVE:
+            return HTMLResponse(web_t("web.creator.settings_active_only", lang), status_code=409)
+        try:
+            await khatm_service.update_title(
+                session, khatm_id=khatm.id, creator_user_id=creator.id, title=title
+            )
+            await khatm_service.update_welcome_text(
+                session, khatm_id=khatm.id, creator_user_id=creator.id,
+                welcome_text=welcome_text,
+            )
+            if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+                await khatm_service.set_allow_pause(
+                    session, khatm_id=khatm.id, creator_user_id=creator.id,
+                    enabled=allow_pause == "on",
+                )
+                await khatm_service.set_allow_snooze(
+                    session, khatm_id=khatm.id, creator_user_id=creator.id,
+                    enabled=allow_snooze == "on",
+                )
+                await khatm_service.set_miss_notice_policy(
+                    session, khatm_id=khatm.id, creator_user_id=creator.id,
+                    threshold=miss_threshold, window_days=miss_window_days,
+                )
+                if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+                    await khatm_service.set_allow_skip_today(
+                        session, khatm_id=khatm.id, creator_user_id=creator.id,
+                        enabled=allow_skip_today == "on",
+                    )
+            else:
+                await khatm_service.set_schedule(
+                    session, khatm_id=khatm.id, creator_user_id=creator.id,
+                    raw=schedule,
+                )
+            await khatm_service.set_completion_announcement(
+                session, khatm_id=khatm.id, creator_user_id=creator.id,
+                enabled=completion_announcement == "on",
+            )
+        except ValueError:
+            return HTMLResponse(web_t("web.creator.settings_invalid", lang), status_code=400)
+        await audit_service.record(
+            session,
+            actor_user_id=creator.id,
+            target_user_id=creator.id,
+            action="CREATOR_WEB_KHATM_SETTINGS_UPDATE",
+            details={"khatm_id": str(khatm.id)},
+        )
+    return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=settings", status_code=303)
 
 
 @app.get("/creator/khatms/{khatm_id}/export.xlsx")

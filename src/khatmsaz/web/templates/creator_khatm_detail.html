@@ -16,6 +16,12 @@
   <p class="text-slate-400 text-sm">{{ t('web.creator.member_report_notice', lang) }}</p>
 </section>
 
+{% if saved == 'settings' %}
+<div class="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-300">
+  {{ t('web.creator.settings_saved', lang) }}
+</div>
+{% endif %}
+
 <!-- Metrics -->
 <section class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
   <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
@@ -31,6 +37,74 @@
     <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_open_contribution', lang) }}</span>
   </article>
 </section>
+
+<!-- Khatm settings -->
+<details class="glass-panel rounded-2xl mb-8 overflow-hidden" {% if saved == 'settings' %}open{% endif %}>
+  <summary class="cursor-pointer select-none px-5 py-4 font-bold text-white hover:bg-white/5 transition-colors">
+    {{ t('web.creator.settings_title', lang) }}
+    <span class="block mt-1 text-xs font-normal text-slate-400">{{ t('web.creator.settings_hint', lang) }}</span>
+  </summary>
+  {% if khatm.status.value == 'ACTIVE' %}
+  <form method="post" action="/creator/khatms/{{ khatm.id }}/settings" class="border-t border-white/5 p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="space-y-2 md:col-span-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_khatm_name', lang) }}</span>
+      <input name="title" value="{{ khatm.title }}" required maxlength="200" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">
+    </label>
+    <label class="space-y-2 md:col-span-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_welcome', lang) }}</span>
+      <textarea name="welcome_text" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">{{ khatm.welcome_text or '' }}</textarea>
+      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_welcome_hint', lang) }}</span>
+    </label>
+
+    {% if khatm.khatm_type.value == 'COMMITMENT' %}
+    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4">
+      <input name="allow_pause" type="checkbox" {% if khatm.allow_pause %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
+      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_pause', lang) }}</span>
+    </label>
+    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4">
+      <input name="allow_snooze" type="checkbox" {% if khatm.allow_snooze %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
+      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_snooze', lang) }}</span>
+    </label>
+    {% if khatm.template_type.value == 'QURAN_PAGE' %}
+    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4 md:col-span-2">
+      <input name="allow_skip_today" type="checkbox" {% if khatm.allow_skip_today %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
+      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_skip_today', lang) }}</span>
+    </label>
+    {% endif %}
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_miss_threshold', lang) }}</span>
+      <input name="miss_threshold" type="number" min="1" max="20" value="{{ khatm.miss_notice_threshold }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+    </label>
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_miss_window', lang) }}</span>
+      <input name="miss_window_days" type="number" min="1" max="90" value="{{ khatm.miss_notice_window_days }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+    </label>
+    {% else %}
+    <label class="space-y-2 md:col-span-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_schedule', lang) }}</span>
+      <select name="schedule" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+        <option value="off" {% if khatm.schedule_kind == 'NONE' %}selected{% endif %}>{{ t('web.creator.schedule_off', lang) }}</option>
+        <option value="daily" {% if khatm.schedule_kind == 'DAILY' %}selected{% endif %}>{{ t('web.creator.schedule_daily', lang) }}</option>
+        <option value="weekly:0,1,2,3,4" {% if khatm.schedule_kind == 'WEEKLY' and khatm.schedule_value == '0,1,2,3,4' %}selected{% endif %}>{{ t('web.creator.schedule_workdays', lang) }}</option>
+        <option value="weekly:5,6" {% if khatm.schedule_kind == 'WEEKLY' and khatm.schedule_value == '5,6' %}selected{% endif %}>{{ t('web.creator.schedule_weekend', lang) }}</option>
+        <option value="every:3" {% if khatm.schedule_kind == 'INTERVAL' and khatm.schedule_value == '3' %}selected{% endif %}>{{ t('web.creator.schedule_every_three', lang) }}</option>
+      </select>
+    </label>
+    {% endif %}
+
+    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4 md:col-span-2">
+      <input name="completion_announcement" type="checkbox" {% if khatm.completion_announcement_enabled %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
+      <span class="text-sm text-slate-200">{{ t('web.creator.settings_completion_announcement', lang) }}</span>
+    </label>
+    <div class="md:col-span-2 flex justify-end">
+      <button type="submit" class="rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white hover:bg-emerald-500 transition-colors">{{ t('web.creator.settings_save', lang) }}</button>
+    </div>
+  </form>
+  {% else %}
+  <p class="border-t border-white/5 p-5 text-sm text-amber-300">{{ t('web.creator.settings_active_only', lang) }}</p>
+  {% endif %}
+</details>
 
 <!-- Actions & Search -->
 <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-8">
