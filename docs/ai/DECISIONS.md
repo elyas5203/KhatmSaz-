@@ -15,7 +15,7 @@ member count (4,5 → 8,9 → 12,13). Pure math lives in
 `allocation.service.positional_range_for_step` (unit-tested,
 `tests/test_positional_rotation.py`). **Wiring is a follow-up that needs a
 migration** (a per-participation committed offset, analogous to the OPEN mode's
-`open_reading_next_page` cursor) + a rewrite of `allocate_next_portion_to`;
+`open_reading_next_page` cursor) + a rewrite of `allocate_next_portion_to`; **Technical blocker for the follow-up:** the current shared-pool model has a partial UNIQUE(plan_id, unit_start) WHERE POSITIONAL constraint (`allocation/models.py`) — the rotating model reads the SAME page ranges repeatedly (per reader, per cycle), which violates that constraint. So the follow-up must also change the portion identity model (portions become per-participation, keyed by (plan, participation, sequence) instead of unique per page range) and needs a real test Postgres to validate the migration — the owner has none, so this row is BLOCKED on a test DB + owner review.
 must be reviewed by the owner before applying to production (affects live
 khatms — structural, so only NEW khatms should adopt it; existing ACTIVE khatms
 keep their assigned portions per the lock-on-active rule).

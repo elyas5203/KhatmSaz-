@@ -1059,8 +1059,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "No active pledge was found to log against.",
     },
     "portions.commitment_recorded": {
-        "fa": "{counted} بار از تعهدتون ثبت شد ✅", "ar": "تم تسجيل {counted} مرة من التزامك ✅",
-        "en": "{counted} times from your pledge were recorded ✅",
+        "fa": "✅ {counted} مرتبه از ذکر شما ثبت شد.\nخداوند از شما بپذیرد و شما را در ثواب این ختم شریک بگرداند 🤍",
+        "ar": "✅ تم تسجيل {counted} مرة من ذكرك.\nتقبّل الله منك وأشركك في ثواب هذه الختمة 🤍",
+        "en": "✅ {counted} of your recitations were recorded.\nMay Allah accept it and make you a partner in the reward of this khatm 🤍",
     },
     "portions.commitment_progress": {
         "fa": "پیشرفت تعهد شخصی: {completed} از {target}", "ar": "تقدم الالتزام الشخصي: {completed} من {target}",
@@ -1072,8 +1073,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "{surplus} extra times were logged as your surplus contribution 🌱",
     },
     "portions.personal_commitment_done": {
-        "fa": "\n🎉 تعهد شخصی شما کامل شد! خدا قبول کنه 🤍", "ar": "\n🎉 اكتمل التزامك الشخصي! تقبّل الله 🤍",
-        "en": "\n🎉 Your personal pledge is complete! May it be accepted 🤍",
+        "fa": "\n\n🎉 تعهد شما به‌طور کامل ادا شد. زحمت و همراهی شما در این ختم مایهٔ دل‌گرمی است؛ خداوند این عبادت را از شما بپذیرد 🤍",
+        "ar": "\n\n🎉 لقد أدّيت التزامك كاملاً. جهدك ومرافقتك في هذه الختمة مبعث سرور؛ تقبّل الله منك هذه العبادة 🤍",
+        "en": "\n\n🎉 You have fulfilled your pledge in full. Your effort and companionship in this khatm are heartwarming; may Allah accept this worship from you 🤍",
     },
     "portions.open_recorded": {
         "fa": "{amount} {unit} ثبت شد ✅", "ar": "تم تسجيل {amount} {unit} ✅", "en": "{amount} {unit} recorded ✅",

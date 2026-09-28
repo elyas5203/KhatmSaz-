@@ -1,3 +1,13 @@
+## 2026-09-28 (allocation root-cause + warmer commitment messages + SMS answer)
+- **Allocation (DEC-PY-0092)**: reproduced & root-caused the Quran page-jump bug (committed readers got the shared pool's next-open portion → personal pages jumped by member count). Added the unit-tested rotating helper `positional_range_for_step` (5 tests). Wiring + migration is a documented follow-up BLOCKED on a test Postgres + owner review (the partial UNIQUE(plan_id,unit_start) constraint conflicts with rotating repeats — needs a portion-identity change).
+- **Copy**: rewrote the quantity-commitment confirmation and completion messages to be warmer/devotional (owner called the old ones «مسخره»), fa/ar/en, matching the project tone guide.
+
+## 2026-09-28 (live Telegram QA — Chrome/Codex)
+- Exercised the fa/ar/en member join links and creator/super-admin bot flows using the owner's development-only Telegram accounts.
+- Verified member-bot language selection, exact `14:40` reminder parsing, `/public_khatms`, creator khatm management, QR links, stats, and reversible settings toggles.
+- Recorded blockers/defects: Mini Apps refuse to connect in Telegram Web because `/mini/admin` and `/mini/creator` return `X-Frame-Options: SAMEORIGIN`; leaked `Welcome /admin_app`; English Quran source delivery failure; misleading generic cancel copy; mixed-language creator/admin controls; technical admin approval instructions.
+- No production payment, broadcast, deletion, ban, deploy, restart, or database operation was performed.
+
 ## 2026-09-28 (live-QA: member-bot language, HH:MM reminder, /public_khatms on creator)
 - **Fix (CRITICAL)**: member bot showed Persian commitment consent — `resume_join_after_registration` now uses the bot's language on member bots.
 - **Fix**: per-khatm reminder accepts a typed exact time «14:40» (reuses AskDeliveryHour).
