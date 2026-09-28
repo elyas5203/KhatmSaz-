@@ -70,6 +70,33 @@ class Participation(Base):
     # per local calendar day, mirroring the committed one-portion-per-day
     # rule without reusing its machinery (no KhatmPortion exists here).
     open_reading_last_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # ---- R11 (owner 2026-09-28): the MEMBER picks how they commit ----------
+    # Two modes for a commitment khatm (Salawat/Dua/Ziyarat/La'an), chosen by
+    # the joiner, not the creator (the creator only sets the khatm TOTAL — R5):
+    #   • "REGULAR" — a recurring schedule: read `commitment_per_occurrence`
+    #     each occurrence at `schedule_hour`, repeating daily/weekly/monthly.
+    #     The reminder engine delivers at that time.
+    #   • "COUNT"   — a one-off pledge of `commitment_target` repetitions the
+    #     member reads on their own and logs with a button; when they finish
+    #     they can pledge a fresh count (R12), which resets target/done.
+    # NULL until the member finishes choosing (or for Quran, which uses the
+    # open-reading columns above instead).
+    commitment_mode: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # COUNT mode: how many the member pledged this round, and how many logged.
+    commitment_target: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    commitment_done: Mapped[int] = mapped_column(Integer, default=0)
+    # REGULAR mode: "DAILY" | "WEEKLY" | "MONTHLY".
+    schedule_freq: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # REGULAR mode anchor: day-of-week (0=Sat..6=Fri) for WEEKLY, or
+    # day-of-month (1..31) for MONTHLY. Ignored for DAILY.
+    schedule_anchor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # REGULAR mode local send hour (0..23).
+    schedule_hour: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # REGULAR mode: how many repetitions to read each occurrence.
+    commitment_per_occurrence: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Last time a REGULAR reminder was delivered (dedupe, mirrors
+    # open_reading_last_sent_at for Quran).
+    schedule_last_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     joined_via_bot_instance_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("bot_instances.id"), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
