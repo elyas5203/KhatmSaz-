@@ -5,6 +5,23 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0092 — Rotating Quran allocation (personal-sequential + collective)
+**Date:** 2026-09-28
+**Decision:** Owner confirmed: committed Quran readers must advance their OWN
+pages sequentially (4,5 → 6,7 → 8,9 …) from a distinct staggered start, wrapping
+around the book — the DOMAIN_MODEL §2 rotating model — instead of the current
+shared-pool "next open portion" which made each reader's pages jump by the
+member count (4,5 → 8,9 → 12,13). Pure math lives in
+`allocation.service.positional_range_for_step` (unit-tested,
+`tests/test_positional_rotation.py`). **Wiring is a follow-up that needs a
+migration** (a per-participation committed offset, analogous to the OPEN mode's
+`open_reading_next_page` cursor) + a rewrite of `allocate_next_portion_to`;
+must be reviewed by the owner before applying to production (affects live
+khatms — structural, so only NEW khatms should adopt it; existing ACTIVE khatms
+keep their assigned portions per the lock-on-active rule).
+
+---
+
 ### DEC-PY-0091 — Creation wizard no longer asks the content format
 **Date:** 2026-09-27
 **Decision:** Owner: remove the «فرمت ارسال محتوا» step (خودکار/فقط تصویر/فقط متن)

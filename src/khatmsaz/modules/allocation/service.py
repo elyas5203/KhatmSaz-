@@ -25,6 +25,34 @@ DEFAULT_PAGES_PER_PORTION = 2
 EMERGENCY_CLAIM_LOCK = timedelta(hours=2)
 
 
+def positional_range_for_step(
+    *, offset: int, step: int, total_units: int, units_per_portion: int = DEFAULT_PAGES_PER_PORTION
+) -> tuple[int, int]:
+    """Rotating personal-journey page range (DEC-PY-0092, owner 2026-09-28).
+
+    Root cause of the reported bug: committed Quran readers were handed the
+    next OPEN portion from one shared pool, so with N members each reader's own
+    pages jumped by N (e.g. 4,5 → 8,9 → 12,13). The owner confirmed the
+    DOMAIN_MODEL §2 rotating model: each reader advances their OWN pages
+    sequentially (4,5 → 6,7 → 8,9 …) from a distinct starting offset, wrapping
+    around the book, so the group still covers everything with no same-day
+    duplicates (as long as members ≤ total portions).
+
+    - `offset`: this reader's distinct 0-based starting portion (staggered by
+      join order).
+    - `step`: how many portions this reader has already completed (0-based
+      index of the portion they are about to read).
+    Returns a 1-based inclusive (start_page, end_page).
+    """
+    total_portions = -(-total_units // units_per_portion)  # ceil
+    if total_portions <= 0:
+        raise ValueError("total_units and units_per_portion must be positive")
+    seq = (offset + step) % total_portions  # 0-based portion index, wraps
+    start = seq * units_per_portion + 1
+    end = min(start + units_per_portion - 1, total_units)
+    return start, end
+
+
 async def generate_quran_page_plan(
     session: AsyncSession, khatm_id, total_pages: int, pages_per_portion: int = DEFAULT_PAGES_PER_PORTION
 ) -> KhatmAllocationPlan:
