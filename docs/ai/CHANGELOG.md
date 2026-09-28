@@ -1,3 +1,8 @@
+## 2026-09-28 (fresh-database Alembic ordering fix)
+- Repaired the migration graph so `bot_instances` is created before `joined_via_bot_instance_id` and the R2 intro-image column reference it.
+- Preserved all revision IDs and added a migration-graph regression test.
+- Verified the entire chain with `alembic upgrade head` on an empty disposable PostgreSQL 17 database.
+
 ## 2026-09-28 (R2 per-bot intro image + admin upload)
 - **Schema**: `bot_instances.intro_image_url` (migration bii2026092803). **Admin**: `/bots` form per member bot + `POST /bots/{id}/intro_image`. **Wizard**: intro image + fixed «همه ختم‌ها به نیت صاحب‌الزمان» caption shown right after commitment/free choice; text-only fallback. Tests +5. Suite 142.
 

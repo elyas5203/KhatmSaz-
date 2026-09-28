@@ -1,21 +1,19 @@
-"""final merge: unify the two remaining alembic heads (2026-09-28)
+"""Final migration-history marker (2026-09-28).
 
-The migration history had more parallel branches than one merge covered:
-  - 506f73c6ae72  (an earlier merge of b7c8d9e0f1a2 + b8c9d0e1f2b4)
-  - bii2026092803 (this session's chain: mrg2026092801 -> mcm2026092802 ->
-    bii2026092803, itself merging a1b2c3d4e5f6 + f4a5b6c7d8e9 + zz9999)
-
-Two tips still tripped `alembic upgrade head` ("Multiple head revisions"). This
-pure no-op merge unifies them so a single head exists and `upgrade head` works.
+The earlier merge graph listed ``zz9999`` separately from a descendant branch
+that creates ``bot_instances``.  On a fresh database Alembic could therefore
+mark the common ancestor complete and skip the descendant before R2 tried to
+alter ``bot_instances``.  The graph is now ordered through 506f73c6ae72 before
+the R11/R2 chain; this no-op revision remains as the stable final revision ID.
 
 Revision ID: fin2026092804
-Revises: 506f73c6ae72, bii2026092803
+Revises: bii2026092803
 Create Date: 2026-09-28
 """
 from __future__ import annotations
 
 revision = "fin2026092804"
-down_revision = ("506f73c6ae72", "bii2026092803")
+down_revision = "bii2026092803"
 branch_labels = None
 depends_on = None
 

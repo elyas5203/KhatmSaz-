@@ -1,3 +1,10 @@
+## Current state — 2026-09-28 — Fresh-Postgres migration chain repaired [Codex]
+- **Found by real apply, not graph inspection alone**: applying the full Alembic chain to a disposable PostgreSQL 17 database failed because `b8c9d0e1f2b4` added a foreign key to `bot_instances` before `b7c8d9e0f1a2` created that table. The later R2 migration then failed for the same missing table.
+- **Fix**: ordered the historical revisions by their real schema dependency (`b7 -> b8 -> 506`), made `mrg2026092801` merge through `506`, and retained `fin2026092804` as the stable final revision marker. Existing revision IDs and schema operations are unchanged.
+- **Regression guard**: `tests/test_migration_graph.py` asserts the dependency order and the single final head.
+- **Verified**: full `alembic upgrade head` from an empty disposable PostgreSQL 17 database succeeded through `fin2026092804`; no production database was touched.
+- **Still outstanding**: live Telegram/Bale/PayPing checks remain owner-run; DEC-PY-0092 rotating allocation still needs its own reviewed schema design and migration.
+
 ## 2026-09-28 — Deploy fix: final alembic merge + creator menu (create replaces today) [Claude Code]
 - **Multiple-heads on VPS**: `alembic upgrade head` still failed because the history had a 4th tip — a pre-existing merge `506f73c6ae72` (from 2026-09-26, merging b7c8d9e0f1a2 + b8c9d0e1f2b4) that my first merge didn't include. Added final no-op merge `fin2026092804` (Revises: 506f73c6ae72 + bii2026092803). `alembic heads` now shows exactly one head → `upgrade head` works.
 - **Creator menu**: owner — the creator bot is ONLY for building khatms; a creator never receives their own portions there (they join member bots to take part). Replaced the top «امروز» button in `creator_menu_keyboard` with «➕ ساخت ختم جدید» so creation is front-and-centre. Updated `tests/test_home_menu.py`.
