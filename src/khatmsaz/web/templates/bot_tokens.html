@@ -116,6 +116,13 @@
           {% endif %}
         </div>
       </form>
+      <!-- R2: per-bot intro image shown after commitment/free selection -->
+      <form method="post" action="/bots/{{ bot.id }}/intro_image" class="border-t border-slate-700/50 pt-4 mt-3 flex flex-col gap-2">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <label class="text-xs text-slate-400 block mb-1">عکس معرفی (لینک عکس یا file_id تلگرام) — با کپشن «همه ختم‌ها به نیت صاحب‌الزمان» نشان داده می‌شود</label>
+        <input type="text" name="intro_image_url" value="{{ bot.intro_image_url or '' }}" placeholder="https://…/intro.jpg  یا  AgACAgQAAx…" autocomplete="off" class="input-field py-2 text-sm font-mono" dir="ltr">
+        <button type="submit" class="btn py-2 text-sm">ذخیره عکس معرفی</button>
+      </form>
     </article>
     {% endfor %}
   </div>

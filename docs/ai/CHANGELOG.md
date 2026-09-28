@@ -1,3 +1,6 @@
+## 2026-09-28 (R2 per-bot intro image + admin upload)
+- **Schema**: `bot_instances.intro_image_url` (migration bii2026092803). **Admin**: `/bots` form per member bot + `POST /bots/{id}/intro_image`. **Wizard**: intro image + fixed «همه ختم‌ها به نیت صاحب‌الزمان» caption shown right after commitment/free choice; text-only fallback. Tests +5. Suite 142.
+
 ## 2026-09-28 (R1 ephemeral wizard prompts)
 - **Wizard**: `_wiz` helper deletes the previous bot prompt before sending the next; whole create-khatm question spine routed through it so the chat no longer piles up questions. Guarded (failed delete never blocks). Tests +3. Suite 137.
 

@@ -108,6 +108,45 @@ async def _lang(state: FSMContext) -> str:
     return data.get("lang", "fa")
 
 
+def _bot_category_for(template_type: str, category_group: str | None) -> str:
+    """Map a wizard's (template_type, category_group) to the member-bot category
+    value (mirrors bot_registry.resolve_bot_category without needing a Khatm)."""
+    from khatmsaz.modules.bot_registry.models import BotCategory
+    if template_type in (KhatmTemplateType.QURAN_PAGE.value, KhatmTemplateType.QURAN_SURAH.value):
+        return BotCategory.QURAN.value
+    if category_group == KhatmCategoryGroup.LAAN.value:
+        return BotCategory.LAAN.value
+    if category_group == KhatmCategoryGroup.DUA.value:
+        return BotCategory.DUA_ZIYARAT.value
+    return BotCategory.SALAWAT.value
+
+
+async def _show_intro_image(message: Message, state: FSMContext) -> None:
+    """R2 (owner 2026-09-28): after the creator picks commitment/free, show the
+    member bot's intro image (uploaded in the admin panel) with the fixed
+    «همه ختم‌ها به نیت صاحب‌الزمان» caption, so the creator sees how the khatm is
+    presented. Falls back to a text-only caption when no image is configured.
+    This is a deliberate, persistent element — not routed through `_wiz`."""
+    lang = await _lang(state)
+    data = await state.get_data()
+    caption = t("intro.image_caption", lang)
+    category = _bot_category_for(data.get("template_type"), data.get("category_group"))
+    from khatmsaz.modules.bot_registry import service as bot_registry_service
+    image = None
+    try:
+        async with session_scope() as session:
+            image = await bot_registry_service.get_intro_image_for_category(session, category)
+    except Exception:
+        image = None
+    if image:
+        try:
+            await message.answer_photo(image, caption=caption)
+            return
+        except Exception:
+            pass
+    await message.answer(caption)
+
+
 async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None):
     """R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new
     wizard prompt deletes the previous *bot* prompt before sending, so only the
@@ -307,6 +346,8 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(khatm_type=mode)
     await state.set_state(CreateKhatm.entering_title)
     await safe_clear_inline_keyboard(callback.message)
+    # R2: show the intro image + fixed niyyat caption right after the mode choice.
+    await _show_intro_image(callback.message, state)
     data = await state.get_data()
     title_hint = data.get("content_category_title") or (
         t("create_khatm.title_hint.quran", lang)

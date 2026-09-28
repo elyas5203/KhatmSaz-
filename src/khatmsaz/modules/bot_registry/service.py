@@ -77,6 +77,38 @@ async def get_instance(
     return await repository.get_by_id(session, instance_id)
 
 
+async def set_intro_image(
+    session: AsyncSession, instance_id: UUID, intro_image_url: str | None,
+) -> None:
+    """R2: admin sets a bot's intro image (URL or Telegram file_id)."""
+    instance = await repository.get_by_id(session, instance_id)
+    if instance is None:
+        return
+    instance.intro_image_url = (intro_image_url or None)
+    await session.flush()
+
+
+async def get_intro_image_for_category(
+    session: AsyncSession, category: str, *, platform: str | None = None, language: str | None = None,
+) -> str | None:
+    """R2: the intro image to show for a khatm of this member-bot category.
+
+    Prefers an exact platform+language match, then any bot of that category that
+    has an image set. Returns None if none configured (caller falls back to a
+    text-only caption)."""
+    candidates = [
+        b for b in await repository.list_all(session)
+        if b.bot_role == BotRole.MEMBER.value and b.category == category and b.intro_image_url
+    ]
+    if not candidates:
+        return None
+    if platform is not None:
+        exact = [b for b in candidates if b.platform == platform and (language is None or b.language == language)]
+        if exact:
+            return exact[0].intro_image_url
+    return candidates[0].intro_image_url
+
+
 async def set_bot_token(
     session: AsyncSession,
     instance_id: UUID,

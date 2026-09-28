@@ -41,6 +41,10 @@ class BotInstance(Base):
     username: Mapped[str] = mapped_column(String(100), nullable=False, default="")
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # R2 (owner 2026-09-28): per-bot intro image (URL or Telegram file_id) shown
+    # after the creator picks commitment/free, and to members, with the fixed
+    # caption "همه ختم‌ها به نیت صاحب‌الزمان". Uploaded/set from the admin panel.
+    intro_image_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(),
     )

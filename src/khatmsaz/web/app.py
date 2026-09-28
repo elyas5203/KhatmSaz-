@@ -2102,6 +2102,37 @@ async def save_bot_token(
     )
 
 
+@app.post("/bots/{instance_id}/intro_image")
+async def save_bot_intro_image(
+    request: Request,
+    instance_id: UUID,
+    csrf: str = Form(...),
+    intro_image_url: str = Form(""),
+):
+    """R2 (owner 2026-09-28): set a member bot's intro image (URL or Telegram
+    file_id) shown after the creator picks commitment/free, with the fixed
+    «همه ختم‌ها به نیت صاحب‌الزمان» caption."""
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        instance = await bot_registry_service.get_instance(session, instance_id)
+        if instance is None:
+            return HTMLResponse("بات پیدا نشد.", status_code=404)
+        await bot_registry_service.set_intro_image(session, instance_id, intro_image_url.strip() or None)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="BOT_INTRO_IMAGE_CHANGED",
+            details={"instance_id": str(instance_id), "display_name": instance.display_name},
+        )
+    return RedirectResponse(
+        f"/bots?platform={instance.platform}&saved=1", status_code=303,
+    )
+
+
 @app.post("/bots/{instance_id}/toggle")
 async def toggle_bot(
     request: Request,

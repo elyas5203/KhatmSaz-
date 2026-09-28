@@ -533,6 +533,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم قرأت؟ اكتب العدد.",
         "en": "How many did you read? Type a number.",
     },
+    "intro.image_caption": {
+        "fa": "🌱 همهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند.\nختم شما هم همین‌طور به مخاطبان نشان داده می‌شود.",
+        "ar": "🌱 جميع الختمات تُقام بنية ظهور الإمام المهدي (عج).\nوهكذا سيُعرض ختمك على المشاركين.",
+        "en": "🌱 Every Khatm is dedicated to the reappearance of Imam Mahdi (AJ).\nYours will be shown to members the same way.",
+    },
     "reminder.regular_commitment": {
         "fa": "🌱 وقت خواندن سهم شما از «{title}» است: {count} مرتبه.",
         "ar": "🌱 حان وقت قراءة نصيبك من «{title}»: {count} مرة.",
