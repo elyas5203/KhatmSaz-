@@ -1,15 +1,21 @@
-"""R11 (owner 2026-09-28): member-side commitment logic — pure, side-effect-free.
+"""R11 (owner 2026-09-28, revised after live QA): member-side commitment logic.
 
-A commitment khatm's TOTAL is fixed by the creator (R5). Each MEMBER then picks
-*how* they personally commit:
+Pure, side-effect-free (no DB, no aiogram) so it is unit-testable.
+
+A commitment khatm's TOTAL is fixed by the creator. Each MEMBER picks how they
+personally commit:
 
   • COUNT   — "I'll read this N times." They read on their own and tap a button
-    to log progress; when done they may pledge a fresh count (R12).
-  • REGULAR — "Send me M each day / each week on day D / each month on day D, at
-    hour H." The reminder engine delivers at that local time.
+    to log progress; when done they may pledge a fresh count.
+  • REGULAR — "I'll read <times_per_period> times per day / week / month, remind
+    me at <hour>:<minute>." The reminder engine notifies at that exact local
+    time, once per period.
 
-Keeping the math and the "is a regular occurrence due now?" decision here (no DB,
-no aiogram) makes both unit-testable without a live bot or Postgres.
+Field mapping on `Participation` (reused columns, no extra migration):
+  schedule_freq              -> "DAILY" | "WEEKLY" | "MONTHLY"
+  commitment_per_occurrence  -> times_per_period (e.g. «۳ بار در هفته»)
+  schedule_hour              -> reminder hour (0..23)
+  schedule_anchor            -> reminder minute (0..59) — supports exact HH:MM
 """
 from __future__ import annotations
 
@@ -32,9 +38,8 @@ def log_count(done: int, target: int | None, amount: int) -> tuple[int, bool]:
     """Add ``amount`` to a COUNT-mode member's logged total.
 
     Returns ``(new_done, completed)``. ``new_done`` never exceeds ``target``
-    (when a target is set); ``completed`` is True once the target is reached.
-    A NULL target means "no cap yet" — we just accumulate and never complete.
-    """
+    (when set); ``completed`` is True once the target is reached. A NULL target
+    means "no cap yet" — accumulate and never complete."""
     if amount < 0:
         amount = 0
     new_done = done + amount
@@ -44,68 +49,56 @@ def log_count(done: int, target: int | None, amount: int) -> tuple[int, bool]:
     return new_done, False
 
 
-# Python's weekday(): Mon=0..Sun=6. The bot models the week Persian-style with
-# Saturday first, so schedule_anchor uses 0=Saturday..6=Friday. This maps a
-# local datetime to that 0=Sat..6=Fri index.
-def persian_dow(dt: datetime) -> int:
-    """0=Saturday .. 6=Friday for the given datetime's weekday."""
-    # weekday(): Mon=0,Tue=1,Wed=2,Thu=3,Fri=4,Sat=5,Sun=6
-    # want:      Sat=0,Sun=1,Mon=2,Tue=3,Wed=4,Thu=5,Fri=6
-    return (dt.weekday() + 2) % 7
+def parse_hhmm(raw: str) -> tuple[int, int] | None:
+    """Parse a typed exact time like «13:25» / «۱۳:۲۵» / «9» into (hour, minute),
+    or None if invalid. Supports Persian/Arabic digits and an optional minute."""
+    s = raw.strip()
+    trans = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    s = s.translate(trans)
+    s = s.replace(".", ":").replace("،", ":").strip()
+    if ":" in s:
+        parts = s.split(":", 1)
+        if not (parts[0].isdigit() and parts[1].isdigit()):
+            return None
+        hour, minute = int(parts[0]), int(parts[1])
+    elif s.isdigit():
+        hour, minute = int(s), 0
+    else:
+        return None
+    if 0 <= hour <= 23 and 0 <= minute <= 59:
+        return hour, minute
+    return None
 
 
-def _minutes(dt_hour: int, dt_minute: int) -> int:
-    return dt_hour * 60 + dt_minute
-
-
-def is_regular_occurrence_today(
-    now_local: datetime,
-    freq: str,
-    anchor: int | None,
-) -> bool:
-    """Is today the right *day* for a REGULAR occurrence (ignoring the hour)?
-
-    - DAILY: always today.
-    - WEEKLY: only when today's Persian weekday equals ``anchor`` (0=Sat..6=Fri).
-    - MONTHLY: only when today's day-of-month equals ``anchor`` (1..31); if the
-      month is shorter than ``anchor`` (e.g. anchor=31 in a 30-day month), the
-      last day of the month counts so the occurrence is never silently skipped.
-    """
-    if freq == ScheduleFreq.DAILY.value:
-        return True
-    if freq == ScheduleFreq.WEEKLY.value:
-        return anchor is not None and persian_dow(now_local) == anchor
-    if freq == ScheduleFreq.MONTHLY.value:
-        if anchor is None:
-            return False
-        if now_local.day == anchor:
-            return True
-        # clamp: last day of a short month satisfies a too-large anchor
-        import calendar
-        last_dom = calendar.monthrange(now_local.year, now_local.month)[1]
-        return now_local.day == last_dom and anchor > last_dom
-    return False
+def _minutes(hour: int, minute: int) -> int:
+    return hour * 60 + minute
 
 
 def is_regular_due(
     now_local: datetime,
     freq: str,
-    anchor: int | None,
     hour: int,
     minute: int,
     last_sent_local_date,
 ) -> bool:
-    """Full decision for the reminder engine: right day, at/after the chosen
-    time, and not already sent for this occurrence.
+    """Decision for the reminder engine: the exact time has been reached and this
+    period's reminder hasn't been sent yet.
 
     ``last_sent_local_date`` is the local calendar date of the last delivery (or
-    None). We dedupe per calendar day, matching ``deliver_due_open_quran_reading``
-    — for WEEKLY/MONTHLY the day gate already limits it to one occurrence.
+    None). Period gating:
+      • DAILY   — once per calendar day.
+      • WEEKLY  — once every 7 days.
+      • MONTHLY — once per calendar month.
     """
-    if not is_regular_occurrence_today(now_local, freq, anchor):
-        return False
     if _minutes(now_local.hour, now_local.minute) < _minutes(hour, minute):
         return False
-    if last_sent_local_date is not None and now_local.date() <= last_sent_local_date:
-        return False
-    return True
+    if last_sent_local_date is None:
+        return True
+    today = now_local.date()
+    if freq == ScheduleFreq.DAILY.value:
+        return today > last_sent_local_date
+    if freq == ScheduleFreq.WEEKLY.value:
+        return (today - last_sent_local_date).days >= 7
+    if freq == ScheduleFreq.MONTHLY.value:
+        return (today.year, today.month) != (last_sent_local_date.year, last_sent_local_date.month)
+    return today > last_sent_local_date

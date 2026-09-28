@@ -740,6 +740,25 @@ def commitment_weekday_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMar
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+def commitment_hour_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    """REGULAR reminder time: plain-language presets plus «ساعت دلخواه» for a
+    typed exact HH:MM (owner 2026-09-28). Callbacks: chour:<hour> / chour:custom."""
+    labels = {
+        7: t("delivery_hour.early_morning", lang), 9: t("delivery_hour.morning", lang),
+        12: t("delivery_hour.noon", lang), 15: t("delivery_hour.afternoon", lang),
+        18: t("delivery_hour.evening", lang), 21: t("delivery_hour.night", lang),
+    }
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=labels[7], callback_data="chour:7"),
+         InlineKeyboardButton(text=labels[9], callback_data="chour:9")],
+        [InlineKeyboardButton(text=labels[12], callback_data="chour:12"),
+         InlineKeyboardButton(text=labels[15], callback_data="chour:15")],
+        [InlineKeyboardButton(text=labels[18], callback_data="chour:18"),
+         InlineKeyboardButton(text=labels[21], callback_data="chour:21")],
+        [InlineKeyboardButton(text=t("commit.hour.custom", lang), callback_data="chour:custom")],
+    ])
+
+
 def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
     """COUNT mode: tap to log a batch you've read, or re-pledge a fresh count (R12)."""
     return InlineKeyboardMarkup(

@@ -482,6 +482,29 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة؟",
         "en": "How often?",
     },
+    "commit.period.day": {"fa": "روز", "ar": "يوم", "en": "day"},
+    "commit.period.week": {"fa": "هفته", "ar": "أسبوع", "en": "week"},
+    "commit.period.month": {"fa": "ماه", "ar": "شهر", "en": "month"},
+    "commit.ask_times_per_period": {
+        "fa": "چند بار در {period} می‌خوای بخونی؟ عدد رو بنویس (مثلاً 3).",
+        "ar": "كم مرة في ال{period} تريد أن تقرأ؟ اكتب العدد (مثلاً 3).",
+        "en": "How many times per {period} will you read? Type a number (e.g. 3).",
+    },
+    "commit.hour.custom": {
+        "fa": "🕒 ساعت دلخواه (مثلاً 13:25)",
+        "ar": "🕒 وقت مخصص (مثلاً 13:25)",
+        "en": "🕒 Custom time (e.g. 13:25)",
+    },
+    "commit.ask_custom_time": {
+        "fa": "ساعت دقیق یادآوری رو بنویس (مثلاً 13:25):",
+        "ar": "اكتب وقت التذكير الدقيق (مثلاً 13:25):",
+        "en": "Type the exact reminder time (e.g. 13:25):",
+    },
+    "commit.ask_custom_time_invalid": {
+        "fa": "ساعت رو به شکل درست بنویس، مثلاً 13:25 (بین 00:00 تا 23:59).",
+        "ar": "اكتب الوقت بشكل صحيح، مثلاً 13:25 (بين 00:00 و23:59).",
+        "en": "Type a valid time like 13:25 (between 00:00 and 23:59).",
+    },
     "commit.freq.daily": {"fa": "هر روز", "ar": "كل يوم", "en": "Every day"},
     "commit.freq.weekly": {"fa": "هر هفته", "ar": "كل أسبوع", "en": "Every week"},
     "commit.freq.monthly": {"fa": "هر ماه", "ar": "كل شهر", "en": "Every month"},
@@ -511,9 +534,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "What time should we remind you?",
     },
     "commit.regular_saved": {
-        "fa": "✅ ثبت شد! از این به بعد سر همون زمان برات یادآوری می‌فرستیم. 🌱",
-        "ar": "✅ تم! سنرسل لك التذكير في الوقت المحدد من الآن. 🌱",
-        "en": "✅ Done! We'll remind you at that time from now on. 🌱",
+        "fa": "✅ تنظیم شد! {times} بار در {period}، ساعت {hour} سهم روزانه‌تون خودکار براتون فرستاده می‌شه. 🌱",
+        "ar": "✅ تم الضبط! {times} مرة في ال{period}، الساعة {hour} تُرسل لك حصتك تلقائياً. 🌱",
+        "en": "✅ Set! {times} time(s) per {period}, at {hour} your share will be sent automatically. 🌱",
     },
     "commit.count_saved": {
         "fa": "✅ تعهدت ثبت شد: {target} بار. هر وقت خوندی، با دکمهٔ زیر ثبتش کن. 🌱",

@@ -329,9 +329,8 @@ async def deliver_due_regular_commitments(
         if not is_regular_due(
             now_local,
             participation.schedule_freq,
-            participation.schedule_anchor,
             participation.schedule_hour,
-            0,
+            participation.schedule_anchor or 0,  # minute (exact HH:MM)
             last_sent_local_date,
         ):
             continue

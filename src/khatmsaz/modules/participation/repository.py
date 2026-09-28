@@ -201,18 +201,21 @@ async def log_commitment_count(session: AsyncSession, participation_id, amount: 
 
 
 async def set_commitment_schedule(
-    session: AsyncSession, participation_id, *, freq: str, anchor: int | None, hour: int, per_occurrence: int
+    session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int, times_per_period: int
 ) -> None:
-    """REGULAR mode: recurring schedule delivered by the reminder engine."""
+    """REGULAR mode: recurring schedule delivered by the reminder engine.
+
+    Reused columns: schedule_anchor holds the reminder MINUTE (exact HH:MM),
+    commitment_per_occurrence holds TIMES-PER-PERIOD («چند بار در روز/هفته/ماه»)."""
     participation = await session.get(Participation, participation_id)
     if participation is None:
         return
     from khatmsaz.modules.participation.commitment import CommitmentMode
     participation.commitment_mode = CommitmentMode.REGULAR.value
     participation.schedule_freq = freq
-    participation.schedule_anchor = anchor
     participation.schedule_hour = hour
-    participation.commitment_per_occurrence = per_occurrence
+    participation.schedule_anchor = minute
+    participation.commitment_per_occurrence = times_per_period
     # clear COUNT fields
     participation.commitment_target = None
     participation.commitment_done = 0

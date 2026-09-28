@@ -23,9 +23,11 @@ def test_freq_keyboard_callbacks():
     assert data == ["cfreq:DAILY:pid1", "cfreq:WEEKLY:pid1", "cfreq:MONTHLY:pid1"]
 
 
-def test_weekday_keyboard_has_seven_days_sat_first():
-    data = _callback_datas(k.commitment_weekday_keyboard("pid1", "fa"))
-    assert data == [f"cdow:{i}:pid1" for i in range(7)]
+def test_hour_keyboard_has_presets_and_custom():
+    data = _callback_datas(k.commitment_hour_keyboard("fa"))
+    assert "chour:9" in data
+    assert "chour:custom" in data
+    assert all(d.startswith("chour:") for d in data)
 
 
 def test_count_log_keyboard_callbacks():
@@ -38,8 +40,8 @@ def test_count_log_keyboard_callbacks():
 def test_router_has_expected_states():
     assert hasattr(mc.CommitFlow, "entering_count")
     assert hasattr(mc.CommitFlow, "entering_log_amount")
-    assert hasattr(mc.CommitFlow, "entering_monthday")
-    assert hasattr(mc.CommitFlow, "entering_per_occurrence")
+    assert hasattr(mc.CommitFlow, "entering_times_per_period")
+    assert hasattr(mc.CommitFlow, "entering_custom_time")
 
 
 def test_module_loads_via_fresh_router_like_bootstrap():
