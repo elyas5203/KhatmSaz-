@@ -37,7 +37,6 @@ _DEFAULT_LANGUAGE = "fa"
 # key -> {lang: text}. Keep `fa` first and always present.
 _STRINGS: dict[str, dict[str, str]] = {
     "menu.today": {"fa": "📅 امروز", "ar": "📅 اليوم", "en": "📅 Today"},
-    "menu.public_khatms": {"fa": "🌍 ختم‌های عمومی", "ar": "🌍 ختمات عامة", "en": "🌍 Public Khatms"},
     "menu.my_khatms": {"fa": "🕋 لیست ختم‌های من", "ar": "🕋 قائمة ختماتي", "en": "🕋 My Khatms List"},
     "menu.report": {"fa": "📈 گزارش عملکرد من", "ar": "📈 تقرير أدائي", "en": "📈 My Performance"},
     "menu.settings": {"fa": "⚙️ تنظیمات حساب", "ar": "⚙️ إعدادات الحساب", "en": "⚙️ Account Settings"},
@@ -51,9 +50,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "menu.back_to_main": {"fa": "🔙 بازگشت به منوی اصلی", "ar": "🔙 العودة للقائمة الرئيسية", "en": "🔙 Back to Main Menu"},
     
     # Text for menus
-    "text.creator.management": {"fa": "👑 <b>بخش مدیریت ختم‌ها</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "👑 <b>قسم إدارة الختمات</b>", "en": "👑 <b>Khatm Management</b>"},
-    "text.creator.finance": {"fa": "📊 <b>بخش گزارشات و مالی</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "📊 <b>قسم التقارير</b>", "en": "📊 <b>Reports & Finance</b>"},
-    "text.creator.support": {"fa": "❓ <b>بخش راهنما و پشتیبانی</b>\n\nلطفاً یکی از گزینه‌های زیر را انتخاب کنید:", "ar": "❓ <b>قسم الدعم</b>", "en": "❓ <b>Help & Support</b>"},
     
     "welcome.text": {
         "fa": (
@@ -430,11 +426,6 @@ _STRINGS: dict[str, dict[str, str]] = {
               "• For the healing of my brother…\n\n"
               "Or tap skip if you'd rather not.",
     },
-    "create_khatm.ask_welcome": {
-        "fa": "یک پیام خوش‌آمد بنویسید که هر عضو جدید همون لحظهٔ عضویت ببینه — مثلاً یک توضیح کوتاه یا یک آیه/حدیث (اختیاری، حداکثر ۵۰۰ کاراکتر؛ اگه نمی‌خواید چیزی بنویسید، دکمهٔ رد کردن رو بزنید):",
-        "ar": "اكتب رسالة ترحيب يراها كل عضو جديد لحظة انضمامه — مثلاً شرح قصير أو آية/حديث (اختياري، حتى ۵۰۰ حرف؛ إذا لا تريد كتابة شيء اضغط زر التخطي):",
-        "en": "Write a welcome message every new member sees the moment they join — e.g. a short note or a verse/hadith (optional, up to 500 characters; tap Skip if you don't want to write one):",
-    },
     # Owner request (2026-09-21): the welcome-message prompt should suggest
     # an example matching the actual khatm content (Quran/Salawat/Dua/La'an),
     # not a one-size-fits-all example — still fully optional/skippable.
@@ -511,11 +502,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم يكون الهدف الكلي لـ«{title}» ({unit})؟ أرسل رقماً فقط (مثلاً 1000):",
         "en": "What should the total goal for “{title}” be, in {unit}? Send a number only (e.g. 1000):",
     },
-    "create_khatm.ask_commitment_quantity": {
-        "fa": "هر شرکت‌کننده «{title}» رو چند {unit} انجام بده؟ فقط عدد بفرستید (مثلاً 100):",
-        "ar": "كم {unit} يجب أن ينجز كل مشارك من «{title}»؟ أرسل رقماً فقط (مثلاً 100):",
-        "en": "How many {unit} of “{title}” should each participant commit to? Send a number only (e.g. 100):",
-    },
     "create_khatm.ask_commitment_total": {
         "fa": "هدف کل این ختم چند {unit} باشه؟ یکی از دکمه‌ها را بزنید (سهم هر نفر را خودِ شرکت‌کننده تعیین می‌کند):",
         "ar": "كم يكون الهدف الكلي لهذه الختمة ({unit})؟ اختر أحد الأزرار (كل مشارك يحدّد حصته بنفسه):",
@@ -554,16 +540,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "لطفاً فقط یک عدد بزرگ‌تر از صفر بفرستید.", "ar": "يرجى إرسال رقم أكبر من صفر فقط.",
         "en": "Please send only a number greater than zero.",
     },
-    "create_khatm.ask_capacity_salawat": {
-        "fa": "ظرفیت بخش تعهدی این ختم محدود باشه یا نامحدود؟ (اگه پر بشه، عضو جدید تو لیست انتظار می‌ره ولی می‌تونه بدون تعهد، آزادانه همراه ختم مشارکت کنه)",
-        "ar": "هل تكون سعة القسم الملتزم محدودة أم غير محدودة؟ (إذا امتلأت، ينتقل العضو الجديد إلى قائمة الانتظار لكن يمكنه المشاركة بحرية دون التزام)",
-        "en": "Should the commitment section's capacity be limited or unlimited? (If it fills up, a new member goes on the waiting list but can still contribute freely without a pledge)",
-    },
-    "create_khatm.ask_capacity_quran": {
-        "fa": "ظرفیت بخش تعهدی این ختم محدود باشه یا نامحدود؟ (اگه پر بشه، عضو جدید تو لیست انتظار می‌ره ولی می‌تونه بدون تعهد همراه ختم بخونه)",
-        "ar": "هل تكون سعة القسم الملتزم محدودة أم غير محدودة؟ (إذا امتلأت، ينتقل العضو الجديد إلى قائمة الانتظار لكن يمكنه القراءة معكم دون التزام)",
-        "en": "Should the commitment section's capacity be limited or unlimited? (If it fills up, a new member goes on the waiting list but can still read along without a pledge)",
-    },
     "create_khatm.ask_deadline_hour": {
         "fa": "هر روز تا چه ساعتی مهلت داریم سهم امروز رو بخونیم؟ یک عدد بین ۰ تا ۲۳ بفرستید (مثلاً برای ۱۱ شب بنویسید 23):",
         "ar": "حتى أي ساعة يومياً مهلة قراءة حصة اليوم؟ أرسل رقماً بين ۰ و۲۳ (مثلاً للساعة ۱۱ مساءً اكتب 23):",
@@ -578,19 +554,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "ما الحد الأقصى لعدد الملتزمين؟ أرسل رقماً فقط (مثلاً 301):",
         "en": "What's the maximum number of committed members? Send a number only (e.g. 301):",
     },
-    "create_khatm.ask_content_delivery_mode": {
-        "fa": "فرمت ارسال محتوای صفحات را انتخاب کنید:", "ar": "اختر صيغة إرسال محتوى الصفحات:",
-        "en": "Choose the delivery format for page content:",
-    },
     "create_khatm.ask_reminder_tone": {
         "fa": "پیام‌های یادآوری این ختم با چه لحنی برای اعضا فرستاده بشه؟ (فقط روی حس‌وحال متن یادآوری‌ها تأثیر داره، محتوای اصلی ختم عوض نمی‌شه)",
         "ar": "بأي أسلوب تُرسل رسائل تذكير هذه الختمة للأعضاء؟ (يؤثر فقط على أسلوب نص التذكير، لا يغيّر محتوى الختمة الأساسي)",
         "en": "In what tone should this khatm's reminder messages be sent to members? (This only affects the reminder wording, not the khatm's actual content)",
-    },
-    "create_khatm.ask_advertising": {
-        "fa": "اگه این گزینه رو فعال کنید، هر عضوی که اولین سهمش رو تو این ختم انجام بده، یک بار مبلغ هدیهٔ نقدی به کیف پولش اضافه می‌شه (این هدیه از طرف ختم‌ساز پرداخت می‌شه، هزینه‌ای برای شما نداره). فعال بشه؟",
-        "ar": "إذا فعّلت هذا الخيار، يحصل كل عضو ينجز أول حصة له في هذه الختمة على مبلغ هدية نقدية لمحفظته لمرة واحدة (تُدفع هذه الهدية من ختم‌ساز، ولا تكلفك شيئاً). هل تفعّله؟",
-        "en": "If you enable this, every member who completes their first portion in this khatm gets a one-time cash reward added to their wallet (paid by KhatmSaz — it costs you nothing). Enable it?",
     },
     "create_khatm.ask_visibility": {
         "fa": "لینک دعوت این ختم چطور کار کنه؟", "ar": "كيف يعمل رابط دعوة هذه الختمة؟",
@@ -635,9 +602,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.confirm.membership": {
         "fa": "عضویت: {value}", "ar": "العضوية: {value}", "en": "Membership: {value}",
     },
-    "create_khatm.confirm.ads": {"fa": "تبلیغات: {value}", "ar": "الإعلانات: {value}", "en": "Ads reward: {value}"},
-    "create_khatm.ads_on": {"fa": "فعال", "ar": "مفعّل", "en": "On"},
-    "create_khatm.ads_off": {"fa": "خاموش", "ar": "معطّل", "en": "Off"},
     "create_khatm.confirm.tone": {
         "fa": "لحن یادآوری: {value}", "ar": "أسلوب التذكير: {value}", "en": "Reminder tone: {value}",
     },
@@ -668,9 +632,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "برای این دسته، بات عربی یا انگلیسی فعالی تنظیم نشده.",
         "ar": "لا يوجد بوت عربي أو إنجليزي مفعّل لهذه الفئة.",
         "en": "No active Arabic or English bot is configured for this category.",
-    },
-    "create_khatm.confirm.per_member_share": {
-        "fa": "سهم هر نفر: {amount} {unit}", "ar": "نصيب كل فرد: {amount} {unit}", "en": "Per-member share: {amount} {unit}",
     },
     "create_khatm.confirm.capacity": {
         "fa": "ظرفیت تعهدی: {value}", "ar": "سعة الالتزام: {value}", "en": "Commitment capacity: {value}",
@@ -745,11 +706,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.cancelled": {
         "fa": "ساخت ختم لغو شد.", "ar": "تم إلغاء إنشاء الختمة.", "en": "Khatm creation was cancelled.",
     },
-    "create_khatm.phone_not_verified": {
-        "fa": "تأیید شمارهٔ سازنده کامل نیست؛ هیچ ختمی ساخته و هیچ مبلغی کم نشد. دستور /verify_phone را بزنید و بعد ساخت را از اول شروع کنید.",
-        "ar": "لم يكتمل توثيق رقم المنشئ؛ لم تُنشأ أي ختمة ولم يُخصم أي مبلغ. أرسل /verify_phone ثم ابدأ الإنشاء من جديد.",
-        "en": "Creator phone verification isn't complete; no khatm was created and nothing was charged. Send /verify_phone, then start creation again.",
-    },
     "create_khatm.insufficient_funds": {
         "fa": "موجودی کیف پولتون کافی نیست (هزینه ساخت: {price} تومان). لطفاً اول کیف پولتون رو شارژ کنید.",
         "ar": "رصيد محفظتك غير كافٍ (تكلفة الإنشاء: {price} تومان). يرجى شحن محفظتك أولاً.",
@@ -767,11 +723,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "create_khatm.landing_line": {
         "fa": "\n\nصفحه معرفی ختم:\n{url}", "ar": "\n\nصفحة تعريف الختمة:\n{url}", "en": "\n\nKhatm landing page:\n{url}",
-    },
-    "create_khatm.bale_invite_instruction": {
-        "fa": "این کد رو براشون بفرستید تا داخل بله بفرستن:\n/start join_{token}",
-        "ar": "أرسل لهم هذا الأمر ليكتبوه في بله:\n/start join_{token}",
-        "en": "Send them this to type in Bale:\n/start join_{token}",
     },
 
     # --- settings_menu.py (2026-09-20) ---
@@ -890,15 +841,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.bucket.active": {"fa": "فعال", "ar": "نشطة", "en": "Active"},
     "my_khatms.bucket.upcoming": {"fa": "آینده", "ar": "قادمة", "en": "Upcoming"},
     "my_khatms.bucket.finished": {"fa": "تمام‌شده", "ar": "منتهية", "en": "Finished"},
-    "my_khatms.created_header": {
-        "fa": "🛠 ختم‌هایی که ساختید:", "ar": "🛠 الختمات التي أنشأتها:", "en": "🛠 Khatms you created:",
-    },
-    "my_khatms.bucket_header": {"fa": "\n{bucket}:", "ar": "\n{bucket}:", "en": "\n{bucket}:"},
     "my_khatms.created_line": {"fa": "— {title} ({status})", "ar": "— {title} ({status})", "en": "— {title} ({status})"},
-    "my_khatms.joined_header": {
-        "fa": "\n🕋 ختم‌هایی که عضوشون هستید:", "ar": "\n🕋 الختمات التي أنت عضو فيها:",
-        "en": "\n🕋 Khatms you've joined:",
-    },
     "my_khatms.open_line": {
         "fa": "— [{bucket}] {title}: {total} ثبت شده", "ar": "— [{bucket}] {title}: {total} مسجَّل",
         "en": "— [{bucket}] {title}: {total} logged",
@@ -952,25 +895,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.category.dua": {"fa": "🤲 دعا و زیارت", "ar": "🤲 الدعاء والزيارة", "en": "🤲 Dua & Ziyarat"},
     "my_khatms.category.laan": {"fa": "⚔️ لعن", "ar": "⚔️ اللعن", "en": "⚔️ La'an"},
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
-    "my_khatms.manage_prompt": {
-        "fa": "مدیریت «{title}»:", "ar": "إدارة «{title}»:", "en": "Manage “{title}”:",
-    },
-    "my_khatms.contribute_prompt": {
-        "fa": "مشارکت شما در «{title}»:", "ar": "مشاركتك في «{title}»:", "en": "Your contribution in “{title}”:",
-    },
-    "my_khatms.no_current_portion": {
-        "fa": "در «{title}» سهم فعالی ندارید 🌱", "ar": "ليس لديك حصة نشطة في «{title}» 🌱",
-        "en": "You don't have an active portion in “{title}” 🌱",
-    },
-    "my_khatms.paused_notice": {
-        "fa": "تعهد شما در «{title}» موقتاً متوقفه.", "ar": "التزامك في «{title}» متوقف مؤقتاً.",
-        "en": "Your commitment in “{title}” is temporarily paused.",
-    },
-    "my_khatms.resume_button": {"fa": "▶️ ادامه تعهد", "ar": "▶️ استئناف الالتزام", "en": "▶️ Resume commitment"},
-    "my_khatms.pause_manage_prompt": {
-        "fa": "مدیریت تعهد در «{title}»:", "ar": "إدارة الالتزام في «{title}»:", "en": "Manage your commitment in “{title}”:",
-    },
-    "my_khatms.pause_button": {"fa": "⏸ توقف موقت تعهد", "ar": "⏸ إيقاف الالتزام مؤقتاً", "en": "⏸ Pause commitment"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
     "portions.button.contribute": {"fa": "➕ ثبت مشارکت", "ar": "➕ تسجيل مشاركة", "en": "➕ Log a contribution"},
@@ -1258,11 +1182,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.button.reminder_hour": {
         "fa": "⏰ ساعت یادآوری", "ar": "⏰ وقت التذكير", "en": "⏰ Reminder time",
     },
-    "my_khatms.reminder_hour_saved": {
-        "fa": "✅ ساعت یادآوری این ختم روی {hour} تنظیم شد.",
-        "ar": "✅ تم ضبط وقت تذكير هذه الختمة على {hour}.",
-        "en": "✅ Reminder time for this khatm set to {hour}.",
-    },
     "my_khatms.pick_reminder_hour": {
         "fa": "چه ساعتی یادآوری این ختم برایتان فرستاده شود؟\nیکی از دکمه‌ها را بزنید، یا ساعت دقیق را بنویسید (مثلاً 14:40):",
         "ar": "في أي وقت تريد تذكير هذه الختمة؟\nاضغط أحد الأزرار أو اكتب الوقت بدقة (مثلاً 14:40):",
@@ -1333,11 +1252,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "portions.goal_reached": {
         "fa": "\n🎉 هدف این ختم تکمیل شد! خدا قبول کنه 🤍", "ar": "\n🎉 اكتمل هدف هذه الختمة! تقبّل الله 🤍",
         "en": "\n🎉 This khatm's goal has been reached! May it be accepted 🤍",
-    },
-    "portions.paused_use_resume_first": {
-        "fa": "تعهد شما موقتاً متوقفه — قبلش «ادامه تعهد» رو بزنید.",
-        "ar": "التزامك متوقف مؤقتاً — اضغط أولاً «استئناف الالتزام».",
-        "en": "Your commitment is temporarily paused — tap “Resume commitment” first.",
     },
     "portions.pause_not_allowed": {
         "fa": "توقف موقت برای این ختم فعال نیست.", "ar": "الإيقاف المؤقت غير مفعّل لهذه الختمة.",
@@ -2238,11 +2152,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "لم يتم العثور على هذه الختمة أو أنها ليست لك.",
         "en": "This khatm wasn't found, or it isn't yours.",
     },
-    "my_khatms.creator.usage_khatm_id": {
-        "fa": "فرمت درست: {command} شناسه‌ی ختم",
-        "ar": "الصيغة الصحيحة: {command} معرّف الختمة",
-        "en": "Correct format: {command} khatm id",
-    },
     "my_khatms.creator.invalid_khatm_id": {
         "fa": "شناسه‌ی ختم درست نیست.", "ar": "معرّف الختمة غير صحيح.", "en": "That khatm id isn't valid.",
     },
@@ -2554,10 +2463,6 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.creator.qr_usage": {
         "fa": "فرمت درست: /khatm_qr شناسه‌ی ختم", "ar": "الصيغة الصحيحة: /khatm_qr معرّف الختمة",
         "en": "Correct format: /khatm_qr khatm id",
-    },
-    "my_khatms.creator.qr_username_missing": {
-        "fa": "نام کاربری بات برای ساخت QR هنوز تنظیم نشده.", "ar": "اسم مستخدم البوت لإنشاء QR غير مضبوط بعد.",
-        "en": "The bot's username for generating a QR code isn't set yet.",
     },
     "my_khatms.creator.qr_active_only": {
         "fa": "QR دعوت فقط برای ختم فعال ساخته می‌شود.", "ar": "رمز QR للدعوة يُصنع فقط للختمة النشطة.",
@@ -3017,11 +2922,6 @@ _STRINGS: dict[str, dict[str, str]] = {
             "This bot is developed by the KhedmatGozaran Tech team. If you want to create your own khatms, you can request creator access."
         ),
     },
-    "creator_request.submit_btn": {
-        "fa": "📝 ارسال درخواست",
-        "ar": "📝 إرسال الطلب",
-        "en": "📝 Submit Request",
-    },
     "creator_request.submitted": {
         "fa": "درخواست شما ثبت شد و به‌زودی بررسی می‌شه ✅",
         "ar": "تم تسجيل طلبك وسيتم مراجعته قريباً ✅",
@@ -3057,11 +2957,6 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "✅ تأكيد وإنشاء الرابط",
         "en": "✅ Confirm & create link",
     },
-    "guide.simple": {
-        "fa": "📖 <b>راهنمای انواع ختم‌ها</b>\n\nدر ختم‌ساز، ما ۴ مدل ختم داریم که می‌تونید توشون شرکت کنید:\n\n۱. <b>ختم تعهدی (Commitment)</b> ⏳\nمثل مسابقه امدادی! همه باید سهمشون رو سر وقت بخونن (مثلاً روزی یک جزء). اگه یکی نخونه، ختم اون روز ناقص می‌مونه و شرمنده‌ی بقیه میشه.\n\n۲. <b>ختم آزاد (Free)</b> 🕊️\nآرامش‌بخش و بدون استرس. هر وقت تونستی و فرصت داشتی می‌خونی. هیچ محدودیت زمانی نداره.\n\n۳. <b>ختم عمومی (Public)</b> 🌍\nدرِ این ختم‌ها به روی همه بازه! هر کسی تو ربات می‌تونه این ختم‌ها رو ببینه و سهم برداره.\n\n۴. <b>ختم شخصی/خصوصی (Private)</b> 🔒\nمثل یه مهمونی خانوادگی. فقط کسایی می‌تونن شرکت کنن که شما لینک دعوت رو براشون بفرستید. بقیه اصلاً این ختم رو نمی‌بینن.",
-        "ar": "📖 <b>دليل أنواع الختمات</b>...",
-        "en": "📖 <b>Khatm Types Guide</b>...",
-    }
 }
 
 

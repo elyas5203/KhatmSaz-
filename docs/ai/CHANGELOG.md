@@ -1,3 +1,7 @@
+## 2026-09-28 (N1 i18n audit — removed dup + 31 dead keys)
+- **i18n**: removed duplicate `menu.public_khatms` + 31 unreferenced keys (leftovers from removed capacity/ads/content-delivery/per-member-share/old-welcome/orphan-my_khatms features). 852→820 keys. All remaining keys verified fa/ar/en complete, non-empty, placeholder-consistent.
+- **Guard**: `tests/test_i18n_audit.py` (no-dupes, all-langs, placeholder-match).
+
 ## 2026-09-28 (R4 creator-contact in welcome — migration-free)
 - **Wizard (R4)**: new step asks the creator for a contact handle (Telegram/Bale ID / t.me link / phone) after the welcome step, with a one-tap "use my @username" button and skip. Folded into the existing `welcome_text` (📬 line) so every member sees how to reach the organizer — no migration.
 - **Blocker**: Alembic has 3 heads (`a1b2c3d4e5f6`, `f4a5b6c7d8e9`, `zz9999`); `upgrade head` fails until merged. R2/R4 kept migration-free; R11-full + DEC-PY-0092 wiring wait on the merge + a test DB.
