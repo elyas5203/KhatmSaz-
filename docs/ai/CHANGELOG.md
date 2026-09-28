@@ -1,3 +1,8 @@
+## 2026-09-28 (R4 creator-contact in welcome — migration-free)
+- **Wizard (R4)**: new step asks the creator for a contact handle (Telegram/Bale ID / t.me link / phone) after the welcome step, with a one-tap "use my @username" button and skip. Folded into the existing `welcome_text` (📬 line) so every member sees how to reach the organizer — no migration.
+- **Blocker**: Alembic has 3 heads (`a1b2c3d4e5f6`, `f4a5b6c7d8e9`, `zz9999`); `upgrade head` fails until merged. R2/R4 kept migration-free; R11-full + DEC-PY-0092 wiring wait on the merge + a test DB.
+- **Tests**: +`tests/test_creator_contact.py` (7). Suite 114 passed / 85 skipped.
+
 ## 2026-09-28 (redesign plan + remove capacity wizard step)
 - **Plan**: `docs/ai/REDESIGN_PLAN_2026-09-28.md` — minimal-interaction redesign of the create-khatm wizard + member join flow (R1–R13) with a Codex meta-prompt.
 - **Wizard**: removed the capacity question (owner: unnecessary step) — `enter_commitment_quantity` and `enter_deadline_hour` now go straight to visibility with capacity=None; the old capacity handlers are unreachable.

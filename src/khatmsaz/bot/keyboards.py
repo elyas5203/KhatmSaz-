@@ -711,25 +711,25 @@ def join_preview_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:
     )
 
 
-def pause_duration_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def pause_duration_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="۳ روز", callback_data=f"pause:{khatm_id}:3"),
-                InlineKeyboardButton(text="۷ روز", callback_data=f"pause:{khatm_id}:7"),
-                InlineKeyboardButton(text="۱۴ روز", callback_data=f"pause:{khatm_id}:14"),
+                InlineKeyboardButton(text=t("pause.duration.3", lang), callback_data=f"pause:{khatm_id}:3"),
+                InlineKeyboardButton(text=t("pause.duration.7", lang), callback_data=f"pause:{khatm_id}:7"),
+                InlineKeyboardButton(text=t("pause.duration.14", lang), callback_data=f"pause:{khatm_id}:14"),
             ],
-            [InlineKeyboardButton(text="🗓 تا تاریخ مشخص", callback_data=f"pause_custom:{khatm_id}")],
+            [InlineKeyboardButton(text=t("pause.duration.custom", lang), callback_data=f"pause_custom:{khatm_id}")],
         ]
     )
 
 
-def leave_reason_keyboard(participation_id: str) -> InlineKeyboardMarkup:
+def leave_reason_keyboard(participation_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     reasons = [
-        ("فعلاً وقت ندارم", "busy"),
-        ("اشتباهی عضو شدم", "mistake"),
-        ("مشکل در دریافت پیام", "notifications"),
-        ("سایر", "other"),
+        (t("leave.reason.busy", lang), "busy"),
+        (t("leave.reason.mistake", lang), "mistake"),
+        (t("leave.reason.notifications", lang), "notifications"),
+        (t("leave.reason.other", lang), "other"),
     ]
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -762,21 +762,21 @@ def leave_all_keyboard(targets: list[tuple[str, str]]) -> InlineKeyboardMarkup |
 
 
 def creator_khatm_keyboard(
-    khatm_id: str, *, can_cancel: bool = True
+    khatm_id: str, *, can_cancel: bool = True, lang: str = "fa"
 ) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton(text="👥 لیست اعضا", callback_data=f"creator_report:members:{khatm_id}"),
-            InlineKeyboardButton(text="📄 خروجی CSV", callback_data=f"creator_report:export:{khatm_id}"),
+            InlineKeyboardButton(text=t("cs.members", lang), callback_data=f"creator_report:members:{khatm_id}"),
+            InlineKeyboardButton(text=t("cs.export", lang), callback_data=f"creator_report:export:{khatm_id}"),
         ],
         [
-            InlineKeyboardButton(text="🔳 QR دعوت", callback_data=f"creator_report:qr:{khatm_id}"),
-            InlineKeyboardButton(text="📈 آمار ختم", callback_data=f"creator_report:stats:{khatm_id}"),
+            InlineKeyboardButton(text=t("cs.qr", lang), callback_data=f"creator_report:qr:{khatm_id}"),
+            InlineKeyboardButton(text=t("cs.stats", lang), callback_data=f"creator_report:stats:{khatm_id}"),
         ],
-        [InlineKeyboardButton(text="⚙️ تنظیمات ختم", callback_data=f"cs:menu:{khatm_id}")],
+        [InlineKeyboardButton(text=t("cs.settings", lang), callback_data=f"cs:menu:{khatm_id}")],
     ]
     if can_cancel:
-        rows[-1].append(InlineKeyboardButton(text="🗑 لغو ختم", callback_data=f"cancel_khatm_ask:{khatm_id}"))
+        rows[-1].append(InlineKeyboardButton(text=t("cs.cancel_khatm", lang), callback_data=f"cancel_khatm_ask:{khatm_id}"))
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
@@ -794,52 +794,57 @@ def creator_settings_keyboard(
     miss_threshold: int,
     miss_window_days: int,
     content_mode: str,
+    lang: str = "fa",
 ) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = [
         [
-            InlineKeyboardButton(text="✏️ عنوان", callback_data=f"cs:edit:{khatm_id}:title"),
-            InlineKeyboardButton(text="💬 پیام خوش‌آمد", callback_data=f"cs:edit:{khatm_id}:welcome"),
+            InlineKeyboardButton(text=t("cs.title", lang), callback_data=f"cs:edit:{khatm_id}:title"),
+            InlineKeyboardButton(text=t("cs.welcome", lang), callback_data=f"cs:edit:{khatm_id}:welcome"),
         ]
     ]
     rows.append([
-        InlineKeyboardButton(text="🗓 پایان تاریخی", callback_data=f"cs:end:{khatm_id}"),
-        InlineKeyboardButton(text="🧹 حذف پایان", callback_data=f"cs:end_clear:{khatm_id}"),
+        InlineKeyboardButton(text=t("cs.end_date", lang), callback_data=f"cs:end:{khatm_id}"),
+        InlineKeyboardButton(text=t("cs.end_clear", lang), callback_data=f"cs:end_clear:{khatm_id}"),
     ])
     if is_open:
-        rows.append([InlineKeyboardButton(text="⏰ زمان‌بندی مشارکت", callback_data=f"cs:schedule:{khatm_id}")])
+        rows.append([InlineKeyboardButton(text=t("cs.schedule", lang), callback_data=f"cs:schedule:{khatm_id}")])
     if is_quran:
-        mode_labels = {"AUTO": "خودکار", "PHOTO": "فقط تصویر", "TEXT": "فقط متن"}
+        mode_labels = {
+            "AUTO": t("cs.content_mode.auto", lang),
+            "PHOTO": t("cs.content_mode.photo", lang),
+            "TEXT": t("cs.content_mode.text", lang),
+        }
         rows.append([InlineKeyboardButton(
-            text=f"📖 فرمت محتوا: {mode_labels.get(content_mode, 'خودکار')}",
+            text=t("cs.content_fmt", lang, mode=mode_labels.get(content_mode, mode_labels["AUTO"])),
             callback_data=f"cs:modes:{khatm_id}",
         )])
     if is_commitment:
         rows.extend([
             [InlineKeyboardButton(
-                text=f"{'✅' if allow_pause else '🚫'} توقف موقت تعهد",
+                text=f"{'✅' if allow_pause else '🚫'} {t('cs.pause_toggle', lang)}",
                 callback_data=f"cs:pause:{khatm_id}",
             )],
             [InlineKeyboardButton(
-                text=f"{'✅' if allow_snooze else '🚫'} تعویق یادآوری",
+                text=f"{'✅' if allow_snooze else '🚫'} {t('cs.snooze_toggle', lang)}",
                 callback_data=f"cs:snooze:{khatm_id}",
             )],
         ])
-    rows.append([InlineKeyboardButton(text="🔙 ختم‌های من", callback_data="my_khatms:open")])
+    rows.append([InlineKeyboardButton(text=t("cs.back_my_khatms", lang), callback_data="my_khatms:open")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def creator_edit_cancel_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def creator_edit_cancel_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 انصراف و بازگشت", callback_data=f"cs:edit_cancel:{khatm_id}")]
+        [InlineKeyboardButton(text=t("cs.edit_cancel", lang), callback_data=f"cs:edit_cancel:{khatm_id}")]
     ])
 
 
-def creator_content_mode_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def creator_content_mode_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ خودکار (پیشنهادی)", callback_data=f"cs:mode:{khatm_id}:AUTO")],
-        [InlineKeyboardButton(text="🖼 فقط تصویر", callback_data=f"cs:mode:{khatm_id}:PHOTO")],
-        [InlineKeyboardButton(text="📝 فقط متن", callback_data=f"cs:mode:{khatm_id}:TEXT")],
-        [InlineKeyboardButton(text="🔙 بازگشت", callback_data=f"cs:menu:{khatm_id}")],
+        [InlineKeyboardButton(text=t("cs.mode_auto", lang), callback_data=f"cs:mode:{khatm_id}:AUTO")],
+        [InlineKeyboardButton(text=t("cs.mode_photo", lang), callback_data=f"cs:mode:{khatm_id}:PHOTO")],
+        [InlineKeyboardButton(text=t("cs.mode_text", lang), callback_data=f"cs:mode:{khatm_id}:TEXT")],
+        [InlineKeyboardButton(text=t("cs.back", lang), callback_data=f"cs:menu:{khatm_id}")],
     ])
 
 
@@ -852,23 +857,23 @@ def creator_miss_policy_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
     ])
 
 
-def creator_schedule_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def creator_schedule_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚫 بدون زمان‌بندی", callback_data=f"cs:schedule_set:{khatm_id}:off")],
-        [InlineKeyboardButton(text="📅 هر روز", callback_data=f"cs:schedule_set:{khatm_id}:daily")],
-        [InlineKeyboardButton(text="💼 روزهای کاری", callback_data=f"cs:schedule_set:{khatm_id}:weekly:0,1,2,3,4")],
-        [InlineKeyboardButton(text="🌿 آخرهفته", callback_data=f"cs:schedule_set:{khatm_id}:weekly:5,6")],
-        [InlineKeyboardButton(text="🔁 هر ۳ روز", callback_data=f"cs:schedule_set:{khatm_id}:every:3")],
-        [InlineKeyboardButton(text="🗓 یک تاریخ مشخص", callback_data=f"cs:schedule_date:{khatm_id}")],
-        [InlineKeyboardButton(text="🔙 بازگشت", callback_data=f"cs:menu:{khatm_id}")],
+        [InlineKeyboardButton(text=t("cs.sched.off", lang), callback_data=f"cs:schedule_set:{khatm_id}:off")],
+        [InlineKeyboardButton(text=t("cs.sched.daily", lang), callback_data=f"cs:schedule_set:{khatm_id}:daily")],
+        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:0,1,2,3,4")],
+        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:5,6")],
+        [InlineKeyboardButton(text=t("cs.sched.every3", lang), callback_data=f"cs:schedule_set:{khatm_id}:every:3")],
+        [InlineKeyboardButton(text=t("cs.sched.date", lang), callback_data=f"cs:schedule_date:{khatm_id}")],
+        [InlineKeyboardButton(text=t("cs.back", lang), callback_data=f"cs:menu:{khatm_id}")],
     ])
 
 
-def cancel_khatm_confirm_keyboard(khatm_id: str) -> InlineKeyboardMarkup:
+def cancel_khatm_confirm_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ لغو و بازپرداخت", callback_data=f"cancel_khatm:{khatm_id}")],
-            [InlineKeyboardButton(text="❌ انصراف", callback_data="cancel_khatm_cancel")],
+            [InlineKeyboardButton(text=t("cs.cancel_confirm", lang), callback_data=f"cancel_khatm:{khatm_id}")],
+            [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="cancel_khatm_cancel")],
         ]
     )
 

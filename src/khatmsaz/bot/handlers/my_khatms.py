@@ -52,7 +52,7 @@ class CreatorKhatmEdit(StatesGroup):
     entering_value = State()
 
 
-def _creator_settings_markup(khatm):
+def _creator_settings_markup(khatm, lang: str = "fa"):
     return creator_settings_keyboard(
         str(khatm.id),
         is_quran=khatm.template_type == KhatmTemplateType.QURAN_PAGE,
@@ -64,6 +64,7 @@ def _creator_settings_markup(khatm):
         miss_threshold=int(khatm.miss_notice_threshold),
         miss_window_days=int(khatm.miss_notice_window_days),
         content_mode=getattr(khatm, "content_delivery_mode", ContentDeliveryMode.AUTO.value),
+        lang=lang,
     )
 
 
@@ -107,7 +108,7 @@ async def creator_settings_menu(callback) -> None:
         await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
         return
     await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     await safe_answer_callback(callback)
 
@@ -122,7 +123,7 @@ async def creator_content_modes(callback) -> None:
         return
     await callback.message.edit_text(
         t("my_khatms.creator.content_mode_prompt", lang),
-        reply_markup=creator_content_mode_keyboard(khatm_id),
+        reply_markup=creator_content_mode_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 
@@ -137,7 +138,7 @@ async def creator_schedule_menu(callback) -> None:
         return
     await callback.message.edit_text(
         t("my_khatms.creator.schedule_prompt", lang),
-        reply_markup=creator_schedule_keyboard(khatm_id),
+        reply_markup=creator_schedule_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 
@@ -162,7 +163,7 @@ async def creator_set_schedule(callback) -> None:
             await safe_answer_callback(callback, t("my_khatms.creator.schedule_invalid", lang), show_alert=True)
             return
     await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     await safe_answer_callback(callback, t("my_khatms.creator.schedule_saved", lang))
 
@@ -180,7 +181,7 @@ async def creator_begin_schedule_date(callback, state: FSMContext) -> None:
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("my_khatms.creator.ask_schedule_date", lang),
-        reply_markup=creator_edit_cancel_keyboard(khatm_id),
+        reply_markup=creator_edit_cancel_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 
@@ -198,7 +199,7 @@ async def creator_begin_end_at(callback, state: FSMContext) -> None:
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("my_khatms.creator.ask_end_at", lang),
-        reply_markup=creator_edit_cancel_keyboard(khatm_id),
+        reply_markup=creator_edit_cancel_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 
@@ -223,7 +224,7 @@ async def creator_clear_end_at(callback) -> None:
     from aiogram.exceptions import TelegramBadRequest
     try:
         await callback.message.edit_text(
-            _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+            _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
         )
     except TelegramBadRequest:
         pass
@@ -247,7 +248,7 @@ async def creator_begin_cosmetic_edit(callback, state: FSMContext) -> None:
     prompt = t(
         "my_khatms.creator.ask_new_title" if field == "title" else "my_khatms.creator.ask_new_welcome", lang
     )
-    await callback.message.answer(prompt, reply_markup=creator_edit_cancel_keyboard(khatm_id))
+    await callback.message.answer(prompt, reply_markup=creator_edit_cancel_keyboard(khatm_id, lang))
     await safe_answer_callback(callback)
 
 
@@ -261,7 +262,7 @@ async def creator_cancel_cosmetic_edit(callback, state: FSMContext) -> None:
         await safe_answer_callback(callback, t("my_khatms.creator.edit_gone", lang), show_alert=True)
         return
     await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     await safe_answer_callback(callback, t("my_khatms.creator.edit_cancelled", lang))
 
@@ -324,7 +325,7 @@ async def creator_save_cosmetic_edit(message: Message, state: FSMContext) -> Non
             await message.answer(t("my_khatms.creator.edit_value_invalid", lang))
             return
     await state.clear()
-    await message.answer(result, reply_markup=_creator_settings_markup(khatm))
+    await message.answer(result, reply_markup=_creator_settings_markup(khatm, lang))
 
 
 @router.callback_query(F.data.startswith("cs:mode:"))
@@ -351,7 +352,7 @@ async def creator_set_content_mode(callback) -> None:
             await safe_answer_callback(callback, t("my_khatms.creator.setting_not_available", lang), show_alert=True)
             return
     await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     await safe_answer_callback(callback, t("my_khatms.creator.mode_saved", lang))
 
@@ -384,7 +385,7 @@ async def creator_toggle_policy(callback) -> None:
             await safe_answer_callback(callback, t("my_khatms.creator.setting_not_available", lang), show_alert=True)
             return
     await callback.message.edit_text(
-        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm)
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     enabled = {"pause": khatm.allow_pause, "snooze": khatm.allow_snooze}[action]
     await safe_answer_callback(
@@ -1280,6 +1281,7 @@ async def open_creator_management(callback) -> None:
         reply_markup=creator_khatm_keyboard(
             khatm_id,
             can_cancel=khatm.status.value == "ACTIVE",
+            lang=lang,
         ),
     )
     await safe_answer_callback(callback)
@@ -1322,7 +1324,7 @@ async def toggle_completion_announcement(callback) -> None:
         reply_markup=creator_khatm_keyboard(
             str(updated.id),
             can_cancel=updated.status.value == "ACTIVE",
-            completion_announcement_enabled=bool(updated.completion_announcement_enabled),
+            lang=lang,
         )
     )
     await safe_answer_callback(
@@ -1352,7 +1354,7 @@ async def ask_cancel_khatm(callback) -> None:
                 "my_khatms.creator.cancel_ask", lang,
                 title=khatm.title, amount=max(0, khatm.creation_price_toman),
             ),
-            reply_markup=cancel_khatm_confirm_keyboard(khatm_id),
+            reply_markup=cancel_khatm_confirm_keyboard(khatm_id, lang),
         )
     await safe_answer_callback(callback)
 

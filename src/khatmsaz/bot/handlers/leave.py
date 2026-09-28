@@ -57,7 +57,7 @@ async def ask_leave_reason(callback: CallbackQuery) -> None:
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("leave.ask_reason", lang),
-        reply_markup=leave_reason_keyboard(participation_id),
+        reply_markup=leave_reason_keyboard(participation_id, lang),
     )
     await safe_answer_callback(callback)
 

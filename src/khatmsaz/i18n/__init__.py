@@ -443,6 +443,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "اكتب رسالة ترحيب يراها كل عضو جديد لحظة انضمامه.",
         "en": "Write a welcome message every new member sees the moment they join.",
     },
+    "create_khatm.ask_creator_contact": {
+        "fa": "اگه دوست دارید اعضا بتونن باهاتون در ارتباط باشن، آیدی تلگرام یا بله‌تون رو بفرستید (اگه ندارید، شماره‌تون). این توی پیام خوش‌آمد قرار می‌گیره تا هر کسی خواست راحت پیداتون کنه.",
+        "ar": "إن أحببت أن يتواصل معك الأعضاء، أرسل معرّفك في تلگرام أو بله (أو رقمك إن لم يكن لديك). سيظهر في رسالة الترحيب ليجدك الجميع بسهولة.",
+        "en": "If you'd like members to reach you, send your Telegram or Bale ID (or your phone if you don't have one). It'll appear in the welcome message so anyone can find you.",
+    },
+    "create_khatm.contact.use_username": {
+        "fa": "همین آیدی خودم @{username}",
+        "ar": "استخدم معرّفي @{username}",
+        "en": "Use my ID @{username}",
+    },
+    "create_khatm.welcome_contact_line": {
+        "fa": "📬 برای ارتباط با سازندهٔ ختم: {contact}",
+        "ar": "📬 للتواصل مع منظّم الختمة: {contact}",
+        "en": "📬 To reach the Khatm organizer: {contact}",
+    },
     "create_khatm.welcome_example.quran": {
         "fa": "\n\nمثلاً: «صفحه‌های امروزتون رو با یاد صلوات بر محمد و آل محمد بخونید» یا یک آیهٔ کوتاه.",
         "ar": "\n\nمثلاً: «اقرأ صفحاتك اليوم مع الصلاة على محمد وآل محمد» أو آية قصيرة.",
