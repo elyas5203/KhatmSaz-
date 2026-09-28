@@ -77,6 +77,23 @@
 **جمع‌بندی فاز ۲:** همهٔ کلاس‌های باگِ «دکمه بی‌اثر / کلید خام / زبان اشتباه / کرش مسیر» که در تست live دیده شدند، به‌صورت سیستماتیک اسکن و رفع شدند، و سه‌تا با تست رگرسیون قفل شدند. ۸۹ تست واحد سبز.
 
 
+
+## 🔴 باگ‌های live-QA مالک (2026-09-28 عصر) — برای Codex/سشن‌های بعد
+1. **تخصیص صفحات قرآن اشتباه است (HIGH)**: الان صفحه‌ها می‌پرند (۴,۵ → ۸,۹ → ۱۲,۱۳) به‌جای پیوستهٔ شخصی (۴,۵ → ۶,۷ → ۸,۹). طبق DOMAIN_MODEL §2 «Personal Journey» سهم هر فرد باید برای خودش پیوسته جلو برود. باگ موتور allocation — بازتولید و رفع با تست.
+2. **فرمت محتوا باید از کاربر پرسیده شود**: الان متن+ترجمه با هم می‌آید و شلوغ است. کاربر باید هنگام/بعد از عضویت انتخاب کند کدام فرمت‌ها (تصویر/متن/متن+ترجمه/صوت) و چه ساعتی برایش ارسال شود — و بعداً قابل تغییر. فقط فرمت‌هایی که ادمین برای آن ختم ثبت کرده نشان داده شود.
+3. **ترتیب FSM عضویت تعهدی**: گرفتن «ساعت یادآوری» باید **اجباری و مرحله‌به‌مرحله** باشد؛ الان قبل از ست‌کردن ساعت، دکمهٔ «ثبت بخشی از تعهد» در دسترس بود و عددِ تایپ‌شده به‌عنوان تعداد صفحه ثبت شد. باید تا ساعت ست نشود مرحلهٔ بعد باز نشود.
+4. **بازنویسی پیام‌های یادآوری/تأیید**: مالک پیام‌های فعلی را «مسخره» خواند و نمونهٔ گرم/حرفه‌ای داد (سبک @khedmatgozaran_quran). متن یادآوری قرائت + تأیید ثبت را طبق TONE_GUIDE گرم و محترمانه بازنویسی کن (fa/ar/en).
+5. **`/cancel` روی فرم‌های حساب پیام نامرتبط ورود ادمین می‌دهد** (Codex) — مسیر cancel را درست کن؛ و `/cancel` روی بات ممبر هم کار کند (الان فقط dp_creator).
+6. **چند صفحهٔ انگلیسی دکمه/نام فارسی دارد** (Codex) — i18n ناقص در بعضی مسیرها.
+7. **بخش تأیید سازنده دستور فنی/مراجعه به دیتابیس پیشنهاد می‌دهد** (panel.py admin_panel:creator_requests) — با UX ساده جایگزین شود.
+
+### رفع‌شدهٔ همین عصر (Claude Code)
+- ✅ مینی‌اپ در Telegram Web باز نمی‌شد (`X-Frame-Options: SAMEORIGIN`) → برای `/mini/*` از CSP frame-ancestors تلگرام استفاده شد.
+- ✅ نشت «/admin_app» در پیام عضویت → ثبت‌نام دیگر نامی که با `/` شروع شود را نمی‌پذیرد (member + creator).
+
+### پاسخ به سؤال کانال قرآن
+بات‌هایی که محتوا را تحویل می‌دهند باید **عضو/ادمین کانال منبع قرآن** باشند (که تازه اضافه کردی). دستور جداگانه لازم نیست — کافی است `systemctl restart khatmsaz` بزنی تا seedِ خودترمیمِ استارتاپ (`seed_verified_quran_channel_map`) دوباره اجرا و نقشهٔ کانال تأیید شود.
+
 ## 🎯 هدف‌های بزرگِ افزوده‌شده (مالک، 2026-09-28) — نیازمند سشن اختصاصی
 1. **ریدیزاین کامل پنل ادمین** — همهٔ صفحات و همهٔ امکانات، UX خیلی ساده. شامل:
    - صفحهٔ «دعاها» و «دسته‌ها»: فیلدهای تکراری/اشتباه اصلاح شوند؛ باگ «دعا فعال شد ولی «فعال نیست» نشان می‌دهد» رفع شود؛ فرم‌ها بازطراحی.
@@ -94,3 +111,20 @@
 - 🎯 **ریدیزاین کامل پنل ادمین و سازنده**: هر دو پنل با همهٔ امکانات موجود بازطراحی و ساخته شوند طوری که هر کاری که کاربر می‌تواند انجام/کنترل/بررسی/آنالیز کند داخل پنل در دسترس باشد — **با شرط اصلی: UX و رابط کاربری به‌شدت ساده و آسان**. (چندجلسه‌ای؛ پیوسته دنبال می‌شود.)
 - 🎯 **گزینهٔ ۲**: i18n کامل ویزارد ساخت ختم + کیبوردهای مدیریت (BACKLOG #۱).
 - 🎯 **گزینهٔ ۳**: دکمه‌های «قبلی/انصراف» و راهنمای همان مرحله در همهٔ گام‌های ویزارد.
+## Live QA — 2026-09-28 (Chrome / Telegram Web / Codex)
+
+| Area | Result | Evidence / defect |
+|---|---|---|
+| Member join fa/ar/en | ✅ LIVE | fa/ar commitment copy matched bot language; both existing memberships handled cleanly; en new join completed |
+| Exact reminder `14:40` | ✅ LIVE | English member bot saved and echoed `14:40` |
+| Portion content delivery | ⚠️ BUG-OPEN | English bot: source-channel access failure; allocation stayed unchanged |
+| Member welcome copy | ⚠️ BUG-OPEN | English join message leaked `Welcome /admin_app` |
+| Account settings | ⚠️ PARTIAL | Language/reciter/reminder/digest/SMS/timezone/profile/phone/link flows opened; `/cancel` incorrectly advertises `/admin_web_login` |
+| Creator khatm management | ✅ LIVE | `/my_khatms`, created/joined buckets, members, empty CSV, QR fa/ar/en, stats, settings, reversible pause/snooze toggles |
+| Creator/admin localization | ⚠️ BUG-OPEN | English session still shows Persian buttons/city names in multiple submenus |
+| Public khatms on creator bot | ✅ LIVE | `/public_khatms` returned active public khatm picker |
+| Create-khatm entry/cancel | ✅ LIVE | type picker and Quran commitment/open step rendered; cancel completed without creating data |
+| Admin Telegram menu | ⚠️ PARTIAL | requests/users/broadcast info screens render; creator approval exposes command/database instructions rather than nontechnical UI |
+| Admin Mini App | 🔒 BLOCKED | Telegram Web iframe refused; endpoint returns `X-Frame-Options: SAMEORIGIN` |
+| Creator Mini App | 🔒 BLOCKED | same `SAMEORIGIN` blocker; internal dashboard routes could not be live-tested |
+| Payment/broadcast/destructive actions | NOT RUN | no real payment; no broadcast, delete, ban, or role mutation |
