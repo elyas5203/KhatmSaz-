@@ -197,7 +197,9 @@ async def main() -> None:
     dp_member.include_router(devotional_router)
     dp_member.include_router(leave_router)
     dp_member.include_router(join_requests_router)
-    dp_member.include_router(public_khatms_router)
+    # public_khatms moved to the shared list below so /public_khatms works on
+    # the creator bot too (owner live QA 2026-09-28: it produced no output
+    # there because it was member-only).
 
     # --- Creator-only routers ---
     dp_creator.include_router(start_router)
@@ -234,6 +236,7 @@ async def main() -> None:
         return getattr(fresh, "router")
 
     _shared_module_paths = [
+        "khatmsaz.bot.handlers.public_khatms",
         "khatmsaz.bot.handlers.join_flow",
         "khatmsaz.bot.handlers.help",
         "khatmsaz.bot.handlers.settings_menu",

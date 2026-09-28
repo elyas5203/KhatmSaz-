@@ -1,3 +1,9 @@
+## 2026-09-28 (live-QA: member-bot language, HH:MM reminder, /public_khatms on creator)
+- **Fix (CRITICAL)**: member bot showed Persian commitment consent — `resume_join_after_registration` now uses the bot's language on member bots.
+- **Fix**: per-khatm reminder accepts a typed exact time «14:40» (reuses AskDeliveryHour).
+- **Fix**: `/public_khatms` produced no output on the creator bot (was member-only); moved to shared routers so it works on both dispatchers.
+- **Docs**: recorded owner's large added goals (full admin panel redesign, creator web panel, mini-app entry buttons, finance simplification, payment/cert follow-up) in QA_MATRIX for dedicated sessions.
+
 ## 2026-09-27 (per-khatm broadcast targeting)
 - **Feature**: Creator broadcast now starts with a khatm picker — «📢 به همهٔ ختم‌ها» plus one row per active khatm — instead of blasting the whole audience with no choice (owner: «ارسال پیام گروهی به هر ختم مشکل داره»). New FSM step `choosing_target` + handler `choose_broadcast_target`; `creator_broadcast.service.get_creator_audience_count` and `get_broadcast_audience` take an optional `khatm_id` scope; `confirm_broadcast` sends only to the chosen scope (de-duplicated). The creator inline-panel «ارسال پیام گروهی» button now opens this picker directly instead of a how-to text.
 
