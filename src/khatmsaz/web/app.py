@@ -193,7 +193,16 @@ AUDIT_DETAIL_LABELS = {
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    # Telegram Web opens Mini Apps inside an iframe served from telegram.org.
+    # A blanket X-Frame-Options: SAMEORIGIN blocked them ("refused to connect",
+    # owner + Codex live QA). For /mini/* use CSP frame-ancestors that allows
+    # Telegram to frame us; keep the strict SAMEORIGIN everywhere else.
+    if request.url.path.startswith("/mini"):
+        response.headers["Content-Security-Policy"] = (
+            "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://*.t.me"
+        )
+    else:
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Cache-Control"] = "no-store"

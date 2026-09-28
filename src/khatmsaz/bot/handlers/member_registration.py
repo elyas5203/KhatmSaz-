@@ -43,7 +43,10 @@ async def enter_name(message: Message, state: FSMContext) -> None:
         return
     name = (message.text or "").strip()
     lang = getattr(message.bot, "khatmsaz_language", "fa")
-    if not name:
+    if not name or name.startswith("/"):
+        # A slash command (e.g. /admin_app) must never be stored as the user's
+        # name — it leaked into the join welcome as «خوش آمدید /admin_app»
+        # (owner live QA 2026-09-28).
         await message.answer(t("registration.name_required", lang))
         return
     await state.update_data(full_name=name)

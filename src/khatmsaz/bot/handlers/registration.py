@@ -98,7 +98,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
         return
     name = (message.text or "").strip()
     lang = (await state.get_data()).get("language", "fa")
-    if not name:
+    if not name or name.startswith("/"):
         await message.answer(t("registration.name_required", lang))
         return
     await state.update_data(full_name=name)
