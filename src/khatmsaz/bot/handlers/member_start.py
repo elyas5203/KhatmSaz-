@@ -91,24 +91,21 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                 )
                 return
 
-            creator = await identity_service.find_by_id(session, khatm.creator_user_id)
-            creator_name = _creator_display_name(khatm, creator)
-
-            member_count = await participation_service.count_for_khatm(session, khatm.id)
-
-            text = build_join_preview_message(
-                khatm, creator_name, member_count, lang,
-                category_title=cat.title if cat else None, category_group=cat.group.name if cat else None
-            )
-
+            # Owner (2026-09-28): no khatm preview card — go straight into the
+            # join flow with the fewest possible steps. First-time users go to
+            # registration; returning users resume the join (which still asks
+            # commitment consent + reminder hour). Opening the link never joins
+            # silently — the join is completed only after these explicit steps.
             await state.update_data(
-                pending_join_khatm_id=str(khatm_id),
                 joined_via_bot_instance_id=getattr(bot, "khatmsaz_instance_id", None)
             )
-            await state.set_state(JoinWorkflow.previewing)
-
-            kb = join_preview_keyboard(token, lang)
-            await message.answer(text, reply_markup=kb)
+            from khatmsaz.bot.handlers.member_registration import start_member_registration
+            from khatmsaz.bot.handlers.start import resume_join_after_registration
+            from khatmsaz.modules.settings import service as settings_service
+            if not await settings_service.is_registered(session, user.id) or not user.display_name:
+                await start_member_registration(message, state, pending_join_token=token)
+            else:
+                await resume_join_after_registration(message, session, user.id, token, state=state)
 
 
 @router.message(Command("cancel"))
