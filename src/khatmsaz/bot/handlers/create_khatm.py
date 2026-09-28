@@ -49,6 +49,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm.models import ContentDeliveryMode, CreatorDisplayMode, KhatmTemplateType, KhatmTypeEnum, KhatmVisibility, ReminderTone
 from khatmsaz.modules.khatm.quran_editions import QURAN_EDITIONS
 from khatmsaz.modules.khatm_category import service as category_service
@@ -1064,8 +1065,11 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
     # DO NOT clear state here. We need to preserve created_khatm_id and created_token.
     # We also need to save them into the state.
     await state.update_data(created_khatm_id=str(khatm.id), created_token=token)
-    await state.set_state(CreateKhatm.choosing_invite_platform)
-    await show_invite_platform_keyboard(message, state, lang)
+    # R9 (owner 2026-09-28): skip the platform/language selection — give the
+    # Farsi member-bot link straight away; a button offers the ar/en links only
+    # if the creator wants them.
+    await state.update_data(selected_invite_languages=["fa"], selected_invite_platform="ALL")
+    await finish_invite_links(message, state, lang)
 
 
 async def resume_khatm_creation_if_pending(message: Message, state: FSMContext) -> bool:
@@ -1291,6 +1295,17 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     # Need original message or callback's message for answer
     target_msg = message if isinstance(message, Message) else message.message
     
+    # R9: offer the Arabic/English links on request (only when this default
+    # Farsi-only call ran, and other member-bot languages actually exist).
+    other_langs_btn = None
+    if selected_langs == ["fa"]:
+        other = invite_links.build_member_invite_links(khatm_bot_cat, token, plat_choice="ALL")
+        if any(l != "fa" for l in other.keys()):
+            other_langs_btn = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=t("create_khatm.want_other_lang_links", lang),
+                                     callback_data=f"ck:invlangs:{token}")
+            ]])
+
     await target_msg.answer(
         t(
             "create_khatm.success",
@@ -1302,3 +1317,22 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         reply_markup=main_menu_keyboard(lang, is_creator=True),
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
+    if other_langs_btn is not None:
+        await target_msg.answer(t("create_khatm.other_lang_hint", lang), reply_markup=other_langs_btn)
+
+
+@router.callback_query(F.data.startswith("ck:invlangs:"))
+async def send_other_language_links(callback: CallbackQuery) -> None:
+    """R9: on request, send the Arabic + English member-bot invite links."""
+    from aiogram.types import LinkPreviewOptions
+    token = callback.data.split(":", 2)[2]
+    lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
+    async with session_scope() as session:
+        khatm_id = await invitation_service.resolve_khatm_id(session, token)
+        khatm = await session.get(Khatm, khatm_id)
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+    by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token, langs=["ar", "en"], plat_choice="ALL")
+    lines = invite_links.format_invite_lines(by_lang) or t("create_khatm.no_other_lang_links", lang)
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(lines, link_preview_options=LinkPreviewOptions(is_disabled=True))
+    await safe_answer_callback(callback)

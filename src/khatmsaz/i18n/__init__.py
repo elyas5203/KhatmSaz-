@@ -639,6 +639,21 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.confirm.total_unlimited": {
         "fa": "هدف کل: نامحدود", "ar": "الهدف الكلي: غير محدود", "en": "Total goal: unlimited",
     },
+    "create_khatm.want_other_lang_links": {
+        "fa": "🌐 لینک عربی و انگلیسی هم می‌خواهم",
+        "ar": "🌐 أريد روابط العربية والإنجليزية أيضاً",
+        "en": "🌐 I also want the Arabic & English links",
+    },
+    "create_khatm.other_lang_hint": {
+        "fa": "اگر مخاطب عرب‌زبان یا انگلیسی‌زبان هم دارید، لینک آن‌ها را هم بگیرید:",
+        "ar": "إن كان لديك مدعوّون بالعربية أو الإنجليزية، احصل على روابطهم أيضاً:",
+        "en": "If you also have Arabic- or English-speaking guests, get their links too:",
+    },
+    "create_khatm.no_other_lang_links": {
+        "fa": "برای این دسته، بات عربی یا انگلیسی فعالی تنظیم نشده.",
+        "ar": "لا يوجد بوت عربي أو إنجليزي مفعّل لهذه الفئة.",
+        "en": "No active Arabic or English bot is configured for this category.",
+    },
     "create_khatm.confirm.per_member_share": {
         "fa": "سهم هر نفر: {amount} {unit}", "ar": "نصيب كل فرد: {amount} {unit}", "en": "Per-member share: {amount} {unit}",
     },
