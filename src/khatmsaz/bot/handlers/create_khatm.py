@@ -317,7 +317,15 @@ def _compose_niyyat(lang: str, proxy_name: str | None) -> str:
     behalf (نیابت), which is appended as a suffix."""
     niyyat = t("create_khatm.fixed_niyyat", lang)
     if proxy_name:
-        niyyat += t("create_khatm.niyyat_proxy_suffix", lang, name=proxy_name)
+        name = proxy_name.strip()
+        # The user may or may not type the «به نیابت از» prefix themselves —
+        # strip any leading dedication phrase so it is never doubled
+        # («به نیابت از به نیابت از …», owner report 2026-09-28).
+        for prefix in ("به نیابت از", "نیابت از", "به نيابة عن", "نيابة عن", "on behalf of"):
+            if name.lower().startswith(prefix.lower()):
+                name = name[len(prefix):].strip(" :،-") or name
+                break
+        niyyat += t("create_khatm.niyyat_proxy_suffix", lang, name=name)
     return niyyat
 
 

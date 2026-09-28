@@ -76,16 +76,21 @@
             <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-900/60 text-slate-500">{{ item.char_count }} نویسه</span>
             {% if item.has_image %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-300">🖼 تصویر</span>{% endif %}
             {% if item.has_audio %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-violet-500/10 text-violet-300">🎧 صوت</span>{% endif %}
-            {% if not item.enabled %}<span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>{% endif %}
+            {# Explicit status pill — always visible so «فعال/غیرفعال» is never ambiguous (owner UX report) #}
+            {% if item.enabled %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">✅ فعال (به کاربران نمایش داده می‌شود)</span>
+            {% else %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300">⛔ غیرفعال (پنهان)</span>
+            {% endif %}
           </div>
         </div>
 
         <form method="post" action="/devotionals/{{ item.slug }}/toggle" class="flex-none">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           {% if item.enabled %}
-          <button class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">غیرفعال</button>
+          <button class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit" title="این دعا را از دید کاربران پنهان کن">غیرفعال کردن</button>
           {% else %}
-          <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">فعال</button>
+          <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit" title="این دعا را برای کاربران فعال کن">فعال کردن</button>
           {% endif %}
         </form>
       </div>
