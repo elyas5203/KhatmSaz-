@@ -598,6 +598,19 @@ async def receive_open_quran_hour(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data.startswith("commitment_contribute:"))
 async def ask_commitment_quantity(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
+    # Mandatory step order (owner live QA 2026-09-28): right after joining, the
+    # bot asks the daily reminder hour. If the user taps «ثبت بخشی از تعهد»
+    # before answering, the number they type (meant as the hour) used to be
+    # swallowed as the commitment quantity. Block it until the hour is set.
+    from khatmsaz.bot.handlers.start import AskDeliveryHour
+    from khatmsaz.bot.keyboards import delivery_hour_keyboard
+    if await state.get_state() == AskDeliveryHour.entering_hour.state:
+        await callback.message.answer(
+            t("join.ask_delivery_hour", lang),
+            reply_markup=delivery_hour_keyboard("join_hour", lang),
+        )
+        await safe_answer_callback(callback)
+        return
     khatm_id = callback.data.split(":", 1)[1]
     await state.set_state(LogContribution.entering_amount)
     await state.update_data(khatm_id=khatm_id, commitment=True, lang=lang)
@@ -751,7 +764,7 @@ async def ask_pause_duration(callback: CallbackQuery) -> None:
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("portions.ask_pause_days", lang),
-        reply_markup=pause_duration_keyboard(khatm_id),
+        reply_markup=pause_duration_keyboard(khatm_id, lang),
     )
     await safe_answer_callback(callback)
 
