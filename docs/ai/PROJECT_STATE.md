@@ -2396,3 +2396,8 @@ readable: [docs/ai/archive/PROJECT_STATE_until_2026-09-18.md](archive/PROJECT_ST
 Nothing was deleted â€” read that file if you need context older than
 the entries above.
 
+## Current state — 2026-09-28 — Admin finance/content UX redesign [Codex]
+- **What changed**: Simplified `/finance` with a plain-language explanation of ordinary users vs creators, a concrete pricing example, and clearer plan labels. Unified `/categories` with `/devotionals`: admins now select a devotional by its Persian title instead of copying a technical slug; direct short text is clearly separated from full library content. Category status is now always shown as an explicit active/hidden pill with a matching toggle action. Added three real Jinja render tests covering finance, categories, and devotionals.
+- **Why**: Owner priority 1: make the admin panel understandable to a non-technical operator, remove duplicated/confusing category fields, and verify templates without live PostgreSQL or a preview deployment.
+- **How verified**: `PYTHONPATH=src python -m pytest tests/test_admin_template_render.py -q` → 3 passed; `PYTHONPATH=src python -m pytest -m "not integration" -q` → 93 passed, 85 deselected. No migration, production DB, deploy, restart, or live bot action.
+- **What's still outstanding**: Priority 2 creator web-panel settings/actions, priority 3 mini-app chat entry, priority 4 payment audit, and owner live visual review. PostgreSQL integration routes were not run because no isolated test database was provided.

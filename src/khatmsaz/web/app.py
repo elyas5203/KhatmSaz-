@@ -1376,6 +1376,7 @@ async def categories_page(request: Request):
         return _login_redirect()
     async with session_scope() as session:
         items = await category_service.list_all(session)
+        devotional_assets = await content_service.list_all_devotional_assets(session)
         requests = await category_service.list_pending_requests(session)
         request_rows = []
         for item in requests:
@@ -1386,6 +1387,7 @@ async def categories_page(request: Request):
         name="categories.html",
         context=_ctx(
             request, admin, raw, items=items, requests=request_rows,
+            devotional_assets=devotional_assets,
             group_labels=CATEGORY_GROUP_LABELS,
             saved=request.query_params.get("saved", ""),
         ),

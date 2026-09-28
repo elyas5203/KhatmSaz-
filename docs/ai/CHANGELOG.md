@@ -1306,3 +1306,8 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Reused canonical province storage and localized province/gender controls.
 - Full real-PostgreSQL suite: 131 passed.
 
+## 2026-09-28 (admin finance/content UX redesign)
+- **UX**: `/finance` now explains in plain Persian who an ordinary user and a creator are, what plan numbers control, and gives a concrete per-creation pricing example; technical labels were replaced with task-oriented wording.
+- **UX**: `/categories` now uses a devotional-library dropdown instead of requiring admins to copy a slug, distinguishes short inline content from full devotional text, links directly to `/devotionals`, and always shows explicit active/hidden status pills.
+- **UX**: `/devotionals` describes the library→category workflow and treats the slug as an internal identifier rather than an admin workflow step.
+- **Tests**: added real Jinja rendering coverage for all three redesigned pages (`tests/test_admin_template_render.py`); non-integration suite is 93 passed.

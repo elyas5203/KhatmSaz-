@@ -5,7 +5,8 @@
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ختم‌ها</p>
   <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">صلوات، لعن و ادعیه</h1>
-  <p class="text-slate-400 text-sm">هر آیتمی که اینجا اضافه یا غیرفعال کنید، بلافاصله در ویزارد ساخت ختم بات دیده می‌شود؛ نیازی به دیپلوی نیست.</p>
+  <p class="text-slate-400 text-sm leading-7">اینجا فقط گزینه‌هایی را مدیریت می‌کنید که سازنده هنگام ساخت ختم می‌بیند. متن کامل دعا و زیارت در صفحهٔ «دعاها و زیارات» نگهداری می‌شود.</p>
+  <a href="/devotionals" class="inline-flex mt-3 text-sm font-bold text-emerald-300 hover:text-emerald-200">رفتن به متن دعاها و زیارات ←</a>
 </section>
 
 {% if saved %}
@@ -55,7 +56,7 @@
         </div>
         
         <div class="space-y-1 md:col-span-2">
-          <label class="text-xs font-bold text-slate-400">متن (اختیاری، از سایت خدمتگزاران کپی کنید) {{ tooltip("برای دعاهای کوتاه، متن عربی و ترجمه را اینجا وارد کنید. سیستم این متن را در قالب یک پیام طولانی برای کاربر می‌فرستد.") }}</label>
+          <label class="text-xs font-bold text-slate-400">متن کوتاه مستقیم (اختیاری) {{ tooltip("فقط برای محتوای کوتاهی که در کتابخانهٔ دعاها نیست. اگر از فهرست متن آماده انتخاب می‌کنید، این بخش را خالی بگذارید.") }}</label>
           <textarea name="body_text" rows="3" class="input-field"></textarea>
         </div>
         
@@ -65,8 +66,11 @@
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری) {{ tooltip("اگر این دعا را با دستور /manage_content ثبت کرده‌اید، کد (slug) آن را اینجا وارد کنید تا فایل‌های صوتی به این دسته متصل شوند.") }}</label>
-          <input name="devotional_slug" placeholder="مثلاً ziyarat-ashura" class="input-field" dir="ltr">
+          <label class="text-xs font-bold text-slate-400">متن آماده از کتابخانه (اختیاری)</label>
+          <select name="devotional_slug" class="input-field">
+            <option value="">بدون متن آماده</option>
+            {% for asset in devotional_assets %}<option value="{{ asset.slug }}">{{ asset.title }}</option>{% endfor %}
+          </select>
         </div>
         
         <div class="space-y-1 md:col-span-2">
@@ -108,7 +112,7 @@
     </div>
     
     <div class="space-y-1 md:col-span-2 lg:col-span-3">
-      <label class="text-xs font-bold text-slate-400">متن (اختیاری) {{ tooltip("برای دعاهای کوتاه، متن عربی و ترجمه را اینجا وارد کنید. سیستم این متن را در قالب یک پیام طولانی برای کاربر می‌فرستد.") }}</label>
+      <label class="text-xs font-bold text-slate-400">متن کوتاه مستقیم (اختیاری) {{ tooltip("فقط برای محتوای کوتاهی که در کتابخانهٔ دعاها نیست. برای دعا یا زیارت کامل، آن را در صفحهٔ دعاها بسازید و از فهرست متن آماده انتخاب کنید.") }}</label>
       <textarea name="body_text" rows="3" placeholder="متن دعا یا لعن، در صورت وجود" class="input-field"></textarea>
     </div>
     
@@ -118,8 +122,11 @@
     </div>
     
     <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن (اختیاری) {{ tooltip("اگر این دعا را با دستور /manage_content ثبت کرده‌اید، کد (slug) آن را اینجا وارد کنید تا فایل‌های صوتی به این دسته متصل شوند.") }}</label>
-      <input name="devotional_slug" placeholder="مثلاً ziyarat-ashura" class="input-field" dir="ltr">
+      <label class="text-xs font-bold text-slate-400">متن آماده از کتابخانه (اختیاری)</label>
+      <select name="devotional_slug" class="input-field">
+        <option value="">بدون متن آماده</option>
+        {% for asset in devotional_assets %}<option value="{{ asset.slug }}">{{ asset.title }}</option>{% endfor %}
+      </select>
     </div>
     
     <div class="space-y-1">
@@ -151,8 +158,10 @@
             {% else %}
             <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-500">بدون متن</span>
             {% endif %}
-            {% if not category.is_active %}
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>
+            {% if category.is_active %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">✅ فعال (در ویزارد دیده می‌شود)</span>
+            {% else %}
+            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300">⛔ غیرفعال (پنهان)</span>
             {% endif %}
           </div>
         </div>
@@ -176,7 +185,7 @@
         </div>
         
         <div class="space-y-1 lg:col-span-3">
-          <label class="text-xs font-bold text-slate-400">متن</label>
+          <label class="text-xs font-bold text-slate-400">متن کوتاه مستقیم</label>
           <textarea name="body_text" rows="3" class="input-field bg-slate-900/50">{{ category.body_text or '' }}</textarea>
         </div>
         
@@ -186,8 +195,11 @@
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">کد اتصال صوت/متن آماده</label>
-          <input name="devotional_slug" value="{{ category.devotional_slug or '' }}" placeholder="زیارت عاشورا..." class="input-field bg-slate-900/50" dir="ltr">
+          <label class="text-xs font-bold text-slate-400">متن آماده از کتابخانه</label>
+          <select name="devotional_slug" class="input-field bg-slate-900/50">
+            <option value="">بدون متن آماده</option>
+            {% for asset in devotional_assets %}<option value="{{ asset.slug }}" {% if category.devotional_slug == asset.slug %}selected{% endif %}>{{ asset.title }}</option>{% endfor %}
+          </select>
         </div>
         
         <div class="space-y-1">

@@ -5,7 +5,25 @@
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">کیف پول و تخفیف</p>
   <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مرکز مالی {{ tooltip("مدیریت تراکنش‌ها، کیف پول و پلن‌های پولی. فاکتورها حذف نمی‌شوند و فقط می‌توانید مبلغ را به کیف پول کاربر برگردانید.") }}</h1>
-  <p class="text-slate-400 text-sm">فاکتورها حذف نمی‌شوند؛ بازپرداخت فقط وضعیت آن‌ها را تغییر می‌دهد.</p>
+  <p class="text-slate-400 text-sm leading-7">قیمت ساخت ختم، پیامک و تخفیف‌ها را از یک‌جا تنظیم کنید. هر بخش پایین یک توضیح و مثال دارد.</p>
+</section>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" aria-label="راهنمای سادهٔ مالی">
+  <article class="glass-card p-5 rounded-2xl border border-emerald-500/15">
+    <span class="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300 font-black mb-3">۱</span>
+    <h2 class="font-bold text-white mb-2">کاربر عادی کیست؟</h2>
+    <p class="text-sm text-slate-400 leading-7">کسی که فقط در ختم عضو می‌شود. عضویت و انجام سهم او از این صفحه قیمت‌گذاری نمی‌شود.</p>
+  </article>
+  <article class="glass-card p-5 rounded-2xl border border-sky-500/15">
+    <span class="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-sky-500/10 text-sky-300 font-black mb-3">۲</span>
+    <h2 class="font-bold text-white mb-2">سازنده کیست؟</h2>
+    <p class="text-sm text-slate-400 leading-7">کسی که یک ختم تازه می‌سازد و آن را مدیریت می‌کند. پلن‌های پایین، هزینه و سقف امکانات او را تعیین می‌کنند.</p>
+  </article>
+  <article class="glass-card p-5 rounded-2xl border border-amber-500/15">
+    <span class="inline-flex w-9 h-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-300 font-black mb-3">۳</span>
+    <h2 class="font-bold text-white mb-2">یک مثال روشن</h2>
+    <p class="text-sm text-slate-400 leading-7">اگر قیمت پلن «به‌ازای هر ساخت» ۲۰٬۰۰۰ تومان باشد، سازنده برای هر ختم تازه همین مبلغ را می‌پردازد.</p>
+  </article>
 </section>
 
 {% if saved %}
@@ -35,7 +53,7 @@
     <div class="mb-6 border-b border-white/5 pb-4">
       <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">قابل تنظیم از مینی‌اپ</p>
       <h2 class="text-xl font-bold text-white">پلن‌های ساخت ختم</h2>
-      <p class="text-slate-400 text-xs mt-2">هر کارت را جداگانه ذخیره کنید. خالی‌گذاشتن سقف یعنی آن بخش نامحدود است. خاموش‌کردن «اجازهٔ ساخت ختم» ساخت ختم تازه را برای کاربران آن پلن می‌بندد.</p>
+      <p class="text-slate-400 text-sm leading-7 mt-2">هر کارت یک نوع دسترسی برای سازنده است و جدا ذخیره می‌شود. عدد سقف یعنی بیشترین تعداد عضو در یک ختم؛ فیلد خالی یعنی بدون سقف.</p>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -56,25 +74,25 @@
           </div>
           
           <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">روش قیمت‌گذاری</label>
+            <label class="text-xs font-bold text-slate-400">هزینه چگونه حساب شود؟</label>
             <select name="pricing_mode" class="input-field bg-slate-900/50">
-              <option value="FIXED" {% if plan.pricing_mode == 'FIXED' %}selected{% endif %}>مبلغ ثابت</option>
-              <option value="USAGE_BASED" {% if plan.pricing_mode == 'USAGE_BASED' %}selected{% endif %}>به‌ازای هر ساخت</option>
+              <option value="FIXED" {% if plan.pricing_mode == 'FIXED' %}selected{% endif %}>یک مبلغ ثابت برای پلن</option>
+              <option value="USAGE_BASED" {% if plan.pricing_mode == 'USAGE_BASED' %}selected{% endif %}>برای هر ختم تازه</option>
             </select>
           </div>
           
           <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">قیمت (تومان)</label>
+            <label class="text-xs font-bold text-slate-400">مبلغی که سازنده می‌پردازد (تومان)</label>
             <input name="price_toman" type="number" min="0" value="{% if plan.pricing_mode == 'USAGE_BASED' %}{{ plan.unit_price_toman }}{% else %}{{ plan.price_toman }}{% endif %}" required class="input-field bg-slate-900/50 font-mono">
           </div>
           
           <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">سقف صلوات/دعا...</label>
+            <label class="text-xs font-bold text-slate-400">بیشترین عضو ختم صلوات/دعا</label>
             <input name="max_devotional_members" type="number" min="1" value="{{ plan.entitlements.get('max_devotional_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
           </div>
           
           <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">سقف اعضای قرآن</label>
+            <label class="text-xs font-bold text-slate-400">بیشترین عضو ختم قرآن</label>
             <input name="max_quran_members" type="number" min="1" value="{{ plan.entitlements.get('max_quran_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
           </div>
         </div>
@@ -82,11 +100,11 @@
         <div class="flex flex-col gap-2 mt-2 py-3 border-y border-slate-700/50">
           <label class="flex items-center gap-2 cursor-pointer group">
             <input name="khatm_create" type="checkbox" class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500" {% if plan.entitlements.get('khatm.create') %}checked{% endif %}>
-            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">اجازهٔ ساخت ختم</span>
+            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">سازنده با این پلن بتواند ختم بسازد</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer group">
             <input name="enabled" type="checkbox" class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500" {% if plan.enabled %}checked{% endif %}>
-            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">خود پلن فعال باشد</span>
+            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">این پلن به سازندگان نمایش داده شود</span>
           </label>
         </div>
         

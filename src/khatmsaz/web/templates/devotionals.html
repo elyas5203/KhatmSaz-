@@ -6,7 +6,7 @@
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">کتابخانهٔ محتوا</p>
   <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">دعاها و زیارات</h1>
   <p class="text-slate-400 text-sm leading-relaxed">
-    متن هر دعا یا زیارت را اینجا وارد یا ویرایش کنید؛ همان لحظه در بات ذخیره می‌شود، بدون نیاز به کد یا ری‌استارت.
+    اینجا کتابخانهٔ متن‌های کامل است. متن را یک‌بار بسازید؛ سپس در صفحهٔ «دسته‌ها» نام آن را از فهرست انتخاب کنید.
     متن‌های طولانی خودکار به چند پیام تقسیم می‌شوند.
   </p>
 </section>
@@ -42,7 +42,7 @@
     </div>
 
     <div class="space-y-1 md:col-span-3">
-      <label class="text-xs font-bold text-slate-400">کد یکتا (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی برای این دعا، مثل dua-ahd یا ziyarat-ashura. فقط حروف کوچک انگلیسی و خط تیره. این کد را در «دسته‌ها» به ختم وصل می‌کنید.") }}</label>
+      <label class="text-xs font-bold text-slate-400">شناسهٔ داخلی (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی مثل dua-ahd. این شناسه فقط برای سیستم است؛ در صفحهٔ دسته‌ها نام فارسی را از فهرست انتخاب می‌کنید.") }}</label>
       <input name="slug" required maxlength="100" placeholder="dua-ahd" class="input-field" dir="ltr" pattern="[a-z0-9\-]+">
     </div>
 
@@ -132,7 +132,6 @@
 
 <div class="mt-6 p-4 bg-sky-500/5 border border-sky-500/15 rounded-2xl text-sm text-slate-400 leading-relaxed">
   <span class="font-bold text-sky-300">راهنما:</span>
-  برای اینکه یک ختم این متن را بفرستد، به بخش «دسته‌ها» بروید و در فیلد «کد اتصال» همان کد یکتای این دعا را وارد کنید
-  (مثلاً <span dir="ltr" class="font-mono text-sky-300">dua-ahd</span>).
+  برای اینکه یک ختم این متن را بفرستد، به بخش «دسته‌ها» بروید و نام دعا را از فهرست «متن آماده از کتابخانه» انتخاب کنید؛ نیازی به کپی‌کردن شناسه نیست.
 </div>
 {% endblock %}
