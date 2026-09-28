@@ -1,3 +1,7 @@
+## 2026-09-27 (member-facing hardcoded Persian → i18n + i18n coverage guard)
+- **Fix**: `member_start.py` sent two hardcoded Persian errors («این ختم مربوط به بات دیگری است»، «این ختم فقط برای کاربران …») even on the Arabic/English member bots. Moved to i18n keys `join.error.wrong_bot` and `join.error.platform_restricted` (fa/ar/en).
+- **Guard**: New `tests/test_i18n_coverage.py` — asserts (1) every i18n key defines fa+ar+en, and (2) every literal `t()`/`web_t()` key referenced in code exists. This locks out the raw-slug / wrong-language bug class the owner hit in live QA (e.g. «button.confirm»). Full audit result: 812 keys, 0 missing a language, 0 dangling references.
+
 ## 2026-09-27 (CRITICAL live-QA fixes: join crash, missing i18n keys, member menu, per-khatm reminder)
 - **Fix (CRITICAL)**: `join_via_token()` crashed with `TypeError: got an unexpected keyword argument 'joined_via_bot_instance_id'` — every member-bot commitment join died at `accept_commitment` → the bot froze after «تعهد را می‌پذیرم». Threaded `joined_via_bot_instance_id` through `join_via_token` → `_complete_join` → `participation_service.join` → `repository.create` (the column already existed; the plumbing was missing). Regression test `tests/test_join_records_bot_instance.py`.
 - **Fix**: Missing i18n keys rendered raw slugs to users: `button.confirm` (invite-language step showed literal «button.confirm»), `my_khatms.button.leave` (member my-khatms leave button showed the raw key). Added both (fa/ar/en) + a friendlier confirm label «✅ تأیید و ساخت لینک».

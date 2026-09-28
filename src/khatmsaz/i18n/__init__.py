@@ -1195,6 +1195,16 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "في أي وقت تريد تذكير هذه الختمة؟",
         "en": "What time should the reminder for this khatm be sent?",
     },
+    "join.error.wrong_bot": {
+        "fa": "این ختم مربوط به بات دیگری است.",
+        "ar": "هذه الختمة تخص بوتاً آخر.",
+        "en": "This khatm belongs to a different bot.",
+    },
+    "join.error.platform_restricted": {
+        "fa": "این ختم فقط برای کاربران پیام‌رسان {platform} ایجاد شده است.",
+        "ar": "هذه الختمة مخصصة فقط لمستخدمي {platform}.",
+        "en": "This khatm is only for {platform} users.",
+    },
     "join.menu_hint": {
         "fa": "از منوی پایین می‌تونید سهم امروز و ختم‌هاتون رو ببینید 🌿",
         "ar": "من القائمة في الأسفل يمكنك رؤية حصة اليوم وختماتك 🌿",

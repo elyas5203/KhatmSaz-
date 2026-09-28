@@ -76,7 +76,7 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                         khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
 
             if bot_category and khatm_bot_cat != bot_category:
-                await message.answer("این ختم مربوط به بات دیگری است.", reply_markup=member_menu_keyboard(lang))
+                await message.answer(t("join.error.wrong_bot", lang), reply_markup=member_menu_keyboard(lang))
                 return
 
             cat = None
@@ -86,7 +86,7 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
             allowed_p = getattr(khatm, "allowed_platforms", "BOTH")
             if allowed_p != "BOTH" and allowed_p != platform.value:
                 await message.answer(
-                    f"این ختم فقط برای کاربران پیام‌رسان {allowed_p} ایجاد شده است.",
+                    t("join.error.platform_restricted", lang, platform=allowed_p),
                     reply_markup=member_menu_keyboard(lang),
                 )
                 return
