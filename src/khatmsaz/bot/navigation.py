@@ -10,16 +10,12 @@ from khatmsaz.modules.settings import service as settings_service
 
 
 def home_markup_for_role(lang: str, role: UserRole):
-    """Creator-bot home; admins use the same creator menu as creators.
+    """Creator-bot home is fixed; the formal account role does not alter it.
 
     The admin panel is deliberately absent from the persistent chat menu and
     remains available only through the permission-gated ``/admin_app``.
     """
-    return main_menu_keyboard(
-        lang,
-        is_creator=role in {UserRole.CREATOR, UserRole.SUPER_ADMIN},
-        is_admin=False,
-    )
+    return main_menu_keyboard(lang)
 
 
 async def resolve_home_navigation(message: Message, lang: str | None = None):

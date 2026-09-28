@@ -29,17 +29,18 @@ def test_creator_home_menu_leads_with_create_not_today():
     assert t("menu.today", "fa") not in labels
 
 
-def test_super_admin_sees_creator_menu_not_admin_reply_menu():
-    admin_labels = [
-        button.text
-        for row in home_markup_for_role("fa", UserRole.SUPER_ADMIN).keyboard
-        for button in row
-    ]
+def test_creator_bot_menu_is_fixed_for_every_role():
     creator_labels = [
         button.text for row in creator_menu_keyboard("fa").keyboard for button in row
     ]
-    assert admin_labels == creator_labels
-    assert t("help.button.admin_panel", "fa") not in admin_labels
+    for role in UserRole:
+        role_labels = [
+            button.text
+            for row in home_markup_for_role("fa", role).keyboard
+            for button in row
+        ]
+        assert role_labels == creator_labels
+        assert t("help.button.admin_panel", "fa") not in role_labels
 
 
 def test_participant_menu_exactly_matches_dec_py_0076():

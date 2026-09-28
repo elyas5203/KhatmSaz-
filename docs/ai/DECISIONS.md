@@ -5,6 +5,24 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0093 — Creator bot has one fixed creator menu and starts creation directly
+**Date:** 2026-09-28
+**Decision:** The dedicated KhatmSaz creator bot always shows the creator menu
+to every account, including a new user and the SUPER_ADMIN; language and formal
+role must never switch it to a participant menu. After the first language choice
+and on a normal `/start`, the bot immediately enters the create-khatm flow.
+Choosing to create promotes an ordinary account to `CREATOR`; phone verification,
+wallet/plan checks and the normal wizard remain the actual gates. Admin UI is
+still available only through the permission-gated `/admin_app`. This supersedes
+the creator-bot menu/approval parts of DEC-PY-0076; participant menus live only
+in category-specific member bots.
+
+The Iran province keyboard remains two columns: Telegram reply markup has no
+responsive breakpoint, and three columns can truncate long labels on narrow
+clients. The owner's condition was to use three only if full labels remain safe.
+
+---
+
 ### DEC-PY-0092 — Rotating Quran allocation (personal-sequential + collective)
 **Date:** 2026-09-28
 **Decision:** Owner confirmed: committed Quran readers must advance their OWN

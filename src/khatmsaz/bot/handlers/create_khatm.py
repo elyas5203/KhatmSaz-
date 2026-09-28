@@ -179,9 +179,10 @@ async def start_wizard(message: Message, state: FSMContext) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-            await message.answer("❌ شما دسترسی ساخت ختم را ندارید. لطفاً ابتدا از منوی پشتیبانی درخواست سازنده شدن ارسال کنید.")
-            return
+        # DEC-PY-0093: entering the creator bot and choosing to create is the
+        # creator-registration intent. No separate approval request/menu gate.
+        if user.role == UserRole.USER:
+            await identity_service.promote_creator(session, user.id)
 
     await state.clear()
     if not await ensure_creator_phone_verified(message, state):

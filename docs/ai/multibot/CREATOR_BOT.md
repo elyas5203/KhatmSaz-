@@ -84,3 +84,11 @@ After a khatm is created and activated:
 5. Show all links grouped by language, with copy buttons
 
 See [INVITE_LINKS.md](INVITE_LINKS.md) for the full flow.
+# Owner clarification (DEC-PY-0093, 2026-09-28)
+
+The creator bot has one fixed creator reply menu for every account role and
+language. A new user is taken directly from language choice into creation;
+choosing creation promotes the account to `CREATOR` and the normal creator
+phone verification/payment/wizard checks continue. Participant menus belong
+only to member bots. SUPER_ADMIN uses this same creator menu and enters the
+admin panel only with the permission-gated `/admin_app` command.

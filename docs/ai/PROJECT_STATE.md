@@ -1,4 +1,10 @@
-# Current state — 2026-09-28 — Member-bot family isolation + creator menu for admin [Codex]
+## Current state — 2026-09-28 — Fixed creator-bot onboarding/menu [Codex]
+- **Graph-backed cause**: `graphify-out` showed `main_menu_keyboard`/`home_keyboard_for_bot` as shared hubs. Their legacy role fallback emitted the participant keyboard, while `choose_first_language` stopped after saving language and never called `start_wizard`.
+- **Fixed behavior**: the creator bot now has one creator reply menu for USER/CREATOR/SUPER_ADMIN in every language. First language selection and plain `/start` continue directly into creation; choosing creation promotes USER → CREATOR and then retains the existing phone, wallet/plan, and wizard gates.
+- **Province layout**: retained two columns in registration/profile because Telegram inline keyboards are not responsive and three columns can truncate long labels on narrow clients; all 31 labels remain complete.
+- **Decision**: DEC-PY-0093 supersedes the creator-menu/approval portion of DEC-PY-0076.
+
+## Current state — 2026-09-28 — Member-bot family isolation + creator menu for admin [Codex]
 - **Fixed cross-bot leakage**: member-bot «امروز», «ختم‌های من» detail callbacks, public discovery/join, reminder settings, and portion actions are now scoped to the current member-bot instance/family. A Quran participation cannot appear or be operated from the Dua/Ziyarat, Salawat, or La'an bots (and vice versa).
 - **Creator-bot admin UX**: a SUPER_ADMIN now sees the same persistent creator menu as every creator. Admin access remains exclusively through the already permission-gated `/admin_app` command.
 - **Development reset**: added `scripts/reset_dev_data_keep_admin.sql`; it aborts if no SUPER_ADMIN exists, keeps super-admin identity rows and static bot/content configuration, and removes all khatms plus non-admin user-owned data.

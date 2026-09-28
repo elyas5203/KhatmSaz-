@@ -50,7 +50,9 @@ class Registration(StatesGroup):
 def _province_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     # Owner request (2026-09-20): 31 one-per-row buttons made this list feel
     # endless to scroll; pairing two provinces per row roughly halves its
-    # height without shrinking any single button's tap target.
+    # height without shrinking any single button's tap target. Three columns
+    # truncate long province names on narrow Telegram clients, so two is the
+    # safe maximum that preserves every full label (owner, 2026-09-28).
     buttons = [InlineKeyboardButton(text=p, callback_data=f"reg:province:{i}") for i, p in enumerate(province_labels(lang))]
     rows = [buttons[i : i + 2] for i in range(0, len(buttons), 2)]
     rows.append([InlineKeyboardButton(text=t("registration.outside_iran", lang), callback_data="reg:province:outside")])

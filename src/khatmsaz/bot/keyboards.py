@@ -92,7 +92,7 @@ def home_keyboard_for_bot(bot, lang: str) -> ReplyKeyboardMarkup:
     Always use this instead of bare main_menu_keyboard() in shared handlers."""
     if is_member_bot(bot):
         return member_menu_keyboard(lang)
-    return main_menu_keyboard(lang)
+    return creator_menu_keyboard(lang)
 
 
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -179,14 +179,13 @@ def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     )
 
 def main_menu_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
-    if is_admin:
-        # The creator bot always keeps the creator experience, even for the
-        # super admin. Administration is intentionally entered only through
-        # the permission-gated /admin_app command.
-        return creator_menu_keyboard(lang)
-    if is_creator:
-        return creator_menu_keyboard(lang)
-    return participant_menu_keyboard(lang)
+    """The creator bot has one stable menu for every account and language.
+
+    Role-specific participant navigation belongs exclusively to member bots;
+    keeping the legacy parameters avoids breaking older callers while making
+    it impossible for a creator-bot flow to accidentally emit that menu.
+    """
+    return creator_menu_keyboard(lang)
 
 
 def language_choice_keyboard() -> InlineKeyboardMarkup:

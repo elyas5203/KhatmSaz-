@@ -1374,7 +1374,13 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 ## 2026-09-28 (Graphify code graph refresh)
 - Refreshed the portable code graph after the panel and payment work: 413 files, 3,298 nodes, 12,176 edges, and 233 communities.
 - Added the graph report, interactive HTML, JSON graph, labels, cost metadata, and incremental manifest; excluded local cache/backups and machine-specific paths.
-# 2026-09-28 — Isolate member bots and normalize admin creator-menu UX
+## 2026-09-28 — Creator bot menu and direct onboarding flow
+
+- Made the creator menu invariant across account roles and languages; participant navigation is now exclusive to member bots.
+- Continued first-language selection and plain `/start` directly into create-khatm; ordinary users are promoted when they choose creation instead of being sent to an approval-request dead end.
+- Updated onboarding copy and documented why the complete province list remains two columns.
+
+## 2026-09-28 — Isolate member bots and normalize admin creator-menu UX
 
 - Fixed member-facing queries and actions so data is limited to the current category-specific bot instance; public discovery also enforces Quran/Salawat/Dua-Ziyarat/La'an family boundaries.
 - SUPER_ADMIN now receives the normal creator reply menu in the creator bot; `/admin_app` remains permission-gated and is the sole admin-panel entry.

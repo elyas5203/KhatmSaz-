@@ -8,7 +8,7 @@ from aiogram.enums import MessageEntityType
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Chat, Message, MessageEntity, Update, User
 
-from khatmsaz.bot.handlers import profile, public_khatms, start
+from khatmsaz.bot.handlers import create_khatm, profile, public_khatms, start
 from khatmsaz.modules.identity.models import UserRole
 
 
@@ -46,6 +46,9 @@ async def test_dispatcher_routes_commands_while_profile_phone_state_is_active(mo
     async def no_public_khatms(*args, **kwargs):
         return []
 
+    async def fake_start_wizard(*args, **kwargs):
+        return None
+
     async def capture_answer(self, text, **kwargs):
         answers.append((text, kwargs))
         return self
@@ -59,6 +62,7 @@ async def test_dispatcher_routes_commands_while_profile_phone_state_is_active(mo
     monkeypatch.setattr(public_khatms.identity_service, "resolve_or_provision_user", fake_user)
     monkeypatch.setattr(public_khatms.settings_service, "get_or_create", fake_settings)
     monkeypatch.setattr(public_khatms.khatm_service, "list_public_active", no_public_khatms)
+    monkeypatch.setattr(create_khatm, "start_wizard", fake_start_wizard)
     monkeypatch.setattr(Message, "answer", capture_answer)
 
     bot = Bot("123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi")

@@ -238,9 +238,8 @@ async def handle_start(message: Message, state: FSMContext) -> None:
         # the creator straight into the create-khatm wizard right after the
         # welcome instead of leaving them on a menu. Members never reach this
         # handler (they're on member bots); only creators/super-admins do here.
-        if user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-            from khatmsaz.bot.handlers.create_khatm import start_wizard
-            await start_wizard(message, state)
+        from khatmsaz.bot.handlers.create_khatm import start_wizard
+        await start_wizard(message, state)
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -268,7 +267,6 @@ async def choose_first_language(callback, state: FSMContext) -> None:
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
         try:
             await settings_service.set_language(session, user.id, lang)
         except ValueError:
@@ -281,8 +279,12 @@ async def choose_first_language(callback, state: FSMContext) -> None:
     
     # Send the onboarding info text
     await callback.message.answer(t("creator_request.info_text", lang))
-    await callback.message.answer(t("language.saved", lang), reply_markup=main_menu_keyboard(lang, is_creator))
+    await callback.message.answer(t("language.saved", lang), reply_markup=main_menu_keyboard(lang))
     await callback.answer()
+    # First-run onboarding ends at the first useful action, not at a passive
+    # menu. start_wizard handles creator registration/phone verification.
+    from khatmsaz.bot.handlers.create_khatm import start_wizard
+    await start_wizard(callback.message, state)
 
 
 def build_join_success_message(

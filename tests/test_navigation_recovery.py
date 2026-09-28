@@ -54,7 +54,9 @@ async def test_global_cancel_clears_state_and_returns_role_aware_menu(monkeypatc
 
 @pytest.mark.asyncio
 async def test_plain_start_clears_an_abandoned_state(monkeypatch):
+    from khatmsaz.bot.handlers import create_khatm
     user = SimpleNamespace(id="user-id", role=UserRole.USER)
+    wizard_started = []
 
     @asynccontextmanager
     async def fake_scope():
@@ -66,9 +68,13 @@ async def test_plain_start_clears_an_abandoned_state(monkeypatch):
     async def fake_settings(*args, **kwargs):
         return SimpleNamespace(language_prompted=True, language="fa")
 
+    async def fake_start_wizard(message, state):
+        wizard_started.append((message, state))
+
     monkeypatch.setattr(start, "session_scope", fake_scope)
     monkeypatch.setattr(start.identity_service, "resolve_or_provision_user", fake_user)
     monkeypatch.setattr(start.settings_service, "get_or_create", fake_settings)
+    monkeypatch.setattr(create_khatm, "start_wizard", fake_start_wizard)
 
     state = FakeState()
     message = FakeMessage("/start")
@@ -76,6 +82,52 @@ async def test_plain_start_clears_an_abandoned_state(monkeypatch):
 
     assert state.events == ["clear"]
     assert message.answers[-1][1]["reply_markup"] == navigation.home_markup_for_role("fa", UserRole.USER)
+    assert wizard_started == [(message, state)]
+
+
+@pytest.mark.asyncio
+async def test_first_language_choice_refreshes_creator_menu_and_starts_wizard(monkeypatch):
+    from khatmsaz.bot.handlers import create_khatm
+
+    user = SimpleNamespace(id="user-id", role=UserRole.USER)
+    wizard_started = []
+
+    @asynccontextmanager
+    async def fake_scope():
+        yield object()
+
+    async def fake_user(*args, **kwargs):
+        return user
+
+    async def fake_set_language(*args, **kwargs):
+        return None
+
+    async def fake_start_wizard(message, state):
+        wizard_started.append((message, state))
+
+    monkeypatch.setattr(start, "session_scope", fake_scope)
+    monkeypatch.setattr(start.identity_service, "resolve_or_provision_user", fake_user)
+    monkeypatch.setattr(start.settings_service, "set_language", fake_set_language)
+    monkeypatch.setattr(create_khatm, "start_wizard", fake_start_wizard)
+
+    message = FakeMessage()
+    callback = SimpleNamespace(
+        data="first_lang:fa",
+        message=message,
+        from_user=SimpleNamespace(id=123),
+    )
+
+    async def answer(*args, **kwargs):
+        return None
+
+    callback.answer = answer
+    state = FakeState()
+    await start.choose_first_language(callback, state)
+
+    assert message.answers[-1][1]["reply_markup"] == navigation.home_markup_for_role(
+        "fa", UserRole.USER
+    )
+    assert wizard_started == [(message, state)]
 
 
 @pytest.mark.asyncio

@@ -32,6 +32,8 @@ class ProfileEdit(StatesGroup):
 def _province_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     # Same 2-per-row pairing as registration.py's province keyboard (owner
     # request, 2026-09-20) — one-per-row made 31 provinces feel endless.
+    # Three columns are intentionally avoided because long labels can be
+    # truncated on narrow Telegram clients (owner condition, 2026-09-28).
     buttons = [InlineKeyboardButton(text=p, callback_data=f"profile:province:{i}") for i, p in enumerate(province_labels(lang))]
     rows = [buttons[i : i + 2] for i in range(0, len(buttons), 2)]
     rows.append([InlineKeyboardButton(text=t("registration.outside_iran", lang), callback_data="profile:province:outside")])

@@ -3059,7 +3059,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "📖 ختم تعهدی: سهم مشخصی به شما داده می‌شه و متعهد می‌شید هر روز انجامش بدید.\n"
             "📿 ختم آزاد: به هر اندازه که دوست دارید مشارکت کنید.\n"
             "🌍 ختم عمومی: هر کسی می‌تونه شرکت کنه.\n\n"
-            "این بات توسط تیم خدمتگزاران تِک طراحی و ساخته شده. اگر می‌خواهید خودتان ختمی ایجاد کنید، می‌توانید درخواست سازنده‌شدن بدهید."
+            "این بات توسط تیم خدمتگزاران تِک طراحی و ساخته شده. همین حالا ساخت اولین ختم شما شروع می‌شود 👇"
         ),
         "ar": (
             "🕋 مرحباً بك في ختم‌ساز!\n\n"
@@ -3067,7 +3067,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "📖 الختمة الإلزامية: يتم تخصيص ورد محدد تلتزم بأدائه يومياً.\n"
             "📿 الختمة الحرة: يمكنك المشاركة بالقدر الذي ترغب به.\n"
             "🌍 الختمة العامة: يمكن لأي شخص المشاركة.\n\n"
-            "تم تصميم هذا البوت بواسطة فريق خدمتگزاران تك. إذا كنت ترغب في إنشاء ختمتك الخاصة، يمكنك تقديم طلب للحصول على صلاحية الإنشاء."
+            "تم تصميم هذا البوت بواسطة فريق خدمتگزاران تك. سنبدأ الآن بإنشاء ختمتك الأولى 👇"
         ),
         "en": (
             "🕋 Welcome to KhatmSaz!\n\n"
@@ -3075,7 +3075,7 @@ _STRINGS: dict[str, dict[str, str]] = {
             "📖 Commitment Khatm: You get a specific portion and commit to doing it daily.\n"
             "📿 Free Khatm: Contribute as much as you like.\n"
             "🌍 Public Khatm: Anyone can participate.\n\n"
-            "This bot is developed by the KhedmatGozaran Tech team. If you want to create your own khatms, you can request creator access."
+            "This bot is developed by the KhedmatGozaran Tech team. Let's create your first Khatm now 👇"
         ),
     },
     "creator_request.submitted": {

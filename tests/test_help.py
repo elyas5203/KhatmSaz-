@@ -50,7 +50,8 @@ def test_help_is_complete_and_button_driven() -> None:
         for row in main_menu_keyboard(is_creator=False).keyboard
         for button in row
     }
-    assert {SUPPORT_BUTTON_TEXT} <= main_menu_labels
+    from khatmsaz.i18n import t
+    assert {t("menu.creator.support", "fa")} <= main_menu_labels
 
 
 def test_common_wallet_and_settings_help_never_requires_typed_commands() -> None:

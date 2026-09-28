@@ -74,6 +74,7 @@ async def test_registration_starts_in_the_users_saved_language(lang):
     assert _province_keyboard(lang).inline_keyboard[0][0].text == (
         "أذربيجان الشرقية" if lang == "ar" else "East Azerbaijan"
     )
+    assert max(len(row) for row in _province_keyboard(lang).inline_keyboard) == 2
     genders = _gender_keyboard(lang).inline_keyboard[0]
     assert [item.text for item in genders] == [
         t("registration.gender_male", lang),
@@ -89,6 +90,7 @@ async def test_registration_starts_in_the_users_saved_language(lang):
     assert profile_province_keyboard(lang).inline_keyboard[0][0].text == (
         "أذربيجان الشرقية" if lang == "ar" else "East Azerbaijan"
     )
+    assert max(len(row) for row in profile_province_keyboard(lang).inline_keyboard) == 2
     assert [item.text for item in profile_gender_keyboard(lang).inline_keyboard[0]] == [
         t("registration.gender_male", lang),
         t("registration.gender_female", lang),
