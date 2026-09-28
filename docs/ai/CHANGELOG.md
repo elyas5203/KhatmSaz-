@@ -1321,3 +1321,6 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - **Payment safety**: confirmed callback expiry checks and atomic `used=false` claim precede wallet credit. Added scheduled deletion of expired unused payment intents; consumed rows remain for audit/replay evidence.
 - **Tests**: added coverage that expired callbacks never call the gateway or credit a wallet, a failed compare-and-swap never credits, and panel buttons route through chat entry. Full non-integration suite: 98 passed.
 - **Infrastructure**: `api.khedmatgozaran.com` certificate mismatch remains an external blocker; no real payment was attempted.
+## 2026-09-28 (Graphify code graph refresh)
+- Refreshed the portable code graph after the panel and payment work: 413 files, 3,298 nodes, 12,176 edges, and 233 communities.
+- Added the graph report, interactive HTML, JSON graph, labels, cost metadata, and incremental manifest; excluded local cache/backups and machine-specific paths.
