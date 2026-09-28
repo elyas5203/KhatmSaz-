@@ -10,7 +10,11 @@ from khatmsaz.modules.participation.models import Participation, ParticipationSt
 from khatmsaz.modules.khatm.models import Khatm
 from khatmsaz.modules.identity.models import PlatformIdentity
 
-async def get_creator_audience_count(session: AsyncSession, creator_id: uuid.UUID) -> int:
+async def get_creator_audience_count(
+    session: AsyncSession, creator_id: uuid.UUID, *, khatm_id: uuid.UUID | None = None
+) -> int:
+    """Distinct active members across all the creator's khatms, or scoped to
+    a single khatm when `khatm_id` is given (per-khatm broadcast targeting)."""
     stmt = (
         select(func.count(Participation.user_id.distinct()))
         .select_from(Participation)
@@ -18,6 +22,8 @@ async def get_creator_audience_count(session: AsyncSession, creator_id: uuid.UUI
         .where(Khatm.creator_user_id == creator_id)
         .where(Participation.status == ParticipationStatus.ACTIVE)
     )
+    if khatm_id is not None:
+        stmt = stmt.where(Participation.khatm_id == khatm_id)
     result = await session.execute(stmt)
     return result.scalar_one() or 0
 
@@ -63,8 +69,10 @@ async def create_broadcast(
     await session.flush()
     return broadcast
 
-async def get_broadcast_audience(session: AsyncSession, creator_id: uuid.UUID, platform: str) -> list[str]:
-    # Returns chat_ids for the given platform
+async def get_broadcast_audience(
+    session: AsyncSession, creator_id: uuid.UUID, platform: str, *, khatm_id: uuid.UUID | None = None
+) -> list[str]:
+    # Returns chat_ids for the given platform, optionally scoped to one khatm.
     stmt = (
         select(PlatformIdentity.subject)
         .select_from(Participation)
@@ -74,6 +82,8 @@ async def get_broadcast_audience(session: AsyncSession, creator_id: uuid.UUID, p
         .where(Participation.status == ParticipationStatus.ACTIVE)
         .where(PlatformIdentity.platform == platform)
     )
+    if khatm_id is not None:
+        stmt = stmt.where(Participation.khatm_id == khatm_id)
     result = await session.execute(stmt)
     # Use distinct to avoid sending twice to the same person if they are in multiple khatms
     return list(set(result.scalars().all()))

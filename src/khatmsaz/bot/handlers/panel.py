@@ -109,10 +109,10 @@ async def handle_creator_panel_my_khatms(callback: CallbackQuery) -> None:
     await callback.answer()
 
 @router.callback_query(F.data == "creator_panel:broadcast")
-async def handle_creator_panel_broadcast(callback: CallbackQuery) -> None:
-    user, lang = await _get_context(callback)
-    await callback.message.edit_text("📢 برای ارسال پیام گروهی اختصاصی:\n\nباید به لیست «ختم‌های من» بروید، روی یکی از ختم‌های خود کلیک کنید تا پنل مدیریت آن باز شود. سپس دکمه <b>ارسال پیام گروهی</b> را برای اعضای آن ختم انتخاب کنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:creator")]]))
-    await callback.answer()
+async def handle_creator_panel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
+    """Open the broadcast khatm-picker directly instead of a how-to text."""
+    from khatmsaz.bot.handlers.creator_broadcast import start_broadcast
+    await start_broadcast(callback, state)
 
 @router.callback_query(F.data == "creator_panel:finance")
 async def handle_creator_panel_finance(callback: CallbackQuery) -> None:

@@ -1,3 +1,6 @@
+## 2026-09-27 (per-khatm broadcast targeting)
+- **Feature**: Creator broadcast now starts with a khatm picker — «📢 به همهٔ ختم‌ها» plus one row per active khatm — instead of blasting the whole audience with no choice (owner: «ارسال پیام گروهی به هر ختم مشکل داره»). New FSM step `choosing_target` + handler `choose_broadcast_target`; `creator_broadcast.service.get_creator_audience_count` and `get_broadcast_audience` take an optional `khatm_id` scope; `confirm_broadcast` sends only to the chosen scope (de-duplicated). The creator inline-panel «ارسال پیام گروهی» button now opens this picker directly instead of a how-to text.
+
 ## 2026-09-27 (owner product rules: fixed niyyat + نیابت, drop content-format step, title example, live panel buttons)
 - **DEC-PY-0090**: Niyyat is now FIXED for every khatm («به نیت ظهور امام زمان علیه السلام»); the creation wizard no longer accepts a free niyyat. The former niyyat step is repurposed as an optional نیابت (dedication) prompt — typing a name appends «… — به نیابت از {name}». `create_khatm._compose_niyyat` + i18n `create_khatm.fixed_niyyat` / `niyyat_proxy_suffix`.
 - **DEC-PY-0091**: Removed the «فرمت ارسال محتوا» step (auto/photo/text) from the creation wizard — `choose_edition` now sets `ContentDeliveryMode.AUTO` and skips it; the bot sends whatever content it has. Per-khatm override still available in khatm management.
