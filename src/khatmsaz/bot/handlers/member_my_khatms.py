@@ -23,6 +23,7 @@ from khatmsaz.bot.keyboards import (
     safe_answer_callback,
 )
 from khatmsaz.modules.notification import service as notification_service
+from khatmsaz.bot.member_scope import participation_matches_bot, khatm_matches_bot
 
 router = Router(name="member_my_khatms")
 
@@ -116,7 +117,12 @@ async def show_member_portion(callback: CallbackQuery) -> None:
         )
         participation = (await session.execute(stmt)).scalars().first()
         khatm = await session.get(Khatm, khatm_id)
-        if participation is None or khatm is None:
+        if (
+            participation is None
+            or khatm is None
+            or not participation_matches_bot(participation, bot)
+            or not await khatm_matches_bot(session, khatm, bot)
+        ):
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
         portion = await allocation_service.get_current_portion(session, khatm.id, participation.id)

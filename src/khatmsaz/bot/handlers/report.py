@@ -18,6 +18,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.reporting import service as reporting_service
+from khatmsaz.bot.member_scope import member_instance_id
 
 router = Router(name="report")
 
@@ -34,7 +35,9 @@ async def today_overview(message: Message) -> None:
         else:
             settings = await settings_service.get_or_create(session, user.id)
             lang = settings.language
-        for participation in await participation_service.list_my_active(session, user.id):
+        for participation in await participation_service.list_my_active(
+            session, user.id, joined_via_bot_instance_id=member_instance_id(message.bot)
+        ):
             khatm = await khatm_service.get_khatm(session, participation.khatm_id)
             if khatm is None:
                 continue
@@ -70,7 +73,11 @@ async def personal_report(message: Message) -> None:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
-        report = await reporting_service.get_personal_report(session, user.id)
+        report = await reporting_service.get_personal_report(
+            session,
+            user.id,
+            joined_via_bot_instance_id=member_instance_id(message.bot),
+        )
 
     lines = [
         t("report.header", lang),

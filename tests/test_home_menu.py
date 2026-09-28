@@ -11,6 +11,8 @@ from khatmsaz.bot.keyboards import (
     creator_menu_keyboard,
     main_menu_keyboard,
 )
+from khatmsaz.bot.navigation import home_markup_for_role
+from khatmsaz.modules.identity.models import UserRole
 
 
 def test_creator_home_menu_leads_with_create_not_today():
@@ -25,6 +27,19 @@ def test_creator_home_menu_leads_with_create_not_today():
         t("menu.creator.support", "fa"),
     ]
     assert t("menu.today", "fa") not in labels
+
+
+def test_super_admin_sees_creator_menu_not_admin_reply_menu():
+    admin_labels = [
+        button.text
+        for row in home_markup_for_role("fa", UserRole.SUPER_ADMIN).keyboard
+        for button in row
+    ]
+    creator_labels = [
+        button.text for row in creator_menu_keyboard("fa").keyboard for button in row
+    ]
+    assert admin_labels == creator_labels
+    assert t("help.button.admin_panel", "fa") not in admin_labels
 
 
 def test_participant_menu_exactly_matches_dec_py_0076():

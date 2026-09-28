@@ -10,6 +10,7 @@ from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.settings import service as settings_service
+from khatmsaz.bot.member_scope import member_instance_id
 
 router = Router(name="reminder_settings")
 
@@ -24,7 +25,9 @@ async def set_reminder(message: Message) -> None:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
-        participations = await participation_service.list_my_active(session, user.id)
+        participations = await participation_service.list_my_active(
+            session, user.id, joined_via_bot_instance_id=member_instance_id(message.bot)
+        )
         committed = [p for p in participations if p.is_committed]
         if value == "off":
             for participation in committed:

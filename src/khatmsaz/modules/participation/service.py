@@ -125,8 +125,12 @@ async def is_paused(participation) -> bool:
     return participation.paused_until is not None and participation.paused_until > datetime.now(timezone.utc)
 
 
-async def list_my_active(session: AsyncSession, user_id) -> list[Participation]:
-    return await repository.list_active_for_user(session, user_id)
+async def list_my_active(
+    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None
+) -> list[Participation]:
+    return await repository.list_active_for_user(
+        session, user_id, joined_via_bot_instance_id=joined_via_bot_instance_id
+    )
 
 
 async def get_by_id(session: AsyncSession, participation_id) -> Participation | None:

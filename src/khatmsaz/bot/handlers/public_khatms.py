@@ -15,6 +15,7 @@ from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmTypeEnum
 from khatmsaz.modules.settings import service as settings_service
+from khatmsaz.bot.member_scope import khatm_matches_bot
 
 router = Router(name="public_khatms")
 
@@ -32,7 +33,8 @@ async def _lang_for(chat_id, bot) -> str:
 async def list_public_khatms(message: Message) -> None:
     lang = await _lang_for(message.chat.id, message.bot)
     async with session_scope() as session:
-        khatms = await khatm_service.list_public_active(session, limit=20)
+        candidates = await khatm_service.list_public_active(session, limit=50)
+        khatms = [k for k in candidates if await khatm_matches_bot(session, k, message.bot)][:20]
     if not khatms:
         await message.answer(t("public_khatms.none_active", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
         return
@@ -51,7 +53,13 @@ async def join_public_khatm(callback: CallbackQuery, state: FSMContext) -> None:
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         khatm = await khatm_service.get_khatm(session, khatm_id)
-        if khatm is None or khatm.khatm_type is None or khatm.status.value != "ACTIVE" or khatm.visibility.value != "PUBLIC":
+        if (
+            khatm is None
+            or not await khatm_matches_bot(session, khatm, callback.message.bot)
+            or khatm.khatm_type is None
+            or khatm.status.value != "ACTIVE"
+            or khatm.visibility.value != "PUBLIC"
+        ):
             await callback.answer(t("public_khatms.no_longer_available", lang), show_alert=True)
             return
         token = await invitation_service.create_invitation(session, khatm.id, khatm.creator_user_id)

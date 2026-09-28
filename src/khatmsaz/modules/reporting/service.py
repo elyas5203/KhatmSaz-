@@ -173,19 +173,28 @@ async def get_closed_month_report(
     )
 
 
-async def get_personal_report(session: AsyncSession, user_id, *, now: datetime | None = None) -> PersonalReport:
+async def get_personal_report(
+    session: AsyncSession,
+    user_id,
+    *,
+    now: datetime | None = None,
+    joined_via_bot_instance_id=None,
+) -> PersonalReport:
     current = now or datetime.now(timezone.utc)
     month_start = current.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    participation_counts = await session.execute(
-        select(
+    participation_stmt = select(
             func.count(case((Participation.status == ParticipationStatus.ACTIVE, 1))),
             func.count(case((Participation.status == ParticipationStatus.COMPLETED, 1))),
         ).where(Participation.user_id == user_id)
-    )
+    if joined_via_bot_instance_id is not None:
+        participation_stmt = participation_stmt.where(
+            Participation.joined_via_bot_instance_id == joined_via_bot_instance_id
+        )
+    participation_counts = await session.execute(participation_stmt)
     active, completed_khatms = participation_counts.one()
 
-    portion_counts = await session.execute(
+    portion_stmt = (
         select(
             func.count(),
             func.count(case((KhatmPortion.completed_at >= month_start, 1))),
@@ -197,9 +206,14 @@ async def get_personal_report(session: AsyncSession, user_id, *, now: datetime |
             KhatmPortion.status == PortionStatus.COMPLETED,
         )
     )
+    if joined_via_bot_instance_id is not None:
+        portion_stmt = portion_stmt.where(
+            Participation.joined_via_bot_instance_id == joined_via_bot_instance_id
+        )
+    portion_counts = await session.execute(portion_stmt)
     completed_total, completed_this_month = portion_counts.one()
 
-    contribution_result = await session.execute(
+    contribution_stmt = (
         select(func.coalesce(func.sum(OpenContribution.amount), 0.0))
         .select_from(OpenContribution)
         .join(Participation, Participation.id == OpenContribution.participation_id)
@@ -208,6 +222,11 @@ async def get_personal_report(session: AsyncSession, user_id, *, now: datetime |
             OpenContribution.recorded_at >= month_start,
         )
     )
+    if joined_via_bot_instance_id is not None:
+        contribution_stmt = contribution_stmt.where(
+            Participation.joined_via_bot_instance_id == joined_via_bot_instance_id
+        )
+    contribution_result = await session.execute(contribution_stmt)
     contributions = float(contribution_result.scalar_one())
     return PersonalReport(
         active_khatms=int(active or 0),

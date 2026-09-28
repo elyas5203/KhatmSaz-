@@ -10,13 +10,16 @@ from khatmsaz.modules.settings import service as settings_service
 
 
 def home_markup_for_role(lang: str, role: UserRole):
-    """Return the approved home markup for each formal role experience.
+    """Creator-bot home; admins use the same creator menu as creators.
 
-    The repository has no approved Super Admin reply-menu composition. Admins
-    enter through the existing `/admin_web_login` flow, so recovery removes a
-    stale wizard keyboard instead of incorrectly showing creator controls.
+    The admin panel is deliberately absent from the persistent chat menu and
+    remains available only through the permission-gated ``/admin_app``.
     """
-    return main_menu_keyboard(lang, is_creator=role == UserRole.CREATOR, is_admin=role == UserRole.SUPER_ADMIN)
+    return main_menu_keyboard(
+        lang,
+        is_creator=role in {UserRole.CREATOR, UserRole.SUPER_ADMIN},
+        is_admin=False,
+    )
 
 
 async def resolve_home_navigation(message: Message, lang: str | None = None):

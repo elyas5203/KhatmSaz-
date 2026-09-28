@@ -1,3 +1,9 @@
+# Current state — 2026-09-28 — Member-bot family isolation + creator menu for admin [Codex]
+- **Fixed cross-bot leakage**: member-bot «امروز», «ختم‌های من» detail callbacks, public discovery/join, reminder settings, and portion actions are now scoped to the current member-bot instance/family. A Quran participation cannot appear or be operated from the Dua/Ziyarat, Salawat, or La'an bots (and vice versa).
+- **Creator-bot admin UX**: a SUPER_ADMIN now sees the same persistent creator menu as every creator. Admin access remains exclusively through the already permission-gated `/admin_app` command.
+- **Development reset**: added `scripts/reset_dev_data_keep_admin.sql`; it aborts if no SUPER_ADMIN exists, keeps super-admin identity rows and static bot/content configuration, and removes all khatms plus non-admin user-owned data.
+- **Verified**: non-integration suite → **145 passed, 86 deselected**.
+
 ## Current state — 2026-09-28 — DEC-PY-0092 rotating Quran allocation wired [Codex]
 - **What changed**: new committed-Quran plans use `ROTATING` allocation with stored real page/audio boundaries. Each active participant receives a unique `quran_rotation_offset`; portions are created lazily per participant, so their own sequence advances continuously and wraps (for example 1–2 → 3–4 → 5–6 → 1–2) while another reader starts at a staggered range. Existing plans default to `SHARED_POOL` and keep their prior behavior.
 - **Schema**: migration `rot2026092805` adds plan strategy/boundaries and participant offset, replaces the global portion uniqueness rules with shared-pool and per-participant partial unique indexes, and prevents rotating personal rows from entering the legacy claim pool.

@@ -46,8 +46,16 @@ from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.participation import repository as participation_repository
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.settings import service as settings_service
+from khatmsaz.bot.member_scope import participation_matches_bot
 
 router = Router(name="portions")
+
+
+async def _active_participation_for_current_bot(session, khatm_id, user_id, bot):
+    participation = await participation_repository.get_active(session, khatm_id, user_id)
+    if participation is None or not participation_matches_bot(participation, bot):
+        return None
+    return participation
 
 
 class LogContribution(StatesGroup):
@@ -206,7 +214,7 @@ async def apply_snooze(callback: CallbackQuery) -> None:
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
         if participation is None:
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
@@ -262,7 +270,7 @@ async def receive_custom_snooze(message: Message, state: FSMContext) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, message.bot)
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None or not khatm.allow_snooze:
             await state.clear()
@@ -332,7 +340,7 @@ async def show_current_content(callback: CallbackQuery) -> None:
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None or khatm.template_type != KhatmTemplateType.QURAN_PAGE:
             await safe_answer_callback(callback, t("portions.no_active_quran_portion", lang), show_alert=True)
@@ -376,7 +384,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
         if participation is None:
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
@@ -488,7 +496,7 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
     async with session_scope() as session:
         khatm = await khatm_service.get_khatm(session, khatm_id)
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
 
     # Owner request (2026-09-21): the FIRST time a non-committed (open or
     # waitlisted) Quran reader wants to log/read, ask their daily page
@@ -539,7 +547,7 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, message.bot)
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None:
             await state.clear()
@@ -634,7 +642,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, message.bot)
         if participation is None:
             await state.clear()
             await message.answer(t("portions.not_a_member", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
@@ -807,7 +815,7 @@ async def receive_custom_pause_until(message: Message, state: FSMContext) -> Non
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, message.bot)
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if participation is None or khatm is None or not khatm.allow_pause:
             await state.clear()
@@ -827,7 +835,7 @@ async def pause_commitment(callback: CallbackQuery) -> None:
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
-        participation = await participation_repository.get_active(session, khatm_id, user.id)
+        participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
         if participation is None:
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return

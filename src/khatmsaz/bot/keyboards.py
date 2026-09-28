@@ -180,7 +180,10 @@ def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
 
 def main_menu_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
     if is_admin:
-        return admin_menu_keyboard(lang)
+        # The creator bot always keeps the creator experience, even for the
+        # super admin. Administration is intentionally entered only through
+        # the permission-gated /admin_app command.
+        return creator_menu_keyboard(lang)
     if is_creator:
         return creator_menu_keyboard(lang)
     return participant_menu_keyboard(lang)

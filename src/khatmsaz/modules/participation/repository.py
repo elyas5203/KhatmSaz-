@@ -243,10 +243,14 @@ async def list_active_with_regular_schedule(session: AsyncSession) -> list[Parti
     return list(result.scalars())
 
 
-async def list_active_for_user(session: AsyncSession, user_id) -> list[Participation]:
+async def list_active_for_user(
+    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None
+) -> list[Participation]:
     stmt = select(Participation).where(
         Participation.user_id == user_id, Participation.status == ParticipationStatus.ACTIVE
     )
+    if joined_via_bot_instance_id is not None:
+        stmt = stmt.where(Participation.joined_via_bot_instance_id == joined_via_bot_instance_id)
     result = await session.execute(stmt)
     return list(result.scalars())
 
