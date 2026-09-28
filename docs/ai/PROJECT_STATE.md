@@ -1,3 +1,9 @@
+## 2026-09-27 — Phase-2 automated code audits complete (PASS w/ evidence) [Claude Code]
+- **What changed**: Ran systematic code-level audits to clear the bug classes the owner hit in live QA, and recorded them as PASS-with-evidence in QA_MATRIX: dead reply buttons (0), dead inline callbacks (0/66 prefixes), missing i18n keys (0), incomplete-language keys (0/812), member-facing hardcoded Persian (fixed), orphan admin pages (0/12 reachable), handler imports (0 errors). Three fixes locked by regression tests (i18n coverage, creator menu buttons, public-khatms button, join bot-instance).
+- **Why**: Owner: "fix all code/systemic bugs first, then I live-test." These audits give evidence that the whole class is clean, not just spot fixes.
+- **How verified**: reproducible scan scripts + `pytest -m "not integration"` → 89 passed, 0 failed.
+- **What's still outstanding**: Phase 3 live test (owner). Opt-in: full admin/creator panel redesign (owner goal). Wizard back/step-help (another agent is actively adding cancel/i18n — commit 8189ae8).
+
 ## 2026-09-27 — Phase-3 live-QA critical fixes [Claude Code]
 - **What changed**: Owner live-tested and hit a hard crash. Fixed: (1) CRITICAL `join_via_token()` TypeError on `joined_via_bot_instance_id` — threaded it through workflow→participation→repository so member commitment joins complete; (2) missing i18n keys `button.confirm` and `my_khatms.button.leave` (were rendering raw slugs); (3) member bottom menu not appearing after a deep-link join (now sent when delivery hour isn't asked); (4) per-khatm reminder-time picker in member my-khatms (each of a member's khatms can have its own hour).
 - **Why**: Owner goal — stable, dead-simple UX; a frozen join and raw i18n slugs are blockers. Per-khatm reminder is an explicit owner requirement (one member in many khatms, different times).
