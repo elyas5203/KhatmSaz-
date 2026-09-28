@@ -6,8 +6,6 @@ from khatmsaz.i18n import t, variants
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.settings import service as settings_service
-from aiogram.types import WebAppInfo
-from khatmsaz.config import get_settings
 
 router = Router(name="panel")
 
@@ -22,6 +20,10 @@ async def _get_context(event):
 def creator_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(
+                text=t("panel.creator.open_mini_app", lang),
+                callback_data="creator:web_login",
+            )],
             [
                 InlineKeyboardButton(text=t("menu.create", lang), callback_data="creator_panel:create"),
                 InlineKeyboardButton(text=t("menu.my_khatms", lang), callback_data="creator_panel:my_khatms")
@@ -33,11 +35,12 @@ def creator_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
     )
 
 def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
-    base_url = get_settings().admin_web_base_url
-    login_url = f"{base_url}/mini/admin"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🌐 پنل وب ادمین (کامل)", web_app=WebAppInfo(url=login_url))],
+            [InlineKeyboardButton(
+                text=t("panel.admin.open_mini_app", lang),
+                callback_data="admin:web_login",
+            )],
             [InlineKeyboardButton(text="📝 تایید درخواست‌های سازندگان", callback_data="admin_panel:creator_requests")],
             [InlineKeyboardButton(text="👥 مدیریت لیست کاربران", callback_data="admin_panel:users")],
             [InlineKeyboardButton(text="📢 پیام گروهی سراسری (اعلان)", callback_data="admin_panel:broadcast")],

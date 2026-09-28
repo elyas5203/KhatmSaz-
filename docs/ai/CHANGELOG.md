@@ -1316,3 +1316,8 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - **Settings**: creators can edit title/welcome text and the applicable existing domain settings: pause, snooze, Quran skip-today, missed-commitment follow-up window, open-khatm schedule, and completion announcement.
 - **Security**: the settings POST requires a valid creator session, CSRF token, khatm ownership, and active status; mutations call the same domain services used by the bot and are audited.
 - **i18n/tests**: all new creator copy is present in fa/ar/en; real Jinja render and i18n coverage pass. Full non-integration suite: 94 passed.
+## 2026-09-28 (Mini App chat entry and pending-payment safety)
+- **Mini App UX**: admin/creator panel buttons now request the existing authorized chat entry callbacks; users receive the launch instruction and WebApp button in chat after role/platform/HTTPS checks.
+- **Payment safety**: confirmed callback expiry checks and atomic `used=false` claim precede wallet credit. Added scheduled deletion of expired unused payment intents; consumed rows remain for audit/replay evidence.
+- **Tests**: added coverage that expired callbacks never call the gateway or credit a wallet, a failed compare-and-swap never credits, and panel buttons route through chat entry. Full non-integration suite: 98 passed.
+- **Infrastructure**: `api.khedmatgozaran.com` certificate mismatch remains an external blocker; no real payment was attempted.

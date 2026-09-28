@@ -365,6 +365,20 @@ async def create_payment_intent(
     ), request
 
 
+async def cleanup_expired_pending_payments(
+    session: AsyncSession, *, now: datetime | None = None
+) -> int:
+    """Delete expired, never-consumed payment intents.
+
+    Used intents remain available for audit/replay evidence. Expiry is also
+    enforced by the atomic claim, so cleanup timing cannot make an expired
+    payment valid again.
+    """
+    return await repository.delete_expired_unused_payments(
+        session, now=now or datetime.now(timezone.utc)
+    )
+
+
 async def verify_and_credit(
     session: AsyncSession,
     gateway: PaymentGateway,

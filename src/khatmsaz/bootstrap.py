@@ -54,6 +54,7 @@ from khatmsaz.modules.bot_registry.models import BotRole
 from khatmsaz.modules.bot_registry import service as bot_registry_service
 from khatmsaz.modules.reminder_engine import service as reminder_engine
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
+from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.web.app import app as admin_web_app
 
 logger = logging.getLogger("khatmsaz")
@@ -310,6 +311,8 @@ async def main() -> None:
                 )
             async with session_scope() as session:
                 await sms_subscription_service.process_expired(session, notify)
+            async with session_scope() as session:
+                await wallet_service.cleanup_expired_pending_payments(session)
         except Exception as exc:
             runtime_status.mark_scan_failed(exc)
             raise

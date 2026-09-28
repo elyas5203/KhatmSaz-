@@ -2694,6 +2694,8 @@ _STRINGS: dict[str, dict[str, str]] = {
     "web.label.FEMALE": {"fa": "خانم", "ar": "امرأة", "en": "Female"},
 
     "web.creator.panel_title": {"fa": "پنل سازنده", "ar": "لوحة المنشئ", "en": "Creator panel"},
+    "panel.creator.open_mini_app": {"fa": "🌐 ورود به مینی‌اپ سازنده", "ar": "🌐 فتح تطبيق المنشئ المصغّر", "en": "🌐 Open Creator Mini App"},
+    "panel.admin.open_mini_app": {"fa": "🌐 ورود به مینی‌اپ مدیریت", "ar": "🌐 فتح تطبيق الإدارة المصغّر", "en": "🌐 Open Admin Mini App"},
     "web.creator.home_title": {"fa": "ختم‌های من | ختم‌ساز", "ar": "ختماتي | ختم‌ساز", "en": "My Khatms | KhatmSaz"},
     "web.creator.home_aria": {"fa": "خانه پنل سازنده", "ar": "الصفحة الرئيسية للوحة المنشئ", "en": "Creator panel home"},
     "web.creator.secure_logout": {"fa": "خروج امن", "ar": "خروج آمن", "en": "Secure logout"},

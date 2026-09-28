@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from khatmsaz.bot.handlers import admin, my_khatms
+from khatmsaz.bot.handlers import admin, my_khatms, panel
+from khatmsaz.bot.keyboards import admin_menu_keyboard
 from khatmsaz.modules.identity.models import Platform
 
 
@@ -43,3 +44,16 @@ async def test_creator_mini_app_rejects_local_http_origin_before_database_access
     # what matters here is the fail-closed behavior, not the exact wording.
     assert "آماده نشده" in text
     assert message.answer.await_args.kwargs.get("reply_markup") is None
+
+
+def test_panel_buttons_request_chat_entry_before_opening_mini_app():
+    admin_reply = admin_menu_keyboard("fa")
+    assert admin_reply.keyboard[0][0].web_app is None
+
+    admin_inline = panel.admin_panel_keyboard("fa")
+    assert admin_inline.inline_keyboard[0][0].callback_data == "admin:web_login"
+    assert admin_inline.inline_keyboard[0][0].web_app is None
+
+    creator_inline = panel.creator_panel_keyboard("fa")
+    assert creator_inline.inline_keyboard[0][0].callback_data == "creator:web_login"
+    assert creator_inline.inline_keyboard[0][0].web_app is None

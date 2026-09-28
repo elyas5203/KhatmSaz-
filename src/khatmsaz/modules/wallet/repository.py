@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import and_, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.core.ids import new_id
@@ -261,3 +261,14 @@ async def claim_pending_payment(
         .returning(PendingPayment)
     )
     return result.scalar_one_or_none()
+
+
+async def delete_expired_unused_payments(session: AsyncSession, *, now: datetime) -> int:
+    """Remove dead intents while retaining consumed rows as payment evidence."""
+    result = await session.execute(
+        delete(PendingPayment).where(
+            PendingPayment.used.is_(False),
+            PendingPayment.expires_at <= now,
+        )
+    )
+    return int(result.rowcount or 0)

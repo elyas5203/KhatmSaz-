@@ -163,13 +163,12 @@ def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     )
 
 def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
-    from aiogram.types import WebAppInfo
-    from khatmsaz.config import get_settings
-    base_url = get_settings().admin_web_base_url
-    login_url = f"{base_url}/mini/admin"
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text=t("help.button.admin_panel", lang), web_app=WebAppInfo(url=login_url))],
+            # A normal chat button first opens the admin panel message.  The
+            # Mini App is then launched from its signed inline button, so the
+            # user always gets a recoverable entry instruction in chat.
+            [KeyboardButton(text=t("help.button.admin_panel", lang))],
             [KeyboardButton(text=t("menu.settings", lang))],
         ],
         resize_keyboard=True,
