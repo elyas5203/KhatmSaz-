@@ -108,6 +108,25 @@ async def _lang(state: FSMContext) -> str:
     return data.get("lang", "fa")
 
 
+async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None):
+    """R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new
+    wizard prompt deletes the previous *bot* prompt before sending, so only the
+    current step is visible in history. Best-effort: a failed delete (message too
+    old / already gone) never blocks the new prompt. The user's own typed answers
+    can't be deleted by a bot in a private chat, so those remain — but the stack
+    of bot questions no longer piles up. Tracks the last prompt id in FSM data."""
+    data = await state.get_data()
+    prev = data.get("_wiz_mid")
+    if prev:
+        try:
+            await message.bot.delete_message(message.chat.id, prev)
+        except Exception:
+            pass
+    sent = await message.answer(text, reply_markup=reply_markup)
+    await state.update_data(_wiz_mid=getattr(sent, "message_id", None))
+    return sent
+
+
 @router.message(F.text.in_(CREATE_BUTTON_TEXTS))
 async def start_wizard(message: Message, state: FSMContext) -> None:
     from khatmsaz.modules.identity.models import UserRole
@@ -274,7 +293,8 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
     key = (data["template_type"], data.get("category_group"))
     explanation_key = _MODE_EXPLANATION_KEYS.get(key, _MODE_EXPLANATION_KEYS[(KhatmTemplateType.QURAN_PAGE.value, None)])
     await state.set_state(CreateKhatm.choosing_mode)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_mode", lang, explanation=t(explanation_key, lang)),
         reply_markup=commitment_mode_keyboard(lang),
     )
@@ -293,7 +313,7 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
         if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value
         else t("create_khatm.title_hint.salawat", lang)
     )
-    await callback.message.answer(t("create_khatm.ask_title", lang, hint=title_hint))
+    await _wiz(callback.message, state, t("create_khatm.ask_title", lang, hint=title_hint))
     await safe_answer_callback(callback)
 
 
@@ -308,7 +328,8 @@ async def enter_title(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(title=title)
     await state.set_state(CreateKhatm.entering_niyyat)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_niyyat", lang),
         reply_markup=skip_niyyat_keyboard(lang),
     )
@@ -369,7 +390,7 @@ async def _ask_welcome(message: Message, state: FSMContext) -> None:
     key = (data.get("template_type"), data.get("category_group"))
     example_key = _WELCOME_EXAMPLE_KEYS.get(key, _WELCOME_EXAMPLE_KEYS[(KhatmTemplateType.QURAN_PAGE.value, None)])
     text = t("create_khatm.welcome_intro", lang) + t(example_key, lang) + t("create_khatm.welcome_suffix", lang)
-    await message.answer(text, reply_markup=skip_niyyat_keyboard(lang))
+    await _wiz(message, state, text, reply_markup=skip_niyyat_keyboard(lang))
 
 
 @router.message(StateFilter(CreateKhatm.entering_welcome))
@@ -427,7 +448,8 @@ async def _ask_creator_contact(message: Message, state: FSMContext) -> None:
     username = (getattr(getattr(message, "from_user", None), "username", None) or None)
     await state.update_data(_creator_username=username)
     await state.set_state(CreateKhatm.entering_creator_contact)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_creator_contact", lang),
         reply_markup=_creator_contact_keyboard(lang, username),
     )
@@ -487,7 +509,8 @@ async def _after_welcome(message: Message, state: FSMContext) -> None:
     # reach this step at all (real page/audio content instead).
     if data.get("category_group") == KhatmCategoryGroup.LAAN.value:
         await state.set_state(CreateKhatm.entering_recitation_text)
-        await message.answer(
+        await _wiz(
+            message, state,
             t("create_khatm.ask_recitation_text", lang),
             reply_markup=skip_niyyat_keyboard(lang),
         )
@@ -519,7 +542,8 @@ async def skip_recitation_text(callback: CallbackQuery, state: FSMContext) -> No
 async def _after_recitation_text(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     await state.set_state(CreateKhatm.choosing_creator_display)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_creator_display", lang),
         reply_markup=creator_display_keyboard(lang),
     )
@@ -533,7 +557,7 @@ async def choose_creator_display(callback: CallbackQuery, state: FSMContext) -> 
     await safe_clear_inline_keyboard(callback.message)
     if mode == CreatorDisplayMode.PSEUDONYM.value:
         await state.set_state(CreateKhatm.entering_creator_pseudonym)
-        await callback.message.answer(t("create_khatm.ask_pseudonym", lang))
+        await _wiz(callback.message, state, t("create_khatm.ask_pseudonym", lang))
     else:
         await _after_creator_display(callback.message, state)
     await safe_answer_callback(callback)
@@ -555,7 +579,8 @@ async def enter_creator_pseudonym(message: Message, state: FSMContext) -> None:
 async def _after_creator_display(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     await state.set_state(CreateKhatm.choosing_start_schedule)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_start_schedule", lang),
         reply_markup=start_schedule_keyboard(lang),
     )
@@ -575,7 +600,7 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
             else t("create_khatm.unit.time", lang)
         )
         title = data.get("content_category_title") or t("create_khatm.group_label.generic", lang)
-        await message.answer(t("create_khatm.ask_open_target", lang, title=title, unit=unit))
+        await _wiz(message, state, t("create_khatm.ask_open_target", lang, title=title, unit=unit))
     elif template == KhatmTemplateType.SALAWAT.value and mode == KhatmTypeEnum.COMMITMENT.value:
         # R5 (owner 2026-09-28): the creator picks the khatm's TOTAL goal from
         # preset buttons (not a per-person quantity); each participant later
@@ -586,13 +611,14 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
             else t("create_khatm.unit.time", lang)
         )
         await state.set_state(CreateKhatm.choosing_commitment_total)
-        await message.answer(
+        await _wiz(
+            message, state,
             t("create_khatm.ask_commitment_total", lang, unit=unit),
             reply_markup=_commitment_total_keyboard(lang),
         )
     else:  # QURAN_PAGE, either mode
         await state.set_state(CreateKhatm.choosing_edition)
-        await message.answer(t("create_khatm.ask_edition", lang), reply_markup=edition_choice_keyboard())
+        await _wiz(message, state, t("create_khatm.ask_edition", lang), reply_markup=edition_choice_keyboard())
 
 
 def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
@@ -788,7 +814,8 @@ async def enter_capacity_number(message: Message, state: FSMContext) -> None:
 async def _ask_visibility(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     await state.set_state(CreateKhatm.choosing_reminder_tone)
-    await message.answer(
+    await _wiz(
+        message, state,
         t("create_khatm.ask_reminder_tone", lang),
         reply_markup=reminder_tone_keyboard(lang),
     )
@@ -806,7 +833,8 @@ async def choose_reminder_tone(callback: CallbackQuery, state: FSMContext) -> No
     # will describe the intended logic separately before this gets
     # rebuilt properly, rather than guessing at it now.
     await state.set_state(CreateKhatm.choosing_visibility)
-    await callback.message.answer(
+    await _wiz(
+        callback.message, state,
         t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang)
     )
     await safe_answer_callback(callback)
@@ -831,7 +859,8 @@ async def choose_visibility(callback: CallbackQuery, state: FSMContext) -> None:
         ]
     )
     
-    await callback.message.answer(
+    await _wiz(
+        callback.message, state,
         "این ختم برای کاربران کدام پیام‌رسان‌ها قابل عضویت باشد؟",
         reply_markup=markup
     )

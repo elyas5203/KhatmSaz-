@@ -1,3 +1,9 @@
+## 2026-09-28 — R1 ephemeral wizard prompts (edit/replace, no chat clutter) [Claude Code]
+- **What changed**: Added `_wiz(message, state, text, reply_markup)` in `create_khatm.py` — each wizard question deletes the previous *bot* prompt (`_wiz_mid` in FSM data) before sending the next, so only the current step shows in chat history. Best-effort: a failed delete (message too old) never blocks the new prompt. Routed the whole question spine through it: mode → title → niyyat → welcome → creator-contact → recitation(La'an) → creator-display/pseudonym → start-schedule → open-target/commitment-total → edition → reminder-tone → visibility → platforms. The final confirmation card is intentionally left persistent. (User's own typed answers can't be deleted by a bot in a private chat, so those remain — but the stack of questions no longer piles up.)
+- **Why**: Owner R1 — «پیام‌های قبلی پاک بشه… تو تاریخچه چت نمی‌خوام باشه گیج‌کننده‌ست».
+- **How verified**: `pytest -q` → **137 passed, 85 skipped**. New `tests/test_wizard_ephemeral.py` (3: first-send tracks id / deletes previous / failed-delete-still-sends). Live Telegram confirmation pending owner.
+- **What's still outstanding**: R2 (intro image per bot), R7 (4 content examples).
+
 ## 2026-09-28 — R11/N2 member commitment flow (regular schedule + count logging) [Claude Code]
 - **What changed**: Implemented the member-side commitment redesign. After a member joins a repetition-based COMMITMENT khatm (Salawat/Dua/Ziyarat/La'an — Quran keeps its portion+delivery-hour flow), they now pick HOW they commit, with the fewest questions:
   - **COUNT** — pledge a number → log progress with «✅ یکی خوندم» / «🔢 تعداد دلخواه»; on reaching the target, «🎉 تبریک» + «➕ تعهد جدید» to re-pledge (**R12**).

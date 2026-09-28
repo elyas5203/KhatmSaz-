@@ -468,10 +468,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "src/khatmsaz/bootstrap.py": {
-    "mtime": 1790584484.1968553,
-    "seen": 1790597371.8450558,
-    "ast_hash": "b5aeeebf79262916fbe7158517662105",
-    "semantic_hash": "b5aeeebf79262916fbe7158517662105"
+    "mtime": 1790599031.4804406,
+    "seen": 1790599306.5915303,
+    "ast_hash": "09fa4501f0e9ac71d974745222b8cf51",
+    "semantic_hash": "09fa4501f0e9ac71d974745222b8cf51"
   },
   "src/khatmsaz/bot/__init__.py": {
     "mtime": 1789459769.8751254,
@@ -714,10 +714,10 @@
     "semantic_hash": "462e0f212d484ac34d07169cd5310f51"
   },
   "src/khatmsaz/bot/handlers/start.py": {
-    "mtime": 1790581796.0142596,
-    "seen": 1790582353.4484913,
-    "ast_hash": "0d55af025c680a50a6c10177c4c342f6",
-    "semantic_hash": "0d55af025c680a50a6c10177c4c342f6"
+    "mtime": 1790599051.3994129,
+    "seen": 1790599306.5915377,
+    "ast_hash": "58e46cb88f17210a5e0e67ba1246160f",
+    "semantic_hash": "58e46cb88f17210a5e0e67ba1246160f"
   },
   "src/khatmsaz/bot/handlers/suggestions.py": {
     "mtime": 1790427645.751912,
@@ -744,10 +744,10 @@
     "semantic_hash": "b0ed2ca1c5beaa23fba9b7ce4fbee129"
   },
   "src/khatmsaz/bot/keyboards.py": {
-    "mtime": 1790584337.9630215,
-    "seen": 1790597371.845085,
-    "ast_hash": "a0678de6d8d32b912d17d8e77ada95fc",
-    "semantic_hash": "a0678de6d8d32b912d17d8e77ada95fc"
+    "mtime": 1790599135.9889925,
+    "seen": 1790599306.5915394,
+    "ast_hash": "a83d40f592e2d8eb9bc8bfbf371004eb",
+    "semantic_hash": "a83d40f592e2d8eb9bc8bfbf371004eb"
   },
   "src/khatmsaz/bot/middlewares.py": {
     "mtime": 1789580588.9942865,
@@ -834,10 +834,10 @@
     "semantic_hash": "861723eee4664071a9a8610005292d5d"
   },
   "src/khatmsaz/i18n/__init__.py": {
-    "mtime": 1790598297.6645594,
-    "seen": 1790598421.8040617,
-    "ast_hash": "a55daa6737fa21e17d6713c56eb4ab46",
-    "semantic_hash": "a55daa6737fa21e17d6713c56eb4ab46"
+    "mtime": 1790599213.9737327,
+    "seen": 1790599306.591542,
+    "ast_hash": "6bdf94543acd5cbb8a8ea3082aaaaa68",
+    "semantic_hash": "6bdf94543acd5cbb8a8ea3082aaaaa68"
   },
   "src/khatmsaz/modules/__init__.py": {
     "mtime": 1789459775.1171966,
@@ -1320,16 +1320,16 @@
     "semantic_hash": "67b96402d1bcee019e6cac196e7e78ba"
   },
   "src/khatmsaz/modules/participation/repository.py": {
-    "mtime": 1790578368.3964891,
-    "seen": 1790579033.8318496,
-    "ast_hash": "77f9518f44ee49d05124e0744d0408ee",
-    "semantic_hash": "77f9518f44ee49d05124e0744d0408ee"
+    "mtime": 1790598814.94729,
+    "seen": 1790599306.5915446,
+    "ast_hash": "47af0079894e167dfc4c94ce121a6acb",
+    "semantic_hash": "47af0079894e167dfc4c94ce121a6acb"
   },
   "src/khatmsaz/modules/participation/service.py": {
-    "mtime": 1790578408.890158,
-    "seen": 1790579033.8318508,
-    "ast_hash": "8053cf2c1fc803b9d18050645c544376",
-    "semantic_hash": "8053cf2c1fc803b9d18050645c544376"
+    "mtime": 1790598834.6308546,
+    "seen": 1790599306.5915456,
+    "ast_hash": "806f75432e05368994a8eb2b0ddc5fae",
+    "semantic_hash": "806f75432e05368994a8eb2b0ddc5fae"
   },
   "src/khatmsaz/modules/phone/__init__.py": {
     "mtime": 1789459770.180386,
@@ -1386,10 +1386,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "src/khatmsaz/modules/reminder_engine/service.py": {
-    "mtime": 1790418994.953262,
-    "seen": 1790429250.6768417,
-    "ast_hash": "abc85818d327330973c9e20849c56873",
-    "semantic_hash": "abc85818d327330973c9e20849c56873"
+    "mtime": 1790599223.0552764,
+    "seen": 1790599306.5915473,
+    "ast_hash": "903bec50d81a24b31c0a8a2ea07c86d7",
+    "semantic_hash": "903bec50d81a24b31c0a8a2ea07c86d7"
   },
   "src/khatmsaz/modules/reporting/__init__.py": {
     "mtime": 1789562106.5050912,
@@ -2692,5 +2692,29 @@
     "seen": 1790598571.3961957,
     "ast_hash": "9d06bc664febc7be9adaeb204985390e",
     "semantic_hash": "9d06bc664febc7be9adaeb204985390e"
+  },
+  "src/khatmsaz/bot/handlers/member_commitment.py": {
+    "mtime": 1790599146.0229437,
+    "seen": 1790599306.5915346,
+    "ast_hash": "00477b3ceb9287eb0960f6d382c2edf5",
+    "semantic_hash": "00477b3ceb9287eb0960f6d382c2edf5"
+  },
+  "src/khatmsaz/modules/participation/commitment.py": {
+    "mtime": 1790598773.4084568,
+    "seen": 1790599306.591543,
+    "ast_hash": "297f99f74412af76d1f8e67fd7dcfa89",
+    "semantic_hash": "297f99f74412af76d1f8e67fd7dcfa89"
+  },
+  "tests/test_member_commitment_flow.py": {
+    "mtime": 1790599183.9393332,
+    "seen": 1790599306.5915482,
+    "ast_hash": "ce24455e0ef446b0e24df4bd7ba6be76",
+    "semantic_hash": "ce24455e0ef446b0e24df4bd7ba6be76"
+  },
+  "tests/test_member_commitment_logic.py": {
+    "mtime": 1790598789.997451,
+    "seen": 1790599306.5915494,
+    "ast_hash": "65d4bc95ea3b35e04215cf823c51c501",
+    "semantic_hash": "65d4bc95ea3b35e04215cf823c51c501"
   }
 }

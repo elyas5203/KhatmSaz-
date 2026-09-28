@@ -1,3 +1,6 @@
+## 2026-09-28 (R1 ephemeral wizard prompts)
+- **Wizard**: `_wiz` helper deletes the previous bot prompt before sending the next; whole create-khatm question spine routed through it so the chat no longer piles up questions. Guarded (failed delete never blocks). Tests +3. Suite 137.
+
 ## 2026-09-28 (R11/N2 member commitment: regular schedule + count logging)
 - **Member flow**: after joining a repetition COMMITMENT khatm, member picks COUNT (pledge+log+re-pledge R12) or REGULAR (freq→day→per-occurrence→hour). Quran unchanged.
 - **Engine**: `deliver_due_regular_commitments` sends the nudge at the chosen local time each occurrence (daily/weekly/monthly), deduped per day.
