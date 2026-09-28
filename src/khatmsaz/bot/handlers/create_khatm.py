@@ -564,12 +564,10 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
     if not raw.isdigit() or int(raw) <= 0:
         await message.answer(t("create_khatm.positive_number_required", lang))
         return
-    await state.update_data(salawat_commitment_quantity=int(raw))
-    await state.set_state(CreateKhatm.choosing_capacity_mode)
-    await message.answer(
-        t("create_khatm.ask_capacity_salawat", lang),
-        reply_markup=capacity_choice_keyboard(lang),
-    )
+    # Owner (2026-09-28): drop the capacity question entirely — it's an
+    # unnecessary extra step; khatms are unlimited by default.
+    await state.update_data(salawat_commitment_quantity=int(raw), capacity=None)
+    await _ask_visibility(message, state)
 
 
 @router.callback_query(F.data.startswith("ck:edition:"), StateFilter(CreateKhatm.choosing_edition))
@@ -619,12 +617,9 @@ async def enter_deadline_hour(message: Message, state: FSMContext) -> None:
     if not raw.isdigit() or not (0 <= int(raw) <= 23):
         await message.answer(t("create_khatm.hour_required", lang))
         return
-    await state.update_data(daily_deadline_hour=int(raw))
-    await state.set_state(CreateKhatm.choosing_capacity_mode)
-    await message.answer(
-        t("create_khatm.ask_capacity_quran", lang),
-        reply_markup=capacity_choice_keyboard(lang),
-    )
+    # Owner (2026-09-28): capacity question removed (unnecessary step).
+    await state.update_data(daily_deadline_hour=int(raw), capacity=None)
+    await _ask_visibility(message, state)
 
 
 @router.callback_query(F.data == "ck:capacity:unlimited", StateFilter(CreateKhatm.choosing_capacity_mode))

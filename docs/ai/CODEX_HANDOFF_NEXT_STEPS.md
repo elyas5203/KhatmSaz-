@@ -1,3 +1,25 @@
+# 🎯 META-PROMPT برای Codex — بازطراحی ویزارد ساخت ختم + عضویت (2026-09-28)
+
+> Claude Code به لیمیت نزدیک است؛ این کار را ادامه بده. پلن کامل: `docs/ai/REDESIGN_PLAN_2026-09-28.md`.
+> اول بخوان: PROJECT_STATE.md، CLAUDE.md، AI_HANDOFF_PROTOCOL.md، DECISIONS.md، DOMAIN_MODEL.md، و پلن بالا.
+> تست فعلی: 105 سبز — `PYTHONPATH=src python -m pytest -m "not integration"`.
+
+## قوانین سخت
+- بدون تأیید صریح مالک: push فقط با اجازه؛ deploy/restart/تغییر DB production ممنوع. مایگریشن فقط روی Postgres تستیِ جدا (نه SQLite/production).
+- قانون محصولی از خودت نساز (DOMAIN_MODEL + پلن). i18n هر کلید fa+ar+en (گارد: `tests/test_i18n_coverage.py`).
+- بعد از هر تغییر: pytest + به‌روزرسانی PROJECT_STATE/CHANGELOG + `/graphify . --update`.
+- هدف اصلی: **کمترین تعامل** برای ساخت ختم و عضویت.
+
+## کارها به‌ترتیب (جزئیات کامل در REDESIGN_PLAN_2026-09-28.md)
+- ✅ R6 حذف سؤال ظرفیت — انجام شد (Claude).
+- **بدون مایگریشن (اول این‌ها):** R8 ترتیب پلتفرم (هر دو/تلگرام/بله) · R3 نیابت با مثال · R7 مثال هر ۴ نوع متن · R10 حذف پیش‌نمایش ختم سمت عضو · R9 لینک فارسی اول + بقیه on-request · R1 پیام‌های جای‌گزین‌شونده (edit به‌جای پیام جدید).
+- **نیاز مایگریشن (Postgres تستی + بازبینی مالک):** R2 عکس معرفی per-bot (پنل ادمین آپلود + `bot_instances.intro_image_url`) · R4 تماس سازنده در خوش‌آمد (`khatms.creator_contact`) · R5 تعهد=تعداد کل با دکمه‌ها (۱۰/۱۴/۴۰/۱۱۰/۳۱۳/دلخواه/نامحدود) · R11 دو مدل تعهد سمت عضو (منظم/تعدادی؛ `participation.commitment_kind/count/schedule`) · R12 عضو تعدادی تعداد جدید بزند.
+- **مستقل (بحرانی):** DEC-PY-0092 سیم‌کشی تخصیص چرخشی قرآن (تابع `positional_range_for_step` + ۵ تست آماده؛ نیاز تغییر قید یکتای portion + مایگریشن).
+
+## «انجام‌شده» = کد + تست واحد سبز + render/verify + docs. جریان‌های بات که تلگرام زنده می‌خواهند را مالک live تست می‌کند. باگ‌های قابل‌کشف بدون ربات را قبل از مالک بگیر (نمونه: تستی که AttributeError پیام گروهی را گرفت).
+
+---
+
 # 🎯 GOAL برای Codex — ادامهٔ پایدارسازی و ریدیزاین (2026-09-28، از Claude Code)
 
 > Claude Code به لیمیت نزدیک شده؛ این goal را ادامه بده تا وقتی برگشت، کار جلو رفته باشد.

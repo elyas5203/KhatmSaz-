@@ -1,3 +1,7 @@
+## 2026-09-28 (redesign plan + remove capacity wizard step)
+- **Plan**: `docs/ai/REDESIGN_PLAN_2026-09-28.md` — minimal-interaction redesign of the create-khatm wizard + member join flow (R1–R13) with a Codex meta-prompt.
+- **Wizard**: removed the capacity question (owner: unnecessary step) — `enter_commitment_quantity` and `enter_deadline_hour` now go straight to visibility with capacity=None; the old capacity handlers are unreachable.
+
 ## 2026-09-28 (allocation root-cause + warmer commitment messages + SMS answer)
 - **Allocation (DEC-PY-0092)**: reproduced & root-caused the Quran page-jump bug (committed readers got the shared pool's next-open portion → personal pages jumped by member count). Added the unit-tested rotating helper `positional_range_for_step` (5 tests). Wiring + migration is a documented follow-up BLOCKED on a test Postgres + owner review (the partial UNIQUE(plan_id,unit_start) constraint conflicts with rotating repeats — needs a portion-identity change).
 - **Copy**: rewrote the quantity-commitment confirmation and completion messages to be warmer/devotional (owner called the old ones «مسخره»), fa/ar/en, matching the project tone guide.

@@ -1,3 +1,15 @@
+## 2026-09-28 — Redesign plan (minimal-interaction wizard/join) + remove capacity step [Claude Code]
+- **What changed**: Owner set a large goal to redesign the create-khatm wizard and member join flow around «کمترین تعامل». Wrote `docs/ai/REDESIGN_PLAN_2026-09-28.md` (R1–R13, phased, marking which need migrations) and a Codex meta-prompt at the top of CODEX_HANDOFF_NEXT_STEPS.md. Did the first safe, isolated simplification: removed the capacity question from the wizard (owner: «سوال الکی و اضافست») — both entry points now go straight to visibility with capacity=None.
+- **Why**: Explicit owner goal; capacity was an unnecessary step.
+- **How verified**: `pytest -m "not integration"` → 105 passed, 0 failed.
+- **What's still outstanding**: R1–R5, R7–R13 (see plan). Migration-dependent items (intro image, creator contact, member commitment model, rotating Quran wiring) need a test Postgres + owner review. Graph to be updated with /graphify after push.
+
+## 2026-09-28 — Live Telegram QA via Chrome (Codex)
+- **Covered**: member deep-link flows for fa/ar/en; English commitment join, typed `14:40` reminder, portion view, completion and snooze; account settings; super-admin bot menu; creator `/my_khatms`, member/CSV/QR/stats/settings actions; public khatms; create-khatm entry/cancel; admin and creator Mini App entry.
+- **Confirmed working**: commitment copy follows each member bot language; typed HH:MM works; `/public_khatms` works on the creator bot; creator khatm list/QR/stats/settings callbacks work; reversible policy toggles were restored to their original state.
+- **Open live defects**: both admin and creator Mini Apps fail inside Telegram Web with `api.khatmsaz.com refused to connect` because both endpoints return `X-Frame-Options: SAMEORIGIN`; English member welcome leaks `Welcome /admin_app`; Quran source delivery failed for the English member bot; generic `/cancel` copy incorrectly points account-setting users to `/admin_web_login`; several creator/admin screens mix English and Persian; admin creator-approval UI exposes a technical command/database instruction.
+- **Safety**: no real payment was attempted; no khatm/user was deleted or banned; no broadcast was sent. Existing unrelated working-tree changes were not modified.
+
 ## 2026-09-27 — Owner product-rule changes: fixed niyyat, drop content-format, panel dead-ends [Claude Code]
 - **What changed**: Applied four owner directives (mid-session): (1) DEC-PY-0090 fixed niyyat + optional نیابت; (2) DEC-PY-0091 removed the content-format wizard step (AUTO); (3) title-prompt example now «…سلامتی امام زمان علیه السلام»; (4) creator inline-panel مالی/تنظیمات buttons now open the real report/settings instead of "coming soon".
 - **Why**: Explicit owner product rules (recorded as decisions). No rule invented.
