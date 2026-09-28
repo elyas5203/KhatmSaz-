@@ -54,19 +54,24 @@ _STRINGS: dict[str, dict[str, str]] = {
     "welcome.text": {
         "fa": (
             "سلام! به <b>ختم‌ساز</b> خوش اومدی 🌱\n\n"
-            "این ربات توسط تیم «خدمتگزاران تک» (KhedmatGozaran Tech) طراحی و ساخته شده تا "
-            "بتونید به‌راحتی در ختم‌های قرآن، صلوات، دعا و زیارت گروهی شرکت کنید.\n\n"
-            "برای شروع، می‌تونید از منوی پایین روی دکمهٔ «❓ راهنمای کامل» بزنید تا با مدل‌های مختلف ختم آشنا بشید."
+            "این بات مخصوص <b>ساختن ختم</b> است — همین‌جا می‌تونی ختم قرآن، صلوات، دعا یا زیارت گروهی بسازی "
+            "و لینکش رو با دیگران به اشتراک بذاری.\n"
+            "برای <i>شرکت</i> در یک ختم، باید از طریق لینک همون ختم وارد بات مربوطه بشی (نه این‌جا).\n\n"
+            "بیا همین حالا اولین ختمت رو بسازیم 👇"
         ),
         "ar": (
             "مرحباً بك في <b>ختم‌ساز</b> 🌱\n\n"
-            "تم تصميم هذا البوت بواسطة فريق «خدمتگزاران تك» لتسهيل المشاركة في الختمات الجماعية.\n\n"
-            "للبدء، اضغط زر «❓ دليل كامل» من القائمة بالأسفل لتتعرف على أنواع الختمات."
+            "هذا البوت مخصّص <b>لإنشاء الختمات</b> — من هنا يمكنك إنشاء ختمة قرآن أو صلوات أو دعاء أو زيارة جماعية "
+            "ومشاركة رابطها مع الآخرين.\n"
+            "<i>للمشاركة</i> في ختمة، ادخل عبر رابط تلك الختمة إلى البوت الخاص بها (لا من هنا).\n\n"
+            "لننشئ ختمتك الأولى الآن 👇"
         ),
         "en": (
             "Welcome to <b>KhatmSaz</b> 🌱\n\n"
-            "This bot is developed by the «KhedmatGozaran Tech» team to help you easily participate in collective Khatms.\n\n"
-            "To get started, tap the «❓ Full Guide» button below to learn about different types of Khatms."
+            "This bot is for <b>creating Khatms</b> — build a group Quran, Salawat, Dua or Ziyarat Khatm here "
+            "and share its link with others.\n"
+            "To <i>take part</i> in a Khatm, open that Khatm's own link into its bot (not here).\n\n"
+            "Let's create your first Khatm now 👇"
         ),
     },
     "navigation.cancelled": {
@@ -586,12 +591,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "How should your name as the creator appear to members? (This only affects display — your real identity always stays with the bot)",
     },
     "create_khatm.ask_pseudonym": {
-        "fa": "نام مستعار را بنویسید (حداکثر ۶۴ کاراکتر):", "ar": "اكتب الاسم المستعار (حتى ۶۴ حرفاً):",
-        "en": "Enter a pseudonym (up to 64 characters):",
+        "fa": "نام مؤسسه یا سازمانتان را بنویسید (حداکثر ۶۴ کاراکتر):", "ar": "اكتب اسم مؤسستك أو منظمتك (حتى ۶۴ حرفاً):",
+        "en": "Enter your institution or organization name (up to 64 characters):",
     },
     "create_khatm.pseudonym_invalid": {
-        "fa": "نام مستعار باید بین ۱ تا ۶۴ کاراکتر باشد.", "ar": "يجب أن يكون الاسم المستعار بين ۱ و۶۴ حرفاً.",
-        "en": "The pseudonym must be between 1 and 64 characters.",
+        "fa": "نام مؤسسه باید بین ۱ تا ۶۴ کاراکتر باشد.", "ar": "يجب أن يكون اسم المؤسسة بين ۱ و۶۴ حرفاً.",
+        "en": "The institution name must be between 1 and 64 characters.",
     },
     "create_khatm.ask_start_schedule": {
         "fa": "این ختم همین الان شروع بشه، یا یک تاریخ خاص تو آینده؟\n(اگه تاریخ آینده رو انتخاب کنید، لینک دعوت همین حالا کار می‌کنه و اعضا می‌تونن عضو بشن، ولی سهم‌ها و یادآوری‌ها فقط از همون تاریخ شروع می‌شن)",
@@ -656,9 +661,27 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "What's the maximum number of committed members? Send a number only (e.g. 301):",
     },
     "create_khatm.ask_reminder_tone": {
-        "fa": "پیام‌های یادآوری این ختم با چه لحنی برای اعضا فرستاده بشه؟ (فقط روی حس‌وحال متن یادآوری‌ها تأثیر داره، محتوای اصلی ختم عوض نمی‌شه)",
-        "ar": "بأي أسلوب تُرسل رسائل تذكير هذه الختمة للأعضاء؟ (يؤثر فقط على أسلوب نص التذكير، لا يغيّر محتوى الختمة الأساسي)",
-        "en": "In what tone should this khatm's reminder messages be sent to members? (This only affects the reminder wording, not the khatm's actual content)",
+        "fa": (
+            "پیام‌های یادآوری با چه لحنی فرستاده بشه؟ (فقط حس‌وحال متن، محتوای ختم عوض نمی‌شه)\n\n"
+            "🌱 <b>صمیمی</b>: «سلام رفیق! وقتِ سهم امروزته، بزن بریم 🌿»\n"
+            "📜 <b>رسمی</b>: «با سلام، یادآوری می‌شود سهم امروز شما آمادهٔ قرائت است.»\n"
+            "🤍 <b>معنوی</b>: «یاد خدا دل را آرام می‌کند؛ سهم امروزت منتظر توست.»\n"
+            "⚡ <b>کوتاه</b>: «سهم امروزت آماده‌ست.»"
+        ),
+        "ar": (
+            "بأي أسلوب تُرسل رسائل التذكير؟ (يؤثر على الأسلوب فقط، لا يغيّر المحتوى)\n\n"
+            "🌱 <b>ودّي</b>: «مرحباً يا صديقي! حان وقت حصتك اليوم 🌿»\n"
+            "📜 <b>رسمي</b>: «تحية طيبة، نذكّرك بأن حصتك اليوم جاهزة للقراءة.»\n"
+            "🤍 <b>روحاني</b>: «بذكر الله تطمئنّ القلوب؛ حصتك اليوم بانتظارك.»\n"
+            "⚡ <b>مختصر</b>: «حصتك اليوم جاهزة.»"
+        ),
+        "en": (
+            "In what tone should reminders be sent? (Only the wording, not the content)\n\n"
+            "🌱 <b>Friendly</b>: “Hey friend! Time for today's share, let's go 🌿”\n"
+            "📜 <b>Formal</b>: “Greetings. A reminder that your share for today is ready to read.”\n"
+            "🤍 <b>Spiritual</b>: “Remembrance of God calms the heart; your share awaits you today.”\n"
+            "⚡ <b>Short</b>: “Your share for today is ready.”"
+        ),
     },
     "create_khatm.ask_visibility": {
         "fa": "لینک دعوت این ختم چطور کار کنه؟", "ar": "كيف يعمل رابط دعوة هذه الختمة؟",
@@ -677,7 +700,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "create_khatm.display_label.FULL_NAME": {"fa": "نام کامل", "ar": "الاسم الكامل", "en": "Full name"},
     "create_khatm.display_label.FIRST_NAME": {"fa": "نام کوچک", "ar": "الاسم الأول", "en": "First name"},
-    "create_khatm.display_label.PSEUDONYM": {"fa": "نام مستعار", "ar": "اسم مستعار", "en": "Pseudonym"},
+    "create_khatm.display_label.PSEUDONYM": {"fa": "نام مؤسسه", "ar": "اسم المؤسسة", "en": "Institution"},
     "create_khatm.display_label.ANONYMOUS": {"fa": "ناشناس", "ar": "مجهول", "en": "Anonymous"},
     "create_khatm.tone_label.FRIENDLY": {"fa": "صمیمی", "ar": "ودّي", "en": "Friendly"},
     "create_khatm.tone_label.FORMAL": {"fa": "رسمی", "ar": "رسمي", "en": "Formal"},
@@ -1218,6 +1241,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "ck.display.full": {"fa": "👤 نام کامل", "ar": "👤 الاسم الكامل", "en": "👤 Full name"},
     "ck.display.first": {"fa": "🙂 فقط نام کوچک", "ar": "🙂 الاسم الأول فقط", "en": "🙂 First name only"},
     "ck.display.pseudonym": {"fa": "🪪 نام مستعار", "ar": "🪪 اسم مستعار", "en": "🪪 Pseudonym"},
+    "ck.display.institution": {"fa": "🏢 نام مؤسسه/سازمان", "ar": "🏢 اسم المؤسسة/المنظمة", "en": "🏢 Institution / organization"},
     "ck.display.anonymous": {"fa": "🤲 ناشناس / نیکوکار", "ar": "🤲 مجهول / محسِن", "en": "🤲 Anonymous / benefactor"},
     "ck.start.now": {"fa": "▶️ همین حالا", "ar": "▶️ الآن", "en": "▶️ Right now"},
     "ck.start.future": {"fa": "🗓 شروع در تاریخ آینده", "ar": "🗓 البدء في تاريخ لاحق", "en": "🗓 Start on a future date"},
@@ -2956,20 +2980,28 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "join.commitment_consent": {
         "fa": (
-            "با پذیرش این تعهد، متعهد می‌شوید سهمی که براتون تعیین می‌شه رو تا مهلت اعلام‌شده بخونید.\n"
-            "اگه سهمتون رو نخونید، ممکنه کل ختم و پیشرفت بقیهٔ اعضا عقب بیفته — این تعهد واقعاً روی هم‌ختمی‌هاتون اثر داره.\n\n"
-            "تعهد را می‌پذیرید؟"
+            "⚠️ <b>این یک تعهد است، نه فقط یک دکمه.</b>\n\n"
+            "با پذیرش، شرعاً و اخلاقاً متعهد می‌شوید سهمی که برمی‌دارید را <b>حتماً</b> و سر وقت بخوانید.\n"
+            "اگر انجام ندهید، ختمِ جمعی و ثوابِ بقیهٔ شرکت‌کننده‌ها را ناقص و خراب می‌کنید و "
+            "این تعهد بر عهدهٔ شما یک <b>دِین</b> است که باید ادا شود.\n\n"
+            "اگر مطمئن نیستید می‌توانید انجامش دهید، لطفاً تعهد ندهید.\n\n"
+            "تعهد را با آگاهی می‌پذیرید؟"
         ),
         "ar": (
-            "بقبول هذا الالتزام، تتعهد بقراءة حصتك المخصصة قبل الموعد المعلن.\n"
-            "إذا لم تقرأ حصتك، قد يتأخر تقدم الختمة بأكملها — هذا الالتزام يؤثر فعلاً على أعضاء الختمة الآخرين.\n\n"
-            "هل تقبل الالتزام؟"
+            "⚠️ <b>هذا التزام، وليس مجرّد زر.</b>\n\n"
+            "بالقبول، تتعهّد شرعاً وأخلاقياً بأن تقرأ حصتك <b>حتماً</b> وفي وقتها.\n"
+            "إن لم تفعل، فإنك تُفسد الختمة الجماعية وثواب بقية المشاركين، ويصبح هذا الالتزام "
+            "<b>ديناً</b> في ذمّتك يجب أداؤه.\n\n"
+            "إن لم تكن واثقاً من قدرتك، فالرجاء عدم الالتزام.\n\n"
+            "هل تقبل الالتزام عن وعي؟"
         ),
         "en": (
-            "By accepting this commitment, you pledge to read your assigned portion by the announced deadline.\n"
-            "If you don't complete your portion, the whole khatm and everyone else's progress may fall behind — "
-            "this commitment genuinely affects your fellow khatm members.\n\n"
-            "Do you accept the commitment?"
+            "⚠️ <b>This is a commitment, not just a button.</b>\n\n"
+            "By accepting, you pledge — religiously and morally — to read your portion <b>without fail</b> and on time.\n"
+            "If you don't, you spoil the collective khatm and everyone else's reward, and this commitment becomes "
+            "a <b>debt</b> upon you that must be fulfilled.\n\n"
+            "If you're not sure you can, please don't commit.\n\n"
+            "Do you knowingly accept the commitment?"
         ),
     },
     "join.private_request_sent": {

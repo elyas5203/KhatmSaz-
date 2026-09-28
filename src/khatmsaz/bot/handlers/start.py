@@ -234,6 +234,13 @@ async def handle_start(message: Message, state: FSMContext) -> None:
 
     if already_prompted:
         await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
+        # Owner (2026-09-28): the creator bot exists only to BUILD khatms, so send
+        # the creator straight into the create-khatm wizard right after the
+        # welcome instead of leaving them on a menu. Members never reach this
+        # handler (they're on member bots); only creators/super-admins do here.
+        if user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+            from khatmsaz.bot.handlers.create_khatm import start_wizard
+            await start_wizard(message, state)
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -315,6 +322,15 @@ def build_join_success_message(
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.no_open_portion_line", lang)
         return text, main_menu_keyboard(lang)
+
+    # Owner (2026-09-28): for a repetition-based COMMITMENT khatm (Salawat/Dua/
+    # Ziyarat/La'an) the member-commitment MODE PICKER is shown right after this
+    # message, so the join-success card must NOT carry a «ثبت مشارکت» button —
+    # tapping it fresh-join was confusing («یهو خیلی شلوغ شد»). No action keyboard.
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type not in (
+        KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH
+    ):
+        return text, None
 
     return text, contribute_keyboard(str(khatm.id), lang)
 

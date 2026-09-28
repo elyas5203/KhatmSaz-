@@ -149,16 +149,23 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
 
 async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None):
     """R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new
-    wizard prompt deletes the previous *bot* prompt before sending, so only the
-    current step is visible in history. Best-effort: a failed delete (message too
-    old / already gone) never blocks the new prompt. The user's own typed answers
-    can't be deleted by a bot in a private chat, so those remain — but the stack
-    of bot questions no longer piles up. Tracks the last prompt id in FSM data."""
+    wizard prompt deletes the previous *bot* prompt AND the user's own typed
+    answer (bots CAN delete incoming messages in a private chat), so only the
+    current step remains — «فقط اون پیام آخر باشه، پیامای خودم و بات پاک بشن».
+    Best-effort: a failed delete (message too old / already gone) never blocks
+    the new prompt. Tracks the last prompt id in FSM data."""
     data = await state.get_data()
     prev = data.get("_wiz_mid")
     if prev:
         try:
             await message.bot.delete_message(message.chat.id, prev)
+        except Exception:
+            pass
+    # Delete the user's incoming typed message too (only when THIS call was
+    # triggered by a user text message, not a callback's bot-owned message).
+    if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
+        try:
+            await message.bot.delete_message(message.chat.id, message.message_id)
         except Exception:
             pass
     sent = await message.answer(text, reply_markup=reply_markup)
@@ -618,13 +625,11 @@ async def enter_creator_pseudonym(message: Message, state: FSMContext) -> None:
 
 
 async def _after_creator_display(message: Message, state: FSMContext) -> None:
-    lang = await _lang(state)
-    await state.set_state(CreateKhatm.choosing_start_schedule)
-    await _wiz(
-        message, state,
-        t("create_khatm.ask_start_schedule", lang),
-        reply_markup=start_schedule_keyboard(lang),
-    )
+    # Owner (2026-09-28): a khatm always starts now — the «شروع در تاریخ آینده»
+    # option was removed. Skip the start-schedule question entirely (start_at=None
+    # means "start immediately") and go straight to the next step.
+    await state.update_data(start_at=None)
+    await _after_start_schedule(message, state)
 
 
 async def _after_start_schedule(message: Message, state: FSMContext) -> None:

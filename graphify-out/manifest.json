@@ -744,10 +744,10 @@
     "semantic_hash": "b0ed2ca1c5beaa23fba9b7ce4fbee129"
   },
   "src/khatmsaz/bot/keyboards.py": {
-    "mtime": 1790599135.9889925,
-    "seen": 1790599306.5915394,
-    "ast_hash": "a83d40f592e2d8eb9bc8bfbf371004eb",
-    "semantic_hash": "a83d40f592e2d8eb9bc8bfbf371004eb"
+    "mtime": 1790601084.058885,
+    "seen": 1790601176.8956716,
+    "ast_hash": "f649f7b5fdccefde813ae58b51ac041d",
+    "semantic_hash": "f649f7b5fdccefde813ae58b51ac041d"
   },
   "src/khatmsaz/bot/middlewares.py": {
     "mtime": 1789580588.9942865,
@@ -1776,10 +1776,10 @@
     "semantic_hash": "271fca6e971ffde1f2cd8eeeb261d7b1"
   },
   "tests/test_home_menu.py": {
-    "mtime": 1790514294.607593,
-    "seen": 1790514393.7784343,
-    "ast_hash": "c547da9ad967a9f3731438485bbb8a78",
-    "semantic_hash": "c547da9ad967a9f3731438485bbb8a78"
+    "mtime": 1790601120.965196,
+    "seen": 1790601176.8956754,
+    "ast_hash": "d7b28b9d327e1be6479f834319bbaef6",
+    "semantic_hash": "d7b28b9d327e1be6479f834319bbaef6"
   },
   "tests/test_identity_search_integration.py": {
     "mtime": 1789560975.7256124,
@@ -2734,5 +2734,11 @@
     "seen": 1790600334.1451993,
     "ast_hash": "c3ea9b9fb01cf0f020fe0709573531bd",
     "semantic_hash": "c3ea9b9fb01cf0f020fe0709573531bd"
+  },
+  "migrations/versions/zzz_final_merge_2026_09_28.py": {
+    "mtime": 1790601026.8294485,
+    "seen": 1790601176.8956635,
+    "ast_hash": "97c8030654a316fee933af1fbc3d900d",
+    "semantic_hash": "97c8030654a316fee933af1fbc3d900d"
   }
 }

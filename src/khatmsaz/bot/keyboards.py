@@ -523,12 +523,14 @@ def reminder_tone_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 def creator_display_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    # Owner (2026-09-28): the creator shows either their full name or an
+    # institution/organization name — the «فقط نام کوچک» and «نام مستعار» options
+    # were dropped. The institution option reuses the PSEUDONYM text-entry path
+    # (stored in creator_pseudonym), just relabelled — no migration.
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=t("ck.display.full", lang), callback_data="ck:creator_display:FULL_NAME")],
-            [InlineKeyboardButton(text=t("ck.display.first", lang), callback_data="ck:creator_display:FIRST_NAME")],
-            [InlineKeyboardButton(text=t("ck.display.pseudonym", lang), callback_data="ck:creator_display:PSEUDONYM")],
-            [InlineKeyboardButton(text=t("ck.display.anonymous", lang), callback_data="ck:creator_display:ANONYMOUS")],
+            [InlineKeyboardButton(text=t("ck.display.institution", lang), callback_data="ck:creator_display:PSEUDONYM")],
             _ck_cancel_row(lang),
         ]
     )
