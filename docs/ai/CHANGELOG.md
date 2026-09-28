@@ -1,3 +1,8 @@
+## 2026-09-28 (R11/N2 member commitment: regular schedule + count logging)
+- **Member flow**: after joining a repetition COMMITMENT khatm, member picks COUNT (pledge+log+re-pledge R12) or REGULAR (freq→day→per-occurrence→hour). Quran unchanged.
+- **Engine**: `deliver_due_regular_commitments` sends the nudge at the chosen local time each occurrence (daily/weekly/monthly), deduped per day.
+- **New**: `modules/participation/commitment.py` (pure logic), `bot/handlers/member_commitment.py`, participation repo/service setters, i18n `commit.*`/`weekday.*`/`reminder.regular_commitment`, keyboards. Tests +17. Suite 134 passed.
+
 ## 2026-09-28 (N1 i18n audit — removed dup + 31 dead keys)
 - **i18n**: removed duplicate `menu.public_khatms` + 31 unreferenced keys (leftovers from removed capacity/ads/content-delivery/per-member-share/old-welcome/orphan-my_khatms features). 852→820 keys. All remaining keys verified fa/ar/en complete, non-empty, placeholder-consistent.
 - **Guard**: `tests/test_i18n_audit.py` (no-dupes, all-langs, placeholder-match).

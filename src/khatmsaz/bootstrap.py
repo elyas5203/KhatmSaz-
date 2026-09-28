@@ -239,6 +239,7 @@ async def main() -> None:
     _shared_module_paths = [
         "khatmsaz.bot.handlers.public_khatms",
         "khatmsaz.bot.handlers.join_flow",
+        "khatmsaz.bot.handlers.member_commitment",
         "khatmsaz.bot.handlers.help",
         "khatmsaz.bot.handlers.settings_menu",
         "khatmsaz.bot.handlers.timezone_settings",

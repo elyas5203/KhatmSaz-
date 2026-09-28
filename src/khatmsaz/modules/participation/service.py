@@ -87,6 +87,34 @@ async def list_active_with_open_reading_plan(session: AsyncSession) -> list[Part
     return await repository.list_active_with_open_reading_plan(session)
 
 
+# ---- R11: member-chosen commitment mode --------------------------------------
+
+async def set_commitment_count(session: AsyncSession, participation_id, target: int) -> None:
+    await repository.set_commitment_count(session, participation_id, target)
+
+
+async def log_commitment_count(session: AsyncSession, participation_id, amount: int) -> tuple[int, int, bool] | None:
+    return await repository.log_commitment_count(session, participation_id, amount)
+
+
+async def set_commitment_schedule(
+    session: AsyncSession, participation_id, *, freq: str, anchor: int | None, hour: int, per_occurrence: int
+) -> None:
+    await repository.set_commitment_schedule(
+        session, participation_id, freq=freq, anchor=anchor, hour=hour, per_occurrence=per_occurrence
+    )
+
+
+async def mark_schedule_sent_now(session: AsyncSession, participation_id) -> None:
+    from datetime import datetime, timezone
+
+    await repository.mark_schedule_sent_now(session, participation_id, datetime.now(timezone.utc))
+
+
+async def list_active_with_regular_schedule(session: AsyncSession) -> list[Participation]:
+    return await repository.list_active_with_regular_schedule(session)
+
+
 async def set_creator_resolution(session: AsyncSession, participation_id, resolution: str) -> None:
     await repository.set_creator_resolution(session, participation_id, resolution)
 

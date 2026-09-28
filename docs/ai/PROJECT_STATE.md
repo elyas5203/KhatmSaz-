@@ -1,3 +1,12 @@
+## 2026-09-28 — R11/N2 member commitment flow (regular schedule + count logging) [Claude Code]
+- **What changed**: Implemented the member-side commitment redesign. After a member joins a repetition-based COMMITMENT khatm (Salawat/Dua/Ziyarat/La'an — Quran keeps its portion+delivery-hour flow), they now pick HOW they commit, with the fewest questions:
+  - **COUNT** — pledge a number → log progress with «✅ یکی خوندم» / «🔢 تعداد دلخواه»; on reaching the target, «🎉 تبریک» + «➕ تعهد جدید» to re-pledge (**R12**).
+  - **REGULAR** — بسامد (هر روز/هفته/ماه) → روز (هفتگی=شنبه‌محور 0..6 / ماهانه=۱..۳۱ با clamp) → تعداد هر نوبت → ساعت؛ موتور یادآوری سر همان زمان محلی نوبت را می‌فرستد (dedupe روزانه با `schedule_last_sent_at`).
+  - Pure logic in `modules/participation/commitment.py` (`log_count`, `is_regular_due`, `persian_dow`); repo/service setters; new handler `bot/handlers/member_commitment.py` (router registered in the shared list); engine `deliver_due_regular_commitments` called from `run_once`.
+- **Why**: Owner R11/N2 — «تعهد سمت ممبر اتفاق می‌افتد… دو حالت منظم/تعدادی… کمترین سؤال».
+- **How verified**: `pytest -q` → **134 passed, 85 skipped**. New tests: `test_member_commitment_logic.py` (10), `test_member_commitment_flow.py` (7 — keyboards↔router↔fresh-import). Import smoke-tests OK. Live Telegram flow + migration apply pending owner/test-Postgres.
+- **What's still outstanding**: R1 (ephemeral wizard msgs), R2 (intro image), R7 (4 content examples). Migration `mcm2026092802` (columns) still needs applying on a real Postgres.
+
 ## 2026-09-28 — N1 i18n registry audit + merge-migration (3 heads → 1) [Claude Code]
 - **What changed**: (1) Merge migration `mrg2026092801` unifies the 3 divergent Alembic heads (`a1b2c3d4e5f6`+`f4a5b6c7d8e9`+`zz9999`) so `upgrade head` works again — no schema change. (2) Line-by-line i18n audit (`src/khatmsaz/i18n/__init__.py`): removed 1 duplicate key (`menu.public_khatms`, silently overrode the earlier row) and **31 dead keys** left over from removed features (capacity, ads, content-delivery-mode, per-member-share, old welcome intro, orphan `my_khatms.*`/`text.creator.*` headers) — verified unreferenced across all `.py`/`.html`/templates. 852→820 keys. Verified: every key has fa/ar/en, no empties, no placeholder mismatches (no `t().format` KeyError risk), no non-strings.
 - **Why**: Owner N1 request ("این فایل خط‌به‌خط چک کن… خرابِ/اضافه/تکراری درست یا پاک بشه") + unblock schema for R2/R11.

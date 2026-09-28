@@ -419,7 +419,19 @@ async def resume_join_after_registration(
         not was_waitlisted
         and khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN)
     )
-    if (
+    # R11/N2 (owner 2026-09-28): for a repetition-based COMMITMENT khatm (Salawat/
+    # Dua/Ziyarat/La'an — NOT Quran, which keeps its page/portion + delivery-hour
+    # flow), the member chooses HOW they commit (regular schedule vs. a count they
+    # log). This replaces the bare delivery-hour question for that case and the
+    # picker itself asks the hour when a regular schedule is chosen.
+    is_repetition_commitment = (
+        khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH)
+    )
+    if state is not None and not was_waitlisted and is_repetition_commitment:
+        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        await start_commitment_mode_picker(message, participation.id, lang)
+    elif (
         state is not None and is_fresh_join
         and await notification_service.get_preference(session, participation.id) is None
     ):

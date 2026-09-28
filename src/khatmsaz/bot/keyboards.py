@@ -693,6 +693,58 @@ def commitment_quantity_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeybo
     )
 
 
+# ---- R11 (owner 2026-09-28): member picks their own commitment mode ----------
+
+def member_commitment_mode_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    """Two ways a member commits to a commitment khatm: a recurring schedule
+    (REGULAR) or a one-off count they log themselves (COUNT)."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("commit.mode.regular", lang), callback_data=f"cmode:regular:{pid}")],
+            [InlineKeyboardButton(text=t("commit.mode.count", lang), callback_data=f"cmode:count:{pid}")],
+        ]
+    )
+
+
+def commitment_freq_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    """REGULAR mode: how often to read."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("commit.freq.daily", lang), callback_data=f"cfreq:DAILY:{pid}")],
+            [InlineKeyboardButton(text=t("commit.freq.weekly", lang), callback_data=f"cfreq:WEEKLY:{pid}")],
+            [InlineKeyboardButton(text=t("commit.freq.monthly", lang), callback_data=f"cfreq:MONTHLY:{pid}")],
+        ]
+    )
+
+
+def commitment_weekday_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    """WEEKLY anchor picker: 0=Saturday .. 6=Friday (Persian week order)."""
+    days = [
+        t("weekday.sat", lang), t("weekday.sun", lang), t("weekday.mon", lang),
+        t("weekday.tue", lang), t("weekday.wed", lang), t("weekday.thu", lang),
+        t("weekday.fri", lang),
+    ]
+    rows, row = [], []
+    for i, label in enumerate(days):
+        row.append(InlineKeyboardButton(text=label, callback_data=f"cdow:{i}:{pid}"))
+        if len(row) == 2:
+            rows.append(row); row = []
+    if row:
+        rows.append(row)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    """COUNT mode: tap to log a batch you've read, or re-pledge a fresh count (R12)."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("commit.count.log_one", lang), callback_data=f"clog:1:{pid}")],
+            [InlineKeyboardButton(text=t("commit.count.log_custom", lang), callback_data=f"clogc:{pid}")],
+            [InlineKeyboardButton(text=t("commit.count.new_pledge", lang), callback_data=f"cnew:{pid}")],
+        ]
+    )
+
+
 def commitment_consent_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

@@ -139,6 +139,7 @@ async def run_once(
             await _maybe_record_miss_and_notify_creator(session, notify, participation, khatm)
     await _send_daily_digest(session, notify, daily_candidates, send_quran_pages)
     await _send_open_schedule_reminders(session, notify, tz_name)
+    await deliver_due_regular_commitments(session, notify, tz_name)
     await deliver_due_next_portions(session, notify, tz_name, send_quran_pages)
 
 
@@ -291,6 +292,62 @@ async def deliver_due_open_quran_reading(
             default=f"🌱 سهم امروزتان از «{khatm.title}» فرستاده شد: صفحات {start} تا {end}.",
         )
         await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
+        delivered += 1
+    return delivered
+
+
+async def deliver_due_regular_commitments(
+    session: AsyncSession, notify: NotifyFn, tz_name: str = "Asia/Tehran"
+) -> int:
+    """R11 (owner 2026-09-28): a member on a REGULAR commitment schedule
+    (Salawat/Dua/Ziyarat/La'an — not Quran) gets a nudge at their chosen local
+    time each occurrence (daily / weekly on a weekday / monthly on a day),
+    reminding them to read their per-occurrence amount. Deduped per calendar day
+    via `schedule_last_sent_at`, mirroring `deliver_due_open_quran_reading`."""
+    from khatmsaz.modules.participation.commitment import is_regular_due
+
+    delivered = 0
+    for participation in await participation_service.list_active_with_regular_schedule(session):
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or not khatm_service.has_started(khatm):
+            continue
+        if participation.schedule_freq is None or participation.schedule_hour is None:
+            continue
+
+        user_settings = await settings_service.get_or_create(session, participation.user_id)
+        try:
+            user_tz = ZoneInfo(user_settings.timezone)
+        except (KeyError, ValueError):
+            user_tz = ZoneInfo(tz_name)
+        now_local = datetime.now(user_tz)
+
+        last_sent_local_date = (
+            participation.schedule_last_sent_at.astimezone(user_tz).date()
+            if participation.schedule_last_sent_at is not None
+            else None
+        )
+        if not is_regular_due(
+            now_local,
+            participation.schedule_freq,
+            participation.schedule_anchor,
+            participation.schedule_hour,
+            0,
+            last_sent_local_date,
+        ):
+            continue
+
+        await participation_service.mark_schedule_sent_now(session, participation.id)
+        count = participation.commitment_per_occurrence or 1
+        from khatmsaz.i18n import t as _t
+        text = await _render_or_default(
+            session, "reminder.regular_commitment", locale=user_settings.language,
+            title=khatm.title, count=count,
+            default=_t("reminder.regular_commitment", user_settings.language, title=khatm.title, count=count),
+        )
+        await _notify_user(
+            session, notify, participation.user_id, text,
+            bot_instance_id=participation.joined_via_bot_instance_id,
+        )
         delivered += 1
     return delivered
 

@@ -168,6 +168,78 @@ async def list_active_with_open_reading_plan(session: AsyncSession) -> list[Part
     return list(result.scalars())
 
 
+# ---- R11: member-chosen commitment mode (COUNT / REGULAR) ------------------
+
+async def set_commitment_count(session: AsyncSession, participation_id, target: int) -> None:
+    """COUNT mode: pledge to read `target` repetitions, resetting progress."""
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    from khatmsaz.modules.participation.commitment import CommitmentMode
+    participation.commitment_mode = CommitmentMode.COUNT.value
+    participation.commitment_target = target
+    participation.commitment_done = 0
+    # clear any REGULAR fields so the two modes never coexist
+    participation.schedule_freq = None
+    participation.schedule_anchor = None
+    participation.schedule_hour = None
+    participation.commitment_per_occurrence = None
+    await session.flush()
+
+
+async def log_commitment_count(session: AsyncSession, participation_id, amount: int) -> tuple[int, int, bool] | None:
+    """Add `amount` to a COUNT-mode member's logged total. Returns
+    (new_done, target, completed) or None if the participation is missing."""
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return None
+    from khatmsaz.modules.participation.commitment import log_count
+    new_done, completed = log_count(participation.commitment_done or 0, participation.commitment_target, amount)
+    participation.commitment_done = new_done
+    await session.flush()
+    return new_done, participation.commitment_target, completed
+
+
+async def set_commitment_schedule(
+    session: AsyncSession, participation_id, *, freq: str, anchor: int | None, hour: int, per_occurrence: int
+) -> None:
+    """REGULAR mode: recurring schedule delivered by the reminder engine."""
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    from khatmsaz.modules.participation.commitment import CommitmentMode
+    participation.commitment_mode = CommitmentMode.REGULAR.value
+    participation.schedule_freq = freq
+    participation.schedule_anchor = anchor
+    participation.schedule_hour = hour
+    participation.commitment_per_occurrence = per_occurrence
+    # clear COUNT fields
+    participation.commitment_target = None
+    participation.commitment_done = 0
+    await session.flush()
+
+
+async def mark_schedule_sent_now(session: AsyncSession, participation_id, when) -> None:
+    participation = await session.get(Participation, participation_id)
+    if participation is None:
+        return
+    participation.schedule_last_sent_at = when
+    await session.flush()
+
+
+async def list_active_with_regular_schedule(session: AsyncSession) -> list[Participation]:
+    """All ACTIVE participations on a REGULAR commitment schedule — the
+    reminder engine's scan source (mirrors list_active_with_open_reading_plan)."""
+    from khatmsaz.modules.participation.commitment import CommitmentMode
+    stmt = select(Participation).where(
+        Participation.status == ParticipationStatus.ACTIVE,
+        Participation.commitment_mode == CommitmentMode.REGULAR.value,
+        Participation.schedule_freq.isnot(None),
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars())
+
+
 async def list_active_for_user(session: AsyncSession, user_id) -> list[Participation]:
     stmt = select(Participation).where(
         Participation.user_id == user_id, Participation.status == ParticipationStatus.ACTIVE
