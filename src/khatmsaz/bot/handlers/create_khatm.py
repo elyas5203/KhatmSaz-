@@ -689,12 +689,12 @@ async def choose_visibility(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
     await state.set_state(CreateKhatm.choosing_allowed_platforms)
     
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    # Owner (2026-09-28): order = هر دو (default) first, then تلگرام, then بله.
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="فقط تلگرام", callback_data="ck:platforms:TELEGRAM")],
-            [InlineKeyboardButton(text="فقط بله", callback_data="ck:platforms:BALE")],
-            [InlineKeyboardButton(text="هر دو (پیش‌فرض)", callback_data="ck:platforms:BOTH")],
+            [InlineKeyboardButton(text="🌐 هر دو پیام‌رسان (پیشنهادی)", callback_data="ck:platforms:BOTH")],
+            [InlineKeyboardButton(text="تلگرام", callback_data="ck:platforms:TELEGRAM")],
+            [InlineKeyboardButton(text="بله", callback_data="ck:platforms:BALE")],
         ]
     )
     

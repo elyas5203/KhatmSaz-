@@ -414,9 +414,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": " — on behalf of {name}",
     },
     "create_khatm.ask_niyyat": {
-        "fa": "نیت این ختم ثابت است: «به نیت ظهور امام زمان علیه السلام».\n\nاگر می‌خواهید این ختم را از طرف کسی هدیه کنید، نام او را بنویسید (مثلاً «پدر مرحومم»)، یا دکمهٔ رد کردن را بزنید:",
-        "ar": "نية هذه الختمة ثابتة: «بنية ظهور الإمام المهدي عجل الله فرجه».\n\nإن أردت إهداءها نيابةً عن شخص، اكتب اسمه (مثلاً «والدي المرحوم») أو اضغط زر التخطي:",
-        "en": "This khatm's intention is fixed: “For the reappearance of Imam Mahdi (AJ)”.\n\nIf you'd like to dedicate it on someone's behalf, type their name (e.g. “my late father”), or tap skip:",
+        "fa": "همهٔ ختم‌ها به نیت ظهور امام زمان (عج) هستند.\n\n"
+              "اگر می‌خواهید این ختم را به نیابت یا نیت خاصی هم ثبت کنید، بنویسید (اختیاری). مثلاً:\n"
+              "• به نیابت از پدرم مرحوم حاج حسین…\n"
+              "• به نیت شفای برادرم…\n\n"
+              "یا اگر نمی‌خواهید، دکمهٔ رد کردن را بزنید.",
+        "ar": "كل الختمات بنية ظهور الإمام المهدي (عج).\n\n"
+              "إن أردت تسجيلها بنيّة أو نيابة خاصة أيضاً، فاكتبها (اختياري). مثلاً:\n"
+              "• نيابةً عن والدي المرحوم الحاج حسين…\n"
+              "• بنيّة شفاء أخي…\n\n"
+              "وإن لم ترغب، اضغط زر التخطي.",
+        "en": "Every khatm is for the reappearance of Imam Mahdi (AJ).\n\n"
+              "If you'd also like to register a specific dedication or intention, type it (optional). For example:\n"
+              "• On behalf of my late father, Haj Hossein…\n"
+              "• For the healing of my brother…\n\n"
+              "Or tap skip if you'd rather not.",
     },
     "create_khatm.ask_welcome": {
         "fa": "یک پیام خوش‌آمد بنویسید که هر عضو جدید همون لحظهٔ عضویت ببینه — مثلاً یک توضیح کوتاه یا یک آیه/حدیث (اختیاری، حداکثر ۵۰۰ کاراکتر؛ اگه نمی‌خواید چیزی بنویسید، دکمهٔ رد کردن رو بزنید):",
