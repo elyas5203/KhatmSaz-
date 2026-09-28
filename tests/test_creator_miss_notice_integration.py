@@ -47,7 +47,7 @@ async def test_creator_notified_only_after_threshold_and_member_never_notified()
 
         sent = []
 
-        async def fake_notify(platform, subject, text):
+        async def fake_notify(platform, subject, text, **kwargs):
             sent.append((platform, subject, text))
 
         # First miss ever: below threshold (1 < 2) — no creator notification yet.
@@ -115,7 +115,7 @@ async def test_creator_notified_with_phone_after_two_consecutive_missed_days():
         member = await participation_repository.create(session, khatm_id, member_id)
         sent = []
 
-        async def fake_notify(platform, subject, text):
+        async def fake_notify(platform, subject, text, **kwargs):
             sent.append((platform, subject, text))
 
         # First miss (below threshold)

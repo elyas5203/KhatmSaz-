@@ -14,6 +14,8 @@ from sqlalchemy import delete
 from khatmsaz.bot.handlers.create_khatm import _finish_creating_khatm
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
+from khatmsaz.core.bot_registry import BotRegistry, set_registry
+from khatmsaz.modules.bot_registry.models import BotCategory, BotRole
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User
 from khatmsaz.modules.khatm.models import Khatm, KhatmTemplateType, KhatmTypeEnum, KhatmVisibility
@@ -26,6 +28,9 @@ class FakeState:
     async def clear(self):
         self.data = {}
 
+    async def get_data(self):
+        return dict(self.data)
+
     async def update_data(self, **values):
         self.data.update(values)
 
@@ -34,6 +39,7 @@ class FakeMessage:
     def __init__(self, chat_id, platform):
         self.chat = SimpleNamespace(id=chat_id)
         self.bot = SimpleNamespace(khatmsaz_platform=platform)
+        self.message = self
         self.answers = []
 
     async def answer(self, text, **kwargs):
@@ -45,6 +51,13 @@ class FakeMessage:
 async def test_bale_invite_is_a_real_clickable_link_not_a_typed_command():
     settings = get_settings()
     assert settings.bale_bot_username, "BALE_BOT_USERNAME must be set for this test to be meaningful"
+    set_registry(BotRegistry([SimpleNamespace(
+        khatmsaz_role=BotRole.MEMBER,
+        khatmsaz_platform=Platform.BALE,
+        khatmsaz_category=BotCategory.SALAWAT.value,
+        khatmsaz_language="fa",
+        khatmsaz_username=settings.bale_bot_username,
+    )]))
 
     chat_id = 9_840_000_777
     async with session_scope() as session:

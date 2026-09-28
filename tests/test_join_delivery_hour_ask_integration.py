@@ -148,9 +148,8 @@ async def test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it():
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_fresh_committed_salawat_join_asks_delivery_hour():
-    """Owner request 2026-09-22: delivery-hour question must fire for salawat
-    (QUANTITY) khatms too, not only Quran-page (POSITIONAL) ones."""
+async def test_fresh_committed_salawat_join_asks_commitment_mode():
+    """R11 supersedes the old bare delivery-hour question for repetitions."""
     creator_id, khatm_id = new_id(), new_id()
     chat_id = 9_900_000_000 + (int.from_bytes(new_id().bytes[:4], "big") % 1_000_000)
 
@@ -176,20 +175,17 @@ async def test_fresh_committed_salawat_join_asks_delivery_hour():
             message, session, member_id, token, state=state, consent_accepted=True,
         )
 
-    assert len(message.answers) == 2, "join success + delivery-hour question expected"
-    assert state.state == AskDeliveryHour.entering_hour
+    assert len(message.answers) == 3, "join success + commitment explanation + mode picker expected"
+    assert "چطور می‌خوای بخونی" in message.answers[-1][0]
+    assert state.state is None
 
     async with session_scope() as session:
         participation = await participation_repository.get_active(session, khatm_id, member_id)
         participation_id = participation.id
 
-    message.text = "8"
-    await receive_delivery_hour(message, state)
-    assert state.state is None
     async with session_scope() as session:
         preference = await notification_service.get_preference(session, participation_id)
-        assert preference is not None
-        assert preference.reminder_hour == 8
+        assert preference is None
 
         from khatmsaz.modules.notification.models import NotificationPreference
         from khatmsaz.modules.allocation.models import KhatmAllocationPlan, KhatmPortion
@@ -202,7 +198,6 @@ async def test_fresh_committed_salawat_join_asks_delivery_hour():
                 KhatmInvitation.created_by_user_id == creator_id,
             )
         ))
-        await session.execute(delete(NotificationPreference).where(NotificationPreference.participation_id == participation_id))
         await session.execute(delete(KhatmPortion).where(KhatmPortion.khatm_id == khatm_id))
         await session.execute(delete(type(participation)).where(type(participation).khatm_id == khatm_id))
         await session.execute(delete(KhatmAllocationPlan).where(KhatmAllocationPlan.khatm_id == khatm_id))

@@ -65,10 +65,10 @@ async def test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour():
 
         sent_ranges = []
 
-        async def fake_notify(platform, subject, text):
+        async def fake_notify(platform, subject, text, **kwargs):
             pass
 
-        async def fake_send_quran_pages(session, platform_value, chat_id, *, khatm, user_id, page_start, page_end):
+        async def fake_send_quran_pages(session, platform_value, chat_id, *, khatm, user_id, page_start, page_end, **kwargs):
             sent_ranges.append((page_start, page_end))
 
         delivered = await reminder_service.deliver_due_open_quran_reading(session, fake_notify, fake_send_quran_pages, tz_name)

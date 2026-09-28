@@ -43,7 +43,7 @@ async def test_admin_can_search_khatms_by_title_creator_and_uuid():
                 assert "ختم یکتای سحرگاهی" in response.text
             empty = await client.get("/khatms", params={"q": "عبارت ناموجود قطعی"})
             assert "ختم یکتای سحرگاهی" not in empty.text
-            assert "نتیجه‌ای نیست" in empty.text
+            assert "نتیجه‌ای پیدا نشد" in empty.text
     finally:
         async with session_scope() as session:
             await session.execute(delete(Session).where(Session.user_id == admin_id))

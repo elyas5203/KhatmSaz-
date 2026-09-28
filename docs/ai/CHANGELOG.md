@@ -1,3 +1,8 @@
+## 2026-09-28 (integration-suite alignment after R11/live QA)
+- Updated integration fixtures and expectations for multi-bot notification callbacks, member-bot invite links, current Persian copy, and the R11 member commitment picker.
+- Corrected one-portion-per-day test setup to backdate `updated_at`, which is the production dedupe timestamp.
+- Verified the complete opt-in suite on PostgreSQL 17: 226 passed.
+
 ## 2026-09-28 (fresh-database Alembic ordering fix)
 - Repaired the migration graph so `bot_instances` is created before `joined_via_bot_instance_id` and the R2 intro-image column reference it.
 - Preserved all revision IDs and added a migration-graph regression test.

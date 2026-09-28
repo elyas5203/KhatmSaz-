@@ -1,3 +1,9 @@
+## Current state — 2026-09-28 — Integration suite restored after live-QA redesign [Codex]
+- **What changed**: refreshed integration test doubles for the multi-bot callback signatures (`bot_instance_id`), initialized a realistic in-memory member-bot registry for invite tests, aligned exact-copy assertions with the redesigned templates, backdated the allocation timestamp actually used by the one-portion-per-day engine, and updated the superseded Salawat join expectation from a bare delivery-hour prompt to the R11 commitment-mode picker.
+- **Why**: the opt-in PostgreSQL suite exposed 13 failures after the latest live-QA/R11 commits. These were stale tests or cross-test residue caused by their early failures; production behavior was not weakened to satisfy them.
+- **How verified**: full suite with `RUN_INTEGRATION_TESTS=1` on disposable PostgreSQL 17 → **226 passed**.
+- **Still outstanding**: live Telegram/Bale/PayPing checks remain owner-run; DEC-PY-0092 rotating allocation remains the next structural feature.
+
 ## Current state — 2026-09-28 — Fresh-Postgres migration chain repaired [Codex]
 - **Found by real apply, not graph inspection alone**: applying the full Alembic chain to a disposable PostgreSQL 17 database failed because `b8c9d0e1f2b4` added a foreign key to `bot_instances` before `b7c8d9e0f1a2` created that table. The later R2 migration then failed for the same missing table.
 - **Fix**: ordered the historical revisions by their real schema dependency (`b7 -> b8 -> 506`), made `mrg2026092801` merge through `506`, and retained `fin2026092804` as the stable final revision marker. Existing revision IDs and schema operations are unchanged.

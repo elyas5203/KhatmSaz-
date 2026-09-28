@@ -15,6 +15,9 @@ from sqlalchemy import delete, select
 from khatmsaz.bot.handlers.change_phone import ChangePhone, receive_change_code
 from khatmsaz.bot.handlers.create_khatm import CreateKhatm, confirm_wizard
 from khatmsaz.core.db import session_scope
+from khatmsaz.core.bot_registry import BotRegistry, set_registry
+from khatmsaz.config import get_settings
+from khatmsaz.modules.bot_registry.models import BotCategory, BotRole
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User
 from khatmsaz.modules.khatm.models import Khatm, KhatmTemplateType, KhatmTypeEnum, KhatmVisibility
@@ -48,6 +51,7 @@ class FakeMessage:
     def __init__(self, chat_id):
         self.chat = SimpleNamespace(id=chat_id)
         self.bot = SimpleNamespace(khatmsaz_platform=Platform.TELEGRAM)
+        self.message = self
         self.text = None
         self.answers = []
 
@@ -71,6 +75,14 @@ class FakeCallback:
 async def test_confirm_wizard_resumes_and_finishes_creation_after_otp():
     import time
     unique = str(int(time.time() * 1000))[-8:]
+    settings = get_settings()
+    set_registry(BotRegistry([SimpleNamespace(
+        khatmsaz_role=BotRole.MEMBER,
+        khatmsaz_platform=Platform.TELEGRAM,
+        khatmsaz_category=BotCategory.SALAWAT.value,
+        khatmsaz_language="fa",
+        khatmsaz_username=settings.telegram_bot_username or "test_salawat_bot",
+    )]))
     chat_id = int(f"98{unique}")
     phone = f"+989{unique}"
     async with session_scope() as session:

@@ -85,7 +85,7 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
 
         sent = []
 
-        async def notify(platform, subject, text):
+        async def notify(platform, subject, text, **kwargs):
             sent.append((platform, subject, text))
 
         # Same day, reminder hour reached: still too early (< 1 full day since completion).
@@ -96,6 +96,7 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
 
         # Simulate a full day having passed since completion.
         completed.completed_at = datetime.now(timezone.utc) - timedelta(days=1, hours=1)
+        completed.updated_at = completed.completed_at
         await session.flush()
 
         delivered_next_day = await reminder_service.deliver_due_next_portions(session, notify, tz_name)

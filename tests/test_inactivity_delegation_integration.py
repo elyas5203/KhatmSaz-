@@ -41,7 +41,7 @@ async def test_thirty_day_inactive_member_portion_moves_to_backup_without_miss()
         assert assigned is not None
         sent = []
 
-        async def notify(platform, subject, text):
+        async def notify(platform, subject, text, **kwargs):
             sent.append((platform, subject, text))
 
         moved = await reminder_service.delegate_inactive_portions(session, notify)

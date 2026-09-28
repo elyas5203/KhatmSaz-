@@ -69,10 +69,10 @@ async def test_deliver_due_next_portions_pushes_real_content_not_just_text():
 
         pushed = []
 
-        async def fake_notify(platform, subject, text):
+        async def fake_notify(platform, subject, text, **kwargs):
             pass
 
-        async def fake_send_quran_pages(session, platform_value, chat_id, *, khatm, user_id, page_start, page_end):
+        async def fake_send_quran_pages(session, platform_value, chat_id, *, khatm, user_id, page_start, page_end, **kwargs):
             pushed.append((page_start, page_end))
 
         # Same day: one-portion-per-day means nothing is due yet.
@@ -93,6 +93,7 @@ async def test_deliver_due_next_portions_pushes_real_content_not_just_text():
             )
         ).scalar_one()
         completed_portion.completed_at = datetime.now(timezone.utc) - timedelta(days=1, hours=1)
+        completed_portion.updated_at = completed_portion.completed_at
         await session.flush()
 
         delivered_next_day = await reminder_service.deliver_due_next_portions(session, fake_notify, tz_name, fake_send_quran_pages)

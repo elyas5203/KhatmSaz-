@@ -50,7 +50,7 @@ async def test_public_join_page_previews_without_joining_and_rejects_cancelled_l
         assert page.status_code == 200
         assert "ختم عمومی آزمایشی" in page.text
         assert "به نیت سلامتی" in page.text
-        assert "بازکردن این صفحه یعنی عضو نشده‌اید" in page.text
+        assert "بازکردن این صفحه به معنای عضویت نیست" in page.text
         assert "خادم" in page.text
 
         async with session_scope() as session:

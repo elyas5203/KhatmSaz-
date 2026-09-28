@@ -38,6 +38,7 @@ class FakeState:
 
 class FakeMessage:
     def __init__(self):
+        self.bot = SimpleNamespace(khatmsaz_role="MEMBER", khatmsaz_language="fa")
         self.answers = []
 
     async def answer(self, text, **kwargs):
