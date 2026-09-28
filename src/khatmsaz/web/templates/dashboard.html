@@ -34,6 +34,38 @@
   </article>
 </section>
 
+{% set perms = admin._admin_permissions if admin else [] %}
+<!-- Quick access: every section one tap away (non-technical hub) -->
+<section class="mb-8">
+  <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-3">دسترسی سریع</p>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    {% macro tile(href, label, emoji) %}
+      <a href="{{ href }}" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+        <span class="text-2xl">{{ emoji }}</span>
+        <span class="text-sm font-bold text-slate-200">{{ label }}</span>
+      </a>
+    {% endmacro %}
+    {% if 'CONTENT_MANAGE' in perms %}
+      {{ tile('/devotionals', 'دعاها و زیارات', '📿') }}
+      {{ tile('/categories', 'دسته‌ها', '🗂') }}
+      {{ tile('/templates', 'پیام‌ها', '💬') }}
+    {% endif %}
+    {% if 'SUPPORT_USERS' in perms or 'MODERATION_MANAGE' in perms %}
+      {{ tile('/khatms', 'ختم‌ها', '📖') }}
+      {{ tile('/users', 'کاربران', '👥') }}
+    {% endif %}
+    {% if 'SUPPORT_USERS' in perms %}{{ tile('/phone-verifications', 'احراز شماره', '📱') }}{% endif %}
+    {% if 'MODERATION_MANAGE' in perms %}{{ tile('/broadcasts', 'پیام گروهی', '📢') }}{% endif %}
+    {% if 'FINANCE_MANAGE' in perms %}{{ tile('/finance', 'مالی و پلن‌ها', '💳') }}{% endif %}
+    {% if 'OPERATIONS_VIEW' in perms %}
+      {{ tile('/bots', 'باتها', '🤖') }}
+      {{ tile('/operations', 'سلامت سیستم', '🩺') }}
+      {{ tile('/audit', 'رویدادها', '🕘') }}
+    {% endif %}
+    {% if 'ADMIN_ROLES_MANAGE' in perms %}{{ tile('/admins', 'مدیران', '🛡') }}{% endif %}
+  </div>
+</section>
+
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
   <!-- Queue -->
   <section class="glass-panel rounded-3xl p-6 lg:col-span-1 h-fit">
@@ -42,18 +74,18 @@
       <h2 class="text-xl font-bold text-white">موارد در انتظار</h2>
     </div>
     <div class="flex flex-col gap-3">
-      <div class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50">
+      <a href="/khatms" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
         <span class="text-sm text-slate-300">کاورهای ختم {{ tooltip("کاورهایی که کاربران برای ختم‌هایشان آپلود کرده‌اند و منتظر تایید محتوایی هستند.") }}</span>
-        <b class="bg-slate-700/50 text-emerald-400 text-sm font-mono px-3 py-1 rounded-full">{{ pending.covers }}</b>
-      </div>
-      <div class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50">
+        <b class="bg-slate-700/50 {% if pending.covers %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.covers }}</b>
+      </a>
+      <a href="/broadcasts" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
         <span class="text-sm text-slate-300">پیام‌های گروهی {{ tooltip("پیام‌های همگانی (Broadcast) تنظیم شده که باید توسط مدیر تایید شوند تا ارسال شوند.") }}</span>
-        <b class="bg-slate-700/50 text-emerald-400 text-sm font-mono px-3 py-1 rounded-full">{{ pending.broadcasts }}</b>
-      </div>
-      <div class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50">
+        <b class="bg-slate-700/50 {% if pending.broadcasts %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.broadcasts }}</b>
+      </a>
+      <a href="/categories" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
         <span class="text-sm text-slate-300">درخواست نوع ختم {{ tooltip("درخواست‌هایی که کاربران برای اضافه شدن ادعیه یا زیارات جدید داده‌اند.") }}</span>
-        <b class="bg-slate-700/50 text-emerald-400 text-sm font-mono px-3 py-1 rounded-full">{{ pending.requests }}</b>
-      </div>
+        <b class="bg-slate-700/50 {% if pending.requests %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.requests }}</b>
+      </a>
     </div>
   </section>
 

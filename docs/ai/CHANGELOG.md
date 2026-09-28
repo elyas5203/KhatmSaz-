@@ -1,3 +1,6 @@
+## 2026-09-27 (admin dashboard → real hub: quick-access tiles + clickable queue)
+- **UX**: The admin dashboard (`/`) now shows a permission-gated «دسترسی سریع» grid of tiles linking to every section (دعاها/دسته‌ها/پیام‌ها/ختم‌ها/کاربران/احراز/پیام گروهی/مالی/باتها/سلامت/رویدادها/مدیران), so a non-technical admin lands and reaches any capability in one tap without hunting the sidebar. The «موارد در انتظار» rows are now clickable links (covers→/khatms, broadcasts→/broadcasts, requests→/categories) and turn amber when non-zero. Verified by Jinja render (12 tiles, gated by `admin._admin_permissions`). Part of the owner's added panel-redesign goal.
+
 ## 2026-09-27 (member-facing hardcoded Persian → i18n + i18n coverage guard)
 - **Fix**: `member_start.py` sent two hardcoded Persian errors («این ختم مربوط به بات دیگری است»، «این ختم فقط برای کاربران …») even on the Arabic/English member bots. Moved to i18n keys `join.error.wrong_bot` and `join.error.platform_restricted` (fa/ar/en).
 - **Guard**: New `tests/test_i18n_coverage.py` — asserts (1) every i18n key defines fa+ar+en, and (2) every literal `t()`/`web_t()` key referenced in code exists. This locks out the raw-slug / wrong-language bug class the owner hit in live QA (e.g. «button.confirm»). Full audit result: 812 keys, 0 missing a language, 0 dangling references.
