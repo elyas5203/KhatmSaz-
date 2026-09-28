@@ -352,8 +352,10 @@ async def deliver_due_regular_commitments(
 
 
 async def delegate_inactive_portions(session: AsyncSession, notify: NotifyFn) -> int:
-    """Move assigned Quran portions from 30-day inactive members to opt-in
-    backup readers without creating a miss for the original member."""
+    """Delegate legacy shared-pool portions from inactive members.
+
+    DEC-PY-0092 rotating portions remain personal and are deliberately skipped.
+    """
     cutoff = datetime.now(timezone.utc) - timedelta(days=await _inactivity_days(session))
     moved = 0
     for portion in await allocation_service.list_assigned_positional_portions(session):
@@ -365,6 +367,10 @@ async def delegate_inactive_portions(session: AsyncSession, notify: NotifyFn) ->
             continue
         khatm = await khatm_service.get_khatm(session, portion.khatm_id)
         if khatm is None or khatm.khatm_type != KhatmTypeEnum.COMMITMENT:
+            continue
+        # DEC-PY-0092 personal journeys have no shared/backup pool. An
+        # inactive reader keeps their current personal range until returning.
+        if await allocation_service.uses_rotating_allocation(session, khatm.id):
             continue
         await allocation_service.release_portion(session, portion.id)
         for backup in await participation_repository.list_active_for_khatm(session, khatm.id):

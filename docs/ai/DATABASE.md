@@ -19,20 +19,24 @@ bug this caused once already.
 
 ## Invariants SQLAlchemy can't express declaratively
 
-Eight partial unique indexes are hand-written as raw SQL in migrations (not
+Partial unique indexes are hand-written as raw SQL in migrations (not
 derivable from `models.py` — if you regenerate a migration with
 `--autogenerate` and it tries to drop these, that's a false positive; keep
 them):
 
 1. `khatm_participations`: at most one `ACTIVE` participation per (khatm, user).
 2. `user_capabilities`: at most one active (non-revoked) grant per (user, type).
-3. `khatm_portions`: no two `POSITIONAL` portions with the same `unit_start`
-   within a plan (non-overlap).
-4. `phone_claims`: at most one `VERIFIED` claim per canonical `e164`, globally.
-5. `phone_claims`: at most one active (non-`REVOKED`) claim per (user, e164).
-6. `phone_claims`: at most one `VERIFIED` claim per user, across all numbers.
-7. `manual_phone_verifications`: at most one `PENDING` request per user.
-8. `manual_phone_verifications`: at most one `PENDING` request per E.164
+3. `khatm_portions` shared-pool rows: unique `(plan_id, sequence)` and unique
+   positional `(plan_id, unit_start)` while `participation_id IS NULL`.
+4. `khatm_portions` personal rows: unique `(plan_id, participation_id,
+   sequence)`; repeated page ranges across readers/cycles are valid for
+   DEC-PY-0092 rotation.
+5. `khatm_participations`: one active non-null Quran rotation offset per khatm.
+6. `phone_claims`: at most one `VERIFIED` claim per canonical `e164`, globally.
+7. `phone_claims`: at most one active (non-`REVOKED`) claim per (user, e164).
+8. `phone_claims`: at most one `VERIFIED` claim per user, across all numbers.
+9. `manual_phone_verifications`: at most one `PENDING` request per user.
+10. `manual_phone_verifications`: at most one `PENDING` request per E.164
    number. Both are added by migration `q7r8s9t0`.
 
 ## Migration workflow

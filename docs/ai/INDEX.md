@@ -39,6 +39,9 @@
 - DEC-PY-0072 (بالا) — تصمیم استقلال خانواده‌ها.
 
 ## قرآن (کانال، صفحه‌بندی، assetها)
+- DEC-PY-0092 — تخصیص چرخشی و دنبالهٔ شخصی هر خواننده: `DECISIONS.md:8`
+- کد چرخش: `src/khatmsaz/modules/allocation/service.py` و migration
+  `migrations/versions/rot2026092805_rotating_quran_allocation.py`
 - DEC-PY-0040 — asset فقط برای صفحهٔ کانونیک: `archive/...:224`
 - DEC-PY-0041 — تحویل محتوا asset-first: `archive/...:233`
 - DEC-PY-0042 — فرمت محتوا انتخاب سازنده‌ست: `archive/...:241`

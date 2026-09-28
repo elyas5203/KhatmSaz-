@@ -70,6 +70,10 @@ class Participation(Base):
     # per local calendar day, mirroring the committed one-portion-per-day
     # rule without reusing its machinery (no KhatmPortion exists here).
     open_reading_last_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # DEC-PY-0092: distinct zero-based starting position for a committed
+    # Quran reader in a ROTATING allocation plan. Existing/shared-pool khatms
+    # keep NULL and therefore retain their historical behavior.
+    quran_rotation_offset: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # ---- R11 (owner 2026-09-28): the MEMBER picks how they commit ----------
     # Two modes for a commitment khatm (Salawat/Dua/Ziyarat/La'an), chosen by
     # the joiner, not the creator (the creator only sets the khatm TOTAL — R5):

@@ -19,7 +19,9 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.modules.allocation import repository
-from khatmsaz.modules.allocation.models import KhatmAllocationPlan, KhatmPortion, PortionStatus, PortionUnitKind
+from khatmsaz.modules.allocation.models import (
+    AllocationStrategy, KhatmAllocationPlan, KhatmPortion, PortionStatus, PortionUnitKind,
+)
 
 DEFAULT_PAGES_PER_PORTION = 2
 EMERGENCY_CLAIM_LOCK = timedelta(hours=2)
@@ -60,10 +62,15 @@ async def generate_quran_page_plan(
     if existing is not None:
         return existing
 
-    total_portions = -(-total_pages // pages_per_portion)  # ceil division
-    plan = await repository.create_plan(session, khatm_id, PortionUnitKind.POSITIONAL, total_portions)
-    await repository.bulk_create_positional_portions(session, plan.id, khatm_id, total_pages, pages_per_portion)
-    return plan
+    boundaries = [
+        (start, min(start + pages_per_portion - 1, total_pages))
+        for start in range(1, total_pages + 1, pages_per_portion)
+    ]
+    return await repository.create_plan(
+        session, khatm_id, PortionUnitKind.POSITIONAL, len(boundaries),
+        allocation_strategy=AllocationStrategy.ROTATING,
+        positional_boundaries=boundaries,
+    )
 
 
 async def generate_quran_page_plan_from_boundaries(
@@ -77,15 +84,19 @@ async def generate_quran_page_plan_from_boundaries(
     if existing is not None:
         return existing
 
-    plan = await repository.create_plan(session, khatm_id, PortionUnitKind.POSITIONAL, len(boundaries))
-    await repository.bulk_create_positional_portions_from_boundaries(session, plan.id, khatm_id, boundaries)
-    return plan
+    return await repository.create_plan(
+        session, khatm_id, PortionUnitKind.POSITIONAL, len(boundaries),
+        allocation_strategy=AllocationStrategy.ROTATING,
+        positional_boundaries=boundaries,
+    )
 
 
 async def allocate_next_portion_to(session: AsyncSession, khatm_id, participation_id) -> KhatmPortion | None:
-    plan = await repository.get_plan_by_khatm(session, khatm_id)
+    plan = await repository.get_plan_by_khatm_for_update(session, khatm_id)
     if plan is None:
         return None
+    if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
+        return await repository.create_next_rotating_portion(session, plan, khatm_id, participation_id)
     portion = await repository.next_open_portion(session, plan.id)
     if portion is None:
         return None
@@ -137,6 +148,11 @@ async def peek_next_open_portion(session: AsyncSession, khatm_id) -> KhatmPortio
     plan = await repository.get_plan_by_khatm(session, khatm_id)
     if plan is None:
         return None
+    if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
+        # A rotating plan has no shared OPEN rows; an existing personal row is
+        # enough to signal that the reader can continue on the next day.
+        result = await repository.list_for_khatm(session, khatm_id)
+        return result[-1] if result else None
     return await repository.next_open_portion(session, plan.id)
 
 
@@ -152,7 +168,10 @@ async def progress(session: AsyncSession, khatm_id) -> tuple[int, int]:
     plan = await repository.get_plan_by_khatm(session, khatm_id)
     if plan is None:
         return 0, 0
-    completed = await repository.count_status(session, plan.id, PortionStatus.COMPLETED)
+    if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
+        completed = await repository.count_distinct_completed_positional(session, plan.id)
+    else:
+        completed = await repository.count_status(session, plan.id, PortionStatus.COMPLETED)
     return completed, plan.total_portions
 
 
@@ -164,13 +183,23 @@ async def list_assigned_positional_portions(session: AsyncSession) -> list[Khatm
     return await repository.list_assigned_positional_portions(session)
 
 
+async def uses_rotating_allocation(session: AsyncSession, khatm_id) -> bool:
+    plan = await repository.get_plan_by_khatm(session, khatm_id)
+    return plan is not None and plan.allocation_strategy == AllocationStrategy.ROTATING.value
+
+
 async def release_portion(session: AsyncSession, portion_id) -> None:
-    """A missed-deadline portion goes back to the shared OPEN pool — the
-    "emergency pool" (DOMAIN_MODEL.md §3) anyone in the khatm can then claim
-    via `claim_next_open_portion`. See DECISIONS.md DEC-PY-0009: the original
-    holder is NOT auto-reassigned a replacement; they keep their ACTIVE
-    participation and can claim a new portion themselves like anyone else."""
-    await repository.release_portion(session, portion_id)
+    """Release a legacy shared-pool portion, or retire a rotating personal one.
+
+    A rotating row retains its participation identity and is never exposed to
+    the shared claim path; the next reader/day is generated independently.
+    """
+    portion = await session.get(KhatmPortion, portion_id)
+    plan = await session.get(KhatmAllocationPlan, portion.plan_id) if portion is not None else None
+    if plan is not None and plan.allocation_strategy == AllocationStrategy.ROTATING.value:
+        await repository.retire_rotating_portion(session, portion_id)
+    else:
+        await repository.release_portion(session, portion_id)
 
 
 async def claim_next_open_portion(
@@ -182,6 +211,8 @@ async def claim_next_open_portion(
     Returns None if the pool is empty (no OPEN portions right now)."""
     plan = await repository.get_plan_by_khatm(session, khatm_id)
     if plan is None:
+        return None
+    if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
         return None
 
     await repository.release_expired_claims(session, datetime.now(timezone.utc))
@@ -199,6 +230,8 @@ async def claim_next_open_portion(
 async def count_open(session: AsyncSession, khatm_id) -> int:
     plan = await repository.get_plan_by_khatm(session, khatm_id)
     if plan is None:
+        return 0
+    if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
         return 0
     return await repository.count_status(session, plan.id, PortionStatus.OPEN)
 

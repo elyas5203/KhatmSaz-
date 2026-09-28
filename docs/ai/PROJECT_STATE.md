@@ -1,3 +1,10 @@
+## Current state — 2026-09-28 — DEC-PY-0092 rotating Quran allocation wired [Codex]
+- **What changed**: new committed-Quran plans use `ROTATING` allocation with stored real page/audio boundaries. Each active participant receives a unique `quran_rotation_offset`; portions are created lazily per participant, so their own sequence advances continuously and wraps (for example 1–2 → 3–4 → 5–6 → 1–2) while another reader starts at a staggered range. Existing plans default to `SHARED_POOL` and keep their prior behavior.
+- **Schema**: migration `rot2026092805` adds plan strategy/boundaries and participant offset, replaces the global portion uniqueness rules with shared-pool and per-participant partial unique indexes, and prevents rotating personal rows from entering the legacy claim pool.
+- **Why**: owner-confirmed DEC-PY-0092; the previous global next-open pool made one reader jump by the number of active members.
+- **How verified**: fresh PostgreSQL 17 upgrade from zero, `downgrade -1` + re-upgrade, focused wrap/stagger/release integration coverage, and full suite with `RUN_INTEGRATION_TESTS=1` → **227 passed**.
+- **Still outstanding**: production deploy and live Telegram exercise after owner-approved push; no production database was modified here.
+
 ## Current state — 2026-09-28 — Integration suite restored after live-QA redesign [Codex]
 - **What changed**: refreshed integration test doubles for the multi-bot callback signatures (`bot_instance_id`), initialized a realistic in-memory member-bot registry for invite tests, aligned exact-copy assertions with the redesigned templates, backdated the allocation timestamp actually used by the one-portion-per-day engine, and updated the superseded Salawat join expectation from a bare delivery-hour prompt to the R11 commitment-mode picker.
 - **Why**: the opt-in PostgreSQL suite exposed 13 failures after the latest live-QA/R11 commits. These were stale tests or cross-test residue caused by their early failures; production behavior was not weakened to satisfy them.

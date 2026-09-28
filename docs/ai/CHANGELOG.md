@@ -1,3 +1,9 @@
+## 2026-09-28 (DEC-PY-0092 rotating committed-Quran allocation)
+- New Quran commitment plans now allocate a distinct staggered start per reader and advance each reader's own ranges sequentially with wraparound.
+- Added `rot2026092805`: strategy/boundary metadata, per-participant rotation offset, and partial uniqueness rules that support repeated page ranges safely.
+- Preserved existing plans as `SHARED_POOL`; rotating released rows cannot leak into the legacy emergency/claim pool.
+- PostgreSQL fresh apply + downgrade/re-upgrade and full 227-test suite pass.
+
 ## 2026-09-28 (integration-suite alignment after R11/live QA)
 - Updated integration fixtures and expectations for multi-bot notification callbacks, member-bot invite links, current Persian copy, and the R11 member commitment picker.
 - Corrected one-portion-per-day test setup to backdate `updated_at`, which is the production dedupe timestamp.

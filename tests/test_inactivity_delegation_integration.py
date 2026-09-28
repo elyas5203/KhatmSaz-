@@ -15,7 +15,7 @@ from khatmsaz.modules.reminder_engine import service as reminder_service
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_thirty_day_inactive_member_portion_moves_to_backup_without_miss():
+async def test_rotating_portion_stays_personal_when_member_is_inactive():
     creator_id, member_id, backup_id, khatm_id = (new_id() for _ in range(4))
     member_identity_id, backup_identity_id = new_id(), new_id()
     async with session_scope() as session:
@@ -46,10 +46,9 @@ async def test_thirty_day_inactive_member_portion_moves_to_backup_without_miss()
 
         moved = await reminder_service.delegate_inactive_portions(session, notify)
         refreshed = await session.get(type(assigned), assigned.id)
-        assert moved == 1
-        assert refreshed is not None and refreshed.participation_id == backup.id
-        assert len(sent) == 2
-        assert all("واگذار" in text for _, _, text in sent)
+        assert moved == 0
+        assert refreshed is not None and refreshed.participation_id == member.id
+        assert sent == []
 
         await session.execute(delete(type(assigned)).where(type(assigned).khatm_id == khatm_id))
         plan = await allocation_repository.get_plan_by_khatm(session, khatm_id)

@@ -4,6 +4,13 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-09-28 — Rotating committed-Quran allocation (DONE)
+- [x] Each committed reader advances through their own sequential Quran ranges
+      from a distinct staggered offset and wraps at the end (DEC-PY-0092).
+- [x] Existing shared-pool plans remain compatible; new plans store exact audio
+      boundaries and use per-participant portion identity.
+- [x] PostgreSQL migration apply/downgrade/re-apply and integration coverage.
+
 ## Phase 1.5 — Scheduled starts (DONE — 2026-09-16)
 - [x] Creator chooses immediate or future Tehran-local start time during creation;
       invite links can be distributed before the start.

@@ -10,8 +10,8 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, Integer, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from khatmsaz.core.db import Base
@@ -28,6 +28,11 @@ class PortionStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
 
 
+class AllocationStrategy(str, enum.Enum):
+    SHARED_POOL = "SHARED_POOL"
+    ROTATING = "ROTATING"
+
+
 class KhatmAllocationPlan(Base):
     __tablename__ = "khatm_allocation_plans"
 
@@ -35,6 +40,8 @@ class KhatmAllocationPlan(Base):
     khatm_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("khatms.id"), unique=True)
     unit_kind: Mapped[PortionUnitKind] = mapped_column()
     total_portions: Mapped[int] = mapped_column(Integer)
+    allocation_strategy: Mapped[str] = mapped_column(String(16), default=AllocationStrategy.SHARED_POOL.value)
+    positional_boundaries: Mapped[list[list[int]] | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -69,13 +76,13 @@ class KhatmPortion(Base):
     )
 
     __table_args__ = (
-        UniqueConstraint("plan_id", "sequence", name="uq_khatm_portions_plan_sequence"),
         Index("ix_khatm_portions_khatm_id", "khatm_id"),
         Index("ix_khatm_portions_plan_id", "plan_id"),
         Index("ix_khatm_portions_participation_id", "participation_id"),
         Index("ix_khatm_portions_status", "status"),
-        # Hand-written partial unique index (Alembic migration, not expressible here):
-        #   UNIQUE (plan_id, unit_start) WHERE unit_kind = 'POSITIONAL'
+        # Hand-written partial unique indexes in the Alembic migration keep
+        # shared-pool rows unique while allowing the rotating strategy to use
+        # the same page range independently for different participants.
     )
 
 

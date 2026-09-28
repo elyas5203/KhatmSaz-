@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.allocation.models import (
     CommittedQuantityLog,
+    AllocationStrategy,
     KhatmAllocationPlan,
     KhatmPortion,
     PortionStatus,
@@ -16,9 +17,15 @@ from khatmsaz.modules.allocation.models import (
 
 
 async def create_plan(
-    session: AsyncSession, khatm_id, unit_kind: PortionUnitKind, total_portions: int
+    session: AsyncSession, khatm_id, unit_kind: PortionUnitKind, total_portions: int,
+    *, allocation_strategy: AllocationStrategy = AllocationStrategy.SHARED_POOL,
+    positional_boundaries: list[tuple[int, int]] | None = None,
 ) -> KhatmAllocationPlan:
-    plan = KhatmAllocationPlan(id=new_id(), khatm_id=khatm_id, unit_kind=unit_kind, total_portions=total_portions)
+    plan = KhatmAllocationPlan(
+        id=new_id(), khatm_id=khatm_id, unit_kind=unit_kind,
+        total_portions=total_portions, allocation_strategy=allocation_strategy.value,
+        positional_boundaries=[list(pair) for pair in positional_boundaries] if positional_boundaries else None,
+    )
     session.add(plan)
     await session.flush()
     return plan
@@ -28,6 +35,66 @@ async def get_plan_by_khatm(session: AsyncSession, khatm_id) -> KhatmAllocationP
     stmt = select(KhatmAllocationPlan).where(KhatmAllocationPlan.khatm_id == khatm_id)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def get_plan_by_khatm_for_update(session: AsyncSession, khatm_id) -> KhatmAllocationPlan | None:
+    stmt = (
+        select(KhatmAllocationPlan)
+        .where(KhatmAllocationPlan.khatm_id == khatm_id)
+        .with_for_update()
+    )
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
+async def create_next_rotating_portion(
+    session: AsyncSession, plan: KhatmAllocationPlan, khatm_id, participation_id,
+) -> KhatmPortion | None:
+    """Create the reader's next personal Quran range under the locked plan."""
+    from khatmsaz.modules.participation.models import Participation, ParticipationStatus
+
+    participation = await session.get(Participation, participation_id)
+    boundaries = plan.positional_boundaries or []
+    if participation is None or not boundaries:
+        return None
+
+    if participation.quran_rotation_offset is None:
+        used = set((await session.execute(
+            select(Participation.quran_rotation_offset).where(
+                Participation.khatm_id == khatm_id,
+                Participation.status == ParticipationStatus.ACTIVE,
+                Participation.quran_rotation_offset.is_not(None),
+            )
+        )).scalars())
+        offset = next((candidate for candidate in range(len(boundaries)) if candidate not in used), None)
+        if offset is None:
+            return None
+        participation.quran_rotation_offset = offset
+
+    completed_steps = int((await session.execute(
+        select(func.count()).select_from(KhatmPortion).where(
+            KhatmPortion.plan_id == plan.id,
+            KhatmPortion.participation_id == participation_id,
+        )
+    )).scalar_one())
+    boundary = boundaries[(participation.quran_rotation_offset + completed_steps) % len(boundaries)]
+    portion = KhatmPortion(
+        id=new_id(), plan_id=plan.id, khatm_id=khatm_id,
+        sequence=completed_steps + 1, unit_kind=PortionUnitKind.POSITIONAL,
+        unit_start=int(boundary[0]), unit_end=int(boundary[1]),
+        status=PortionStatus.ASSIGNED, participation_id=participation_id,
+    )
+    session.add(portion)
+    await session.flush()
+    return portion
+
+
+async def count_distinct_completed_positional(session: AsyncSession, plan_id) -> int:
+    stmt = select(func.count(func.distinct(KhatmPortion.unit_start))).where(
+        KhatmPortion.plan_id == plan_id,
+        KhatmPortion.unit_kind == PortionUnitKind.POSITIONAL,
+        KhatmPortion.status == PortionStatus.COMPLETED,
+    )
+    return int((await session.execute(stmt)).scalar_one())
 
 
 async def bulk_create_positional_portions(
@@ -257,6 +324,18 @@ async def release_portion(session: AsyncSession, portion_id) -> None:
         return
     portion.status = PortionStatus.OPEN
     portion.participation_id = None
+    portion.claim_expires_at = None
+    await session.flush()
+
+
+async def retire_rotating_portion(session: AsyncSession, portion_id) -> None:
+    """Make a personal rotating portion inactive without turning it into a
+    claimable shared-pool row. Keeping participation_id preserves history and
+    avoids collisions between equal per-reader sequence numbers."""
+    portion = await session.get(KhatmPortion, portion_id)
+    if portion is None:
+        return
+    portion.status = PortionStatus.OPEN
     portion.claim_expires_at = None
     await session.flush()
 
