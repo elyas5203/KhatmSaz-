@@ -5,6 +5,22 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0094 — Quran reading pace is chosen by each member
+**Date:** 2026-09-28
+**Decision:** For every new Quran-page participation, including a khatm the
+creator labelled COMMITMENT, the member chooses how many pages to receive per
+day and the local delivery hour. Joining must not assign or announce a fixed
+page range, ask for commitment consent, or show the fixed-portion actions
+«انجام دادم» and snooze. The existing open-Quran cursor delivers the selected
+pages immediately and advances that reader's sequence thereafter.
+
+This supersedes DEC-PY-0092 for new member-facing behavior. Its rotating
+allocation schema/code remains only for compatibility with historical rows;
+it is not used for new Quran joins. This owner instruction intentionally also
+overrides DOMAIN_MODEL §2's older fixed-portion commitment wording for Quran.
+
+---
+
 ### DEC-PY-0093 — Creator bot has one fixed creator menu and starts creation directly
 **Date:** 2026-09-28
 **Decision:** The dedicated KhatmSaz creator bot always shows the creator menu

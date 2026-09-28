@@ -126,7 +126,8 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
     member bot's intro image (uploaded in the admin panel) with the fixed
     «همه ختم‌ها به نیت صاحب‌الزمان» caption, so the creator sees how the khatm is
     presented. Falls back to a text-only caption when no image is configured.
-    This is a deliberate, persistent element — not routed through `_wiz`."""
+    It is a wizard step, so it is removed as soon as the next question is
+    shown (the owner does not want completed questions left in the chat)."""
     lang = await _lang(state)
     data = await state.get_data()
     caption = t("intro.image_caption", lang)
@@ -138,16 +139,21 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
             image = await bot_registry_service.get_intro_image_for_category(session, category)
     except Exception:
         image = None
+    sent = None
     if image:
         try:
-            await message.answer_photo(image, caption=caption)
-            return
+            sent = await message.answer_photo(image, caption=caption)
         except Exception:
             pass
-    await message.answer(caption)
+    if sent is None:
+        sent = await message.answer(caption)
+    await state.update_data(_wiz_extra_mids=[getattr(sent, "message_id", None)])
 
 
-async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None):
+async def _wiz(
+    message: Message, state: FSMContext, text: str, reply_markup=None, *,
+    keep_extra: bool = False,
+):
     """R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new
     wizard prompt deletes the previous *bot* prompt AND the user's own typed
     answer (bots CAN delete incoming messages in a private chat), so only the
@@ -161,6 +167,13 @@ async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None
             await message.bot.delete_message(message.chat.id, prev)
         except Exception:
             pass
+    if not keep_extra:
+        for extra in data.get("_wiz_extra_mids", []):
+            if extra:
+                try:
+                    await message.bot.delete_message(message.chat.id, extra)
+                except Exception:
+                    pass
     # Delete the user's incoming typed message too (only when THIS call was
     # triggered by a user text message, not a callback's bot-owned message).
     if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
@@ -169,7 +182,10 @@ async def _wiz(message: Message, state: FSMContext, text: str, reply_markup=None
         except Exception:
             pass
     sent = await message.answer(text, reply_markup=reply_markup)
-    await state.update_data(_wiz_mid=getattr(sent, "message_id", None))
+    update = {"_wiz_mid": getattr(sent, "message_id", None)}
+    if not keep_extra:
+        update["_wiz_extra_mids"] = []
+    await state.update_data(**update)
     return sent
 
 
@@ -192,7 +208,7 @@ async def start_wizard(message: Message, state: FSMContext) -> None:
     lang = await _resolve_lang(message)
     await state.update_data(lang=lang)
     await state.set_state(CreateKhatm.choosing_template)
-    await message.answer(t("create_khatm.ask_template", lang), reply_markup=template_choice_keyboard(lang))
+    await _wiz(message, state, t("create_khatm.ask_template", lang), reply_markup=template_choice_keyboard(lang))
 
 
 @router.message(Command("new_khatm"))
@@ -362,7 +378,10 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
         if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value
         else t("create_khatm.title_hint.salawat", lang)
     )
-    await _wiz(callback.message, state, t("create_khatm.ask_title", lang, hint=title_hint))
+    await _wiz(
+        callback.message, state, t("create_khatm.ask_title", lang, hint=title_hint),
+        keep_extra=True,
+    )
     await safe_answer_callback(callback)
 
 
@@ -459,17 +478,17 @@ async def enter_welcome(message: Message, state: FSMContext) -> None:
 async def skip_welcome(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(welcome_text=None)
     await safe_clear_inline_keyboard(callback.message)
-    await _ask_creator_contact(callback.message, state)
+    await _ask_creator_contact(callback.message, state, actor=callback.from_user)
     await safe_answer_callback(callback)
 
 
-def _creator_contact_keyboard(lang: str, username: str | None) -> InlineKeyboardMarkup:
+def _creator_contact_keyboard(lang: str, contact: str | None) -> InlineKeyboardMarkup:
     """R4: creator sets a contact handle shown in the member welcome. Offers a
     one-tap "use my @username" (when available) plus a skip."""
     rows: list[list[InlineKeyboardButton]] = []
-    if username:
+    if contact:
         rows.append([InlineKeyboardButton(
-            text=t("create_khatm.contact.use_username", lang, username=username),
+            text=t("create_khatm.contact.use_username", lang, username=contact),
             callback_data="ck:contact:self",
         )])
     rows.append([InlineKeyboardButton(
@@ -492,15 +511,28 @@ def _compose_welcome_with_contact(
     return contact_line[:500]
 
 
-async def _ask_creator_contact(message: Message, state: FSMContext) -> None:
+async def _ask_creator_contact(message: Message, state: FSMContext, *, actor=None) -> None:
     lang = await _lang(state)
-    username = (getattr(getattr(message, "from_user", None), "username", None) or None)
-    await state.update_data(_creator_username=username)
+    # A callback's ``message.from_user`` is the bot itself.  Always prefer the
+    # human callback actor; otherwise the bot username was offered/stored as
+    # the creator's contact (owner report 2026-09-28).
+    human = actor or getattr(message, "from_user", None)
+    username = getattr(human, "username", None) or None
+    own_contact = f"@{username}" if username else None
+    if own_contact is None:
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        async with session_scope() as session:
+            user = await identity_service.resolve_or_provision_user(
+                session, platform, getattr(human, "id", message.chat.id)
+            )
+            settings = await settings_service.get_or_create(session, user.id)
+            own_contact = settings.contact_phone
+    await state.update_data(_creator_own_contact=own_contact)
     await state.set_state(CreateKhatm.entering_creator_contact)
     await _wiz(
         message, state,
         t("create_khatm.ask_creator_contact", lang),
-        reply_markup=_creator_contact_keyboard(lang, username),
+        reply_markup=_creator_contact_keyboard(lang, own_contact),
     )
 
 
@@ -530,8 +562,7 @@ async def enter_creator_contact(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "ck:contact:self", StateFilter(CreateKhatm.entering_creator_contact))
 async def use_own_contact(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
-    username = data.get("_creator_username")
-    await state.update_data(creator_contact=("@" + username) if username else None)
+    await state.update_data(creator_contact=data.get("_creator_own_contact"))
     await safe_clear_inline_keyboard(callback.message)
     await _after_welcome(callback.message, state)
     await safe_answer_callback(callback)
@@ -793,7 +824,7 @@ async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.set_state(CreateKhatm.entering_deadline_hour)
-        await callback.message.answer(t("create_khatm.ask_deadline_hour", lang))
+        await _wiz(callback.message, state, t("create_khatm.ask_deadline_hour", lang))
     else:
         await _ask_visibility(callback.message, state)
     await safe_answer_callback(callback)
@@ -808,7 +839,7 @@ async def choose_content_delivery_mode(callback: CallbackQuery, state: FSMContex
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.set_state(CreateKhatm.entering_deadline_hour)
-        await callback.message.answer(t("create_khatm.ask_deadline_hour", lang))
+        await _wiz(callback.message, state, t("create_khatm.ask_deadline_hour", lang))
     else:
         await _ask_visibility(callback.message, state)
     await safe_answer_callback(callback)

@@ -445,9 +445,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "If you'd like members to reach you, send your Telegram or Bale ID (or your phone if you don't have one). It'll appear in the welcome message so anyone can find you.",
     },
     "create_khatm.contact.use_username": {
-        "fa": "همین آیدی خودم @{username}",
-        "ar": "استخدم معرّفي @{username}",
-        "en": "Use my ID @{username}",
+        "fa": "همین راه ارتباطی خودم: {username}",
+        "ar": "استخدم وسيلة التواصل الخاصة بي: {username}",
+        "en": "Use my contact: {username}",
     },
     "create_khatm.welcome_contact_line": {
         "fa": "📬 برای ارتباط با سازندهٔ ختم: {contact}",
@@ -950,10 +950,10 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "🔙 بازگشت به تنظیمات", "ar": "🔙 الرجوع إلى الإعدادات", "en": "🔙 Back to settings",
     },
     "settings.button.audio_off": {
-        "fa": "🔇 صوت قرآن: خاموش کردن", "ar": "🔇 صوت القرآن: إيقاف", "en": "🔇 Quran audio: turn off",
+        "fa": "🔊 صوت قرآن روشن است — خاموش کردن", "ar": "🔊 صوت القرآن مفعّل — إيقاف", "en": "🔊 Quran audio is on — turn off",
     },
     "settings.button.audio_on": {
-        "fa": "🔊 صوت قرآن: روشن کردن", "ar": "🔊 صوت القرآن: تشغيل", "en": "🔊 Quran audio: turn on",
+        "fa": "🔇 صوت قرآن خاموش است — روشن کردن", "ar": "🔇 صوت القرآن متوقف — تشغيل", "en": "🔇 Quran audio is off — turn on",
     },
     "settings.button.language": {"fa": "🌐 زبان", "ar": "🌐 اللغة", "en": "🌐 Language"},
     "settings.button.font": {"fa": "🔤 اندازه متن", "ar": "🔤 حجم الخط", "en": "🔤 Text size"},

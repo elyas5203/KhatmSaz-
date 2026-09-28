@@ -76,3 +76,27 @@ async def test_wiz_failed_delete_still_sends():
     await _wiz(msg, state, "step 3")
     assert msg.sent == ["step 3"]  # send happened despite delete failure
     assert (await state.get_data())["_wiz_mid"] == 101
+
+
+@pytest.mark.asyncio
+async def test_wiz_deletes_tracked_intro_with_next_completed_step():
+    bot = FakeBot()
+    msg = FakeMessage(bot)
+    state = FakeState({"_wiz_mid": 101, "_wiz_extra_mids": [102]})
+
+    await _wiz(msg, state, "next question")
+
+    assert bot.deleted == [(555, 101), (555, 102)]
+    assert (await state.get_data())["_wiz_extra_mids"] == []
+
+
+@pytest.mark.asyncio
+async def test_wiz_can_keep_intro_beside_title_until_answered():
+    bot = FakeBot()
+    msg = FakeMessage(bot)
+    state = FakeState({"_wiz_mid": 101, "_wiz_extra_mids": [102]})
+
+    await _wiz(msg, state, "title question", keep_extra=True)
+
+    assert bot.deleted == [(555, 101)]
+    assert (await state.get_data())["_wiz_extra_mids"] == [102]

@@ -112,6 +112,12 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
   ~roughly a year they've personally read the whole Quran too), while the
   group's plan collectively covers the whole book with no gaps/no
   duplicates. Both properties must hold at once.
+- **Owner override (2026-09-28, DEC-PY-0094):** new Quran-page members are
+  member-controlled even when the creator selected COMMITMENT: each member
+  chooses pages/day and delivery hour. Do not assign/show a fixed first share,
+  request commitment consent, or expose done/snooze actions. The personal
+  cursor still advances sequentially; the older rotating fixed-allocation
+  implementation remains legacy compatibility only.
 - Quantity commitments (e.g. "1000 salawat") also carry a **frequency**:
   once / daily / weekly / custom, AND a fully free-form variant ("commit to
   100 total, no deadline, whenever you get to it" — participant-controlled

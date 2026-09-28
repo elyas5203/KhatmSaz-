@@ -313,6 +313,12 @@ def build_join_success_message(
         text += t("join.waitlisted_line", lang)
         return text, contribute_keyboard(str(khatm.id), lang)
 
+    # Quran never exposes the rotating-portion action row.  The reader picks
+    # their own daily page count; this single button is retained for approval
+    # joins where no FSM can be started remotely.
+    if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+        return text, contribute_keyboard(str(khatm.id), lang)
+
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.POSITIONAL:
         text += t("join.first_page_portion_line", lang, start=first_portion.unit_start, end=first_portion.unit_end)
         return text, portion_done_keyboard(str(khatm.id), allow_skip_today=khatm.allow_skip_today, allow_snooze=bool(khatm.allow_snooze), lang=lang)
@@ -361,7 +367,11 @@ async def resume_join_after_registration(
     if not consent_accepted:
         khatm_id = await invitation_service.resolve_khatm_id(session, token)
         khatm_preview = await khatm_service.get_khatm(session, khatm_id)
-        if khatm_preview is not None and khatm_preview.khatm_type == KhatmTypeEnum.COMMITMENT:
+        if (
+            khatm_preview is not None
+            and khatm_preview.khatm_type == KhatmTypeEnum.COMMITMENT
+            and khatm_preview.template_type != KhatmTemplateType.QURAN_PAGE
+        ):
             if state is not None:
                 await state.update_data(pending_commitment_token=token)
             await message.answer(
@@ -446,7 +456,11 @@ async def resume_join_after_registration(
         khatm.khatm_type == KhatmTypeEnum.COMMITMENT
         and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH)
     )
-    if state is not None and not was_waitlisted and is_repetition_commitment:
+    is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
+    if state is not None and not was_waitlisted and is_quran:
+        from khatmsaz.bot.handlers.portions import start_open_quran_setup
+        await start_open_quran_setup(message, state, khatm_id=str(khatm.id), lang=lang)
+    elif state is not None and not was_waitlisted and is_repetition_commitment:
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
         await start_commitment_mode_picker(message, participation.id, lang)
     elif (

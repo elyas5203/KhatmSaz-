@@ -3,6 +3,7 @@ from uuid import uuid4
 from khatmsaz.bot.handlers.start import build_join_preview_message, build_join_success_message
 from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.participation.models import Participation
+from khatmsaz.modules.allocation.models import PortionUnitKind
 
 
 def test_creator_welcome_is_included_and_html_escaped():
@@ -43,3 +44,23 @@ def test_join_preview_is_informational_and_escaped():
     assert "سازنده: سازنده &lt;ناشناس&gt;" in text
     assert "تعداد اعضای فعلی: 7" in text
     assert "هنوز عضو نشده‌اید" in text
+
+
+def test_quran_welcome_does_not_expose_fixed_portion_actions():
+    khatm = Khatm(
+        id=uuid4(), creator_user_id=uuid4(), title="ختم قرآن",
+        template_type=KhatmTemplateType.QURAN_PAGE,
+        khatm_type=KhatmTypeEnum.COMMITMENT, status=KhatmStatus.ACTIVE,
+    )
+    participation = Participation(id=uuid4(), khatm_id=khatm.id, user_id=uuid4())
+    stale_portion = type("Portion", (), {
+        "unit_kind": PortionUnitKind.POSITIONAL, "unit_start": 1, "unit_end": 3,
+    })()
+
+    text, keyboard = build_join_success_message(
+        khatm, participation, stale_portion, False, "عضو"
+    )
+
+    assert "سهم اول شما" not in text
+    callbacks = [button.callback_data for row in keyboard.inline_keyboard for button in row]
+    assert callbacks == [f"contribute:{khatm.id}"]

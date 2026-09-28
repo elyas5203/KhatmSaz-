@@ -2500,3 +2500,11 @@ the entries above.
 - **Why**: Owner explicitly requested the project graph be updated before pushing the completed work.
 - **How verified**: `graphify update .` completed successfully with 12/12 uncached files extracted and regenerated `graph.json`, `graph.html`, and `GRAPH_REPORT.md`. Remote `origin/main` was fetched and the local branch was confirmed 3 commits ahead and 0 behind before the graph commit.
 - **What's still outstanding**: No deployment or production restart was requested. Existing unrelated handler edits and local reports remain outside these commits.
+## Current state — 2026-09-28 — Member-controlled Quran + creator-contact/wizard/audio fixes [Codex]
+- **Quran join**: every Quran reader now chooses their own pages/day and delivery hour immediately after joining. New Quran joins are open/member-controlled participations: no automatic fixed page allocation, commitment-consent screen, «سهم اول», «انجام دادم», or snooze row.
+- **Creator contact**: callback steps now read the human callback actor, never `message.from_user` (the bot). The one-tap contact uses the creator's `@username`, or their registered phone when no username exists.
+- **Ephemeral wizard**: template, intro image/caption, and deadline prompts are tracked by `_wiz` and removed when the next step appears.
+- **Audio label**: settings now state the current status explicitly («روشن است — خاموش کردن» / «خاموش است — روشن کردن»), while retaining the same toggle action.
+- **Graph evidence**: before the fix Graphify found no direct join→Quran-setup path; after rebuild it reports `resume_join_after_registration → start_open_quran_setup`. Final graph: 3602 nodes / 13051 edges.
+- **Decision**: DEC-PY-0094 supersedes DEC-PY-0092 for new member behavior; rotating allocation remains legacy compatibility code only.
+- **Verified**: non-integration suite → **150 passed, 86 deselected**. PostgreSQL integration/migration apply was attempted but local port 55433 was unavailable; migration graph has one head (`rot2026092805`).

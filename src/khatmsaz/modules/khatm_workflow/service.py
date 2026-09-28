@@ -331,15 +331,18 @@ async def _complete_join(
     if khatm is None or khatm.status != KhatmStatus.ACTIVE:
         raise KhatmUnavailableError()
 
+    # Quran readers choose their own daily page count after joining.  They are
+    # deliberately open participations: no automatic 1..N allocation, no
+    # done/snooze lifecycle and no capacity/waiting-list slot.
+    is_member_controlled_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
     capacity = None
-    if khatm is not None and khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type in (
-        KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.SALAWAT,
-    ):
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.SALAWAT:
         capacity = khatm.capacity
 
     participation, was_waitlisted = await participation_service.join(
         session, khatm_id, user_id, capacity=capacity,
         joined_via_bot_instance_id=joined_via_bot_instance_id,
+        force_open=is_member_controlled_quran,
     )
 
     if was_waitlisted:
@@ -347,10 +350,8 @@ async def _complete_join(
         return khatm, participation, None, True
 
     first_portion: KhatmPortion | None = None
-    if khatm is not None and khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
-        if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-            first_portion = await allocation_service.allocate_next_portion_to(session, khatm_id, participation.id)
-        elif khatm.template_type == KhatmTemplateType.SALAWAT and khatm.repetition_target:
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+        if khatm.template_type == KhatmTemplateType.SALAWAT and khatm.repetition_target:
             # Legacy per-person model: creator fixed a per-member quantity.
             first_portion = await allocation_service.assign_quantity_commitment(
                 session, khatm_id, participation.id, khatm.repetition_target

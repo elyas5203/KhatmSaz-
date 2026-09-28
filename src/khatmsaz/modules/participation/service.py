@@ -19,7 +19,10 @@ class AlreadyParticipatingError(Exception):
     this check just gives a friendlier error before hitting it."""
 
 
-async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None = None, joined_via_bot_instance_id=None) -> tuple[Participation, bool]:
+async def join(
+    session: AsyncSession, khatm_id, user_id, *, capacity: int | None = None,
+    joined_via_bot_instance_id=None, force_open: bool = False,
+) -> tuple[Participation, bool]:
     """Returns (participation, was_waitlisted). If `capacity` is given and
     the number of currently-committed participants has reached it, the new
     participation is created with `is_committed=False` and `was_waitlisted`
@@ -34,8 +37,8 @@ async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None
     if existing is not None:
         raise AlreadyParticipatingError()
 
-    is_committed = True
-    if capacity is not None:
+    is_committed = not force_open
+    if capacity is not None and not force_open:
         current = await repository.count_committed_active(session, khatm_id)
         is_committed = current < capacity
 
@@ -50,7 +53,8 @@ async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None
         # "already participating" rather than crashing the handler.
         raise AlreadyParticipatingError() from None
 
-    return participation, not is_committed
+    # ``force_open`` is a reading mode, not a waiting-list condition.
+    return participation, capacity is not None and not is_committed
 
 
 async def promote_to_committed(session: AsyncSession, participation_id) -> None:

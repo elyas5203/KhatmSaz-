@@ -1385,3 +1385,9 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Fixed member-facing queries and actions so data is limited to the current category-specific bot instance; public discovery also enforces Quran/Salawat/Dua-Ziyarat/La'an family boundaries.
 - SUPER_ADMIN now receives the normal creator reply menu in the creator bot; `/admin_app` remains permission-gated and is the sole admin-panel entry.
 - Added a guarded development reset SQL script that preserves super-admin identities and static content/configuration while deleting all khatms and other users' data.
+## 2026-09-28 (member-controlled Quran and live-QA fixes)
+- Quran joins now go directly to pages-per-day and delivery-hour setup; fixed automatic portions and their done/snooze controls are no longer created or shown to new readers.
+- Fixed creator contact auto-fill selecting the bot username after callback navigation; it now uses the human creator's username, falling back to the registered phone.
+- Made the template, intro caption/image, and deadline wizard messages ephemeral like the rest of the creation flow.
+- Clarified Quran-audio toggle labels so the current on/off state cannot be mistaken for the action.
+- Added regression tests for member-controlled Quran joining and the absence of fixed-portion controls; Graphify output refreshed.

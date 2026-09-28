@@ -201,7 +201,7 @@ def language_choice_keyboard() -> InlineKeyboardMarkup:
 
 
 def content_preferences_keyboard(*, audio_enabled: bool) -> InlineKeyboardMarkup:
-    audio_text = "🔇 خاموش کردن صوت" if audio_enabled else "🔊 روشن کردن صوت قرآن"
+    audio_text = "🔊 صوت قرآن روشن است — خاموش کردن" if audio_enabled else "🔇 صوت قرآن خاموش است — روشن کردن"
     audio_value = "off" if audio_enabled else "on"
     return InlineKeyboardMarkup(
         inline_keyboard=[

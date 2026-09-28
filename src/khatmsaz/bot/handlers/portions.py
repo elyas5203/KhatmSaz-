@@ -73,6 +73,15 @@ class SetupOpenQuranReading(StatesGroup):
     entering_hour = State()
 
 
+async def start_open_quran_setup(
+    message: Message, state: FSMContext, *, khatm_id: str, lang: str
+) -> None:
+    """Start the member-controlled Quran reading plan immediately after join."""
+    await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
+    await state.update_data(khatm_id=khatm_id, lang=lang)
+    await message.answer(t("portions.open_quran.setup_ask_pages_per_day", lang))
+
+
 class PauseCommitment(StatesGroup):
     entering_until = State()
 
@@ -507,9 +516,7 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         and participation is not None and not participation.is_committed
         and participation.open_reading_pages_per_day is None
     ):
-        await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
-        await state.update_data(khatm_id=khatm_id, lang=lang)
-        await callback.message.answer(t("portions.open_quran.setup_ask_pages_per_day", lang))
+        await start_open_quran_setup(callback.message, state, khatm_id=khatm_id, lang=lang)
         await safe_answer_callback(callback)
         return
 
