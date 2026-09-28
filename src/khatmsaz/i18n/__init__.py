@@ -394,19 +394,29 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Should this khatm be commitment-based or open?\n\n{explanation}",
     },
     "create_khatm.ask_title": {
-        "fa": "عنوان ختم رو بنویسید (مثلاً «ختم {hint} برای سلامتی»):",
-        "ar": "اكتب عنوان الختمة (مثلاً «ختمة {hint} من أجل الصحة»):",
-        "en": "Enter the khatm's title (e.g. “{hint} khatm for health”):",
+        "fa": "عنوان ختم رو بنویسید (مثلاً «ختم {hint} برای سلامتی امام زمان علیه السلام»):",
+        "ar": "اكتب عنوان الختمة (مثلاً «ختمة {hint} لأجل صحة الإمام المهدي عجل الله فرجه»):",
+        "en": "Enter the khatm's title (e.g. “{hint} khatm for the wellbeing of Imam Mahdi (AJ)”):",
     },
     "create_khatm.title_hint.quran": {"fa": "قرآن", "ar": "قرآن", "en": "Quran"},
     "create_khatm.title_hint.salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "create_khatm.title_required": {
         "fa": "لطفاً یک عنوان متنی بنویسید.", "ar": "يرجى كتابة عنوان نصي.", "en": "Please enter a text title.",
     },
+    "create_khatm.fixed_niyyat": {
+        "fa": "به نیت ظهور امام زمان علیه السلام",
+        "ar": "بنية ظهور الإمام المهدي عجل الله فرجه",
+        "en": "For the reappearance of Imam Mahdi (AJ)",
+    },
+    "create_khatm.niyyat_proxy_suffix": {
+        "fa": " — به نیابت از {name}",
+        "ar": " — نيابةً عن {name}",
+        "en": " — on behalf of {name}",
+    },
     "create_khatm.ask_niyyat": {
-        "fa": "نیت یا نیابت این ختم رو بنویسید (اختیاری — مثلاً «به نیابت از پدر مرحومم» یا «به نیت سلامتی امام زمان عج»):",
-        "ar": "اكتب نية أو نيابة هذه الختمة (اختياري — مثلاً «نيابةً عن والدي المرحوم» أو «بنية الفرج»):",
-        "en": "Enter the intention or dedication for this khatm (optional — e.g. “on behalf of my late father” or “for a swift relief”):",
+        "fa": "نیت این ختم ثابت است: «به نیت ظهور امام زمان علیه السلام».\n\nاگر می‌خواهید این ختم را از طرف کسی هدیه کنید، نام او را بنویسید (مثلاً «پدر مرحومم»)، یا دکمهٔ رد کردن را بزنید:",
+        "ar": "نية هذه الختمة ثابتة: «بنية ظهور الإمام المهدي عجل الله فرجه».\n\nإن أردت إهداءها نيابةً عن شخص، اكتب اسمه (مثلاً «والدي المرحوم») أو اضغط زر التخطي:",
+        "en": "This khatm's intention is fixed: “For the reappearance of Imam Mahdi (AJ)”.\n\nIf you'd like to dedicate it on someone's behalf, type their name (e.g. “my late father”), or tap skip:",
     },
     "create_khatm.ask_welcome": {
         "fa": "یک پیام خوش‌آمد بنویسید که هر عضو جدید همون لحظهٔ عضویت ببینه — مثلاً یک توضیح کوتاه یا یک آیه/حدیث (اختیاری، حداکثر ۵۰۰ کاراکتر؛ اگه نمی‌خواید چیزی بنویسید، دکمهٔ رد کردن رو بزنید):",

@@ -5,6 +5,25 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0091 — Creation wizard no longer asks the content format
+**Date:** 2026-09-27
+**Decision:** Owner: remove the «فرمت ارسال محتوا» step (خودکار/فقط تصویر/فقط متن)
+from the khatm-creation wizard. The bot should just send whatever content it
+has for each page (`ContentDeliveryMode.AUTO`). `create_khatm.choose_edition`
+now sets AUTO and skips straight to the next step. The per-khatm content-mode
+override still exists in khatm management (`cs:modes`) for anyone who needs it.
+
+### DEC-PY-0090 — Fixed niyyat + optional نیابت (dedication)
+**Date:** 2026-09-27
+**Decision:** Owner: the niyyat is FIXED for every khatm —
+«به نیت ظهور امام زمان علیه السلام». The creator may **not** write a free
+niyyat. They may only optionally dedicate the khatm on someone's behalf
+(نیابت), typed as a name, which is appended as a suffix
+(«… — به نیابت از {name}»). Implemented in `create_khatm._compose_niyyat`;
+the former free-text niyyat step is repurposed as the optional نیابت prompt.
+
+---
+
 ### DEC-PY-0080 — Multi-bot split: 1 creator + 12 member bots per platform
 **Date:** 2026-09-26
 **Decision:** Split the single KhatmSaz bot into 26 bots:

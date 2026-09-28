@@ -310,17 +310,31 @@ async def enter_title(message: Message, state: FSMContext) -> None:
     )
 
 
+def _compose_niyyat(lang: str, proxy_name: str | None) -> str:
+    """Owner rule (2026-09-27, DEC-PY-0090): the niyyat is FIXED for every
+    khatm — «به نیت ظهور امام زمان علیه السلام». The creator may not write a
+    free niyyat; they may only optionally dedicate the khatm on someone's
+    behalf (نیابت), which is appended as a suffix."""
+    niyyat = t("create_khatm.fixed_niyyat", lang)
+    if proxy_name:
+        niyyat += t("create_khatm.niyyat_proxy_suffix", lang, name=proxy_name)
+    return niyyat
+
+
 @router.message(StateFilter(CreateKhatm.entering_niyyat))
 async def enter_niyyat(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):
         return
-    await state.update_data(niyyat=(message.text or "").strip() or None)
+    lang = await _lang(state)
+    proxy = (message.text or "").strip() or None
+    await state.update_data(niyyat=_compose_niyyat(lang, proxy))
     await _ask_welcome(message, state)
 
 
 @router.callback_query(F.data == "ck:skip_niyyat", StateFilter(CreateKhatm.entering_niyyat))
 async def skip_niyyat(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(niyyat=None)
+    lang = await _lang(state)
+    await state.update_data(niyyat=_compose_niyyat(lang, None))
     await safe_clear_inline_keyboard(callback.message)
     await _ask_welcome(callback.message, state)
     await safe_answer_callback(callback)
@@ -554,13 +568,22 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
 async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
     edition_id = callback.data.split(":", 2)[2]
-    await state.update_data(quran_edition_id=edition_id)
+    # Owner rule (2026-09-27, DEC-PY-0091): drop the content-format question
+    # from the creation wizard entirely — the bot should just send whatever
+    # content it has for each page (AUTO). The per-khatm content-mode override
+    # still exists in khatm management (cs:modes) for anyone who needs it.
+    await state.update_data(
+        quran_edition_id=edition_id,
+        content_delivery_mode=ContentDeliveryMode.AUTO.value,
+    )
     await safe_clear_inline_keyboard(callback.message)
 
-    await state.set_state(CreateKhatm.choosing_content_delivery_mode)
-    await callback.message.answer(
-        t("create_khatm.ask_content_delivery_mode", lang), reply_markup=content_delivery_mode_keyboard(lang)
-    )
+    data = await state.get_data()
+    if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
+        await state.set_state(CreateKhatm.entering_deadline_hour)
+        await callback.message.answer(t("create_khatm.ask_deadline_hour", lang))
+    else:
+        await _ask_visibility(callback.message, state)
     await safe_answer_callback(callback)
 
 

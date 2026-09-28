@@ -1,3 +1,9 @@
+## 2026-09-27 (owner product rules: fixed niyyat + نیابت, drop content-format step, title example, live panel buttons)
+- **DEC-PY-0090**: Niyyat is now FIXED for every khatm («به نیت ظهور امام زمان علیه السلام»); the creation wizard no longer accepts a free niyyat. The former niyyat step is repurposed as an optional نیابت (dedication) prompt — typing a name appends «… — به نیابت از {name}». `create_khatm._compose_niyyat` + i18n `create_khatm.fixed_niyyat` / `niyyat_proxy_suffix`.
+- **DEC-PY-0091**: Removed the «فرمت ارسال محتوا» step (auto/photo/text) from the creation wizard — `choose_edition` now sets `ContentDeliveryMode.AUTO` and skips it; the bot sends whatever content it has. Per-khatm override still available in khatm management.
+- **Copy**: Title-prompt example updated to «ختم قرآن برای سلامتی امام زمان علیه السلام» (fa/ar/en).
+- **Panel**: Creator inline-panel «مالی» and «تنظیمات» buttons were "coming soon" dead-ends; now open the real personal report and settings menu.
+
 ## 2026-09-27 (admin dashboard → real hub: quick-access tiles + clickable queue)
 - **UX**: The admin dashboard (`/`) now shows a permission-gated «دسترسی سریع» grid of tiles linking to every section (دعاها/دسته‌ها/پیام‌ها/ختم‌ها/کاربران/احراز/پیام گروهی/مالی/باتها/سلامت/رویدادها/مدیران), so a non-technical admin lands and reaches any capability in one tap without hunting the sidebar. The «موارد در انتظار» rows are now clickable links (covers→/khatms, broadcasts→/broadcasts, requests→/categories) and turn amber when non-zero. Verified by Jinja render (12 tiles, gated by `admin._admin_permissions`). Part of the owner's added panel-redesign goal.
 

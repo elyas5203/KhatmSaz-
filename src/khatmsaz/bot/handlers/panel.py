@@ -116,14 +116,24 @@ async def handle_creator_panel_broadcast(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "creator_panel:finance")
 async def handle_creator_panel_finance(callback: CallbackQuery) -> None:
-    user, lang = await _get_context(callback)
-    await callback.message.edit_text("💳 بخش مالی و گزارش‌ها\n\nاین بخش به زودی فعال خواهد شد. شما می‌توانید لیست شرکت‌کنندگان هر ختم و مبالغ پرداخت شده را از طریق دریافت فایل Excel از داخل پنل مدیریت همان ختم دانلود کنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:creator")]]))
+    """Open the real personal report instead of a "coming soon" dead-end."""
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    from khatmsaz.bot.handlers.report import personal_report
+    await personal_report(callback.message)
     await callback.answer()
 
 @router.callback_query(F.data == "creator_panel:settings")
 async def handle_creator_panel_settings(callback: CallbackQuery) -> None:
-    user, lang = await _get_context(callback)
-    await callback.message.edit_text("⚙️ تنظیمات سازنده.\n\nدر حال حاضر تنظیمات شما همان تنظیمات حساب کاربری است.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:creator")]]))
+    """Open the real settings menu instead of a placeholder."""
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    from khatmsaz.bot.handlers.settings_menu import settings_overview
+    await settings_overview(callback.message)
     await callback.answer()
 
 @router.callback_query(F.data == "admin_panel:creator_requests")

@@ -1,3 +1,9 @@
+## 2026-09-27 — Owner product-rule changes: fixed niyyat, drop content-format, panel dead-ends [Claude Code]
+- **What changed**: Applied four owner directives (mid-session): (1) DEC-PY-0090 fixed niyyat + optional نیابت; (2) DEC-PY-0091 removed the content-format wizard step (AUTO); (3) title-prompt example now «…سلامتی امام زمان علیه السلام»; (4) creator inline-panel مالی/تنظیمات buttons now open the real report/settings instead of "coming soon".
+- **Why**: Explicit owner product rules (recorded as decisions). No rule invented.
+- **How verified**: `pytest -m "not integration"` → 89 passed, 0 failed; niyyat composition unit-checked (fixed + proxy suffix). Live re-test pending owner.
+- **What's still outstanding**: Owner request #1 — the per-khatm broadcast entry («ارسال پیام گروهی») should list the creator's khatms in a parent/child picker with a «به همه» option; needs its own focused pass (investigating the current flow next). Live Telegram test of the wizard changes.
+
 ## 2026-09-27 — Phase-2 automated code audits complete (PASS w/ evidence) [Claude Code]
 - **What changed**: Ran systematic code-level audits to clear the bug classes the owner hit in live QA, and recorded them as PASS-with-evidence in QA_MATRIX: dead reply buttons (0), dead inline callbacks (0/66 prefixes), missing i18n keys (0), incomplete-language keys (0/812), member-facing hardcoded Persian (fixed), orphan admin pages (0/12 reachable), handler imports (0 errors). Three fixes locked by regression tests (i18n coverage, creator menu buttons, public-khatms button, join bot-instance).
 - **Why**: Owner: "fix all code/systemic bugs first, then I live-test." These audits give evidence that the whole class is clean, not just spot fixes.
