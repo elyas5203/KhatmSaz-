@@ -294,11 +294,14 @@ async def create_and_launch_khatm(
 
 
 async def join_via_token(
-    session: AsyncSession, *, token: str, user_id
+    session: AsyncSession, *, token: str, user_id, joined_via_bot_instance_id=None
 ) -> tuple[Khatm | None, Participation, KhatmPortion | None, bool]:
     """Returns (khatm, participation, first_portion, was_waitlisted).
     Raises `JoinRequiresApprovalError` for a PRIVATE khatm — see that
-    class's docstring."""
+    class's docstring.
+
+    `joined_via_bot_instance_id` records which member bot the join came
+    through so later reminders route back via that same bot."""
     khatm_id = await invitation_service.resolve_khatm_id(session, token)
     khatm = await khatm_service.get_khatm(session, khatm_id)
 
@@ -307,7 +310,7 @@ async def join_via_token(
             raise AlreadyParticipatingError()
         raise JoinRequiresApprovalError(khatm)
 
-    return await _complete_join(session, khatm, user_id)
+    return await _complete_join(session, khatm, user_id, joined_via_bot_instance_id=joined_via_bot_instance_id)
 
 
 async def approve_join_request(
@@ -322,7 +325,7 @@ async def approve_join_request(
 
 
 async def _complete_join(
-    session: AsyncSession, khatm: Khatm | None, user_id
+    session: AsyncSession, khatm: Khatm | None, user_id, *, joined_via_bot_instance_id=None
 ) -> tuple[Khatm | None, Participation, KhatmPortion | None, bool]:
     khatm_id = khatm.id if khatm is not None else None
     if khatm is None or khatm.status != KhatmStatus.ACTIVE:
@@ -334,7 +337,10 @@ async def _complete_join(
     ):
         capacity = khatm.capacity
 
-    participation, was_waitlisted = await participation_service.join(session, khatm_id, user_id, capacity=capacity)
+    participation, was_waitlisted = await participation_service.join(
+        session, khatm_id, user_id, capacity=capacity,
+        joined_via_bot_instance_id=joined_via_bot_instance_id,
+    )
 
     if was_waitlisted:
         await waiting_list_service.join(session, khatm_id, user_id)

@@ -19,7 +19,7 @@ class AlreadyParticipatingError(Exception):
     this check just gives a friendlier error before hitting it."""
 
 
-async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None = None) -> tuple[Participation, bool]:
+async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None = None, joined_via_bot_instance_id=None) -> tuple[Participation, bool]:
     """Returns (participation, was_waitlisted). If `capacity` is given and
     the number of currently-committed participants has reached it, the new
     participation is created with `is_committed=False` and `was_waitlisted`
@@ -40,7 +40,10 @@ async def join(session: AsyncSession, khatm_id, user_id, *, capacity: int | None
         is_committed = current < capacity
 
     try:
-        participation = await repository.create(session, khatm_id, user_id, is_committed=is_committed)
+        participation = await repository.create(
+            session, khatm_id, user_id, is_committed=is_committed,
+            joined_via_bot_instance_id=joined_via_bot_instance_id,
+        )
     except IntegrityError:
         # Lost a race: a concurrent join for the same (khatm, user) committed
         # first (e.g. a double-tapped invite link). Treat it the same as

@@ -1,3 +1,9 @@
+## 2026-09-27 — Phase-3 live-QA critical fixes [Claude Code]
+- **What changed**: Owner live-tested and hit a hard crash. Fixed: (1) CRITICAL `join_via_token()` TypeError on `joined_via_bot_instance_id` — threaded it through workflow→participation→repository so member commitment joins complete; (2) missing i18n keys `button.confirm` and `my_khatms.button.leave` (were rendering raw slugs); (3) member bottom menu not appearing after a deep-link join (now sent when delivery hour isn't asked); (4) per-khatm reminder-time picker in member my-khatms (each of a member's khatms can have its own hour).
+- **Why**: Owner goal — stable, dead-simple UX; a frozen join and raw i18n slugs are blockers. Per-khatm reminder is an explicit owner requirement (one member in many khatms, different times).
+- **How verified**: `PYTHONPATH=src pytest -m "not integration"` → 87 passed, 0 failed (incl. new `test_join_records_bot_instance.py`). Live re-test pending owner.
+- **What's still outstanding**: Owner live-retest of the full member join→commit→reminder flow; per-khatm reminder UI live check. Larger: wizard i18n (BACKLOG #1), full admin/creator panel redesign (owner goal in QA_MATRIX).
+
 ## 2026-09-27 — Create-khatm wizard keyboards i18n + cancel-everywhere [Claude Code]
 - **What changed**: Started goal options 2 (wizard i18n) and 3 (cancel/back). The wizard TEXT prompts were already i18n; the KEYBOARDS were hardcoded Persian. Localized all 13 wizard keyboards (new `ck.*` keys, fa/ar/en) and added a localized cancel row to every step (wired to the existing `ck:cancel` handler). Added `tests/test_wizard_keyboards_i18n.py`.
 - **Why**: Goal — simple UX, correct language per role/bot; a creator on the ar/en bot was seeing Persian wizard buttons, and several steps had no visible cancel.

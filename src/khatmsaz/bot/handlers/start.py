@@ -422,6 +422,18 @@ async def resume_join_after_registration(
         await state.set_state(AskDeliveryHour.entering_hour)
         await state.update_data(delivery_hour_participation_id=str(participation.id), lang=lang)
         await message.answer(t("join.ask_delivery_hour", lang), reply_markup=delivery_hour_keyboard("join_hour", lang))
+    else:
+        # Owner report (2026-09-27): after joining via a deep link the bottom
+        # menu never appeared — the member had to send /start manually. The
+        # join-success message carries an inline keyboard (a message can't
+        # also carry a reply keyboard), and when we don't ask the delivery
+        # hour nothing else attaches the home menu. Send it now so the member
+        # always lands on their menu. (When we DO ask the hour, the hour
+        # handler sends the home menu at the end.)
+        await message.answer(
+            t("join.menu_hint", lang),
+            reply_markup=get_fallback_markup(),
+        )
 
 
 def _get_fallback_markup_for_bot(bot, lang):

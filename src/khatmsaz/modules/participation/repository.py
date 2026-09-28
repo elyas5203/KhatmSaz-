@@ -18,13 +18,23 @@ async def get_active(session: AsyncSession, khatm_id, user_id) -> Participation 
     return result.scalar_one_or_none()
 
 
-async def create(session: AsyncSession, khatm_id, user_id, is_committed: bool = True) -> Participation:
+async def create(
+    session: AsyncSession, khatm_id, user_id, is_committed: bool = True,
+    *, joined_via_bot_instance_id=None,
+) -> Participation:
     """Raises `sqlalchemy.exc.IntegrityError` if a concurrent request already
     joined this (khatm, user) first — see `participation/service.py` for the
     retry. Runs inside a SAVEPOINT so a lost race doesn't poison the caller's
-    outer transaction (same pattern as `identity/repository.py`)."""
+    outer transaction (same pattern as `identity/repository.py`).
+
+    `joined_via_bot_instance_id` records which member bot the user joined
+    through, so daily reminders/notifications route back via the exact same
+    bot (multi-bot notification routing)."""
     async with session.begin_nested():
-        participation = Participation(id=new_id(), khatm_id=khatm_id, user_id=user_id, is_committed=is_committed)
+        participation = Participation(
+            id=new_id(), khatm_id=khatm_id, user_id=user_id, is_committed=is_committed,
+            joined_via_bot_instance_id=joined_via_bot_instance_id,
+        )
         session.add(participation)
         await session.flush()
     return participation

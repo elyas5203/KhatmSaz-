@@ -16,10 +16,12 @@ from khatmsaz.bot.keyboards import (
     MY_KHATMS_BUTTON_TEXTS,
     commitment_quantity_keyboard,
     contribute_keyboard,
+    delivery_hour_keyboard,
     home_keyboard_for_bot,
     portion_done_keyboard,
     safe_answer_callback,
 )
+from khatmsaz.modules.notification import service as notification_service
 
 router = Router(name="member_my_khatms")
 
@@ -61,6 +63,12 @@ async def list_member_khatms(message: Message) -> None:
                     text="📅 " + t("menu.today", lang),
                     callback_data=f"mk_portion:{khatm.id}",
                 )],
+                # Per-khatm reminder time: someone in several khatms can set a
+                # different delivery hour for each (owner request 2026-09-27).
+                [InlineKeyboardButton(
+                    text=t("my_khatms.button.reminder_hour", lang),
+                    callback_data=f"mk_hourmenu:{p.id}",
+                )],
                 [InlineKeyboardButton(
                     text="🚪 " + t("my_khatms.button.leave", lang),
                     callback_data=f"leave_ask:{p.id}",
@@ -68,6 +76,41 @@ async def list_member_khatms(message: Message) -> None:
             ]
             kb = InlineKeyboardMarkup(inline_keyboard=buttons)
             await message.answer(f"🔹 {khatm.title}", reply_markup=kb)
+
+
+@router.callback_query(F.data.startswith("mk_hourmenu:"))
+async def show_member_reminder_hours(callback: CallbackQuery) -> None:
+    """Show the per-khatm reminder-hour picker for one participation."""
+    lang = getattr(callback.message.bot, "khatmsaz_language", "fa")
+    participation_id = callback.data.split(":", 1)[1]
+    await callback.message.answer(
+        t("my_khatms.pick_reminder_hour", lang),
+        reply_markup=delivery_hour_keyboard(f"mk_sethour:{participation_id}", lang),
+    )
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("mk_sethour:"))
+async def set_member_reminder_hour(callback: CallbackQuery) -> None:
+    """Save the chosen reminder hour for exactly this khatm's participation."""
+    lang = getattr(callback.message.bot, "khatmsaz_language", "fa")
+    # callback data: mk_sethour:<participation_id>:<hour>
+    _, participation_id, hour_raw = callback.data.split(":", 2)
+    try:
+        hour = int(hour_raw)
+    except ValueError:
+        await safe_answer_callback(callback)
+        return
+    async with session_scope() as session:
+        await notification_service.set_reminder_preference(
+            session, participation_id, reminder_hour=hour, reminder_minute=0, enabled=True
+        )
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    await callback.message.answer(t("my_khatms.reminder_hour_saved", lang, hour=hour))
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data.startswith("mk_portion:"))
