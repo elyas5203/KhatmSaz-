@@ -501,6 +501,22 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم {unit} يجب أن ينجز كل مشارك من «{title}»؟ أرسل رقماً فقط (مثلاً 100):",
         "en": "How many {unit} of “{title}” should each participant commit to? Send a number only (e.g. 100):",
     },
+    "create_khatm.ask_commitment_total": {
+        "fa": "هدف کل این ختم چند {unit} باشه؟ یکی از دکمه‌ها را بزنید (سهم هر نفر را خودِ شرکت‌کننده تعیین می‌کند):",
+        "ar": "كم يكون الهدف الكلي لهذه الختمة ({unit})؟ اختر أحد الأزرار (كل مشارك يحدّد حصته بنفسه):",
+        "en": "What's the total goal for this khatm, in {unit}? Tap a button (each participant sets their own share):",
+    },
+    "create_khatm.commitment_total.custom": {
+        "fa": "🔢 عدد دلخواه", "ar": "🔢 رقم مخصص", "en": "🔢 Custom number",
+    },
+    "create_khatm.commitment_total.unlimited": {
+        "fa": "♾ نامحدود", "ar": "♾ غير محدود", "en": "♾ Unlimited",
+    },
+    "create_khatm.ask_commitment_total_custom": {
+        "fa": "عدد هدف کل را بنویسید (مثلاً 5000):",
+        "ar": "اكتب رقم الهدف الكلي (مثلاً 5000):",
+        "en": "Type the total goal number (e.g. 5000):",
+    },
     "create_khatm.unit.salawat": {"fa": "صلوات", "ar": "صلاة", "en": "Salawat"},
     "create_khatm.unit.time": {"fa": "مرتبه", "ar": "مرة", "en": "time(s)"},
     "create_khatm.ask_edition": {
@@ -619,6 +635,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "create_khatm.confirm.total_target": {
         "fa": "هدف کل: {amount} {unit}", "ar": "الهدف الكلي: {amount} {unit}", "en": "Total goal: {amount} {unit}",
+    },
+    "create_khatm.confirm.total_unlimited": {
+        "fa": "هدف کل: نامحدود", "ar": "الهدف الكلي: غير محدود", "en": "Total goal: unlimited",
     },
     "create_khatm.confirm.per_member_share": {
         "fa": "سهم هر نفر: {amount} {unit}", "ar": "نصيب كل فرد: {amount} {unit}", "en": "Per-member share: {amount} {unit}",

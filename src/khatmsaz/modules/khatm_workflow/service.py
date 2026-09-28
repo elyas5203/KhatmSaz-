@@ -350,10 +350,15 @@ async def _complete_join(
     if khatm is not None and khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
         if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
             first_portion = await allocation_service.allocate_next_portion_to(session, khatm_id, participation.id)
-        elif khatm.template_type == KhatmTemplateType.SALAWAT:
+        elif khatm.template_type == KhatmTemplateType.SALAWAT and khatm.repetition_target:
+            # Legacy per-person model: creator fixed a per-member quantity.
             first_portion = await allocation_service.assign_quantity_commitment(
                 session, khatm_id, participation.id, khatm.repetition_target
             )
+        # else (R5, owner 2026-09-28): the creator set only a TOTAL goal —
+        # each member logs their own contributions toward it (like OPEN), so
+        # no fixed portion is assigned here; the success message offers the
+        # contribute button.
 
     return khatm, participation, first_portion, False
 

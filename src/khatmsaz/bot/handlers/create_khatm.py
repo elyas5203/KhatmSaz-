@@ -73,6 +73,8 @@ class CreateKhatm(StatesGroup):
     entering_recitation_text = State()
     entering_open_target = State()
     entering_commitment_quantity = State()
+    choosing_commitment_total = State()      # R5: creator picks the khatm TOTAL
+    entering_commitment_total_custom = State()
     choosing_edition = State()
     choosing_content_delivery_mode = State()
     entering_deadline_hour = State()
@@ -492,17 +494,65 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
         title = data.get("content_category_title") or t("create_khatm.group_label.generic", lang)
         await message.answer(t("create_khatm.ask_open_target", lang, title=title, unit=unit))
     elif template == KhatmTemplateType.SALAWAT.value and mode == KhatmTypeEnum.COMMITMENT.value:
-        await state.set_state(CreateKhatm.entering_commitment_quantity)
+        # R5 (owner 2026-09-28): the creator picks the khatm's TOTAL goal from
+        # preset buttons (not a per-person quantity); each participant later
+        # sets their own share on the member bot (R11).
         unit = (
             t("create_khatm.unit.salawat", lang)
             if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
             else t("create_khatm.unit.time", lang)
         )
-        title = data.get("content_category_title") or t("create_khatm.group_label.generic", lang)
-        await message.answer(t("create_khatm.ask_commitment_quantity", lang, title=title, unit=unit))
+        await state.set_state(CreateKhatm.choosing_commitment_total)
+        await message.answer(
+            t("create_khatm.ask_commitment_total", lang, unit=unit),
+            reply_markup=_commitment_total_keyboard(lang),
+        )
     else:  # QURAN_PAGE, either mode
         await state.set_state(CreateKhatm.choosing_edition)
         await message.answer(t("create_khatm.ask_edition", lang), reply_markup=edition_choice_keyboard())
+
+
+def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
+    """R5: preset total-goal buttons for a commitment khatm."""
+    presets = [10, 14, 40, 110, 313]
+    rows = [[InlineKeyboardButton(text=str(n), callback_data=f"ck:total:{n}") for n in presets[:3]],
+            [InlineKeyboardButton(text=str(n), callback_data=f"ck:total:{n}") for n in presets[3:]]]
+    rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.custom", lang), callback_data="ck:total:custom")])
+    rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.unlimited", lang), callback_data="ck:total:unlimited")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
+    # Store the khatm TOTAL goal; per-person share is chosen by each member.
+    await state.update_data(salawat_open_target=total, salawat_commitment_quantity=None, capacity=None)
+    await _ask_visibility(message, state)
+
+
+@router.callback_query(F.data.startswith("ck:total:"), StateFilter(CreateKhatm.choosing_commitment_total))
+async def choose_commitment_total(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    value = callback.data.split(":", 2)[2]
+    await safe_clear_inline_keyboard(callback.message)
+    if value == "custom":
+        await state.set_state(CreateKhatm.entering_commitment_total_custom)
+        await callback.message.answer(t("create_khatm.ask_commitment_total_custom", lang))
+        await safe_answer_callback(callback)
+        return
+    total = None if value == "unlimited" else int(value)
+    await _after_commitment_total(callback.message, state, total)
+    await safe_answer_callback(callback)
+
+
+@router.message(StateFilter(CreateKhatm.entering_commitment_total_custom))
+async def enter_commitment_total_custom(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+    lang = await _lang(state)
+    raw = (message.text or "").strip()
+    if not raw.isdigit() or int(raw) <= 0:
+        await message.answer(t("create_khatm.positive_number_required", lang))
+        return
+    await _after_commitment_total(message, state, int(raw))
 
 
 @router.callback_query(F.data == "ck:start:now", StateFilter(CreateKhatm.choosing_start_schedule))
@@ -804,13 +854,13 @@ async def _show_confirmation(
             if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
             else t("create_khatm.unit.time", lang)
         )
-        if mode == KhatmTypeEnum.OPEN.value:
-            lines.append(t("create_khatm.confirm.total_target", lang, amount=data["salawat_open_target"], unit=unit))
+        # R5: both open and commitment now show the TOTAL goal (per-person
+        # share is set by each member). Unlimited → no number line.
+        total = data.get("salawat_open_target")
+        if total:
+            lines.append(t("create_khatm.confirm.total_target", lang, amount=total, unit=unit))
         else:
-            lines.append(t("create_khatm.confirm.per_member_share", lang, amount=data["salawat_commitment_quantity"], unit=unit))
-            capacity = data.get("capacity")
-            capacity_text = capacity if capacity else t("create_khatm.capacity_unlimited", lang)
-            lines.append(t("create_khatm.confirm.capacity", lang, value=capacity_text))
+            lines.append(t("create_khatm.confirm.total_unlimited", lang))
     else:
         edition = QURAN_EDITIONS[data["quran_edition_id"]]
         lines.append(t("create_khatm.confirm.quran_content", lang))
