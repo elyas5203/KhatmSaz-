@@ -325,14 +325,18 @@ async def resume_join_after_registration(
     """The actual join logic — public because `registration.py` calls this
     once a first-time joiner finishes their profile."""
     _user_settings = await settings_service.get_or_create(session, user_id)
-    _lang = _user_settings.language
-    
     bot_role = getattr(message.bot, "khatmsaz_role", BotRole.CREATOR)
+    # CRITICAL (owner live QA 2026-09-28): every message from here on must be
+    # in the bot's OWN language on a member bot — an English/Arabic member bot
+    # was showing the Persian commitment consent because we read the user's
+    # stored language instead of the fixed per-bot language.
     if bot_role == BotRole.MEMBER:
+        _lang = getattr(message.bot, "khatmsaz_language", None) or _user_settings.language
         from khatmsaz.bot.keyboards import member_menu_keyboard
         def get_fallback_markup():
             return member_menu_keyboard(_lang)
     else:
+        _lang = _user_settings.language
         def get_fallback_markup():
             return main_menu_keyboard(_lang)
 

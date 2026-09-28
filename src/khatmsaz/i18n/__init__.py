@@ -1201,9 +1201,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "✅ Reminder time for this khatm set to {hour}.",
     },
     "my_khatms.pick_reminder_hour": {
-        "fa": "چه ساعتی یادآوری این ختم برایتان فرستاده شود؟",
-        "ar": "في أي وقت تريد تذكير هذه الختمة؟",
-        "en": "What time should the reminder for this khatm be sent?",
+        "fa": "چه ساعتی یادآوری این ختم برایتان فرستاده شود؟\nیکی از دکمه‌ها را بزنید، یا ساعت دقیق را بنویسید (مثلاً 14:40):",
+        "ar": "في أي وقت تريد تذكير هذه الختمة؟\nاضغط أحد الأزرار أو اكتب الوقت بدقة (مثلاً 14:40):",
+        "en": "What time should this khatm's reminder be sent?\nTap a button, or type an exact time (e.g. 14:40):",
     },
     "join.error.wrong_bot": {
         "fa": "این ختم مربوط به بات دیگری است.",

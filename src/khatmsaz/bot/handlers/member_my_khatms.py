@@ -1,5 +1,6 @@
 """Member bot "My Khatms" handler — lists khatms the user joined via this bot instance."""
 from aiogram import F, Router
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select
 
@@ -79,37 +80,19 @@ async def list_member_khatms(message: Message) -> None:
 
 
 @router.callback_query(F.data.startswith("mk_hourmenu:"))
-async def show_member_reminder_hours(callback: CallbackQuery) -> None:
-    """Show the per-khatm reminder-hour picker for one participation."""
+async def show_member_reminder_hours(callback: CallbackQuery, state: FSMContext) -> None:
+    """Per-khatm reminder-hour picker. Reuses the shared AskDeliveryHour flow
+    (join_flow) so BOTH the time-of-day buttons AND a typed exact time like
+    «14:40» work (owner request 2026-09-28) — same tested parser/save path."""
+    from khatmsaz.bot.handlers.start import AskDeliveryHour
     lang = getattr(callback.message.bot, "khatmsaz_language", "fa")
     participation_id = callback.data.split(":", 1)[1]
+    await state.set_state(AskDeliveryHour.entering_hour)
+    await state.update_data(delivery_hour_participation_id=participation_id, lang=lang)
     await callback.message.answer(
         t("my_khatms.pick_reminder_hour", lang),
-        reply_markup=delivery_hour_keyboard(f"mk_sethour:{participation_id}", lang),
+        reply_markup=delivery_hour_keyboard("join_hour", lang),
     )
-    await safe_answer_callback(callback)
-
-
-@router.callback_query(F.data.startswith("mk_sethour:"))
-async def set_member_reminder_hour(callback: CallbackQuery) -> None:
-    """Save the chosen reminder hour for exactly this khatm's participation."""
-    lang = getattr(callback.message.bot, "khatmsaz_language", "fa")
-    # callback data: mk_sethour:<participation_id>:<hour>
-    _, participation_id, hour_raw = callback.data.split(":", 2)
-    try:
-        hour = int(hour_raw)
-    except ValueError:
-        await safe_answer_callback(callback)
-        return
-    async with session_scope() as session:
-        await notification_service.set_reminder_preference(
-            session, participation_id, reminder_hour=hour, reminder_minute=0, enabled=True
-        )
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
-    await callback.message.answer(t("my_khatms.reminder_hour_saved", lang, hour=hour))
     await safe_answer_callback(callback)
 
 
