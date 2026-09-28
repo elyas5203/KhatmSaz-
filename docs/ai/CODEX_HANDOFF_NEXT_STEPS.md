@@ -1,22 +1,33 @@
-# 🎯 META-PROMPT برای Codex — بازطراحی ویزارد ساخت ختم + عضویت (2026-09-28)
+# 🎯 META-PROMPT برای Codex — ادامهٔ بازطراحی ویزارد/عضویت (به‌روز 2026-09-28)
 
-> Claude Code به لیمیت نزدیک است؛ این کار را ادامه بده. پلن کامل: `docs/ai/REDESIGN_PLAN_2026-09-28.md`.
-> اول بخوان: PROJECT_STATE.md، CLAUDE.md، AI_HANDOFF_PROTOCOL.md، DECISIONS.md، DOMAIN_MODEL.md، و پلن بالا.
-> تست فعلی: 105 سبز — `PYTHONPATH=src python -m pytest -m "not integration"`.
+> اگر Claude به لیمیت خورد، این را در goal کدکس بگذار. پلن کامل: `docs/ai/REDESIGN_PLAN_2026-09-28.md` (بخش «وضعیت پیشرفت» بالای همان فایل).
+> اول بخوان: PROJECT_STATE.md (از بالا)، CLAUDE.md، AI_HANDOFF_PROTOCOL.md، DECISIONS.md، DOMAIN_MODEL.md، پلن بالا.
+> تست فعلی: **117 سبز / 85 skip** — `PYTHONPATH=src python -m pytest`.
 
 ## قوانین سخت
 - بدون تأیید صریح مالک: push فقط با اجازه؛ deploy/restart/تغییر DB production ممنوع. مایگریشن فقط روی Postgres تستیِ جدا (نه SQLite/production).
-- قانون محصولی از خودت نساز (DOMAIN_MODEL + پلن). i18n هر کلید fa+ar+en (گارد: `tests/test_i18n_coverage.py`).
+- قانون محصولی از خودت نساز (DOMAIN_MODEL + پلن). i18n هر کلید fa+ar+en (گاردها: `tests/test_i18n_coverage.py` + جدید `tests/test_i18n_audit.py` — تکراری/خالی/placeholder ناهمخوان ممنوع).
 - بعد از هر تغییر: pytest + به‌روزرسانی PROJECT_STATE/CHANGELOG + `/graphify . --update`.
 - هدف اصلی: **کمترین تعامل** برای ساخت ختم و عضویت.
 
-## کارها به‌ترتیب (جزئیات کامل در REDESIGN_PLAN_2026-09-28.md)
-- ✅ R6 حذف سؤال ظرفیت — انجام شد (Claude).
-- **بدون مایگریشن (اول این‌ها):** R8 ترتیب پلتفرم (هر دو/تلگرام/بله) · R3 نیابت با مثال · R7 مثال هر ۴ نوع متن · R10 حذف پیش‌نمایش ختم سمت عضو · R9 لینک فارسی اول + بقیه on-request · R1 پیام‌های جای‌گزین‌شونده (edit به‌جای پیام جدید).
-- **نیاز مایگریشن (Postgres تستی + بازبینی مالک):** R2 عکس معرفی per-bot (پنل ادمین آپلود + `bot_instances.intro_image_url`) · R4 تماس سازنده در خوش‌آمد (`khatms.creator_contact`) · R5 تعهد=تعداد کل با دکمه‌ها (۱۰/۱۴/۴۰/۱۱۰/۳۱۳/دلخواه/نامحدود) · R11 دو مدل تعهد سمت عضو (منظم/تعدادی؛ `participation.commitment_kind/count/schedule`) · R12 عضو تعدادی تعداد جدید بزند.
-- **مستقل (بحرانی):** DEC-PY-0092 سیم‌کشی تخصیص چرخشی قرآن (تابع `positional_range_for_step` + ۵ تست آماده؛ نیاز تغییر قید یکتای portion + مایگریشن).
+## ✅ انجام‌شده توسط Claude (کامیت‌شده و push)
+- R3 نیابت با مثال · R5 تعداد کل با دکمه · R6 حذف ظرفیت · R8 ترتیب پلتفرم · R9 لینک فارسی اول · R10 حذف پیش‌نمایش · R4 تماس سازنده در خوش‌آمد (بدون مایگریشن، داخل `welcome_text`).
+- **merge migration `mrg2026092801`** — سه head آلمبیک یکی شد.
+- **N1 ممیزی i18n** — حذف ۱ کلید تکراری + ۳۱ کلید مرده؛ ۸۲۰ کلید سالم.
+- **R11 اسکیمای پایه** — مایگریشن `mcm2026092802` + ستون‌های `khatm_participations`: `commitment_mode`(REGULAR/COUNT)، `commitment_target`، `commitment_done`، `schedule_freq`(DAILY/WEEKLY/MONTHLY)، `schedule_anchor`، `schedule_hour`، `commitment_per_occurrence`، `schedule_last_sent_at`.
 
-## «انجام‌شده» = کد + تست واحد سبز + render/verify + docs. جریان‌های بات که تلگرام زنده می‌خواهند را مالک live تست می‌کند. باگ‌های قابل‌کشف بدون ربات را قبل از مالک بگیر (نمونه: تستی که AttributeError پیام گروهی را گرفت).
+## ☐ باقی‌مانده (نیاز به ربات زنده برای تست کامل)
+1. **R11 + N2 — هندلر سمت عضو (مهم‌ترین):** بعد از عضویت، سؤال فوق‌کوتاه:
+   «این ختم: [توضیح کوتاه]» → «چطور می‌خوای بخونی؟» با دو دکمه: **تعهد منظم** / **تعهد تعدادی**.
+   - *تعدادی (COUNT):* عدد بگیر → `commitment_target`؛ دکمهٔ «✅ ثبت خواندم» هر بار `commitment_done += per-tap`؛ وقتی به target رسید تبریک + دکمهٔ «تعهد جدید» که target/done را ریست کند (**R12**).
+   - *منظم (REGULAR):* بسامد (هر روز/هفته/ماه) → روز (برای هفتگی/ماهانه: `schedule_anchor`) → ساعت (`schedule_hour`) → تعداد هر نوبت (`commitment_per_occurrence`). سپس reminder_engine سر همان ساعت محتوا/یادآوری بفرستد (ستون `schedule_last_sent_at` برای dedupe، مثل `deliver_due_open_quran_reading`).
+   - فایل‌ها: `bot/handlers/member_start.py`, `bot/handlers/portions.py`, `modules/reminder_engine/service.py`, `modules/participation/repository.py|service.py`.
+2. **R1 — پیام‌های جای‌گزین‌شوندهٔ ویزارد:** هلپر `_wiz_prompt` که `_wiz_mid` را در FSM data نگه دارد و به‌جای پیام جدید، پیام قبلی ربات را `edit_message_text` کند (fallback: delete+send اگر پیام مدیا/بدون‌متن بود). فقط پیام‌های *ربات* (پیام‌های تایپ‌شدهٔ کاربر در چت خصوصی قابل حذف نیستند). `create_khatm.py`.
+3. **R2 — عکس معرفی هر بات (بدون مایگریشن):** بازاستفاده از `khatm_category.image_url` (که در پنل ادمین آپلود می‌شود)؛ بعد از انتخاب حالت تعهدی/آزاد، همان عکس با کپشن «همه ختم‌ها به نیت صاحب‌الزمان» نشان داده شود (سمت سازنده و مخاطب). اگر per-bot لازم شد، ستون `bot_instances.intro_image_url` روی head فعلی `mcm2026092802` اضافه کن.
+4. **R7 — مثال هر ۴ نوع متن** جایی که سازنده نوع محتوا را انتخاب می‌کند (با مالک محل دقیق را تأیید کن؛ قانون نساز).
+5. **DEC-PY-0092** سیم‌کشی تخصیص چرخشی قرآن (تابع `positional_range_for_step` + ۵ تست آماده؛ نیاز تغییر قید یکتای portion به per-participation + مایگریشن روی head فعلی).
+
+## «انجام‌شده» = کد + تست واحد سبز + verify + docs. جریان‌های تلگرام‌زنده را مالک live تست می‌کند؛ باگ‌های بدون‌ربات را قبل از مالک بگیر.
 
 ---
 

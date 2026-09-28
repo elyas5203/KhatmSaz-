@@ -1314,10 +1314,10 @@
     "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
   },
   "src/khatmsaz/modules/participation/models.py": {
-    "mtime": 1790418066.1726227,
-    "seen": 1790429250.6768315,
-    "ast_hash": "f932220918e1efc0ea8b8a16396d554e",
-    "semantic_hash": "f932220918e1efc0ea8b8a16396d554e"
+    "mtime": 1790598498.5250878,
+    "seen": 1790598571.3962011,
+    "ast_hash": "67b96402d1bcee019e6cac196e7e78ba",
+    "semantic_hash": "67b96402d1bcee019e6cac196e7e78ba"
   },
   "src/khatmsaz/modules/participation/repository.py": {
     "mtime": 1790578368.3964891,
@@ -2686,5 +2686,11 @@
     "seen": 1790598421.8040643,
     "ast_hash": "827ef00b80869d54e928e865d85cee0e",
     "semantic_hash": "827ef00b80869d54e928e865d85cee0e"
+  },
+  "migrations/versions/mrg2_member_commitment_mode_2026_09_28.py": {
+    "mtime": 1790598515.8846376,
+    "seen": 1790598571.3961957,
+    "ast_hash": "9d06bc664febc7be9adaeb204985390e",
+    "semantic_hash": "9d06bc664febc7be9adaeb204985390e"
   }
 }
