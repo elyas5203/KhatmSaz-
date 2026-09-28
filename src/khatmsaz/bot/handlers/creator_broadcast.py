@@ -40,7 +40,7 @@ async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> 
             if callback:
                 await safe_answer_callback(callback)
             return
-        khatms = [k for k in await khatm_service.list_created_by(session, user.id) if k.status == KhatmStatus.ACTIVE]
+        khatms = [k for k in await khatm_service.list_my_created(session, user.id) if k.status == KhatmStatus.ACTIVE]
 
     await state.update_data(creator_id=str(user.id), platform=platform.value)
 
