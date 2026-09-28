@@ -111,6 +111,17 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
             await message.answer(text, reply_markup=kb)
 
 
+@router.message(Command("cancel"))
+async def handle_member_cancel(message: Message, state: FSMContext) -> None:
+    """`/cancel` on a member bot: escape any active flow (registration, join,
+    reminder-hour…) and return to the member menu. Previously only the creator
+    bot had a /cancel handler, so a member could get stuck mid-registration
+    (owner/Codex live QA)."""
+    await state.clear()
+    lang = getattr(message.bot, "khatmsaz_language", "fa")
+    await message.answer(t("navigation.cancelled", lang), reply_markup=member_menu_keyboard(lang))
+
+
 @router.message(CommandStart())
 async def handle_member_start(message: Message, state: FSMContext) -> None:
     await state.clear()
