@@ -4,6 +4,10 @@
 - OTP challenges now live for five minutes and repeated/concurrent requests reuse the active challenge without another SMS across creator verification, phone change and account linking.
 - Added six regression assertions/tests; non-integration suite: 158 passed.
 
+## 2026-09-29 (FIX: scheduled delivery stopped on member bots)
+- `reminder_engine._is_reminder_due` widened from a strict 15-min window to "at or after the chosen time" (all callers already dedupe once/day). After DEC-PY-0095 removed the immediate first send, the tight window was the sole delivery path and any missed scan dropped the whole day — so members received nothing. Now delivery is reliable for Quran (open + commitment), positional daily reminders, and open-schedule reminders; regular Salawat/Dua schedule was already robust.
+- No migration. pytest -m "not integration" → 162 passed.
+
 ## 2026-09-29 (member-bot fixes)
 - Open-Quran setup hour accepts exact time (14:27), stores minute, confirms HH:MM.
 - Removed the stray «ثبت مشارکت» button on the Quran join/setup cards (no pages sent yet); the log button now rides on the daily page delivery.

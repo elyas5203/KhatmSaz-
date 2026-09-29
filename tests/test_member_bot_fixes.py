@@ -19,6 +19,30 @@ from khatmsaz.modules.khatm.models import (
 )
 
 
+def test_reminder_due_fires_at_or_after_target_not_only_in_window():
+    """Owner report: pages/reminders stopped arriving on member bots. The old
+    15-minute window dropped a whole day's delivery if a scan missed it. Delivery
+    must fire on the first scan at/after the chosen time (dedupe keeps it once/day)."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    from khatmsaz.modules.reminder_engine.service import _is_reminder_due
+
+    tz = ZoneInfo("Asia/Tehran")
+
+    def at(h, m):
+        return datetime(2026, 9, 29, h, m, tzinfo=tz)
+
+    # reminder set for 12:08 — must be due at the 12:15 and 12:45 scans (old code
+    # was only due in [12:08, 12:23), so 12:45 wrongly returned False and the day
+    # was skipped if 12:15 was missed).
+    assert _is_reminder_due(at(12, 15), 12, 8) is True
+    assert _is_reminder_due(at(12, 45), 12, 8) is True
+    assert _is_reminder_due(at(18, 0), 12, 8) is True
+    # before the chosen time it is not due yet
+    assert _is_reminder_due(at(12, 0), 12, 8) is False
+    assert _is_reminder_due(at(9, 0), 12, 8) is False
+
+
 def test_open_quran_hour_accepts_exact_time():
     assert _parse_delivery_time("14:27") == (14, 27)
     assert _parse_delivery_time("9") == (9, 0)

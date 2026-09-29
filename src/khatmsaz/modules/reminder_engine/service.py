@@ -9,17 +9,25 @@ from zoneinfo import ZoneInfo
 logger = logging.getLogger(__name__)
 
 # Scheduler fires every SCAN_INTERVAL_MINUTES minutes (at :00, :15, :30, :45).
-# A reminder is due if the current time falls in [target, target+SCAN_INTERVAL_MINUTES).
 SCAN_INTERVAL_MINUTES = 15
 
 
 def _is_reminder_due(now_local: datetime, reminder_hour: int, reminder_minute: int = 0) -> bool:
-    """Return True if `now_local` falls in the 15-minute window starting at
-    reminder_hour:reminder_minute.  This is robust to the scheduler firing a
-    few seconds late and works for any HH:MM reminder time, not just whole hours."""
+    """Return True once the local clock has reached the reminder time today.
+
+    Owner report (2026-09-29): pages/reminders stopped arriving on the member
+    bots. Root cause — the old check only fired inside a tight 15-minute window
+    [target, target+15). Because DEC-PY-0095 removed the immediate send at setup,
+    that window became the ONLY delivery path; a single scan that missed it (a
+    restart, a scheduler tick landing outside the window, an odd HH:MM, or a
+    user timezone whose minutes don't align to :00/:15/:30/:45) dropped the whole
+    day's delivery. Every caller here already dedupes to once-per-local-day
+    (`already_sent_today`, `open_reading_last_sent_at`, the portion's `updated_at`),
+    so "due = the clock is at or past the chosen time" is safe: the message goes
+    out on the first scan at/after the chosen time and never repeats that day."""
     target_total = reminder_hour * 60 + reminder_minute
     now_total = now_local.hour * 60 + now_local.minute
-    return target_total <= now_total < target_total + SCAN_INTERVAL_MINUTES
+    return now_total >= target_total
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select

@@ -6,6 +6,13 @@
 - **How verified**: non-integration suite **158 passed, 86 deselected**; new tests cover delayed first delivery, automatic titles, five-minute TTL and active-challenge reuse.
 - **Still outstanding**: real PostgreSQL integration/migration apply is unavailable locally because test Postgres on port 55433 is not running; no migration was added.
 
+## Current state — 2026-09-29 — FIX: scheduled delivery stopped on member bots (strict 15-min window) [Claude Code]
+- **Owner report**: after setting a reminder, Quran pages (and member-bot messages in general) stopped arriving. «قبلاً می‌فرستاده الان نمی‌فرسته… همهٔ بات‌های ممبر باید درست باشه، نه فقط قرآن.»
+- **Root cause**: DEC-PY-0095 (2026-09-29, commit 6b869f6) removed the immediate first-page send at setup, making the reminder engine the *only* delivery path. But `reminder_engine._is_reminder_due()` only returned True inside a tight window `[target, target+15)`. Once that was the sole path, any scan that missed the exact window — a restart, a scheduler tick landing outside it, an odd `HH:MM` (e.g. 12:08), or a timezone whose minutes don't align to :00/:15/:30/:45 — dropped the **entire day's** delivery. So members got nothing.
+- **Fix**: `_is_reminder_due()` now returns True once the local clock is **at or after** the chosen time (dropped the upper bound). Every caller already dedupes to once-per-local-day (`already_sent_today`, `open_reading_last_sent_at`, the portion's `updated_at`), so this delivers on the first scan at/after the chosen time and never repeats that day. This covers: daily positional reminders, open-Quran daily pages, commitment-Quran next portion, and open (non-Quran) schedule reminders. The REGULAR Salawat/Dua schedule (`is_regular_due`) was already at/after-with-dedupe and needed no change. Default user timezone is `Asia/Tehran`, so the chosen hour matches «به وقت خودتون».
+- **Not reverted**: DEC-PY-0095's "no immediate send at setup" stands; this only makes the scheduled path reliable.
+- **How verified**: `pytest -m "not integration"` → **162 passed** (new `test_reminder_due_fires_at_or_after_target_not_only_in_window` proves 12:08 is due at the 12:15/12:45 scans, not only in a 15-min window). No migration.
+
 ## Current state — 2026-09-29 — Member-bot fixes: exact-time, no stray log button, menu, /my_khatms, creator-panel entry [Claude Code]
 - **Owner live report on the member bots.** Fixes:
   - **Exact time (14:27)**: the OPEN-Quran setup hour (`portions.receive_open_quran_hour`) now accepts `HH`/`HH:MM` via the shared `join_flow._parse_delivery_time`, stores the minute (`set_reminder_preference(reminder_minute=…)`), and confirms with the full `HH:MM`. Prompt/invalid i18n updated (`portions.open_quran.setup_ask_hour`/`hour_invalid`).
