@@ -75,5 +75,6 @@ def test_new_panel_routes_exist():
         "/creator/khatms", "/creator/khatms/new", "/creator/khatms/create",
         "/creator/wallet", "/creator/wallet/topup", "/creator/plan/upgrade",
         "/creator-requests", "/finance/user-plan",
+        "/operations/panel-logo",
     ):
         assert path in paths, f"missing route {path}"

@@ -25,7 +25,45 @@ def _admin(*permissions: str):
 def _render(name: str, path: str, **context) -> str:
     return templates.get_template(name).render(
         request=_request(path), admin=_admin("CONTENT_MANAGE", "FINANCE_MANAGE"),
-        csrf="test-csrf", fa_label=lambda value: str(value), **context,
+        csrf="test-csrf", fa_label=lambda value: str(value), panel_logo_url="", **context,
+    )
+
+
+def test_operations_page_renders_panel_logo_setting():
+    html = _render(
+        "operations.html", "/operations", saved="", services=[],
+        queues=SimpleNamespace(broadcasts=0, covers=0, phones=0, categories=0),
+        worker=SimpleNamespace(
+            scheduler_started_at=None, last_scan_succeeded_at=None,
+            last_scan_error=None,
+        ),
+        scan_interval=5,
+    )
+
+    assert 'action="/operations/panel-logo"' in html
+    assert 'name="panel_logo_url"' in html
+    assert "نشان پیش‌فرض «خ»" in html
+
+
+def test_both_panel_headers_support_configured_logo_and_fallback():
+    admin_template = templates.get_template("base.html")
+    creator_template = templates.get_template("creator_base.html")
+    request = _request("/")
+    common = {"request": request, "csrf": "test", "panel_logo_url": "https://cdn.example/logo.png"}
+
+    admin_html = admin_template.render(admin=_admin(), **common)
+    creator_html = creator_template.render(
+        creator=SimpleNamespace(display_name="سازنده"), lang="fa", t=t,
+        label=lambda value: str(value), **common,
+    )
+    assert 'src="https://cdn.example/logo.png"' in admin_html
+    assert 'src="https://cdn.example/logo.png"' in creator_html
+
+    common["panel_logo_url"] = ""
+    assert ">خ</div>" in admin_template.render(admin=_admin(), **common)
+    assert ">خ</div>" in creator_template.render(
+        creator=SimpleNamespace(display_name="سازنده"), lang="fa", t=t,
+        label=lambda value: str(value), **common,
     )
 
 

@@ -1,3 +1,8 @@
+## 2026-09-29 (configurable panel logo)
+- Added an operations-panel field for saving or clearing a public HTTP(S) panel logo URL in the existing system-settings store.
+- Admin and creator headers now render the configured image, while preserving the current «خ» fallback.
+- Added CSRF protection, an audit event, URL validation, and service/route/template regression tests. No migration.
+
 ## 2026-09-29 (real creator PRO purchase)
 - Added a wallet-funded FREE → PRO purchase action using the admin-configured positive PRO price; zero/unconfigured price keeps the button disabled.
 - Purchase writes a normal PURCHASE invoice, changes only the user's plan, audits `PLAN_PURCHASED`, and uses a per-user transaction lock to prevent duplicate concurrent charges.

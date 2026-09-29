@@ -72,6 +72,7 @@ from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import PlanDefinition, PlanTier, PricingMode
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.sms_subscription.models import SmsPlanOption
+from khatmsaz.modules.system_settings import service as system_settings_service
 from khatmsaz.bot.notify_adapter import get_notify_fn
 from khatmsaz.web.telegram_mini_app import InvalidTelegramInitData, validate_telegram_init_data
 
@@ -198,6 +199,17 @@ AUDIT_DETAIL_LABELS = {
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    request.state.panel_logo_url = ""
+    if not request.url.path.startswith("/static/"):
+        try:
+            async with session_scope() as session:
+                request.state.panel_logo_url = await system_settings_service.get_str(
+                    session, "panel_logo_url"
+                )
+        except Exception:
+            # The logo is cosmetic; a database/read failure must never take
+            # down the panel or its health endpoint.
+            request.state.panel_logo_url = ""
     response = await call_next(request)
     # Telegram Web opens Mini Apps inside an iframe served from telegram.org.
     # A blanket X-Frame-Options: SAMEORIGIN blocked them ("refused to connect",
@@ -256,6 +268,7 @@ def _ctx(request: Request, admin, raw_token: str, **extra):
         "request": request,
         "admin": admin,
         "csrf": _csrf(raw_token),
+        "panel_logo_url": getattr(request.state, "panel_logo_url", ""),
         "fa_label": _fa_label,
         **extra,
     }
@@ -266,6 +279,7 @@ def _creator_ctx(request: Request, creator, raw_token: str, *, lang: str = "fa",
         "request": request,
         "creator": creator,
         "csrf": _csrf(raw_token),
+        "panel_logo_url": getattr(request.state, "panel_logo_url", ""),
         "fa_label": _fa_label,
         "lang": lang,
         "t": web_t,
@@ -367,7 +381,7 @@ async def health():
 
 @app.get("/operations", response_class=HTMLResponse)
 async def operations_page(request: Request):
-    """Read-only service readiness and queue depth for Operations admins."""
+    """Service readiness, queue depth, and safe panel presentation settings."""
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
@@ -405,8 +419,39 @@ async def operations_page(request: Request):
         context=_ctx(
             request, admin, raw, services=services, queues=queue_counts,
             worker=runtime_status.snapshot(), scan_interval=settings.reminder_scan_interval_minutes,
+            saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/operations/panel-logo")
+async def update_panel_logo(
+    request: Request,
+    panel_logo_url: str = Form(""),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await system_settings_service.set_str(
+                session, "panel_logo_url", panel_logo_url
+            )
+        except ValueError:
+            return HTMLResponse(
+                "آدرس لوگو باید یک لینک معتبر http یا https باشد.",
+                status_code=400,
+            )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="PANEL_LOGO_UPDATE",
+            details={"has_logo": bool(panel_logo_url.strip())},
+        )
+    return RedirectResponse("/operations?saved=logo", status_code=303)
 
 
 @app.get("/join/{token}", response_class=HTMLResponse)

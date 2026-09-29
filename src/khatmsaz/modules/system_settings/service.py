@@ -5,6 +5,7 @@ key can't silently create a dead, never-read setting; every key here must
 correspond to a real place in the code that reads it via `get_int`."""
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from urllib.parse import urlparse
 
 from khatmsaz.modules.system_settings import repository
 
@@ -18,6 +19,8 @@ KNOWN_SETTINGS: dict[str, dict] = {
         "label_fa": "تعداد روز عدم‌فعالیت قبل از واگذاری سهم قرآن به یار ذخیره",
     },
 }
+
+KNOWN_STRING_SETTINGS = {"panel_logo_url"}
 
 
 async def get_int(session: AsyncSession, key: str) -> int:
@@ -47,3 +50,22 @@ async def list_current(session: AsyncSession) -> dict[str, int]:
         key: (int(rows[key]) if key in rows else meta["default"])
         for key, meta in KNOWN_SETTINGS.items()
     }
+
+
+async def get_str(session: AsyncSession, key: str, default: str = "") -> str:
+    if key not in KNOWN_STRING_SETTINGS:
+        raise ValueError(f"unknown string system setting: {key}")
+    return (await repository.get(session, key)) or default
+
+
+async def set_str(session: AsyncSession, key: str, value: str) -> None:
+    if key not in KNOWN_STRING_SETTINGS:
+        raise ValueError(f"unknown string system setting: {key}")
+    normalized = value.strip()
+    if normalized:
+        parsed = urlparse(normalized)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError(f"{key} must be an HTTP(S) URL")
+        if len(normalized) > 500:
+            raise ValueError(f"{key} is too long")
+    await repository.set(session, key, normalized)

@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Configurable admin/creator panel logo [Codex]
+- **Setting**: `panel_logo_url` is now a whitelisted string system setting. Operations admins can save or clear a public HTTP(S) image URL from `/operations`; invalid/relative schemes are rejected.
+- **Rendering**: both shared admin and creator headers receive the setting through common request context and render the image when configured. The existing «خ» mark remains the automatic fallback.
+- **Safety/audit**: the mutation is CSRF-protected and records `PANEL_LOGO_UPDATE` without copying the URL into the audit payload.
+- **Scope**: this changes the web-panel logo only. Updating Telegram/Bale bot profile photos remains an explicit follow-up.
+- **Coverage**: focused service/route/template tests **15 passed**. No migration added.
+
 ## Current state — 2026-09-29 — Real wallet-funded FREE → PRO purchase [Codex]
 - **Purchase flow**: creator wallet now exposes `POST /creator/plan/upgrade`. `plan_service.purchase_pro` reads the enabled PRO `PlanDefinition.price_toman`, spends wallet credit/cash through the append-only PURCHASE invoice path, sets `UserPlan` to PRO, and records `PLAN_PURCHASED` with price/tier.
 - **Replay/concurrency**: a PostgreSQL advisory transaction lock serializes plan changes per user; an already-paid user is returned without another charge. Wallet spend and plan mutation share one transaction.

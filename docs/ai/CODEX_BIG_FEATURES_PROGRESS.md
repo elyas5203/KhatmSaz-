@@ -34,7 +34,7 @@ Update it after every meaningful step. Status values are `TODO`,
 - Exact next step: start feature 2 with a Graphify query for wallet purchase,
   PlanDefinition PRO pricing, invoice kinds and the creator wallet route.
 
-### 2. Real FREE → PRO purchase — IN-PROGRESS
+### 2. Real FREE → PRO purchase — DONE
 
 - Goal: wallet-funded permanent PRO upgrade at admin-configured PRO price;
   creator UI shows only FREE/PRO while BASIC remains backend-compatible.
@@ -53,18 +53,26 @@ Update it after every meaningful step. Status values are `TODO`,
 - Validation: non-integration suite **178 passed, 86 deselected**; focused
   validation **15 passed**.
 - Template compilation: **27 templates passed**.
-- Remaining: commit/push and Graphify update.
-- Exact next step: finish the feature-2 delivery gate, then begin feature 3.
+- Delivery gate: committed and pushed to `main` as `46dbe3b`; Graphify updated
+  successfully to **3765 nodes / 13522 edges / 237 communities**.
+- Exact next step: complete feature 3 validation and delivery.
 
-### 3. Configurable panel logo — TODO
+### 3. Configurable panel logo — IN-PROGRESS
 
 - Goal: admin-editable `panel_logo_url` via system settings; both admin and
   creator headers render it with the current «خ» fallback.
-- Touched files: none.
+- Touched files: `modules/system_settings/service.py`, `web/app.py`,
+  `web/templates/operations.html`, `base.html`, `creator_base.html`, focused
+  route/template/setting tests, project state/changelog, and this file.
+- Completed: whitelisted `panel_logo_url`; HTTP(S)/length validation; admin
+  operations form with CSRF and audit event; shared request context; image in
+  both admin/creator headers with the existing «خ» fallback.
+- Focused validation: **15 passed**.
 - Open decision/follow-up: changing the real Telegram/Bale bot profile photo is
   explicitly outside this first version.
-- Next step after feature 2: inspect system settings and common template
-  context injection.
+- Remaining: full non-integration suite, all-template compile, commit/push,
+  then Graphify update.
+- Exact next step: finish feature-3 delivery gate, then start feature 4.
 
 ### 4. Reliable modern Persian panel font — TODO
 
