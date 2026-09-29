@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.modules.plan import repository
 from khatmsaz.modules.plan.models import PlanTier, PricingMode
+from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.models import InvoiceKind
 
 
 class PlanFeatureUnavailableError(Exception):
@@ -18,6 +20,30 @@ async def get_plan(session: AsyncSession, user_id) -> PlanTier:
 
 async def set_plan(session: AsyncSession, user_id, plan: PlanTier) -> None:
     await repository.upsert(session, user_id, plan)
+
+
+class ProPlanUnavailableError(ValueError):
+    """The admin has not enabled PRO with a positive purchase price."""
+
+
+async def purchase_pro(session: AsyncSession, user_id):
+    """Atomically buy permanent PRO at the admin-configured definition price."""
+    await repository.lock_plan_change(session, user_id)
+    current = await get_plan(session, user_id)
+    if current != PlanTier.FREE:
+        return None
+    definition = await get_definition(session, PlanTier.PRO)
+    if definition is None or not definition.enabled or definition.price_toman <= 0:
+        raise ProPlanUnavailableError("PRO price is not configured")
+    invoice = await wallet_service.purchase(
+        session,
+        user_id=user_id,
+        gross_amount_toman=definition.price_toman,
+        description="خرید دائمی پلن پرو",
+        invoice_kind=InvoiceKind.PURCHASE,
+    )
+    await set_plan(session, user_id, PlanTier.PRO)
+    return invoice
 
 
 async def get_definition(session: AsyncSession, plan: PlanTier | str):

@@ -699,7 +699,20 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
     definition = await plan_service.get_definition(session, plan)
     fallback = web_t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
     title = (definition.title if definition and definition.title else fallback)
-    view = {"tier": plan.value, "title": title, "is_free": plan == PlanTier.FREE, "caps": None}
+    is_free = plan == PlanTier.FREE
+    if not is_free:
+        pro_definition = await plan_service.get_definition(session, PlanTier.PRO)
+        title = (
+            pro_definition.title if pro_definition and pro_definition.title
+            else web_t("web.creator.plan_pro_name", lang)
+        )
+    view = {
+        "tier": PlanTier.FREE.value if is_free else PlanTier.PRO.value,
+        "title": title,
+        "is_free": is_free,
+        "is_pro": not is_free,
+        "caps": None,
+    }
     if plan == PlanTier.FREE:
         free_def = definition
         quran_cap = free_def.entitlements.get("max_quran_members") if free_def else None
@@ -958,6 +971,7 @@ async def creator_wallet(request: Request):
         plan_view = await _creator_plan_view(session, creator.id, lang)
         raw_invoices = await wallet_service.list_invoices(session, creator.id, limit=15)
         free_def = await plan_service.get_definition(session, PlanTier.FREE)
+        pro_def = await plan_service.get_definition(session, PlanTier.PRO)
     free_caps = {
         "quran": (free_def.entitlements.get("max_quran_members") if free_def else None),
         "devotional": (free_def.entitlements.get("max_devotional_members") if free_def else None),
@@ -987,8 +1001,36 @@ async def creator_wallet(request: Request):
             plan_label=plan_label, plan_view=plan_view, invoices=invoices,
             topup_amounts=(50_000, 100_000, 200_000, 500_000),
             gateway_ready=gateway_ready, free_caps=free_caps,
+            pro_price=(pro_def.price_toman if pro_def else 0),
+            pro_purchase_enabled=bool(pro_def and pro_def.enabled and pro_def.price_toman > 0),
         ),
     )
+
+
+@app.post("/creator/plan/upgrade")
+async def creator_plan_upgrade(request: Request, csrf: str = Form(...)):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    try:
+        async with session_scope() as session:
+            invoice = await plan_service.purchase_pro(session, creator.id)
+            if invoice is None:
+                return RedirectResponse("/creator/wallet?plan_status=already_pro", status_code=303)
+            await audit_service.record(
+                session,
+                actor_user_id=creator.id,
+                target_user_id=creator.id,
+                action="PLAN_PURCHASED",
+                details={"price_toman": invoice.net_amount_toman, "plan": PlanTier.PRO.value},
+            )
+    except plan_service.ProPlanUnavailableError:
+        return RedirectResponse("/creator/wallet?plan_status=unavailable", status_code=303)
+    except InsufficientFundsError:
+        return RedirectResponse("/creator/wallet?plan_status=insufficient", status_code=303)
+    return RedirectResponse("/creator/wallet?plan_status=purchased", status_code=303)
 
 
 @app.post("/creator/wallet/topup")

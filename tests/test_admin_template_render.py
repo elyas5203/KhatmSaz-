@@ -140,3 +140,24 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
     assert 'value="dua"' in html
     assert 'value="laan"' in html
     assert "20,000 تومان" in html
+
+
+def test_creator_wallet_renders_configured_pro_purchase_or_disabled_state():
+    base = dict(
+        request=_request("/creator/wallet"), creator=SimpleNamespace(display_name="سازنده"),
+        csrf="test-csrf", lang="fa", t=t, label=lambda value: str(value),
+        balance="500,000", credit="0", plan_label="رایگان",
+        plan_view={"title": "رایگان", "tier": "FREE", "is_free": True, "caps": None},
+        invoices=[], topup_amounts=(), gateway_ready=False,
+        free_caps={"quran": 100, "devotional": 100},
+    )
+    enabled = templates.get_template("creator_wallet.html").render(
+        **base, pro_price=250_000, pro_purchase_enabled=True,
+    )
+    disabled = templates.get_template("creator_wallet.html").render(
+        **base, pro_price=0, pro_purchase_enabled=False,
+    )
+
+    assert 'action="/creator/plan/upgrade"' in enabled
+    assert "250,000 تومان" in enabled
+    assert "خرید پلن پرو هنوز فعال نشده" in disabled

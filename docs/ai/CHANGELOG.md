@@ -1,3 +1,9 @@
+## 2026-09-29 (real creator PRO purchase)
+- Added a wallet-funded FREE → PRO purchase action using the admin-configured positive PRO price; zero/unconfigured price keeps the button disabled.
+- Purchase writes a normal PURCHASE invoice, changes only the user's plan, audits `PLAN_PURCHASED`, and uses a per-user transaction lock to prevent duplicate concurrent charges.
+- Creator UI now shows only FREE/PRO; legacy BASIC remains backend-compatible and appears as paid/unlimited.
+- PRO is permanent under the current no-expiry schema (DEC-PY-0097). No migration.
+
 ## 2026-09-29 (graphical creator Mini App khatm creation)
 - Added a minimal card-based `/creator/khatms/new` form and `/creator/khatms/create` action for Quran, Salawat, Dua/Ziyarat and La'an, with OPEN/COMMITMENT, optional automatic title, relevant count and visibility.
 - The web flow uses the existing workflow service, plan price, wallet purchase, FREE cap, phone verification and CSRF rules instead of duplicating business logic.

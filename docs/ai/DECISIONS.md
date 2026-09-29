@@ -5,6 +5,19 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0097 — Creator-paid PRO upgrade is permanent and database-priced
+**Date:** 2026-09-29
+**Decision:** The creator UI presents only FREE and PRO. Historical BASIC rows
+remain valid in the backend and are displayed as the paid/unlimited state; no
+data is migrated or deleted. A FREE creator can buy PRO from wallet funds only
+when the enabled PRO `PlanDefinition.price_toman` is positive. The price is
+never hard-coded. The purchase uses an append-only PURCHASE invoice, changes
+only `UserPlan`, and is serialized per user so repeat/concurrent submissions do
+not charge twice. With the current schema PRO has no expiry and is permanent;
+adding subscriptions or renewal requires a later owner decision and schema.
+
+---
+
 ### DEC-PY-0096 — Salawat is one fixed, category-free recitation
 **Date:** 2026-09-29
 **Decision:** Salawat never has subcategories. Selecting «ختم صلوات» always

@@ -1,8 +1,14 @@
 """Persistence access for plan — the only place that runs SQL for this module."""
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.modules.plan.models import PlanDefinition, PlanTier, PricingMode, UserPlan
+
+
+async def lock_plan_change(session: AsyncSession, user_id) -> None:
+    """Serialize purchases/manual changes for one user's plan."""
+    await session.execute(select(func.pg_advisory_xact_lock(func.hashtext(f"plan:{user_id}"))))
 
 
 async def get_by_user(session: AsyncSession, user_id) -> UserPlan | None:

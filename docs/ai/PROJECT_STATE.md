@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Real wallet-funded FREE → PRO purchase [Codex]
+- **Purchase flow**: creator wallet now exposes `POST /creator/plan/upgrade`. `plan_service.purchase_pro` reads the enabled PRO `PlanDefinition.price_toman`, spends wallet credit/cash through the append-only PURCHASE invoice path, sets `UserPlan` to PRO, and records `PLAN_PURCHASED` with price/tier.
+- **Replay/concurrency**: a PostgreSQL advisory transaction lock serializes plan changes per user; an already-paid user is returned without another charge. Wallet spend and plan mutation share one transaction.
+- **UI truth**: creators see only FREE/PRO. Legacy BASIC is retained in storage and rendered as the current paid/unlimited state. A missing, disabled, or zero-priced PRO definition disables the purchase button and says it is not active yet; insufficient balance links to top-up.
+- **Lifetime**: PRO is permanent because `UserPlan` has no expiry field. No subscription duration was invented; DEC-PY-0097 records this current behavior.
+- **Coverage**: focused plan/panel/template/i18n suite **15 passed**. No migration added.
+
 ## Current state — 2026-09-29 — Graphical creator Mini App khatm creation [Codex]
 - **Creator Mini App**: added `GET /creator/khatms/new` and `POST /creator/khatms/create` plus `creator_khatm_new.html`. The card-based form creates Quran, fixed Salawat, active Dua/Ziyarat, and active La'an khatms in OPEN or COMMITMENT mode, with optional automatic title, relevant count, Quran edition, and visibility.
 - **One business path**: the web POST calls `khatm_workflow.create_and_launch_khatm`, obtains the authoritative creation price from `plan_service.get_creation_price`, and reuses existing wallet charging and FREE cap enforcement.

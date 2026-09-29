@@ -34,16 +34,27 @@ Update it after every meaningful step. Status values are `TODO`,
 - Exact next step: start feature 2 with a Graphify query for wallet purchase,
   PlanDefinition PRO pricing, invoice kinds and the creator wallet route.
 
-### 2. Real FREE → PRO purchase — TODO
+### 2. Real FREE → PRO purchase — IN-PROGRESS
 
 - Goal: wallet-funded permanent PRO upgrade at admin-configured PRO price;
   creator UI shows only FREE/PRO while BASIC remains backend-compatible.
-- Touched files: none.
+- Touched files: `modules/plan/repository.py`, `modules/plan/service.py`,
+  `web/app.py`, `web/templates/creator_wallet.html`, `i18n/__init__.py`,
+  `tests/test_pro_plan_purchase.py`, panel/template tests, DECISIONS, INDEX,
+  PROJECT_STATE, CHANGELOG, and this file.
+- Completed: database-priced/enable-gated purchase, wallet PURCHASE invoice,
+  per-user transaction lock, FREE→PRO mutation, no-repeat charge, audit event,
+  wallet UI button/status/top-up link, FREE/PRO-only presentation with legacy
+  BASIC compatibility, fa/ar/en strings, route/service/template tests.
+- Focused validation: **15 passed**.
 - Open decisions: exact PRO price and entitlements are owner/admin data, not
   code constants; current requested behavior is permanent because no expiry
   model exists.
-- Next step after feature 1: inspect PlanDefinition, wallet purchase APIs,
-  invoices and creator wallet route/template using Graphify.
+- Validation: non-integration suite **178 passed, 86 deselected**; focused
+  validation **15 passed**.
+- Template compilation: **27 templates passed**.
+- Remaining: commit/push and Graphify update.
+- Exact next step: finish the feature-2 delivery gate, then begin feature 3.
 
 ### 3. Configurable panel logo — TODO
 
