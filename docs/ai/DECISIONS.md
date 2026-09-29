@@ -5,6 +5,21 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0095 — First Quran pages wait for the chosen hour; titles are automatic; OTP is deduplicated
+**Date:** 2026-09-29
+**Decision:** Choosing a Quran delivery hour configures the schedule only. No
+pages are reserved or sent during setup; the first batch, like every later
+batch, is sent by the reminder engine when that hour arrives. This refines
+DEC-PY-0094, whose phrase “delivers ... immediately” is superseded.
+
+Creators are not asked to type a khatm title. The application generates a
+localized standard title from the Quran/Salawat template or selected devotional
+category. An OTP is valid for five minutes, and repeated or concurrent requests
+for the same user, phone and purpose reuse that active challenge without
+sending another SMS.
+
+---
+
 ### DEC-PY-0094 — Quran reading pace is chosen by each member
 **Date:** 2026-09-28
 **Decision:** For every new Quran-page participation, including a khatm the

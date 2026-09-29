@@ -1,3 +1,11 @@
+## Current state — 2026-09-29 — Scheduled first Quran delivery, automatic title, OTP dedupe [Codex]
+- **Quran timing**: `_finish_open_quran_setup` now stores pages/day + reminder hour only. It no longer reserves or sends pages during setup; `deliver_due_open_quran_reading` is the sole timed sender, including the first batch.
+- **Creation wizard**: removed `entering_title` and the title question. The title is generated from Quran/Salawat or the selected devotional category, then the wizard moves directly to niyyat.
+- **OTP safety**: OTP validity is 5 minutes. `request_challenge` transaction-locks the account/phone/purpose and reuses an unexpired challenge; reuse returns no plaintext code, so creator verification, phone change and account linking do not send another SMS on repeated taps.
+- **Graph-backed audit**: Graphify identified all five callers affected by `request_challenge`; all three sending handlers were updated. The old graph also exposed the direct setup→page-delivery edge that this change removes.
+- **How verified**: non-integration suite **158 passed, 86 deselected**; new tests cover delayed first delivery, automatic titles, five-minute TTL and active-challenge reuse.
+- **Still outstanding**: real PostgreSQL integration/migration apply is unavailable locally because test Postgres on port 55433 is not running; no migration was added.
+
 ## Current state — 2026-09-28 — Fixed creator-bot onboarding/menu [Codex]
 - **Graph-backed cause**: `graphify-out` showed `main_menu_keyboard`/`home_keyboard_for_bot` as shared hubs. Their legacy role fallback emitted the participant keyboard, while `choose_first_language` stopped after saving language and never called `start_wizard`.
 - **Fixed behavior**: the creator bot now has one creator reply menu for USER/CREATOR/SUPER_ADMIN in every language. First language selection and plain `/start` continue directly into creation; choosing creation promotes USER → CREATOR and then retains the existing phone, wallet/plan, and wizard gates.

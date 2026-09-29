@@ -564,23 +564,10 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
         await notification_service.set_reminder_preference(
             session, participation.id, reminder_hour=hour, enabled=True
         )
-        total_pages = content_service.get_quran_total_pages(khatm)
-        remaining = max(0, total_pages - participation.open_reading_next_page + 1)
-        first_batch = min(pages_per_day, remaining)
-        if first_batch <= 0:
-            await state.clear()
-            await message.answer(t("portions.open_quran.already_finished", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
-            return
-        reserved = await participation_service.advance_open_reading(session, participation.id, first_batch)
-        start, end = reserved
-        await participation_service.mark_open_reading_sent_now(session, participation.id)
-        await _deliver_quran_pages(
-            session, message, khatm=khatm, user_id=user.id, page_start=start, page_end=end, platform=platform
-        )
 
     await state.clear()
     await message.answer(
-        t("portions.open_quran.setup_done", lang, hour=hour, pages_per_day=pages_per_day, start=start, end=end),
+        t("portions.open_quran.setup_done", lang, hour=hour, pages_per_day=pages_per_day),
         reply_markup=contribute_keyboard(khatm_id, lang),
     )
 

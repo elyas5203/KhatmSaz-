@@ -68,7 +68,6 @@ class CreateKhatm(StatesGroup):
     choosing_category = State()
     entering_custom_dua_title = State()
     choosing_mode = State()
-    entering_title = State()
     entering_niyyat = State()
     entering_welcome = State()
     entering_creator_contact = State()       # R4: contact ID shown in welcome
@@ -363,44 +362,36 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
     )
 
 
+def _default_khatm_title(data: dict, lang: str) -> str:
+    """Build the standard title without asking the creator an extra question."""
+    if data.get("content_category_title"):
+        return t(
+            "create_khatm.default_title.category", lang,
+            name=data["content_category_title"],
+        )
+    if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value:
+        return t("create_khatm.default_title.quran", lang)
+    return t("create_khatm.default_title.salawat", lang)
+
+
 @router.callback_query(F.data.startswith("ck:mode:"), StateFilter(CreateKhatm.choosing_mode))
 async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
     mode = callback.data.split(":")[2]
     await state.update_data(khatm_type=mode)
-    await state.set_state(CreateKhatm.entering_title)
     await safe_clear_inline_keyboard(callback.message)
     # R2: show the intro image + fixed niyyat caption right after the mode choice.
     await _show_intro_image(callback.message, state)
     data = await state.get_data()
-    title_hint = data.get("content_category_title") or (
-        t("create_khatm.title_hint.quran", lang)
-        if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value
-        else t("create_khatm.title_hint.salawat", lang)
-    )
-    await _wiz(
-        callback.message, state, t("create_khatm.ask_title", lang, hint=title_hint),
-        keep_extra=True,
-    )
-    await safe_answer_callback(callback)
-
-
-@router.message(StateFilter(CreateKhatm.entering_title))
-async def enter_title(message: Message, state: FSMContext) -> None:
-    if await bail_if_menu_button(message, state):
-        return
-    lang = await _lang(state)
-    title = (message.text or "").strip()
-    if not title:
-        await message.answer(t("create_khatm.title_required", lang))
-        return
+    title = _default_khatm_title(data, lang)
     await state.update_data(title=title)
     await state.set_state(CreateKhatm.entering_niyyat)
     await _wiz(
-        message, state,
-        t("create_khatm.ask_niyyat", lang),
+        callback.message, state, t("create_khatm.ask_niyyat", lang),
         reply_markup=skip_niyyat_keyboard(lang),
+        keep_extra=True,
     )
+    await safe_answer_callback(callback)
 
 
 def _compose_niyyat(lang: str, proxy_name: str | None) -> str:

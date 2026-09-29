@@ -20,6 +20,34 @@ async def get_challenge(session: AsyncSession, challenge_id) -> OtpChallenge | N
     return await session.get(OtpChallenge, challenge_id)
 
 
+async def lock_challenge_request(
+    session: AsyncSession, *, user_id, e164: str, purpose: OtpPurpose
+) -> None:
+    """Serialize repeated OTP requests for the same account/phone/purpose."""
+    key = f"otp:{user_id}:{e164}:{purpose.value}"
+    await session.execute(select(func.pg_advisory_xact_lock(func.hashtext(key))))
+
+
+async def get_reusable_challenge(
+    session: AsyncSession, *, user_id, e164: str, purpose: OtpPurpose,
+    now: datetime,
+) -> OtpChallenge | None:
+    result = await session.execute(
+        select(OtpChallenge)
+        .where(
+            OtpChallenge.user_id == user_id,
+            OtpChallenge.e164 == e164,
+            OtpChallenge.purpose == purpose,
+            OtpChallenge.consumed_at.is_(None),
+            OtpChallenge.superseded_at.is_(None),
+            OtpChallenge.expires_at > now,
+        )
+        .order_by(OtpChallenge.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def supersede_open_challenges(session: AsyncSession, *, user_id, e164: str, purpose: OtpPurpose) -> None:
     result = await session.execute(
         select(OtpChallenge).where(

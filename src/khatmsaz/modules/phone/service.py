@@ -23,7 +23,7 @@ from khatmsaz.modules.settings import repository as settings_repository
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.modules.wallet.models import Wallet
 
-OTP_TTL = timedelta(minutes=10)
+OTP_TTL = timedelta(minutes=5)
 MAX_ATTEMPTS = 5
 
 
@@ -62,11 +62,24 @@ def _hash_code(code: str) -> str:
 
 async def request_challenge(session: AsyncSession, *, user_id, e164: str, purpose: OtpPurpose = OtpPurpose.PHONE_LOGIN) -> tuple[object, str | None]:
     phone = normalize_e164(e164)
+    now = datetime.now(timezone.utc)
+    # A slow bot response often makes users tap repeatedly.  Reuse the still
+    # valid challenge and do not return a plaintext code, which tells the
+    # caller that no second SMS must be sent.  The advisory lock also closes
+    # the concurrent double-tap race across worker tasks/processes.
+    await repository.lock_challenge_request(
+        session, user_id=user_id, e164=phone, purpose=purpose
+    )
+    reusable = await repository.get_reusable_challenge(
+        session, user_id=user_id, e164=phone, purpose=purpose, now=now
+    )
+    if reusable is not None:
+        return reusable, None
     await repository.supersede_open_challenges(session, user_id=user_id, e164=phone, purpose=purpose)
     code = f"{secrets.randbelow(1_000_000):06d}"
     challenge = await repository.create_challenge(
         session, user_id=user_id, e164=phone, purpose=purpose, code_hash=_hash_code(code),
-        attempts=0, max_attempts=MAX_ATTEMPTS, expires_at=datetime.now(timezone.utc) + OTP_TTL,
+        attempts=0, max_attempts=MAX_ATTEMPTS, expires_at=now + OTP_TTL,
     )
     # The raw code is returned only to the caller that owns the SMS provider.
     # Production handlers must send it through SmsProvider and never display it.

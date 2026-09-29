@@ -394,15 +394,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "هل تكون هذه الختمة ملتزمة أم مفتوحة؟\n\n{explanation}",
         "en": "Should this khatm be commitment-based or open?\n\n{explanation}",
     },
-    "create_khatm.ask_title": {
-        "fa": "عنوان ختم رو بنویسید (مثلاً «ختم {hint} برای سلامتی امام زمان علیه السلام»):",
-        "ar": "اكتب عنوان الختمة (مثلاً «ختمة {hint} لأجل صحة الإمام المهدي عجل الله فرجه»):",
-        "en": "Enter the khatm's title (e.g. “{hint} khatm for the wellbeing of Imam Mahdi (AJ)”):",
+    "create_khatm.default_title.quran": {
+        "fa": "ختم قرآن", "ar": "ختمة القرآن", "en": "Quran khatm",
     },
-    "create_khatm.title_hint.quran": {"fa": "قرآن", "ar": "قرآن", "en": "Quran"},
-    "create_khatm.title_hint.salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
-    "create_khatm.title_required": {
-        "fa": "لطفاً یک عنوان متنی بنویسید.", "ar": "يرجى كتابة عنوان نصي.", "en": "Please enter a text title.",
+    "create_khatm.default_title.salawat": {
+        "fa": "ختم صلوات", "ar": "ختمة الصلوات", "en": "Salawat khatm",
+    },
+    "create_khatm.default_title.category": {
+        "fa": "ختم {name}", "ar": "ختمة {name}", "en": "{name} khatm",
     },
     "create_khatm.fixed_niyyat": {
         "fa": "به نیت ظهور امام زمان علیه السلام",
@@ -1241,9 +1240,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Please send a number between 0 and 23, like 9.",
     },
     "portions.open_quran.setup_done": {
-        "fa": "تنظیم شد ✅ هر روز ساعت {hour} به وقت خودتون، {pages_per_day} صفحه از قرآن براتون فرستاده می‌شه.\n\nهمین الان هم صفحات {start} تا {end} رو براتون فرستادم 🌱",
-        "ar": "تم الإعداد ✅ كل يوم الساعة {hour} بتوقيتك، سترسل لك {pages_per_day} صفحة من القرآن.\n\nوالآن أرسلت لك الصفحات من {start} إلى {end} 🌱",
-        "en": "All set ✅ Every day at {hour} your time, {pages_per_day} Quran pages will be sent to you.\n\nI've just sent you pages {start} to {end} right now 🌱",
+        "fa": "تنظیم شد ✅ هر روز ساعت {hour} به وقت خودتون، {pages_per_day} صفحه از قرآن براتون فرستاده می‌شه. اولین صفحات هم در همین ساعت می‌رسه 🌱",
+        "ar": "تم الإعداد ✅ كل يوم الساعة {hour} بتوقيتك ستصلك {pages_per_day} صفحة من القرآن. وستصل الصفحات الأولى في هذا الموعد 🌱",
+        "en": "All set ✅ Every day at {hour} your time, you'll receive {pages_per_day} Quran pages. The first pages will arrive at that time too 🌱",
     },
     "portions.open_quran.already_finished": {
         "fa": "🎉 شما همهٔ صفحات این ختم قرآن رو خوندید! چیز دیگه‌ای برای فرستادن نمونده. خدا قبول کنه 🤍",

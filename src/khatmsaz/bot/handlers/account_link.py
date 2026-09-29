@@ -72,20 +72,21 @@ async def receive_link_phone(message: Message, state: FSMContext) -> None:
         )
         return
 
-    provider = build_provider(settings)
-    result = await provider.send(
-        phone=phone,
-        text=t("account_link.otp_sms_text", lang, code=code),
-        sender=settings.sms_sender or None,
-        otp_code=code,
-    )
-    if not result.accepted and not settings.dev_otp:
-        await state.clear()
-        await message.answer(
-            t("account_link.sms_gateway_down", lang),
-            reply_markup=main_menu_keyboard(lang),
+    if code is not None:
+        provider = build_provider(settings)
+        result = await provider.send(
+            phone=phone,
+            text=t("account_link.otp_sms_text", lang, code=code),
+            sender=settings.sms_sender or None,
+            otp_code=code,
         )
-        return
+        if not result.accepted and not settings.dev_otp:
+            await state.clear()
+            await message.answer(
+                t("account_link.sms_gateway_down", lang),
+                reply_markup=main_menu_keyboard(lang),
+            )
+            return
 
     await state.update_data(
         source_user_id=str(source_id),
@@ -95,7 +96,7 @@ async def receive_link_phone(message: Message, state: FSMContext) -> None:
     )
     await state.set_state(AccountLink.entering_code)
     text = t("account_link.ask_otp", lang)
-    if settings.dev_otp:
+    if settings.dev_otp and code is not None:
         text += t("account_link.dev_otp_hint", lang, code=code)
     await message.answer(text)
 

@@ -1,3 +1,9 @@
+## 2026-09-29 (Quran first-send timing + automatic title + OTP dedupe)
+- Quran setup no longer sends the first pages immediately; the first and later batches are delivered only by the scheduler at the member's selected hour.
+- Removed the create-khatm title question and generate a standard localized title from the selected content.
+- OTP challenges now live for five minutes and repeated/concurrent requests reuse the active challenge without another SMS across creator verification, phone change and account linking.
+- Added six regression assertions/tests; non-integration suite: 158 passed.
+
 ## 2026-09-28 (DEC-PY-0092 rotating committed-Quran allocation)
 - New Quran commitment plans now allocate a distinct staggered start per reader and advance each reader's own ranges sequentially with wraparound.
 - Added `rot2026092805`: strategy/boundary metadata, per-participant rotation offset, and partial uniqueness rules that support repeated page ranges safely.

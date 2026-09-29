@@ -106,19 +106,20 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
         )
         return False
 
-    result = await build_provider(settings).send(
-        phone=phone,
-        text=t("change_phone.otp_sms_text", lang, code=code),
-        sender=settings.sms_sender or None,
-        otp_code=code,
-    )
-    if not result.accepted and not settings.dev_otp:
-        await state.clear()
-        await message.answer(
-            t("change_phone.sms_gateway_down_creator", lang),
-            reply_markup=main_menu_keyboard(lang),
+    if code is not None:
+        result = await build_provider(settings).send(
+            phone=phone,
+            text=t("change_phone.otp_sms_text", lang, code=code),
+            sender=settings.sms_sender or None,
+            otp_code=code,
         )
-        return False
+        if not result.accepted and not settings.dev_otp:
+            await state.clear()
+            await message.answer(
+                t("change_phone.sms_gateway_down_creator", lang),
+                reply_markup=main_menu_keyboard(lang),
+            )
+            return False
 
     await state.update_data(
         user_id=str(user_id),
@@ -128,7 +129,7 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
     )
     await state.set_state(ChangePhone.entering_code)
     text = t("change_phone.ask_creator_otp", lang)
-    if settings.dev_otp:
+    if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
     await message.answer(text)
     return False
@@ -213,26 +214,27 @@ async def receive_new_phone(message: Message, state: FSMContext) -> None:
         )
         return
 
-    result = await build_provider(settings).send(
-        phone=phone,
-        text=t("change_phone.otp_sms_text_change", lang, code=code),
-        sender=settings.sms_sender or None,
-        otp_code=code,
-    )
-    if not result.accepted and not settings.dev_otp:
-        await state.clear()
-        await message.answer(
-            t("change_phone.sms_gateway_down_change", lang),
-            reply_markup=main_menu_keyboard(lang),
+    if code is not None:
+        result = await build_provider(settings).send(
+            phone=phone,
+            text=t("change_phone.otp_sms_text_change", lang, code=code),
+            sender=settings.sms_sender or None,
+            otp_code=code,
         )
-        return
+        if not result.accepted and not settings.dev_otp:
+            await state.clear()
+            await message.answer(
+                t("change_phone.sms_gateway_down_change", lang),
+                reply_markup=main_menu_keyboard(lang),
+            )
+            return
 
     await state.update_data(
         user_id=str(user_id), challenge_id=str(challenge_id), verification_context="change", lang=lang
     )
     await state.set_state(ChangePhone.entering_code)
     text = t("change_phone.ask_change_otp", lang)
-    if settings.dev_otp:
+    if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
     await message.answer(text)
 

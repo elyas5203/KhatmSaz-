@@ -32,6 +32,11 @@ async def test_phone_otp_verification_and_platform_link(monkeypatch):
             session, user_id=user_id, e164="+989121234567", purpose=OtpPurpose.PHONE_LOGIN
         )
         assert code is not None
+        repeated, repeated_code = await service.request_challenge(
+            session, user_id=user_id, e164="+989121234567", purpose=OtpPurpose.PHONE_LOGIN
+        )
+        assert repeated.id == challenge.id
+        assert repeated_code is None
         claim = await service.verify_and_link_platform_identity(
             session, challenge_id=challenge.id, user_id=user_id, code=code,
             platform=Platform.BALE, subject="bale-user-1",
