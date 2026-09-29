@@ -1,3 +1,10 @@
+## 2026-09-29 (today picker and early share delivery)
+- Reworded all family intro captions to identify the member bot the audience enters and retain the shared Imam Mahdi intention.
+- Removed the long commitment-consent warning from invite and public join paths; existing mode/setup choices continue in the tracked one-message wizard.
+- Changed «امروز» from dumping every share into a khatm-name picker, then delivering only the selected share.
+- Early completion now shares scheduler dedupe state: completed early shares are not resent at their configured time, while merely viewing a regular share does not suppress its later reminder.
+- Added focused regression coverage. No migration.
+
 ## 2026-09-29 (family intro images and compact join flow)
 - Added four admin-configurable shared intro-image URLs for Quran, Salawat, Dua/Ziyarat and La'an, with per-bot and text-only fallback behavior.
 - Added distinct localized intro captions for all four families.

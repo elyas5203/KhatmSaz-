@@ -14,6 +14,9 @@ after a member joins a repetition-based COMMITMENT khatm.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -41,6 +44,7 @@ from khatmsaz.modules.open_contribution import service as open_contribution_serv
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.participation.commitment import CommitmentMode, ScheduleFreq, parse_hhmm
 from khatmsaz.modules.participation.models import ParticipationStatus
+from khatmsaz.modules.settings import service as settings_service
 
 router = Router(name="member_commitment")
 
@@ -285,10 +289,13 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
     )
 
 
-@router.callback_query(F.data.startswith("regular_done:"))
+@router.callback_query(
+    F.data.startswith("regular_done:") | F.data.startswith("regular_early_done:")
+)
 async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
     """Confirm the current scheduled occurrence once, by its owning member."""
     pid = callback.data.split(":", 1)[1]
+    is_early = callback.data.startswith("regular_early_done:")
     lang = _lang_of(callback.message)
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -299,12 +306,30 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
             or participation.user_id != user.id
             or participation.status != ParticipationStatus.ACTIVE
             or participation.commitment_mode != CommitmentMode.REGULAR.value
-            or participation.schedule_last_sent_at is None
+            or (not is_early and participation.schedule_last_sent_at is None)
             or not participation_matches_bot(participation, callback.message.bot)
         ):
             await safe_answer_callback(callback, t("commit.regular.invalid", lang), show_alert=True)
             return
-        if await open_contribution_service.has_for_participation_since(
+        if is_early:
+            settings = await settings_service.get_or_create(session, user.id)
+            try:
+                user_tz = ZoneInfo(settings.timezone)
+            except (KeyError, ValueError):
+                user_tz = ZoneInfo("Asia/Tehran")
+            today = datetime.now(timezone.utc).astimezone(user_tz).date()
+            sent_today = (
+                participation.schedule_last_sent_at is not None
+                and participation.schedule_last_sent_at.astimezone(user_tz).date() == today
+            )
+            if sent_today and await open_contribution_service.has_for_participation_since(
+                session, participation.id, participation.schedule_last_sent_at
+            ):
+                await safe_answer_callback(callback, t("commit.regular.already_done", lang), show_alert=True)
+                return
+            if not sent_today:
+                await participation_service.mark_schedule_sent_now(session, participation.id)
+        elif await open_contribution_service.has_for_participation_since(
             session, participation.id, participation.schedule_last_sent_at
         ):
             await safe_answer_callback(callback, t("commit.regular.already_done", lang), show_alert=True)

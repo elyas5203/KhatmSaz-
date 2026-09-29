@@ -20,7 +20,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard, pack_join_callback_data
+from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard, pack_join_callback_data
 from khatmsaz.bot.notify_adapter import send_with_keyboard
 from khatmsaz.bot.navigation import home_markup_for_role, resolve_home_navigation
 from khatmsaz.core.db import session_scope
@@ -381,21 +381,6 @@ async def resume_join_after_registration(
         def get_fallback_markup():
             return main_menu_keyboard(_lang)
 
-    if not consent_accepted:
-        khatm_id = await invitation_service.resolve_khatm_id(session, token)
-        khatm_preview = await khatm_service.get_khatm(session, khatm_id)
-        if (
-            khatm_preview is not None
-            and khatm_preview.khatm_type == KhatmTypeEnum.COMMITMENT
-            and khatm_preview.template_type != KhatmTemplateType.QURAN_PAGE
-        ):
-            if state is not None:
-                await state.update_data(pending_commitment_token=token)
-            await message.answer(
-                t("join.commitment_consent", _lang),
-                reply_markup=commitment_consent_keyboard(token, _lang),
-            )
-            return
     try:
         khatm, participation, first_portion, was_waitlisted = await workflow_service.join_via_token(
             session, token=token, user_id=user_id,

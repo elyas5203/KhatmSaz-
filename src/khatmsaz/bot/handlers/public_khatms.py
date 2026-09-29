@@ -6,14 +6,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.handlers.start import resume_join_after_registration
-from khatmsaz.bot.keyboards import PUBLIC_KHATMS_BUTTON_TEXTS, commitment_consent_keyboard, home_keyboard_for_bot, main_menu_keyboard, public_khatms_keyboard
+from khatmsaz.bot.keyboards import PUBLIC_KHATMS_BUTTON_TEXTS, home_keyboard_for_bot, main_menu_keyboard, public_khatms_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmTypeEnum
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.bot.member_scope import khatm_matches_bot
 
@@ -69,14 +68,7 @@ async def join_public_khatm(callback: CallbackQuery, state: FSMContext) -> None:
             await start_registration(callback.message, state, pending_join_token=token)
             await callback.answer()
             return
-        if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
-            await state.update_data(pending_commitment_token=token)
-            await callback.message.answer(
-                t("public_khatms.commitment_consent_prompt", lang),
-                reply_markup=commitment_consent_keyboard(token, lang),
-            )
-        else:
-            await resume_join_after_registration(
-                callback.message, session, user.id, token, state=state, consent_accepted=True
-            )
+        await resume_join_after_registration(
+            callback.message, session, user.id, token, state=state, consent_accepted=True
+        )
     await callback.answer()

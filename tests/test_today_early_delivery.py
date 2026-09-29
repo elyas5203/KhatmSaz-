@@ -1,0 +1,137 @@
+from contextlib import asynccontextmanager
+from types import SimpleNamespace
+import inspect
+
+import pytest
+
+from khatmsaz.bot.handlers import public_khatms, report, start
+from khatmsaz.i18n import t
+from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.participation.commitment import CommitmentMode
+from khatmsaz.modules.bot_registry.models import BotRole
+
+
+class FakeMessage:
+    def __init__(self):
+        self.bot = SimpleNamespace(
+            khatmsaz_platform=Platform.TELEGRAM,
+            khatmsaz_language="fa",
+            khatmsaz_instance_id="bot-1",
+            khatmsaz_role=BotRole.MEMBER,
+        )
+        self.chat = SimpleNamespace(id=100)
+        self.answers = []
+
+    async def answer(self, text, **kwargs):
+        self.answers.append((text, kwargs))
+
+
+class FakeCallback:
+    def __init__(self, participation_id):
+        self.data = f"today_pick:{participation_id}"
+        self.from_user = SimpleNamespace(id=100)
+        self.message = FakeMessage()
+        self.answered = []
+
+    async def answer(self, *args, **kwargs):
+        self.answered.append((args, kwargs))
+
+
+@pytest.mark.asyncio
+async def test_today_lists_khatms_before_delivering_any_share(monkeypatch):
+    participations = [
+        SimpleNamespace(id="p1", khatm_id="k1"),
+        SimpleNamespace(id="p2", khatm_id="k2"),
+        SimpleNamespace(id="p3", khatm_id="k3"),
+    ]
+    khatms = {
+        "k1": SimpleNamespace(title="ختم اول"),
+        "k2": SimpleNamespace(title="ختم دوم"),
+        "k3": SimpleNamespace(title="ختم سوم"),
+    }
+
+    @asynccontextmanager
+    async def fake_scope():
+        yield object()
+
+    async def fake_user(*args, **kwargs):
+        return SimpleNamespace(id="u1")
+
+    async def fake_settings(*args, **kwargs):
+        return SimpleNamespace(language="fa")
+
+    async def fake_list(*args, **kwargs):
+        return participations
+
+    async def fake_khatm(_session, khatm_id):
+        return khatms[khatm_id]
+
+    monkeypatch.setattr(report, "session_scope", fake_scope)
+    monkeypatch.setattr(report.identity_service, "resolve_or_provision_user", fake_user)
+    monkeypatch.setattr(report.settings_service, "get_or_create", fake_settings)
+    monkeypatch.setattr(report.participation_service, "list_my_active", fake_list)
+    monkeypatch.setattr(report.khatm_service, "get_khatm", fake_khatm)
+    monkeypatch.setattr(report.khatm_service, "has_started", lambda _k: True)
+
+    message = FakeMessage()
+    await report.today_overview(message)
+
+    assert len(message.answers) == 1
+    keyboard = message.answers[0][1]["reply_markup"]
+    assert [row[0].text for row in keyboard.inline_keyboard] == [
+        "🌱 ختم اول", "🌱 ختم دوم", "🌱 ختم سوم",
+    ]
+    assert [row[0].callback_data for row in keyboard.inline_keyboard] == [
+        "today_pick:p1", "today_pick:p2", "today_pick:p3",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_early_regular_share_waits_for_done_before_consuming_schedule(monkeypatch):
+    participation = SimpleNamespace(
+        id="p1", user_id="u1", khatm_id="k1", joined_via_bot_instance_id="bot-1",
+        commitment_mode=CommitmentMode.REGULAR.value, schedule_last_sent_at=None,
+        commitment_per_occurrence=2, open_reading_pages_per_day=None,
+    )
+    khatm = SimpleNamespace(id="k1", title="دعای عهد", template_type="DUA")
+
+    @asynccontextmanager
+    async def fake_scope():
+        yield object()
+
+    async def fake_user(*args, **kwargs):
+        return SimpleNamespace(id="u1")
+
+    async def fake_participation(*args, **kwargs):
+        return participation
+
+    async def fake_khatm(*args, **kwargs):
+        return khatm
+
+    async def fake_settings(*args, **kwargs):
+        return SimpleNamespace(timezone="Asia/Tehran")
+
+    monkeypatch.setattr(report, "session_scope", fake_scope)
+    monkeypatch.setattr(report.identity_service, "resolve_or_provision_user", fake_user)
+    monkeypatch.setattr(report.participation_service, "get_by_id", fake_participation)
+    monkeypatch.setattr(report.khatm_service, "get_khatm", fake_khatm)
+    monkeypatch.setattr(report.khatm_service, "has_started", lambda _k: True)
+    monkeypatch.setattr(report.settings_service, "get_or_create", fake_settings)
+    callback = FakeCallback("p1")
+    await report.deliver_today_early(callback)
+
+    assert len(callback.message.answers) == 1
+    markup = callback.message.answers[0][1]["reply_markup"]
+    assert markup.inline_keyboard[0][0].callback_data == "regular_early_done:p1"
+
+
+def test_join_paths_no_longer_show_commitment_consent_warning():
+    assert "join.commitment_consent" not in inspect.getsource(start.resume_join_after_registration)
+    assert "commitment_consent_keyboard" not in inspect.getsource(public_khatms.join_public_khatm)
+
+
+def test_family_intro_copy_names_the_destination_bot():
+    assert t("intro.image_caption.DUA_ZIYARAT", "fa") == (
+        "مخاطبان شما وارد بات «ختم دعا و زیارت» می‌شوند.\n"
+        "همهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱"
+    )

@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Today picker, early delivery and streamlined commitment join [Codex]
+- **Family intro copy**: the four creator-facing captions now say that the creator's audience enters the matching Quran, Salawat, Dua/Ziyarat or La'an member bot, followed by the shared Imam Mahdi intention line. The incorrect “introduced with a special image” wording is gone.
+- **No commitment warning gate**: direct invite and public-khatm joins no longer show the long threatening consent card. Repetition commitments proceed into the existing one-message mode/setup wizard, whose steps update the tracked join message.
+- **Today picker**: «امروز» now shows the names of the user's active khatms in the current member bot first. Choosing one delivers only that khatm's current share/action.
+- **Early reading without duplicate schedule**: Quran/open shares delivered early stamp the same daily dedupe state used by the scheduler. For regular Salawat/Dua/Ziyarat/La'an, merely viewing early keeps the scheduled reminder; tapping «انجام سهم» records completion and consumes that day's scheduled occurrence, so it is not sent again at the configured hour.
+- **Coverage**: new regressions cover the three-khatm picker, early regular action contract and removal of the consent gate. Non-integration suite **200 passed, 85 deselected**. No migration.
+
 ## Current state — 2026-09-29 — Family intro media and single-message join setup [Codex]
 - **Shared family media**: operations can configure one optional HTTP(S) intro image for each of Quran, Salawat, Dua/Ziyarat and La'an. The image is shared by every language/platform bot in that family; the existing per-bot image remains a fallback and empty configuration remains text-only.
 - **Family copy**: each family now has its own localized intro caption instead of one generic caption.
