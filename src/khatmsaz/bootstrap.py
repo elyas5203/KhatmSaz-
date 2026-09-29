@@ -267,8 +267,20 @@ async def main() -> None:
             bot.khatmsaz_username = None  # type: ignore[attr-defined]
 
     # --- Clear stale webhooks ---
+    # A single unreachable bot (e.g. Bale's tapi.bale.ai down, or a bad token)
+    # must NOT crash the whole process — that took the service into a restart
+    # loop and killed Telegram too (owner server log 2026-09-29). Wrap each
+    # bot's startup calls so a failing one is logged and skipped; the reachable
+    # bots keep working.
     for bot in all_bots:
-        await bot.delete_webhook(drop_pending_updates=False)
+        try:
+            await bot.delete_webhook(drop_pending_updates=False)
+        except Exception as exc:
+            logger.warning(
+                "Could not clear webhook for %s (%s) — skipping this bot's startup calls; it may be unreachable.",
+                getattr(bot, "khatmsaz_platform", "?"), type(exc).__name__,
+            )
+            continue
         try:
             if await install_command_menu(bot):
                 logger.info("Command menu installed for %s.", getattr(bot, "khatmsaz_platform", "?"))

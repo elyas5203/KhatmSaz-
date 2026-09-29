@@ -1632,6 +1632,19 @@ _STRINGS: dict[str, dict[str, str]] = {
     "wallet.topup_button": {
         "fa": "{amount} هزار تومان", "ar": "{amount} ألف تومان", "en": "{amount}k toman",
     },
+    "wallet.topup_custom_button": {
+        "fa": "💰 مبلغ دلخواه", "ar": "💰 مبلغ مخصص", "en": "💰 Custom amount",
+    },
+    "wallet.topup_custom_prompt": {
+        "fa": "مبلغ دلخواه را به تومان بفرستید (بین {min} تا {max}):",
+        "ar": "أرسل المبلغ المطلوب بالتومان (بين {min} و{max}):",
+        "en": "Send the amount in toman (between {min} and {max}):",
+    },
+    "wallet.topup_custom_invalid": {
+        "fa": "لطفاً یک عدد معتبر بین {min} تا {max} تومان بفرستید.",
+        "ar": "أرسل رقماً صحيحاً بين {min} و{max} تومان.",
+        "en": "Please send a valid number between {min} and {max} toman.",
+    },
     "wallet.overview": {
         "fa": "💰 کیف پول شما\n\n"
         "موجودی پرداختی: {balance} تومان\n"
@@ -2861,13 +2874,20 @@ _STRINGS: dict[str, dict[str, str]] = {
     "web.creator.wallet_gateway_off": {"fa": "درگاه پرداخت هنوز فعال نشده است. لطفاً بعداً دوباره تلاش کنید.", "ar": "بوابة الدفع غير مفعّلة بعد. حاول لاحقاً.", "en": "The payment gateway is not active yet. Please try again later."},
     "web.creator.wallet_invoices_title": {"fa": "تاریخچهٔ تراکنش‌ها", "ar": "سجل المعاملات", "en": "Transaction history"},
     "web.creator.wallet_no_invoices": {"fa": "هنوز تراکنشی ثبت نشده است.", "ar": "لا توجد معاملات بعد.", "en": "No transactions yet."},
+    "web.creator.wallet_custom_placeholder": {"fa": "مبلغ دلخواه (تومان)", "ar": "مبلغ مخصص (تومان)", "en": "Custom amount (toman)"},
+    "web.creator.wallet_custom_button": {"fa": "شارژ", "ar": "شحن", "en": "Top up"},
     # Current plan (read-only) — faithful to backend: no purchase/expiry yet
     "web.creator.plan_section_title": {"fa": "پلن فعلی", "ar": "الباقة الحالية", "en": "Current plan"},
     "web.creator.plan_usage_quran": {"fa": "اعضای قرآن", "ar": "أعضاء القرآن", "en": "Quran members"},
     "web.creator.plan_usage_dev": {"fa": "اعضای صلوات/دعا", "ar": "أعضاء الصلوات/الأدعية", "en": "Salawat/Dua members"},
     "web.creator.plan_cap_note": {"fa": "رسیدن به سقف فقط ساخت ختم جدید را می‌بندد؛ ختم‌های فعلی و عضوگیری آن‌ها ادامه دارند.", "ar": "بلوغ الحد الأقصى يمنع إنشاء ختمة جديدة فقط؛ الختمات الحالية وانضمام الأعضاء إليها مستمرّة.", "en": "Reaching the cap only blocks creating a new khatm; your existing khatms and their joins continue."},
     "web.creator.plan_paid_no_limit": {"fa": "پلن‌های پولی در نسخهٔ فعلی محدودیت عضو ندارند.", "ar": "الباقات المدفوعة لا تحدّ عدد الأعضاء في النسخة الحالية.", "en": "Paid plans have no member limit in the current version."},
-    "web.creator.contact_support_upgrade": {"fa": "برای ارتقای پلن با پشتیبانی در تماس باشید (از دکمهٔ پشتیبانی در بات).", "ar": "لترقية باقتك تواصل مع الدعم (من زر الدعم في البوت).", "en": "To upgrade your plan, contact support (via the Support button in the bot)."},
+    "web.creator.plan_free_name": {"fa": "رایگان", "ar": "مجانية", "en": "Free"},
+    "web.creator.plan_pro_name": {"fa": "پرو", "ar": "احترافية", "en": "Pro"},
+    "web.creator.plan_current_badge": {"fa": "فعلی", "ar": "الحالية", "en": "current"},
+    "web.creator.plan_free_quran": {"fa": "سقف اعضای قرآن: {n}", "ar": "حد أعضاء القرآن: {n}", "en": "Quran member cap: {n}"},
+    "web.creator.plan_free_dev": {"fa": "سقف اعضای صلوات/دعا: {n}", "ar": "حد أعضاء الصلوات/الأدعية: {n}", "en": "Salawat/Dua member cap: {n}"},
+    "web.creator.plan_pro_unlimited": {"fa": "بدون محدودیت تعداد عضو", "ar": "بدون حد لعدد الأعضاء", "en": "No member limit"},
     "web.creator.eyebrow_private_report": {"fa": "گزارش خصوصی سازنده", "ar": "تقرير خاص بالمنشئ", "en": "Private creator report"},
     "web.creator.greeting": {"fa": "سلام {name}", "ar": "مرحباً {name}", "en": "Hello {name}"},
     "web.creator.default_name": {"fa": "دوست عزیز", "ar": "صديقنا العزيز", "en": "dear friend"},
@@ -3098,6 +3118,26 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "📞 ارتباط با پشتیبانی",
         "ar": "📞 الدعم الفني",
         "en": "📞 Contact Support",
+    },
+    "menu.contact_creator": {
+        "fa": "✉️ ارتباط با سازندهٔ ختم",
+        "ar": "✉️ التواصل مع منشئ الختمة",
+        "en": "✉️ Contact the khatm creator",
+    },
+    "contact_creator.none": {
+        "fa": "شما هنوز در هیچ ختمی عضو نیستید. بعد از پیوستن به یک ختم، می‌تونید همین‌جا با سازنده‌اش در ارتباط باشید.",
+        "ar": "لست عضواً في أي ختمة بعد. بعد الانضمام إلى ختمة يمكنك التواصل مع منشئها من هنا.",
+        "en": "You haven't joined any khatm yet. Once you join one, you can contact its creator here.",
+    },
+    "contact_creator.pick": {
+        "fa": "پیام شما به کدام سازنده برسد؟ یکی را انتخاب کنید:",
+        "ar": "إلى أي منشئ تريد إرسال رسالتك؟ اختر واحداً:",
+        "en": "Which creator should get your message? Pick one:",
+    },
+    "contact_creator.ask_text": {
+        "fa": "پیام‌تان را برای سازندهٔ «{name}» بنویسید:",
+        "ar": "اكتب رسالتك لمنشئ «{name}»:",
+        "en": "Write your message for the creator of “{name}”:",
     },
     "menu.creator_request": {
         "fa": "🌱 درخواست سازنده‌شدن",

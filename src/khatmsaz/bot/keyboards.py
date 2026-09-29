@@ -41,6 +41,7 @@ SETTINGS_BUTTON_TEXTS = variants("menu.settings")
 HELP_BUTTON_TEXTS = variants("menu.help")
 PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
 SUPPORT_BUTTON_TEXTS = variants("menu.support")
+CONTACT_CREATOR_BUTTON_TEXTS = variants("menu.contact_creator")
 CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
 CREATOR_MANAGEMENT_BUTTON_TEXTS = variants("menu.creator.management")
 CREATOR_FINANCE_BUTTON_TEXTS = variants("menu.creator.finance")
@@ -58,7 +59,7 @@ PHONE_SHARE_BUTTON_TEXTS = variants("registration.share_phone")
 RESERVED_MENU_TEXTS = (
     CREATE_BUTTON_TEXTS | MY_KHATMS_BUTTON_TEXTS | TODAY_BUTTON_TEXTS
     | REPORT_BUTTON_TEXTS | SETTINGS_BUTTON_TEXTS | HELP_BUTTON_TEXTS
-    | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
+    | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CONTACT_CREATOR_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
     | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
     | CREATOR_SUPPORT_BUTTON_TEXTS | CREATOR_WALLET_BUTTON_TEXTS
     | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
@@ -66,12 +67,14 @@ RESERVED_MENU_TEXTS = (
 )
 
 def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
+    # Owner (2026-09-29): members contact the KHATM CREATOR, not a generic
+    # support desk — the label and flow are «ارتباط با سازندهٔ ختم».
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=t("menu.today", lang))],
             [KeyboardButton(text=t("menu.my_khatms", lang))],
             [KeyboardButton(text=t("menu.public_khatms", lang))],
-            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.support", lang))],
+            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.contact_creator", lang))],
         ],
         resize_keyboard=True,
     )

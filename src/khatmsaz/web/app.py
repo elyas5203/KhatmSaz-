@@ -825,6 +825,11 @@ async def creator_wallet(request: Request):
         balance, credit = await wallet_service.get_balances(session, creator.id)
         plan_view = await _creator_plan_view(session, creator.id, lang)
         raw_invoices = await wallet_service.list_invoices(session, creator.id, limit=15)
+        free_def = await plan_service.get_definition(session, PlanTier.FREE)
+    free_caps = {
+        "quran": (free_def.entitlements.get("max_quran_members") if free_def else None),
+        "devotional": (free_def.entitlements.get("max_devotional_members") if free_def else None),
+    }
 
     plan_label = plan_view["title"]
     kind_keys = {"TOPUP": "wallet.invoice_kind.TOPUP", "KHATM_CREATION": "wallet.invoice_kind.KHATM_CREATION", "PURCHASE": "wallet.invoice_kind.PURCHASE"}
@@ -849,7 +854,7 @@ async def creator_wallet(request: Request):
             request, creator, raw, lang=lang, balance=f"{balance:,}", credit=f"{credit:,}",
             plan_label=plan_label, plan_view=plan_view, invoices=invoices,
             topup_amounts=(50_000, 100_000, 200_000, 500_000),
-            gateway_ready=gateway_ready,
+            gateway_ready=gateway_ready, free_caps=free_caps,
         ),
     )
 
@@ -861,7 +866,8 @@ async def creator_wallet_topup(request: Request, csrf: str = Form(...), amount: 
         return RedirectResponse("/creator/login", status_code=303)
     if not _valid_csrf(raw, csrf):
         return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
-    if amount not in (50_000, 100_000, 200_000, 500_000):
+    # Owner (2026-09-29): allow any amount (custom top-up), within sane bounds.
+    if amount < 10_000 or amount > 50_000_000:
         return HTMLResponse(web_t("wallet.amount_not_selectable", lang), status_code=400)
     settings = get_settings()
     if not settings.payping_api_token or not settings.payping_callback_url.startswith("https://"):

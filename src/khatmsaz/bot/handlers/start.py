@@ -47,6 +47,17 @@ router = Router(name="start")
 WELCOME_TEXT = t("welcome.text", "fa")
 
 
+def _clean_niyyat(niyyat: str) -> str:
+    """Strip a leading «به نیت»/«بنية»/«Intention» so the display label
+    (join.niyyat_line = «به نیت: {niyyat}») doesn't double it — owner report
+    2026-09-29 showed «به نیت: به نیت ظهور امام زمان». Fixes stored values too."""
+    n = (niyyat or "").strip()
+    for prefix in ("به نیت ", "به نیّت ", "بنية ", "بنیة ", "Intention: ", "For "):
+        if n.startswith(prefix):
+            return n[len(prefix):].strip()
+    return n
+
+
 class AskDeliveryHour(StatesGroup):
     """Owner request (2026-09-21): every committed member should be asked
     what hour their daily portion should be auto-delivered, right at join
@@ -92,7 +103,7 @@ def build_join_preview_message(
         creator=escape(creator_name or t("join.creator_display.anonymous", lang)),
     )
     if khatm.niyyat:
-        text += t("join.preview.niyyat", lang, niyyat=escape(khatm.niyyat))
+        text += t("join.preview.niyyat", lang, niyyat=escape(_clean_niyyat(khatm.niyyat)))
 
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.preview.type_line", lang, icon="📖", type=t("join.preview.type_quran", lang))
@@ -233,13 +244,12 @@ async def handle_start(message: Message, state: FSMContext) -> None:
         lang = settings.language
 
     if already_prompted:
+        # Owner (2026-09-29): `/start` shows ONLY the welcome message + menu —
+        # nothing else. Previously it also auto-started the create-khatm wizard,
+        # which fired the phone-verification/OTP messages and cluttered the chat
+        # («فقط همین [خوش‌آمد] بمونه، بقیه پاک بشن»). Creating a khatm now happens
+        # only when the user taps «➕ ساخت ختم جدید».
         await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
-        # Owner (2026-09-28): the creator bot exists only to BUILD khatms, so send
-        # the creator straight into the create-khatm wizard right after the
-        # welcome instead of leaving them on a menu. Members never reach this
-        # handler (they're on member bots); only creators/super-admins do here.
-        from khatmsaz.bot.handlers.create_khatm import start_wizard
-        await start_wizard(message, state)
         return
 
     # First-ever /start (owner request, 2026-09-20): show the welcome
@@ -312,7 +322,7 @@ def build_join_success_message(
     if creator_display_name:
         text += t("join.creator_line", lang, name=escape(creator_display_name))
     if khatm.niyyat:
-        text += t("join.niyyat_line", lang, niyyat=escape(khatm.niyyat))
+        text += t("join.niyyat_line", lang, niyyat=escape(_clean_niyyat(khatm.niyyat)))
     if khatm.welcome_text:
         text += t("join.welcome_text_line", lang, text=escape(khatm.welcome_text))
 

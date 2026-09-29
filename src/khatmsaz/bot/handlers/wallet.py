@@ -2,6 +2,8 @@
 
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from khatmsaz.config import get_settings
@@ -19,6 +21,12 @@ router = Router(name="wallet")
 
 _PLAN_LABEL_KEYS = {"FREE": "wallet.plan_label.FREE", "BASIC": "wallet.plan_label.BASIC", "PRO": "wallet.plan_label.PRO"}
 _TOPUP_AMOUNTS = (50_000, 100_000, 200_000, 500_000)
+_TOPUP_MIN = 10_000
+_TOPUP_MAX = 50_000_000
+
+
+class WalletTopup(StatesGroup):
+    entering_amount = State()
 
 
 async def _lang_for(chat_id, bot) -> str:
@@ -46,8 +54,36 @@ def _topup_keyboard(lang: str) -> InlineKeyboardMarkup:
                 )
                 for amount in _TOPUP_AMOUNTS[2:]
             ],
+            [InlineKeyboardButton(text=t("wallet.topup_custom_button", lang), callback_data="wallet_topup_custom")],
         ]
     )
+
+
+async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -> None:
+    """Shared: build a PayPing intent for `amount` and send the pay link."""
+    settings = get_settings()
+    if not settings.payping_api_token or not settings.payping_callback_url.startswith("https://"):
+        await message.answer(t("wallet.gateway_not_configured", lang))
+        return
+    platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
+    try:
+        async with session_scope() as session:
+            user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+            _, request = await wallet_service.create_payment_intent(
+                session,
+                PayPingGateway(settings.payping_api_token),
+                user.id,
+                amount_toman=amount,
+                description=t("wallet.topup_description", lang, amount=f"{amount:,}"),
+                callback_url=settings.payping_callback_url,
+            )
+    except GatewayError:
+        await message.answer(t("wallet.gateway_unreachable", lang))
+        return
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)]]
+    )
+    await message.answer(t("wallet.final_topup_step", lang, amount=f"{amount:,}"), reply_markup=keyboard)
 
 
 async def _show_wallet(message: Message) -> None:
@@ -170,3 +206,36 @@ async def create_topup(callback: CallbackQuery) -> None:
         reply_markup=keyboard,
     )
     await callback.answer(t("wallet.link_created", lang))
+
+
+@router.callback_query(F.data == "wallet_topup_custom")
+async def ask_custom_topup(callback: CallbackQuery, state: FSMContext) -> None:
+    """Owner (2026-09-29): let the user charge the wallet with any amount."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    await state.set_state(WalletTopup.entering_amount)
+    await state.update_data(lang=lang)
+    await callback.message.answer(
+        t("wallet.topup_custom_prompt", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}")
+    )
+    await callback.answer()
+
+
+@router.message(WalletTopup.entering_amount)
+async def receive_custom_topup(message: Message, state: FSMContext) -> None:
+    from khatmsaz.bot.keyboards import bail_if_menu_button
+    if await bail_if_menu_button(message, state):
+        return
+    data = await state.get_data()
+    lang = data.get("lang", "fa")
+    raw = (message.text or "").strip().replace(",", "").replace("٬", "")
+    # tolerate Persian/Arabic digits
+    raw = raw.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+    if not raw.isdigit():
+        await message.answer(t("wallet.topup_custom_invalid", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}"))
+        return
+    amount = int(raw)
+    if amount < _TOPUP_MIN or amount > _TOPUP_MAX:
+        await message.answer(t("wallet.topup_custom_invalid", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}"))
+        return
+    await state.clear()
+    await _create_topup_payment(message, message.bot, amount, lang)
