@@ -1,0 +1,121 @@
+{% extends "creator_base.html" %}
+{% block title %}{{ t('menu.creator.wallet', lang) }} | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-6">
+  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">{{ t('web.creator.wallet_eyebrow', lang) }}</p>
+  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">{{ t('menu.creator.wallet', lang) }}</h1>
+  <p class="text-slate-400 text-sm">{{ t('web.creator.wallet_subtitle', lang) }}</p>
+</section>
+
+<!-- Balance hero -->
+<section class="glass-panel p-6 rounded-2xl mb-6 relative overflow-hidden">
+  <div class="absolute -top-8 -left-8 w-40 h-40 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
+    <div>
+      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.wallet_balance', lang) }}</p>
+      <p class="text-3xl font-extrabold text-white" dir="ltr" style="text-align:start">{{ balance }} <span class="text-base font-medium text-slate-400">{{ t('web.creator.toman', lang) }}</span></p>
+    </div>
+    <div>
+      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.wallet_credit', lang) }}</p>
+      <p class="text-2xl font-bold text-emerald-300" dir="ltr" style="text-align:start">{{ credit }} <span class="text-sm font-medium text-slate-400">{{ t('web.creator.toman', lang) }}</span></p>
+    </div>
+    <div>
+      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.kpi_plan', lang) }}</p>
+      <p class="text-2xl font-bold text-fuchsia-300">{{ plan_label }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- Current plan (read-only) -->
+<section class="mb-6">
+  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.plan_section_title', lang) }}</h2>
+  <div class="glass-panel p-5 rounded-2xl">
+    <div class="flex items-center justify-between mb-3">
+      <div class="flex items-center gap-2">
+        <span class="w-9 h-9 rounded-xl bg-fuchsia-500/15 text-fuchsia-300 flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+        </span>
+        <div>
+          <p class="text-base font-bold text-white">{{ plan_view.title }}</p>
+          <p class="text-[0.7rem] text-slate-500" dir="ltr">{{ plan_view.tier }}</p>
+        </div>
+      </div>
+    </div>
+
+    {% if plan_view.is_free and plan_view.caps %}
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3">
+        <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_usage_quran', lang) }}</p>
+        <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.caps.quran_used }}{% if plan_view.caps.quran_cap is not none %} / {{ plan_view.caps.quran_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
+      </div>
+      <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3">
+        <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_usage_dev', lang) }}</p>
+        <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.caps.dev_used }}{% if plan_view.caps.dev_cap is not none %} / {{ plan_view.caps.dev_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 leading-6 mb-4">{{ t('web.creator.plan_cap_note', lang) }}</p>
+    {% else %}
+    <p class="text-xs text-slate-400 leading-6 mb-4">{{ t('web.creator.plan_paid_no_limit', lang) }}</p>
+    {% endif %}
+
+    <div class="rounded-xl bg-slate-800/40 border border-slate-700/40 px-4 py-3 flex items-center gap-3">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+      <span class="text-sm text-slate-300">{{ t('web.creator.contact_support_upgrade', lang) }}</span>
+    </div>
+  </div>
+</section>
+
+<!-- Top up (separate from plan upgrade) -->
+<section class="mb-6">
+  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.wallet_topup_title', lang) }}</h2>
+  {% if gateway_ready %}
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    {% for amount in topup_amounts %}
+    <form method="post" action="/creator/wallet/topup" class="m-0">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="amount" value="{{ amount }}">
+      <button type="submit" class="w-full glass-card p-4 rounded-2xl text-center hover:border-amber-500/40 group">
+        <p class="text-xl font-extrabold text-white group-hover:text-amber-300" dir="ltr">{{ '{:,}'.format(amount // 1000) }}</p>
+        <p class="text-[0.7rem] text-slate-400">{{ t('web.creator.toman_thousand', lang) }}</p>
+      </button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="text-xs text-slate-500 mt-3">{{ t('web.creator.wallet_topup_hint', lang) }}</p>
+  {% else %}
+  <div class="glass-panel p-5 rounded-2xl text-sm text-slate-300 border border-amber-500/20">
+    {{ t('web.creator.wallet_gateway_off', lang) }}
+  </div>
+  {% endif %}
+</section>
+
+<!-- Invoices -->
+<section>
+  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.wallet_invoices_title', lang) }}</h2>
+  {% if invoices %}
+  <div class="glass-panel rounded-2xl overflow-hidden divide-y divide-white/5">
+    {% for inv in invoices %}
+    <div class="flex items-center justify-between px-4 py-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-9 h-9 rounded-xl flex-none flex items-center justify-center {% if inv.kind == 'TOPUP' %}bg-emerald-500/15 text-emerald-400{% else %}bg-slate-600/30 text-slate-300{% endif %}">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 0v6m0-6l-8 8" /></svg>
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-slate-100 truncate">{{ inv.kind_label }}</p>
+          <p class="text-[0.7rem] text-slate-500" dir="ltr">#{{ inv.number }}</p>
+        </div>
+      </div>
+      <div class="text-left flex-none">
+        <p class="text-sm font-bold text-white" dir="ltr">{{ inv.amount }} {{ t('web.creator.toman', lang) }}</p>
+        <p class="text-[0.7rem] {% if inv.status == 'PAID' %}text-emerald-400{% else %}text-amber-400{% endif %}">{{ inv.status_label }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="glass-panel p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
+    <p>{{ t('web.creator.wallet_no_invoices', lang) }}</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

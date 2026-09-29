@@ -1,40 +1,88 @@
 {% extends "creator_base.html" %}
 {% block title %}{{ t('web.creator.home_title', lang) }}{% endblock %}
 {% block content %}
-<section class="mb-8">
+<section class="mb-6">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_private_report', lang) }}</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">{{ t('web.creator.greeting', lang, name=creator.display_name or t('web.creator.default_name', lang)) }}</h1>
-  <p class="text-slate-400 text-sm">{{ t('web.creator.pick_khatm_hint', lang) }}</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-1">{{ t('web.creator.greeting', lang, name=creator.display_name or t('web.creator.default_name', lang)) }}</h1>
+  <p class="text-slate-400 text-sm">{{ t('web.creator.dashboard_subtitle', lang) }}</p>
 </section>
 
-<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {% for khatm in khatms %}
-  <a href="/creator/khatms/{{ khatm.id }}" class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
-    <div class="flex justify-between items-start mb-4">
-      <h2 class="text-lg font-bold text-slate-100 group-hover:text-emerald-300 transition-colors line-clamp-1">{{ khatm.title }}</h2>
-      <span class="status {{ khatm.status.value|lower }} whitespace-nowrap mr-3">{{ label(khatm.status) }}</span>
+<!-- KPI cards -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+  {%- macro kpi(value, label, d, accent) -%}
+  <div class="glass-card p-4 sm:p-5 rounded-2xl">
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center {{ accent }}">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" /></svg>
+      </div>
     </div>
-    <p class="text-sm text-slate-400 flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-      {{ t('web.creator.active_members_suffix', lang, count=member_counts.get(khatm.id, 0), template=label(khatm.template_type), mode=label(khatm.khatm_type)) }}
-    </p>
-  </a>
-  {% else %}
-  <div class="col-span-full glass-panel p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
-    <p>{{ t('web.creator.no_khatms_yet', lang) }}</p>
+    <p class="text-2xl sm:text-3xl font-extrabold text-white leading-none mb-1" dir="ltr" style="text-align:start">{{ value }}</p>
+    <p class="text-[0.72rem] sm:text-xs text-slate-400 font-medium">{{ label }}</p>
   </div>
-  {% endfor %}
+  {%- endmacro -%}
+  {{ kpi(active_khatms, t('web.creator.kpi_active_khatms', lang), "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253", "bg-emerald-500/15 text-emerald-400") }}
+  {{ kpi(total_members, t('web.creator.kpi_total_members', lang), "M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z", "bg-sky-500/15 text-sky-400") }}
+  {{ kpi(balance ~ ' ' ~ t('web.creator.toman', lang), t('web.creator.kpi_wallet', lang), "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-2M17 9h2a2 2 0 012 2a2 2 0 01-2 2h-2m0-4v4m-3-2h.01", "bg-amber-500/15 text-amber-400") }}
+  {{ kpi(plan_label, t('web.creator.kpi_plan', lang), "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", "bg-fuchsia-500/15 text-fuchsia-400") }}
 </section>
 
-{% if page > 1 or has_next %}
-<nav class="flex items-center justify-center gap-4 mt-8" aria-label="{{ t('web.creator.pagination_aria', lang) }}">
-  {% if page > 1 %}
-  <form method="get" class="m-0"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.prev_page', lang) }}</button></form>
-  {% endif %}
-  <span class="text-slate-400 text-sm font-medium">{{ t('web.creator.page_label', lang, page=page) }}</span>
-  {% if has_next %}
-  <form method="get" class="m-0"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.next_page', lang) }}</button></form>
-  {% endif %}
-</nav>
-{% endif %}
+<!-- Quick actions -->
+<section class="mb-8">
+  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.quick_actions', lang) }}</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <a href="/creator/khatms" class="glass-card p-4 rounded-2xl flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center flex-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+      </div>
+      <div>
+        <p class="font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">{{ t('web.creator.nav_my_khatms', lang) }}</p>
+        <p class="text-xs text-slate-400">{{ t('web.creator.action_manage_khatms', lang) }}</p>
+      </div>
+    </a>
+    <a href="/creator/wallet" class="glass-card p-4 rounded-2xl flex items-center gap-3 group">
+      <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center flex-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V7m0 10v-1" /></svg>
+      </div>
+      <div>
+        <p class="font-bold text-slate-100 group-hover:text-amber-300 transition-colors">{{ t('menu.creator.wallet', lang) }}</p>
+        <p class="text-xs text-slate-400">{{ t('web.creator.action_topup', lang) }}</p>
+      </div>
+    </a>
+    <div class="glass-card p-4 rounded-2xl flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center flex-none">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+      </div>
+      <div>
+        <p class="font-bold text-slate-100">{{ t('menu.create', lang) }}</p>
+        <p class="text-xs text-slate-400">{{ t('web.creator.action_create_in_bot', lang) }}</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Recent khatms -->
+<section>
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-sm font-bold text-slate-300">{{ t('web.creator.recent_khatms', lang) }}</h2>
+    <a href="/creator/khatms" class="text-xs font-semibold text-emerald-400 hover:text-emerald-300">{{ t('web.creator.see_all', lang) }} →</a>
+  </div>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {% for khatm in khatms %}
+    <a href="/creator/khatms/{{ khatm.id }}" class="glass-card p-4 rounded-2xl flex flex-col justify-between group">
+      <div class="flex justify-between items-start mb-3">
+        <h3 class="text-base font-bold text-slate-100 group-hover:text-emerald-300 transition-colors line-clamp-1">{{ khatm.title }}</h3>
+        <span class="status {{ khatm.status.value|lower }} whitespace-nowrap mr-2">{{ label(khatm.status) }}</span>
+      </div>
+      <p class="text-sm text-slate-400 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        {{ t('web.creator.active_members_suffix', lang, count=member_counts.get(khatm.id, 0), template=label(khatm.template_type), mode=label(khatm.khatm_type)) }}
+      </p>
+    </a>
+    {% else %}
+    <div class="col-span-full glass-panel p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
+      <p>{{ t('web.creator.no_khatms_yet', lang) }}</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

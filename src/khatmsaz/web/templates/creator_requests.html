@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}تأیید سازندگان | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-6">
+  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">مدیریت دسترسی</p>
+  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">درخواست‌های سازنده‌شدن</h1>
+  <p class="text-slate-400 text-sm">کاربرانی که خواسته‌اند سازنده شوند. با تأیید، نقش کاربر به «سازنده» ارتقا می‌یابد و به او اطلاع داده می‌شود.</p>
+</section>
+
+{% if saved == 'approved' %}
+<div class="glass-panel border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 mb-5 text-sm">درخواست تأیید شد و کاربر سازنده شد ✅</div>
+{% elif saved == 'rejected' %}
+<div class="glass-panel border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 mb-5 text-sm">درخواست رد شد.</div>
+{% endif %}
+
+{% if rows %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+  {% for row in rows %}
+  <div class="glass-card p-5 rounded-2xl">
+    <div class="flex items-start justify-between mb-3">
+      <div class="min-w-0">
+        <h2 class="text-lg font-bold text-slate-100 truncate">{{ row.user.display_name if row.user and row.user.display_name else 'بدون نام' }}</h2>
+        <p class="text-xs text-slate-500 mt-0.5">درخواست: {{ row.time }}</p>
+      </div>
+      <span class="status draft whitespace-nowrap mr-2">در انتظار</span>
+    </div>
+    <dl class="text-sm text-slate-300 space-y-1 mb-4">
+      <div class="flex gap-2"><dt class="text-slate-500 min-w-[5rem]">موبایل</dt><dd dir="ltr" class="truncate">{{ row.profile.contact_phone if row.profile and row.profile.contact_phone else '—' }}</dd></div>
+      <div class="flex gap-2"><dt class="text-slate-500 min-w-[5rem]">استان / شهر</dt><dd class="truncate">{{ (row.profile.province if row.profile else '') or '—' }}{% if row.profile and row.profile.city %} / {{ row.profile.city }}{% endif %}</dd></div>
+    </dl>
+    <div class="flex gap-2">
+      <form method="post" action="/creator-requests/{{ row.item.id }}/decide" class="flex-1 m-0">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="decision" value="approve">
+        <button type="submit" class="btn w-full justify-center">تأیید و ارتقا به سازنده</button>
+      </form>
+      <form method="post" action="/creator-requests/{{ row.item.id }}/decide" class="m-0" onsubmit="return confirm('این درخواست رد شود؟');">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="decision" value="reject">
+        <button type="submit" class="btn btn-danger justify-center">رد</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="glass-panel p-10 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
+  <p>درخواست تأییدنشده‌ای وجود ندارد.</p>
+</div>
+{% endif %}
+{% endblock %}

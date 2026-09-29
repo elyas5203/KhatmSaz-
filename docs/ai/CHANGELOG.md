@@ -4,6 +4,18 @@
 - OTP challenges now live for five minutes and repeated/concurrent requests reuse the active challenge without another SMS across creator verification, phone change and account linking.
 - Added six regression assertions/tests; non-integration suite: 158 passed.
 
+## 2026-09-29 (plan panels aligned to real backend)
+- Admin `/finance`: honest plan-card wording (enabled = «فعال و قابل اعمال»), member caps shown only on FREE, BASIC/PRO note "no member limit", price titled «هزینهٔ ساخت هر ختم». New «مدیریت پلن کاربران» section + `POST /finance/user-plan` (search → set FREE/BASIC/PRO, audit `USER_PLAN_CHANGED`).
+- Creator `/creator/wallet`: read-only «پلن فعلی» card (title from PlanDefinition, FREE usage vs cap for Quran & Salawat/Dua, cap-only-blocks-new-creation note, no buy button, contact-support-to-upgrade note). Top-up and SMS kept separate.
+- No domain/pricing/DB change. `pytest -m "not integration"` → 158 passed.
+
+## 2026-09-29 (admin + creator panel redesign; creator wallet-charge button)
+- Creator bot menu: new «💳 شارژ کیف پول» button (reply + inline panel) wired to the existing PayPing top-up flow; new i18n `menu.creator.wallet`.
+- Creator web panel: redesigned nav (sidebar + dock), new KPI dashboard, parent/child «ختم‌های من» (status → type → khatm), and a wallet page (balance/credit/plan, top-up, invoices). ~35 new `web.creator.*` keys.
+- Admin web panel: new «تأیید سازندگان» page — approve/reject creator-role requests, upgrade role, notify user, audit event. Nav link added.
+- Inline bot panel: admin dead-ends now point to the real web-panel sections.
+- No migration. `pytest -m "not integration"` → 153 passed (new `tests/test_panel_redesign.py`).
+
 ## 2026-09-28 (DEC-PY-0092 rotating committed-Quran allocation)
 - New Quran commitment plans now allocate a distinct staggered start per reader and advance each reader's own ranges sequentially with wraparound.
 - Added `rot2026092805`: strategy/boundary metadata, per-participant rotation offset, and partial uniqueness rules that support repeated page ranges safely.

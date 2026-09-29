@@ -28,6 +28,7 @@ from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, User
+from khatmsaz.modules.creator_request import service as creator_request_service
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
@@ -660,44 +661,230 @@ async def creator_logout(request: Request, csrf: str = Form("")):
     return response
 
 
+_PLAN_LABEL_KEYS = {"FREE": "wallet.plan_label.FREE", "BASIC": "wallet.plan_label.BASIC", "PRO": "wallet.plan_label.PRO"}
+
+# Owner request (2026-09-29): every khatm the creator owns is grouped into one
+# of four parent buckets in the panel (parent/child navigation). Keep this the
+# single source of truth so the dashboard, list and detail stay consistent.
+_CREATOR_KHATM_BUCKETS = (
+    ("quran", "📖", ("QURAN_PAGE", "QURAN_SURAH", "SURAH"), "web.creator.bucket_quran"),
+    ("salawat", "🕊", ("SALAWAT",), "web.creator.bucket_salawat"),
+    ("dua", "🤲", ("DUA", "ZIYARAT"), "web.creator.bucket_dua"),
+    ("other", "✨", ("CUSTOM",), "web.creator.bucket_other"),
+)
+
+
+def _bucket_for_template(template_value: str) -> str:
+    for key, _emoji, members, _label in _CREATOR_KHATM_BUCKETS:
+        if template_value in members:
+            return key
+    return "other"
+
+
+async def _creator_plan_view(session, user_id, lang: str) -> dict:
+    """Read-only plan snapshot for the creator panel, faithful to the backend:
+    a missing UserPlan means FREE; caps live in the FREE PlanDefinition's
+    entitlements and are the only ones the backend actually enforces
+    (khatm_workflow._enforce_creation_cap). No expiry/purchase exists yet."""
+    from khatmsaz.modules.khatm_workflow.service import (
+        _QURAN_TEMPLATE_TYPES, _DEVOTIONAL_TEMPLATE_TYPES,
+    )
+
+    plan = await plan_service.get_plan(session, user_id)
+    definition = await plan_service.get_definition(session, plan)
+    fallback = web_t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
+    title = (definition.title if definition and definition.title else fallback)
+    view = {"tier": plan.value, "title": title, "is_free": plan == PlanTier.FREE, "caps": None}
+    if plan == PlanTier.FREE:
+        free_def = definition
+        quran_cap = free_def.entitlements.get("max_quran_members") if free_def else None
+        dev_cap = free_def.entitlements.get("max_devotional_members") if free_def else None
+
+        async def _count(types):
+            return int((await session.execute(
+                select(func.count())
+                .select_from(Participation)
+                .join(Khatm, Khatm.id == Participation.khatm_id)
+                .where(
+                    Khatm.creator_user_id == user_id,
+                    Khatm.template_type.in_(types),
+                    Participation.status == ParticipationStatus.ACTIVE,
+                )
+            )).scalar_one())
+
+        view["caps"] = {
+            "quran_used": await _count(_QURAN_TEMPLATE_TYPES),
+            "quran_cap": int(quran_cap) if quran_cap is not None else None,
+            "dev_used": await _count(_DEVOTIONAL_TEMPLATE_TYPES),
+            "dev_cap": int(dev_cap) if dev_cap is not None else None,
+        }
+    return view
+
+
+async def _creator_member_counts(session, khatm_ids: list[UUID]) -> dict:
+    if not khatm_ids:
+        return {}
+    return dict(
+        (
+            await session.execute(
+                select(Participation.khatm_id, func.count())
+                .where(
+                    Participation.status == ParticipationStatus.ACTIVE,
+                    Participation.khatm_id.in_(khatm_ids),
+                )
+                .group_by(Participation.khatm_id)
+            )
+        ).all()
+    )
+
+
 @app.get("/creator", response_class=HTMLResponse)
-async def creator_dashboard(request: Request, page: int = 1):
+async def creator_dashboard(request: Request):
     creator, raw, lang = await _creator(request)
     if creator is None:
         return RedirectResponse("/creator/login", status_code=303)
-    page = max(1, min(page, 10_000))
-    page_size = 25
     async with session_scope() as session:
-        khatms = list((await session.execute(
+        all_khatms = list((await session.execute(
             select(Khatm)
             .where(Khatm.creator_user_id == creator.id)
             .order_by(Khatm.created_at.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size + 1)
         )).scalars())
-        has_next = len(khatms) > page_size
-        khatms = khatms[:page_size]
-        khatm_ids = [item.id for item in khatms]
-        member_counts = dict(
-            (
-                await session.execute(
-                    select(Participation.khatm_id, func.count())
-                    .where(
-                        Participation.status == ParticipationStatus.ACTIVE,
-                        Participation.khatm_id.in_(khatm_ids),
-                    )
-                    .group_by(Participation.khatm_id)
-                )
-            ).all()
-        ) if khatm_ids else {}
+        khatm_ids = [item.id for item in all_khatms]
+        member_counts = await _creator_member_counts(session, khatm_ids)
+        balance, credit = await wallet_service.get_balances(session, creator.id)
+        plan_view = await _creator_plan_view(session, creator.id, lang)
+
+    active_khatms = sum(1 for k in all_khatms if k.status == KhatmStatus.ACTIVE)
+    total_members = sum(member_counts.values())
+    plan_label = plan_view["title"]
+    recent = all_khatms[:6]
     return templates.TemplateResponse(
         request=request,
         name="creator_dashboard.html",
         context=_creator_ctx(
-            request, creator, raw, lang=lang, khatms=khatms, member_counts=member_counts,
-            page=page, has_next=has_next,
+            request, creator, raw, lang=lang, khatms=recent, member_counts=member_counts,
+            active_khatms=active_khatms, total_members=total_members,
+            balance=f"{balance:,}", plan_label=plan_label,
         ),
     )
+
+
+@app.get("/creator/khatms", response_class=HTMLResponse)
+async def creator_khatms_list(request: Request, branch: str = "active"):
+    """Parent/child khatm navigation: status branch → content-type category →
+    khatm cards (owner request 2026-09-29, mirrors the bot's «ختم‌های من»)."""
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if branch not in ("active", "completed"):
+        branch = "active"
+    async with session_scope() as session:
+        all_khatms = list((await session.execute(
+            select(Khatm)
+            .where(Khatm.creator_user_id == creator.id)
+            .order_by(Khatm.created_at.desc())
+        )).scalars())
+        member_counts = await _creator_member_counts(session, [k.id for k in all_khatms])
+
+    def _in_branch(k, key):
+        if key == "active":
+            return k.status in (KhatmStatus.ACTIVE, KhatmStatus.DRAFT)
+        return k.status in (KhatmStatus.COMPLETED, KhatmStatus.CANCELLED)
+
+    branches = []
+    for key, branch_label_key in (("active", "web.creator.branch_active"), ("completed", "web.creator.branch_completed")):
+        members = [k for k in all_khatms if _in_branch(k, key)]
+        categories = []
+        for bkey, emoji, _members, label_key in _CREATOR_KHATM_BUCKETS:
+            items = [
+                {"khatm": k, "members": member_counts.get(k.id, 0)}
+                for k in members
+                if _bucket_for_template(getattr(k.template_type, "value", k.template_type)) == bkey
+            ]
+            if items:
+                categories.append({"emoji": emoji, "label": web_t(label_key, lang), "khatms": items})
+        branches.append({
+            "key": key, "label": web_t(branch_label_key, lang),
+            "count": len(members), "categories": categories,
+        })
+    return templates.TemplateResponse(
+        request=request,
+        name="creator_khatms.html",
+        context=_creator_ctx(
+            request, creator, raw, lang=lang, branches=branches, active_branch=branch,
+        ),
+    )
+
+
+@app.get("/creator/wallet", response_class=HTMLResponse)
+async def creator_wallet(request: Request):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    async with session_scope() as session:
+        balance, credit = await wallet_service.get_balances(session, creator.id)
+        plan_view = await _creator_plan_view(session, creator.id, lang)
+        raw_invoices = await wallet_service.list_invoices(session, creator.id, limit=15)
+
+    plan_label = plan_view["title"]
+    kind_keys = {"TOPUP": "wallet.invoice_kind.TOPUP", "KHATM_CREATION": "wallet.invoice_kind.KHATM_CREATION", "PURCHASE": "wallet.invoice_kind.PURCHASE"}
+    status_keys = {"PAID": "wallet.invoice_status.PAID", "REFUNDED": "wallet.invoice_status.REFUNDED"}
+    invoices = [
+        {
+            "kind": inv.kind,
+            "kind_label": web_t(kind_keys[inv.kind], lang) if inv.kind in kind_keys else inv.kind,
+            "amount": f"{inv.net_amount_toman:,}",
+            "status": inv.status,
+            "status_label": web_t(status_keys[inv.status], lang) if inv.status in status_keys else inv.status,
+            "number": str(inv.id)[:8],
+        }
+        for inv in raw_invoices
+    ]
+    settings = get_settings()
+    gateway_ready = bool(settings.payping_api_token) and settings.payping_callback_url.startswith("https://")
+    return templates.TemplateResponse(
+        request=request,
+        name="creator_wallet.html",
+        context=_creator_ctx(
+            request, creator, raw, lang=lang, balance=f"{balance:,}", credit=f"{credit:,}",
+            plan_label=plan_label, plan_view=plan_view, invoices=invoices,
+            topup_amounts=(50_000, 100_000, 200_000, 500_000),
+            gateway_ready=gateway_ready,
+        ),
+    )
+
+
+@app.post("/creator/wallet/topup")
+async def creator_wallet_topup(request: Request, csrf: str = Form(...), amount: int = Form(...)):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    if amount not in (50_000, 100_000, 200_000, 500_000):
+        return HTMLResponse(web_t("wallet.amount_not_selectable", lang), status_code=400)
+    settings = get_settings()
+    if not settings.payping_api_token or not settings.payping_callback_url.startswith("https://"):
+        return _payment_result_page(
+            web_t("menu.creator.wallet", lang), web_t("wallet.gateway_not_configured", lang),
+            success=False, status_code=503,
+        )
+    try:
+        async with session_scope() as session:
+            _, payment_request = await wallet_service.create_payment_intent(
+                session,
+                PayPingGateway(settings.payping_api_token),
+                creator.id,
+                amount_toman=amount,
+                description=web_t("wallet.topup_description", lang, amount=f"{amount:,}"),
+                callback_url=settings.payping_callback_url,
+            )
+    except GatewayError:
+        return _payment_result_page(
+            web_t("menu.creator.wallet", lang), web_t("wallet.gateway_unreachable", lang),
+            success=False, status_code=502,
+        )
+    return RedirectResponse(payment_request.payment_url, status_code=303)
 
 
 async def _load_creator_member_rows(
@@ -1310,6 +1497,90 @@ async def admins(request: Request, q: str = ""):
     )
 
 
+@app.get("/creator-requests", response_class=HTMLResponse)
+async def creator_requests_page(request: Request):
+    """Approve/reject creator-role requests from the web panel (owner request
+    2026-09-29). Before this, `panel.py` told the admin to run a bot command or
+    edit the database directly — a dead-end for a non-technical owner."""
+    admin, raw = await _admin(request, AdminPermission.ADMIN_ROLES_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    async with session_scope() as session:
+        pending = await creator_request_service.list_pending(session, limit=100)
+        rows = []
+        for item in pending:
+            user = await identity_service.find_by_id(session, item.user_id)
+            profile = await session.get(UserSettings, item.user_id)
+            rows.append({
+                "item": item,
+                "user": user,
+                "profile": profile,
+                "time": _tehran_time(item.created_at),
+            })
+    return templates.TemplateResponse(
+        request=request,
+        name="creator_requests.html",
+        context=_ctx(
+            request, admin, raw, rows=rows,
+            saved=request.query_params.get("saved", ""),
+        ),
+    )
+
+
+@app.post("/creator-requests/{request_id}/decide")
+async def decide_creator_request(
+    request: Request,
+    request_id: UUID,
+    decision: str = Form(...),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.ADMIN_ROLES_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if decision not in {"approve", "reject"}:
+        return HTMLResponse("تصمیم نامعتبر است.", status_code=400)
+    async with session_scope() as session:
+        if decision == "approve":
+            req = await creator_request_service.approve_request(
+                session, request_id, admin.id, note="تأیید از پنل ادمین"
+            )
+        else:
+            req = await creator_request_service.reject_request(
+                session, request_id, admin.id, note="رد از پنل ادمین"
+            )
+        if req is None:
+            return HTMLResponse("این درخواست قبلاً بررسی شده یا وجود ندارد.", status_code=409)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=req.user_id,
+            action="CREATOR_REQUEST_APPROVED" if decision == "approve" else "CREATOR_REQUEST_REJECTED",
+            details={"request_id": str(request_id)},
+        )
+        identities = await identity_service.list_identities_for_user(session, req.user_id)
+
+    approved = decision == "approve"
+    notification = (
+        "درخواست سازنده‌شدن شما تأیید شد ✅\n"
+        "حالا می‌توانید از دکمهٔ «➕ ساخت ختم جدید» ختم بسازید."
+        if approved
+        else "درخواست سازنده‌شدن شما این بار پذیرفته نشد. برای اطلاعات بیشتر با پشتیبانی در تماس باشید."
+    )
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None:
+        for identity in identities:
+            await notify(identity.platform.value, identity.subject, notification)
+    return RedirectResponse(
+        f"/creator-requests?saved={'approved' if approved else 'rejected'}",
+        status_code=303,
+    )
+
+
 @app.get("/audit", response_class=HTMLResponse)
 async def audit_timeline(request: Request, q: str = ""):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
@@ -1772,10 +2043,12 @@ async def message_templates(request: Request):
 
 
 @app.get("/finance", response_class=HTMLResponse)
-async def finance(request: Request):
+async def finance(request: Request, uq: str = ""):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
         return _login_redirect()
+    user_plan_query = uq.strip()[:100]
+    user_plan_rows = []
     async with session_scope() as session:
         coupons = await wallet_service.list_coupons(session)
         invoice_rows = list(
@@ -1804,6 +2077,11 @@ async def finance(request: Request):
         sms_plan_options = list(
             (await session.execute(select(SmsPlanOption).order_by(SmsPlanOption.months))).scalars()
         )
+        if user_plan_query:
+            found_users = await identity_service.search_users(session, user_plan_query, limit=20)
+            for u in found_users:
+                current_plan = await plan_service.get_plan(session, u.id)
+                user_plan_rows.append({"user": u, "plan": current_plan.value})
     return templates.TemplateResponse(
         request=request,
         name="finance.html",
@@ -1817,9 +2095,54 @@ async def finance(request: Request):
             refunded_total=int(refunded_total or 0),
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
+            user_plan_query=user_plan_query,
+            user_plan_rows=user_plan_rows,
+            plan_tiers=[tier.value for tier in PlanTier],
             saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/finance/user-plan")
+async def set_user_plan(
+    request: Request,
+    csrf: str = Form(...),
+    user_id: UUID = Form(...),
+    plan: str = Form(...),
+    uq: str = Form(""),
+):
+    """Manually set a user's plan tier (owner request 2026-09-29). This ONLY
+    changes the tier row (or removes it for FREE) — wallet balance, khatms and
+    existing members are never touched. Audited with the previous and new tier."""
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    try:
+        new_plan = PlanTier(plan.upper())
+    except ValueError:
+        return HTMLResponse("پلن نامعتبر است.", status_code=400)
+    async with session_scope() as session:
+        target = await identity_service.find_by_id(session, user_id)
+        if target is None:
+            return HTMLResponse("کاربر پیدا نشد.", status_code=404)
+        previous_plan = await plan_service.get_plan(session, user_id)
+        await plan_service.set_plan(session, user_id, new_plan)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=user_id,
+            action="USER_PLAN_CHANGED",
+            details={
+                "user_id": str(user_id),
+                "previous_plan": previous_plan.value,
+                "new_plan": new_plan.value,
+            },
+        )
+    from urllib.parse import quote_plus
+    suffix = f"&uq={quote_plus(uq.strip())}" if uq.strip() else ""
+    return RedirectResponse(f"/finance?saved=user_plan{suffix}", status_code=303)
 
 
 @app.post("/finance/plans/{plan_name}")

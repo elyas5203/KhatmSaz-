@@ -24,9 +24,16 @@
                         radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.08), transparent 35%);
       color: #e2e8f0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-feature-settings: "ss01", "kern";
+      line-height: 1.75;
     }
+    h1, h2, h3, h4 { line-height: 1.4; letter-spacing: -0.2px; }
+    h1 { font-weight: 800; }
+    .glass-card, .glass-panel { border-radius: 1.25rem; }
+    ::selection { background: rgba(16, 185, 129, 0.3); color: #fff; }
     .glass-panel {
       background: rgba(30, 41, 59, 0.4);
       backdrop-filter: blur(12px);
@@ -45,36 +52,47 @@
       box-shadow: 0 4px 20px rgba(16, 185, 129, 0.1);
       transform: translateY(-2px);
     }
-    /* Orbs for background */
-    .bg-orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(80px);
-      z-index: -1;
-      opacity: 0.4;
-      pointer-events: none;
-    }
+    .bg-orb { position: absolute; border-radius: 50%; filter: blur(80px); z-index: -1; opacity: 0.4; pointer-events: none; }
     .bg-orb-1 { width: 300px; height: 300px; background: rgba(16, 185, 129, 0.15); top: -100px; left: -100px; }
     .bg-orb-2 { width: 400px; height: 400px; background: rgba(20, 184, 166, 0.1); bottom: -150px; right: -100px; }
-    
-    .status {
-      display: inline-block;
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 0.15rem 0.6rem;
-      border-radius: 9999px;
-      border: 1px solid transparent;
-      direction: ltr;
-    }
+
+    .status { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 9999px; border: 1px solid transparent; direction: ltr; }
     .status.active { background: rgba(16, 185, 129, 0.1); color: #34d399; border-color: rgba(16, 185, 129, 0.2); }
     .status.completed { background: rgba(56, 189, 248, 0.1); color: #7dd3fc; border-color: rgba(56, 189, 248, 0.2); }
     .status.cancelled, .status.banned { background: rgba(244, 63, 94, 0.1); color: #fb7185; border-color: rgba(244, 63, 94, 0.2); }
     .status.suspended, .status.warned, .status.draft { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border-color: rgba(251, 191, 36, 0.2); }
+
+    .btn { background: #059669; color: white; padding: 0.55rem 1.1rem; border-radius: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; border: none; transition: background 0.2s; }
+    .btn:hover { background: #10b981; }
+    .btn-ghost { background: rgba(148,163,184,0.1); color: #e2e8f0; }
+    .btn-ghost:hover { background: rgba(148,163,184,0.2); }
+    .input-field { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.75rem; padding: 0.5rem 1rem; color: white; outline: none; width: 100%; transition: border-color 0.2s; }
+    .input-field:focus { border-color: rgba(16, 185, 129, 0.5); }
+
+    .nav-link { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.9rem; border-radius: 0.85rem; color: #94a3b8; font-weight: 600; font-size: 0.92rem; transition: all 0.18s ease; border: 1px solid transparent; }
+    .nav-link:hover { color: #e2e8f0; background: rgba(148, 163, 184, 0.08); }
+    .nav-link.active { color: #34d399; background: rgba(16, 185, 129, 0.12); border-color: rgba(16, 185, 129, 0.25); }
+    .nav-link svg { width: 1.2rem; height: 1.2rem; flex: none; }
+
+    .mobile-dock { display: flex; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+    .mobile-dock::-webkit-scrollbar { display: none; }
   </style>
 </head>
-<body class="font-sans antialiased text-slate-200 relative overflow-x-hidden">
+<body class="font-sans antialiased text-slate-200 relative overflow-x-hidden min-h-screen flex flex-col">
   <div class="bg-orb bg-orb-1"></div>
   <div class="bg-orb bg-orb-2"></div>
+
+  {% set path = request.url.path %}
+  {%- macro navlink(href, label, d, exact=false) -%}
+    <a href="{{ href }}" class="nav-link {% if (exact and path == href) or (not exact and path.startswith(href) and href != '/creator') or (href == '/creator' and path == '/creator') %}active{% endif %}">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" /></svg>
+      <span>{{ label }}</span>
+    </a>
+  {%- endmacro -%}
+
+  {% set ICON_HOME = "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" %}
+  {% set ICON_KHATM = "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" %}
+  {% set ICON_WALLET = "M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-2M17 9h2a2 2 0 012 2v0a2 2 0 01-2 2h-2m0-4v4m-3-2h.01" %}
 
   <!-- Topbar -->
   <header class="sticky top-0 z-50 glass-panel border-b border-white/10 px-4 py-3 flex justify-between items-center">
@@ -85,7 +103,7 @@
         <span class="text-[0.65rem] text-emerald-500/80">{{ t('web.creator.panel_title', lang) }}</span>
       </div>
     </a>
-    
+
     <form action="/creator/logout" method="post">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <button class="text-sm font-medium text-slate-400 hover:text-rose-400 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-500/30 hover:bg-rose-500/10 transition-colors flex items-center gap-2" type="submit">
@@ -95,17 +113,33 @@
     </form>
   </header>
 
-  <!-- Main Content -->
-  <main class="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 pb-24 relative z-10">
-    {% block content %}{% endblock %}
-  </main>
+  <div class="flex-1 w-full max-w-6xl mx-auto flex relative z-10">
+    <!-- Sidebar (desktop) -->
+    <aside class="hidden lg:flex flex-col w-60 flex-none p-4 gap-1 sticky top-[68px] self-start max-h-[calc(100vh-68px)] overflow-y-auto">
+      {{ navlink("/creator", t('web.creator.nav_home', lang), ICON_HOME, exact=true) }}
+      {{ navlink("/creator/khatms", t('web.creator.nav_my_khatms', lang), ICON_KHATM) }}
+      {{ navlink("/creator/wallet", t('web.creator.nav_wallet', lang), ICON_WALLET) }}
+    </aside>
 
-  <!-- Mobile Bottom Dock (visible on mobile only) -->
-  <nav class="sm:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 px-6 py-4 flex justify-around z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.5)]">
-    <a href="/creator" class="flex flex-col items-center gap-1 text-emerald-400">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-      <span class="text-[0.65rem] font-bold">{{ t('web.creator.nav_my_khatms', lang) }}</span>
-    </a>
+    <!-- Main Content -->
+    <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 pb-28 lg:pb-8">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Dock -->
+  <nav class="lg:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 px-2 py-3 z-50 shadow-[0_-8px_24px_rgba(0,0,0,0.5)]">
+    <div class="mobile-dock max-w-md mx-auto gap-2 px-2 justify-around">
+      {%- macro dock(href, label, d, exact=false) -%}
+        <a href="{{ href }}" class="flex flex-col items-center flex-none min-w-[80px] {% if (exact and path == href) or (not exact and href != '/creator' and path.startswith(href)) %}text-emerald-400{% else %}text-slate-400{% endif %} hover:text-emerald-400 transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" /></svg>
+          <span class="text-[0.68rem] font-bold">{{ label }}</span>
+        </a>
+      {%- endmacro -%}
+      {{ dock("/creator", t('web.creator.nav_home', lang), ICON_HOME, exact=true) }}
+      {{ dock("/creator/khatms", t('web.creator.nav_my_khatms', lang), ICON_KHATM) }}
+      {{ dock("/creator/wallet", t('web.creator.nav_wallet', lang), ICON_WALLET) }}
+    </div>
   </nav>
 </body>
 </html>

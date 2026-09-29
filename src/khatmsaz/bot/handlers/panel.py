@@ -29,7 +29,10 @@ def creator_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
                 InlineKeyboardButton(text=t("menu.my_khatms", lang), callback_data="creator_panel:my_khatms")
             ],
             [InlineKeyboardButton(text="📢 ارسال پیام گروهی اختصاصی", callback_data="creator_panel:broadcast")],
-            [InlineKeyboardButton(text=t("menu.report", lang), callback_data="creator_panel:finance")],
+            [
+                InlineKeyboardButton(text=t("menu.report", lang), callback_data="creator_panel:finance"),
+                InlineKeyboardButton(text=t("menu.creator.wallet", lang), callback_data="creator_panel:wallet"),
+            ],
             [InlineKeyboardButton(text=t("menu.settings", lang), callback_data="creator_panel:settings")]
         ]
     )
@@ -67,6 +70,20 @@ async def handle_creator_finance(message: Message) -> None:
         return
     from khatmsaz.bot.handlers.report import personal_report
     await personal_report(message)
+
+
+@router.message(F.text.in_(variants("menu.creator.wallet")))
+async def handle_creator_wallet(message: Message) -> None:
+    """«💳 شارژ کیف پول» — open the wallet overview + top-up options.
+
+    The top-up flow (balance, PayPing amounts, invoices) already exists in
+    `handlers/wallet.py`; before this button it was only reachable via the
+    `/wallet` command, so creators had no tap-only entry (owner request)."""
+    user, _lang = await _get_context(message)
+    if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+        return
+    from khatmsaz.bot.handlers.wallet import _show_wallet
+    await _show_wallet(message)
 
 
 @router.message(F.text.in_(variants("menu.creator.support")))
@@ -128,6 +145,18 @@ async def handle_creator_panel_finance(callback: CallbackQuery) -> None:
     await personal_report(callback.message)
     await callback.answer()
 
+@router.callback_query(F.data == "creator_panel:wallet")
+async def handle_creator_panel_wallet(callback: CallbackQuery) -> None:
+    """Open the wallet overview + top-up options from the inline panel."""
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    from khatmsaz.bot.handlers.wallet import _show_wallet
+    await _show_wallet(callback.message)
+    await callback.answer()
+
+
 @router.callback_query(F.data == "creator_panel:settings")
 async def handle_creator_panel_settings(callback: CallbackQuery) -> None:
     """Open the real settings menu instead of a placeholder."""
@@ -142,19 +171,24 @@ async def handle_creator_panel_settings(callback: CallbackQuery) -> None:
 @router.callback_query(F.data == "admin_panel:creator_requests")
 async def handle_admin_panel_requests(callback: CallbackQuery) -> None:
     user, lang = await _get_context(callback)
-    await callback.message.edit_text("📝 <b>تایید سازندگان جدید</b>\n\nبرای تبدیل یک کاربر به سازنده، اگر درخواست او در پنل وب ادمین وجود دارد، می‌توانید دستور زیر را همراه با آیدی درخواست ارسال کنید:\n<code>/admin_approve_creator &lt;request_id&gt;</code>\n\nدر صورت عدم وجود درخواست، باید از طریق دیتابیس اقدام کنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]))
+    await callback.message.edit_text(
+        "📝 <b>تأیید سازندگان جدید</b>\n\n"
+        "حالا می‌توانید همهٔ درخواست‌های سازنده‌شدن را مستقیم در «پنل وب ادمین» ببینید و با یک لمس تأیید یا رد کنید — بخش «تأیید سازندگان».\n\n"
+        "برای باز کردن پنل، دکمهٔ وب‌اپ بالای همین منو را بزنید.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]),
+    )
     await callback.answer()
 
 @router.callback_query(F.data == "admin_panel:users")
 async def handle_admin_panel_users(callback: CallbackQuery) -> None:
     user, lang = await _get_context(callback)
-    await callback.message.edit_text("👥 <b>مدیریت کاربران</b>\n\nلیست مخاطبین و امکان مسدودسازی کاربران تنها از طریق «پنل وب ادمین» (WebApp) قابل دسترسی است. لطفاً از دکمه وب‌اپ استفاده کنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]))
+    await callback.message.edit_text("👥 <b>مدیریت کاربران</b>\n\nلیست کاربران، جست‌وجو و مدیریت آن‌ها در «پنل وب ادمین» (بخش «کاربران») در دسترس است. لطفاً دکمهٔ وب‌اپ بالای همین منو را بزنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]))
     await callback.answer()
 
 @router.callback_query(F.data == "admin_panel:broadcast")
 async def handle_admin_panel_broadcast(callback: CallbackQuery) -> None:
     user, lang = await _get_context(callback)
-    await callback.message.edit_text("📢 ارسال پیام گروهی سراسری\n\nاین قابلیت (ارسال پیام به تمام کاربران ربات) باید از طریق اسکریپت‌های مدیریت سرور یا در نسخه‌های بعدی ربات تلگرام انجام شود.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]))
+    await callback.message.edit_text("📢 <b>پیام گروهی سراسری</b>\n\nصف پیام‌های گروهی و تأیید آن‌ها در «پنل وب ادمین» (بخش «پیام گروهی») مدیریت می‌شود. لطفاً دکمهٔ وب‌اپ بالای همین منو را بزنید.", reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 برگشت", callback_data="panel:back:admin")]]))
     await callback.answer()
 
 @router.callback_query(F.data.startswith("panel:back:"))

@@ -45,6 +45,7 @@ CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
 CREATOR_MANAGEMENT_BUTTON_TEXTS = variants("menu.creator.management")
 CREATOR_FINANCE_BUTTON_TEXTS = variants("menu.creator.finance")
 CREATOR_SUPPORT_BUTTON_TEXTS = variants("menu.creator.support")
+CREATOR_WALLET_BUTTON_TEXTS = variants("menu.creator.wallet")
 BACK_TO_MAIN_BUTTON_TEXTS = variants("menu.back_to_main")
 PHONE_SHARE_BUTTON_TEXTS = variants("registration.share_phone")
 
@@ -59,7 +60,8 @@ RESERVED_MENU_TEXTS = (
     | REPORT_BUTTON_TEXTS | SETTINGS_BUTTON_TEXTS | HELP_BUTTON_TEXTS
     | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
     | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
-    | CREATOR_SUPPORT_BUTTON_TEXTS | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
+    | CREATOR_SUPPORT_BUTTON_TEXTS | CREATOR_WALLET_BUTTON_TEXTS
+    | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
     | {"📢 ارسال پیام گروهی"}
 )
 
@@ -151,7 +153,7 @@ def creator_finance_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=t("menu.report", lang))],
-            # Add wallet button later if needed
+            [KeyboardButton(text=t("menu.creator.wallet", lang))],
             [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
