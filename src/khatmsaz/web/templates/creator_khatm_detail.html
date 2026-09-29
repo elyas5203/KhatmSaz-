@@ -53,8 +53,8 @@
     </label>
     <label class="space-y-2 md:col-span-2">
       <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_welcome', lang) }}</span>
-      <textarea name="welcome_text" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">{{ khatm.welcome_text or '' }}</textarea>
-      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_welcome_hint', lang) }}</span>
+      <textarea name="welcome_text" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">{{ editable_welcome_text }}</textarea>
+      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_welcome_hint', lang) }} شناسهٔ ارتباط با سازنده جداگانه نگه‌داری می‌شود و قابل حذف نیست.</span>
     </label>
 
     {% if khatm.khatm_type.value == 'COMMITMENT' %}
@@ -66,12 +66,6 @@
       <input name="allow_snooze" type="checkbox" {% if khatm.allow_snooze %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
       <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_snooze', lang) }}</span>
     </label>
-    {% if khatm.template_type.value == 'QURAN_PAGE' %}
-    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4 md:col-span-2">
-      <input name="allow_skip_today" type="checkbox" {% if khatm.allow_skip_today %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
-      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_skip_today', lang) }}</span>
-    </label>
-    {% endif %}
     <label class="space-y-2">
       <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_miss_threshold', lang) }}</span>
       <input name="miss_threshold" type="number" min="1" max="20" value="{{ khatm.miss_notice_threshold }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">

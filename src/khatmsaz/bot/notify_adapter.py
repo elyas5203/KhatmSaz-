@@ -55,6 +55,11 @@ def build_notify_fn(bots_by_platform: dict[Platform, Bot]) -> NotifyFn:
             candidate = registry.get_by_instance_id(bot_instance_id)
             if candidate is not None and getattr(candidate, "khatmsaz_platform", None) == Platform(platform_value):
                 bot = candidate
+            elif candidate is not None:
+                # Never route a Telegram member-bot id to a Bale identity (or
+                # vice versa), and do not duplicate this member reminder via a
+                # creator bot on a second linked identity.
+                return
         if bot is None:
             bot = registry.get_creator_bot(Platform(platform_value))
 
@@ -92,7 +97,10 @@ def build_send_quran_pages_fn(bots_by_platform: dict[Platform, Bot]):
         registry = get_registry()
         
         if bot_instance_id:
-            bot = registry.get_by_instance_id(bot_instance_id)
+            candidate = registry.get_by_instance_id(bot_instance_id)
+            if candidate is not None and getattr(candidate, "khatmsaz_platform", None) != Platform(platform_value):
+                return
+            bot = candidate
         else:
             bot = registry.get_creator_bot(Platform(platform_value))
         if bot is None:
@@ -133,18 +141,23 @@ def build_send_quran_pages_fn(bots_by_platform: dict[Platform, Bot]):
 from aiogram.types import ReplyKeyboardMarkup
 async def send_with_keyboard(
     platform_value: str, chat_id: str, text: str, reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup, *, bot_instance_id=None
-) -> None:
+) -> bool:
     from khatmsaz.core.bot_registry import get_registry
     registry = get_registry()
     if bot_instance_id:
-        bot = registry.get_by_instance_id(bot_instance_id)
+        candidate = registry.get_by_instance_id(bot_instance_id)
+        if candidate is not None and getattr(candidate, "khatmsaz_platform", None) != Platform(platform_value):
+            return False
+        bot = candidate
     else:
         bot = registry.get_creator_bot(Platform(platform_value))
     if bot is None:
-        return
+        return False
     try:
         await bot.send_message(chat_id=int(chat_id), text=text, reply_markup=reply_markup)
+        return True
     except Exception:
         logger.warning(
             "Failed to deliver keyboard message to %s:%s", platform_value, chat_id, exc_info=True
         )
+        return False

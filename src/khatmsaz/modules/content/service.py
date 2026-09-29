@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.content.models import DevotionalAsset, DevotionalMedia, KhatmReciter, QuranAssetKind, QuranPageAsset
 from khatmsaz.modules.khatm.models import ContentDeliveryMode, Khatm
-from khatmsaz.modules.khatm.quran_editions import QURAN_EDITIONS
+from khatmsaz.modules.khatm.quran_editions import CANONICAL_QURAN_EDITION_ID, QURAN_EDITIONS
 from khatmsaz.modules.settings import service as settings_service
 
 SYSTEM_RECITERS = {
@@ -28,7 +28,7 @@ SYSTEM_RECITERS = {
 # content. Add an id here once its audio is actually imported.
 RECITERS_WITH_REGISTERED_AUDIO = ("parhizgar",)
 DEFAULT_RECITER_ID = "parhizgar"
-CANONICAL_EDITION_ID = "madina-hafs"
+CANONICAL_EDITION_ID = CANONICAL_QURAN_EDITION_ID
 DEVOTIONAL_TYPES = {"DUA", "ZIYARAT"}
 TELEGRAM_FORWARD_PREFIX = "telegram-forward:"
 SALAWAT_SLUG = "salawat"

@@ -25,6 +25,15 @@ _TOPUP_MIN = 10_000
 _TOPUP_MAX = 50_000_000
 
 
+def _localized_amount(amount: int, lang: str) -> str:
+    rendered = f"{amount:,}"
+    if lang == "fa":
+        return rendered.translate(str.maketrans("0123456789,", "۰۱۲۳۴۵۶۷۸۹٬"))
+    if lang == "ar":
+        return rendered.translate(str.maketrans("0123456789,", "٠١٢٣٤٥٦٧٨٩٬"))
+    return rendered
+
+
 class WalletTopup(StatesGroup):
     entering_amount = State()
 
@@ -215,7 +224,7 @@ async def ask_custom_topup(callback: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(WalletTopup.entering_amount)
     await state.update_data(lang=lang)
     await callback.message.answer(
-        t("wallet.topup_custom_prompt", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}")
+        t("wallet.topup_custom_prompt", lang, min=_localized_amount(_TOPUP_MIN, lang), max=_localized_amount(_TOPUP_MAX, lang))
     )
     await callback.answer()
 
@@ -231,11 +240,11 @@ async def receive_custom_topup(message: Message, state: FSMContext) -> None:
     # tolerate Persian/Arabic digits
     raw = raw.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
     if not raw.isdigit():
-        await message.answer(t("wallet.topup_custom_invalid", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}"))
+        await message.answer(t("wallet.topup_custom_invalid", lang, min=_localized_amount(_TOPUP_MIN, lang), max=_localized_amount(_TOPUP_MAX, lang)))
         return
     amount = int(raw)
     if amount < _TOPUP_MIN or amount > _TOPUP_MAX:
-        await message.answer(t("wallet.topup_custom_invalid", lang, min=f"{_TOPUP_MIN:,}", max=f"{_TOPUP_MAX:,}"))
+        await message.answer(t("wallet.topup_custom_invalid", lang, min=_localized_amount(_TOPUP_MIN, lang), max=_localized_amount(_TOPUP_MAX, lang)))
         return
     await state.clear()
     await _create_topup_payment(message, message.bot, amount, lang)

@@ -253,20 +253,45 @@ async def update_title(session: AsyncSession, *, khatm_id, creator_user_id, titl
 
 
 async def update_welcome_text(session: AsyncSession, *, khatm_id, creator_user_id, welcome_text: str | None) -> Khatm:
-    if welcome_text is not None:
-        welcome_text = welcome_text.strip()
-        if len(welcome_text) > 500:
-            raise ValueError("welcome text cannot exceed 500 characters")
-        welcome_text = welcome_text or None
     khatm = await repository.get_by_id(session, khatm_id)
     if khatm is None or khatm.creator_user_id != creator_user_id or khatm.status != KhatmStatus.ACTIVE:
         raise ValueError("only the creator of an active khatm may edit the welcome text")
+    welcome_text = preserve_creator_contact(khatm.welcome_text, welcome_text)
     updated = await repository.update_cosmetic(
         session, khatm_id, welcome_text=welcome_text, update_welcome=True
     )
     if updated is None:
         raise ValueError("khatm not found")
     return updated
+
+
+def _contact_line(text: str | None) -> str | None:
+    return next(
+        (line.strip() for line in (text or "").splitlines() if line.strip().startswith("📬 ")),
+        None,
+    )
+
+
+def welcome_body_without_contact(text: str | None) -> str:
+    """Return the editable greeting while hiding the mandatory contact line."""
+    return "\n".join(
+        line for line in (text or "").splitlines() if not line.strip().startswith("📬 ")
+    ).strip()
+
+
+def preserve_creator_contact(existing: str | None, edited_body: str | None) -> str | None:
+    """Keep the creator contact immutable when their greeting is edited."""
+    contact = _contact_line(existing)
+    body = welcome_body_without_contact(edited_body)
+    if contact is None:
+        normalized = body or None
+        if normalized is not None and len(normalized) > 500:
+            raise ValueError("welcome text cannot exceed 500 characters")
+        return normalized
+    max_body = 500 - len(contact) - 2
+    if len(body) > max_body:
+        raise ValueError("welcome text cannot exceed 500 characters")
+    return f"{body}\n\n{contact}" if body else contact
 
 
 async def get_khatm(session: AsyncSession, khatm_id) -> Khatm | None:

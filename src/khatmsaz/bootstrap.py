@@ -336,11 +336,13 @@ async def main() -> None:
     scheduler.add_job(
         _run_reminder_scan,
         "cron",
-        minute="0,15,30,45",
+        minute="*",
+        max_instances=1,
+        coalesce=True,
     )
     scheduler.start()
     runtime_status.mark_scheduler_started()
-    logger.info("Reminder scan scheduled at :00, :15, :30, :45 of every hour.")
+    logger.info("Reminder scan scheduled every minute (coalesced, single instance).")
 
     # --- Start polling ---
     logger.info("Starting polling for %d bot(s) (%d creator, %d member)...",

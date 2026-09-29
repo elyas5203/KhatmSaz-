@@ -1,3 +1,10 @@
+## 2026-09-29 (actionable exact-time delivery and owner-policy cleanup)
+- Changed reminder polling from quarter-hour intervals to every minute with single-instance coalescing, preserving catch-up and dedupe behavior.
+- Added correct completion actions to every scheduled member-share branch and a secure, duplicate-safe confirmation path for regular quantity commitments.
+- Prevented cross-platform member-bot misrouting and stopped recording keyboard reminders as sent when delivery failed.
+- Simplified member settings, fixed new Quran khatms to Madina/Hafs 604 pages, localized wallet amount validation, and made the creator contact line immutable through welcome-text edits.
+- Validation: focused reminder suite 18 passed/1 skipped; non-integration suite 189 passed/86 deselected. No migration.
+
 ## 2026-09-29 (fix category-free Salawat invite admission)
 - Fixed Salawat invite links being rejected inside the correct Salawat member bot when the khatm intentionally has no content category.
 - Member-bot admission and invite generation now use the same shared bot-category resolver, preventing future classification drift.

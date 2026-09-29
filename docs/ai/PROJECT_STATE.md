@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — System audit batch: reliable actionable delivery and owner-policy cleanup [Codex]
+- **Scheduling**: the reminder scan now runs every minute (single coalesced instance), so exact member-selected `HH:MM` values are no longer rounded to quarter-hour ticks; due checks remain catch-up-safe and per-day/per-period deduplicated.
+- **Actionable delivery**: committed Quran daily/next/staged reminders carry the bound «انجام دادم» action; open Quran and other open scheduled khatms carry «انجام سهم»; regular Salawat/Dua/Ziyarat/La'an reminders carry a participation-bound «انجام سهم» action with ownership, bot-scope and duplicate checks plus a clear confirmation.
+- **Routing/accounting**: linked Telegram/Bale identities cannot leak or duplicate a member reminder through the wrong bot. Keyboard delivery returns real success, and reminder sent-state is recorded only after successful delivery.
+- **Owner-policy cleanup**: removed audio/reciter/digest controls from the settings home; fixed new Quran creation to Madina/Hafs 604 pages without asking; localized custom wallet errors; protected the creator contact line from deletion in web welcome-text edits.
+- **Coverage**: focused reminder suite **18 passed, 1 skipped** and non-integration suite **189 passed, 86 deselected** (a final keyboard assertion was added afterward). No migration.
+
 ## Current state — 2026-09-29 — FIX: category-free Salawat invite rejected by correct bot [Codex]
 - **Owner report**: a generated Salawat invite opened the configured Salawat member bot, but `/start join_…` replied «این ختم مربوط به بات دیگری است.»
 - **Root cause**: invite generation used the shared `bot_registry.resolve_bot_category`, whose intentional fallback maps a category-free non-Quran khatm to SALAWAT. `member_start.py` duplicated an older mapping and left the same khatm's category as `None`, so its admission check contradicted the generated link.

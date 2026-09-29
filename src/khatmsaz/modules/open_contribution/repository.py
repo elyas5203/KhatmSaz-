@@ -38,6 +38,16 @@ async def total_for_participation(session: AsyncSession, participation_id) -> fl
     return float(result.scalar_one())
 
 
+async def has_for_participation_since(
+    session: AsyncSession, participation_id, since: datetime,
+) -> bool:
+    stmt = select(OpenContribution.id).where(
+        OpenContribution.participation_id == participation_id,
+        OpenContribution.recorded_at >= since,
+    ).limit(1)
+    return (await session.execute(stmt)).scalar_one_or_none() is not None
+
+
 async def total_for_khatm_between(
     session: AsyncSession, khatm_id, start: datetime, end: datetime
 ) -> float:

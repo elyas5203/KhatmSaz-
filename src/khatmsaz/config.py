@@ -95,10 +95,9 @@ class Settings(BaseSettings):
     app_timezone: str = "Asia/Tehran"
     log_level: str = "INFO"
 
-    # How often the reminder/deadline-miss scan runs (reminder_engine).
-    # Every hour is enough in production (reminders/deadlines are hour-
-    # granular); a smaller value is useful only for manual testing.
-    reminder_scan_interval_minutes: int = 30
+    # The live scheduler scans once per minute so exact HH:MM member choices
+    # are honored. Kept for status/backward compatibility.
+    reminder_scan_interval_minutes: int = 1
     monthly_report_day: int = 1
     monthly_report_hour: int = 10
 

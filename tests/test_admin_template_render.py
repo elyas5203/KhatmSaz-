@@ -160,14 +160,14 @@ def test_creator_detail_renders_manage_stats_members_export_and_settings():
         creator=SimpleNamespace(display_name="سازنده"), csrf="test-csrf",
         lang="fa", t=t, label=lambda value: value.value,
         khatm=khatm, stats=stats, rows=[], query="", page=1,
-        has_next=False, saved="",
+        has_next=False, saved="", editable_welcome_text="خوش آمدید",
     )
 
     assert "تنظیمات این ختم" in html
     assert "عضوی با این جست‌وجو پیدا نشد." in html
     assert "دریافت اکسل کامل اعضا" in html
     assert 'name="allow_pause"' in html
-    assert 'name="allow_skip_today"' in html
+    assert 'name="allow_skip_today"' not in html
     assert 'action="/creator/khatms/' in html
 
 
@@ -178,7 +178,6 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
         creator=SimpleNamespace(display_name="سازنده"), csrf="test-csrf",
         lang="fa", t=t, label=lambda value: str(value), error="",
         dua_categories=[category("دعای عهد")], laan_categories=[category("لعن نمونه")],
-        quran_editions=[{"id": "madina-hafs", "label": "مدینه — ۶۰۴ صفحه"}],
         creation_price=20_000,
     )
 
@@ -187,6 +186,8 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
     assert 'value="salawat"' in html
     assert 'value="dua"' in html
     assert 'value="laan"' in html
+    assert 'name="quran_edition_id"' not in html
+    assert "مدینه (حفص) — ۶۰۴ صفحه" in html
     assert "20,000 تومان" in html
 
 

@@ -34,7 +34,6 @@ from khatmsaz.bot.keyboards import (
     creator_display_keyboard,
     start_schedule_keyboard,
     reminder_tone_keyboard,
-    edition_choice_keyboard,
     main_menu_keyboard,
     safe_answer_callback,
     safe_clear_inline_keyboard,
@@ -51,7 +50,7 @@ from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm.models import ContentDeliveryMode, CreatorDisplayMode, KhatmTemplateType, KhatmTypeEnum, KhatmVisibility, ReminderTone
-from khatmsaz.modules.khatm.quran_editions import QURAN_EDITIONS
+from khatmsaz.modules.khatm.quran_editions import CANONICAL_QURAN_EDITION_ID, QURAN_EDITIONS
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
 from khatmsaz.modules.khatm_workflow import service as workflow_service
@@ -689,9 +688,16 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
             t("create_khatm.ask_commitment_total", lang, unit=unit),
             reply_markup=_commitment_total_keyboard(lang),
         )
-    else:  # QURAN_PAGE, either mode
-        await state.set_state(CreateKhatm.choosing_edition)
-        await _wiz(message, state, t("create_khatm.ask_edition", lang), reply_markup=edition_choice_keyboard())
+    else:  # QURAN_PAGE, either mode — always Madina/Hafs, 604 pages.
+        await state.update_data(
+            quran_edition_id=CANONICAL_QURAN_EDITION_ID,
+            content_delivery_mode=ContentDeliveryMode.AUTO.value,
+        )
+        if mode == KhatmTypeEnum.COMMITMENT.value:
+            await state.set_state(CreateKhatm.entering_deadline_hour)
+            await _wiz(message, state, t("create_khatm.ask_deadline_hour", lang))
+        else:
+            await _ask_visibility(message, state)
 
 
 def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:

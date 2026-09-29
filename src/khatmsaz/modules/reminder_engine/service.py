@@ -1,15 +1,14 @@
 """Reminder + deadline-miss detection for QURAN_PAGE + COMMITMENT portions."""
 
 import logging
-from collections import defaultdict
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 logger = logging.getLogger(__name__)
 
-# Scheduler fires every SCAN_INTERVAL_MINUTES minutes (at :00, :15, :30, :45).
-SCAN_INTERVAL_MINUTES = 15
+# Compatibility/status constant; the live scheduler scans every minute.
+SCAN_INTERVAL_MINUTES = 1
 
 
 def _is_reminder_due(now_local: datetime, reminder_hour: int, reminder_minute: int = 0) -> bool:
@@ -234,25 +233,15 @@ async def deliver_due_next_portions(
         # Committed Quran is completed as one whole assigned portion. Keep the
         # single-tap «done» action on its scheduled delivery; numeric logging is
         # reserved for open/self-reported Quran reading.
-        _sent_with_button = False
-        try:
-            from khatmsaz.bot.notify_adapter import send_with_keyboard
-            from khatmsaz.bot.keyboards import portion_done_keyboard
-            markup = portion_done_keyboard(
-                str(khatm.id),
-                allow_skip_today=bool(khatm.allow_skip_today),
-                allow_snooze=bool(khatm.allow_snooze),
-                lang=user_settings.language,
-            )
-            for identity in await identity_service.list_identities_for_user(session, participation.user_id):
-                await send_with_keyboard(
-                    identity.platform.value, identity.subject, text, markup,
-                    bot_instance_id=participation.joined_via_bot_instance_id,
-                )
-            _sent_with_button = True
-        except Exception:
-            _sent_with_button = False
-        if not _sent_with_button:
+        from khatmsaz.bot.keyboards import portion_done_keyboard
+        delivered_now = await _notify_user_with_keyboard(
+            session, participation.user_id, text,
+            portion_done_keyboard(
+                str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language,
+            ),
+            bot_instance_id=participation.joined_via_bot_instance_id,
+        )
+        if not delivered_now:
             await _notify_user(
                 session, notify, participation.user_id, text,
                 bot_instance_id=participation.joined_via_bot_instance_id,
@@ -328,20 +317,13 @@ async def deliver_due_open_quran_reading(
         # page delivery — i.e. it appears exactly when there IS something to log,
         # not on the pre-delivery join/setup cards. Best-effort: fall back to a
         # plain notice if the keyboard sender is unavailable.
-        _sent_with_button = False
-        try:
-            from khatmsaz.bot.notify_adapter import send_with_keyboard
-            from khatmsaz.bot.keyboards import contribute_keyboard
-            markup = contribute_keyboard(str(khatm.id), user_settings.language)
-            for identity in await identity_service.list_identities_for_user(session, participation.user_id):
-                await send_with_keyboard(
-                    identity.platform.value, identity.subject, text, markup,
-                    bot_instance_id=participation.joined_via_bot_instance_id,
-                )
-            _sent_with_button = True
-        except Exception:
-            _sent_with_button = False
-        if not _sent_with_button:
+        from khatmsaz.bot.keyboards import contribute_keyboard
+        delivered_now = await _notify_user_with_keyboard(
+            session, participation.user_id, text,
+            contribute_keyboard(str(khatm.id), user_settings.language),
+            bot_instance_id=participation.joined_via_bot_instance_id,
+        )
+        if not delivered_now:
             await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
         delivered += 1
     return delivered
@@ -386,7 +368,6 @@ async def deliver_due_regular_commitments(
         ):
             continue
 
-        await participation_service.mark_schedule_sent_now(session, participation.id)
         count = participation.commitment_per_occurrence or 1
         from khatmsaz.i18n import t as _t
         text = await _render_or_default(
@@ -394,11 +375,15 @@ async def deliver_due_regular_commitments(
             title=khatm.title, count=count,
             default=_t("reminder.regular_commitment", user_settings.language, title=khatm.title, count=count),
         )
-        await _notify_user(
-            session, notify, participation.user_id, text,
+        from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
+        delivered_now = await _notify_user_with_keyboard(
+            session, participation.user_id, text,
+            regular_commitment_done_keyboard(str(participation.id), user_settings.language),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
-        delivered += 1
+        if delivered_now:
+            await participation_service.mark_schedule_sent_now(session, participation.id)
+            delivered += 1
     return delivered
 
 
@@ -483,63 +468,34 @@ async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
                 title=khatm.title,
                 default=f"یادآوری همراهی 🌱\nامروز می‌توانید در «{khatm.title}» مشارکت کنید.",
             )
-            await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
-            await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
+            from khatmsaz.bot.keyboards import contribute_keyboard
+            delivered = await _notify_user_with_keyboard(
+                session, participation.user_id, text,
+                contribute_keyboard(str(khatm.id), user_settings.language),
+                bot_instance_id=participation.joined_via_bot_instance_id,
+            )
+            if delivered:
+                await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
 
 
 async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_pages: SendQuranPagesFn | None = None) -> None:
-    """Send one daily reminder message per user, combining active khatms."""
-    grouped = defaultdict(list)
-    for candidate in candidates:
-        grouped[candidate[0].user_id].append(candidate)
-
-    for entries in grouped.values():
-        locale = entries[0][3]
-        if not entries[0][4]:
-            for participation, khatm, portion, _, _ in entries:
-                await _push_portion_content(session, send_quran_pages, participation, khatm, portion)
-                text = await _render_or_default(
-                    session, _tone_key(khatm, "reminder.first"), locale=locale, title=khatm.title,
-                    start=portion.unit_start, end=portion.unit_end,
-                    deadline=getattr(khatm, "daily_deadline_hour", None),
-                    default=(
-                        f"سلام و وقت بخیر 🌱\nسهم امروزتان در «{khatm.title}» صفحات "
-                        f"{portion.unit_start} تا {portion.unit_end} است.\n"
-                        f"لطفاً تا ساعت {getattr(khatm, 'daily_deadline_hour', None)}:۰۰ امشب (به وقت تهران) "
-                        "قرائت بفرمایید و بعد از پایان، دکمهٔ «✅ انجام دادم» را بزنید.\n"
-                        "اگه امروز نخونید، ختم منتظرتون می‌مونه و پیشرفت کل جمع کند می‌شه — "
-                        "این سهم واقعاً روی بقیهٔ اعضا اثر داره 🤍"
-                    ),
-                )
-                await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
-                await notification_service.record_sent(
-                    session, participation.id, NotificationKind.DAILY_REMINDER
-                )
-            continue
-        rendered_entries = []
-        for participation, khatm, portion, _, _ in entries:
-            await _push_portion_content(session, send_quran_pages, participation, khatm, portion)
-            rendered_entries.append(
-                await _render_or_default(
-                    session, _tone_key(khatm, "reminder.first"), locale=locale, title=khatm.title,
-                    start=portion.unit_start, end=portion.unit_end,
-                    deadline=getattr(khatm, "daily_deadline_hour", None),
-                    default=(
-                        f"سلام و وقت بخیر 🌱\nسهم امروزتان در «{khatm.title}» صفحات "
-                        f"{portion.unit_start} تا {portion.unit_end} است.\n"
-                        f"لطفاً تا ساعت {getattr(khatm, 'daily_deadline_hour', None)}:۰۰ امشب (به وقت تهران) "
-                        "قرائت بفرمایید و بعد از پایان، دکمهٔ «✅ انجام دادم» را بزنید.\n"
-                        "اگه امروز نخونید، ختم منتظرتون می‌مونه و پیشرفت کل جمع کند می‌شه — "
-                        "این سهم واقعاً روی بقیهٔ اعضا اثر داره 🤍"
-                    ),
-                )
-            )
-        text = rendered_entries[0]
-        if len(rendered_entries) > 1:
-            text = "📖 سهم‌های امروز شما:\n\n" + "\n\n".join(rendered_entries)
-        user_id = entries[0][0].user_id
-        await _notify_user(session, notify, user_id, text, bot_instance_id=entries[0][0].joined_via_bot_instance_id)
-        for participation, _, _, _, _ in entries:
+    """Send each committed Quran share with its own khatm-bound done button."""
+    from khatmsaz.bot.keyboards import portion_done_keyboard
+    for participation, khatm, portion, locale, _digest_enabled in candidates:
+        await _push_portion_content(session, send_quran_pages, participation, khatm, portion)
+        text = await _render_or_default(
+            session, _tone_key(khatm, "reminder.first"), locale=locale, title=khatm.title,
+            start=portion.unit_start, end=portion.unit_end,
+            deadline=getattr(khatm, "daily_deadline_hour", None),
+            default=(f"🌱 سهم امروزتان در «{khatm.title}»: صفحات {portion.unit_start} تا "
+                     f"{portion.unit_end}. پس از قرائت، «✅ انجام دادم» را بزنید."),
+        )
+        delivered = await _notify_user_with_keyboard(
+            session, participation.user_id, text,
+            portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=locale),
+            bot_instance_id=participation.joined_via_bot_instance_id,
+        )
+        if delivered:
             await notification_service.record_sent(
                 session, participation.id, NotificationKind.DAILY_REMINDER
             )
@@ -573,8 +529,14 @@ async def _maybe_send_staged_reminder(
             f"مهلت انجام تا ساعت {khatm.daily_deadline_hour}:00 است."
         ),
     )
-    await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
-    await notification_service.record_sent(session, participation.id, kind)
+    from khatmsaz.bot.keyboards import portion_done_keyboard
+    delivered = await _notify_user_with_keyboard(
+        session, participation.user_id, text,
+        portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=locale),
+        bot_instance_id=participation.joined_via_bot_instance_id,
+    )
+    if delivered:
+        await notification_service.record_sent(session, participation.id, kind)
 
 
 async def _maybe_record_miss_and_notify_creator(session, notify, participation, khatm) -> None:
@@ -618,6 +580,22 @@ async def _maybe_record_miss_and_notify_creator(session, notify, participation, 
 async def _notify_user(session, notify, user_id, text: str, *, bot_instance_id=None) -> None:
     for identity in await identity_service.list_identities_for_user(session, user_id):
         await notify(identity.platform.value, identity.subject, text, bot_instance_id=bot_instance_id)
+
+
+async def _notify_user_with_keyboard(
+    session, user_id, text: str, reply_markup, *, bot_instance_id=None,
+) -> int:
+    """Deliver on the participant's own bot/platform and count real successes."""
+    from khatmsaz.bot.notify_adapter import send_with_keyboard
+
+    successes = 0
+    for identity in await identity_service.list_identities_for_user(session, user_id):
+        if await send_with_keyboard(
+            identity.platform.value, identity.subject, text, reply_markup,
+            bot_instance_id=bot_instance_id,
+        ):
+            successes += 1
+    return successes
 
 
 async def _render_or_default(

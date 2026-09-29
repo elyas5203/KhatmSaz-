@@ -12,6 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.modules.open_contribution import repository
 
 
+async def has_for_participation_since(session: AsyncSession, participation_id, since: datetime) -> bool:
+    return await repository.has_for_participation_since(session, participation_id, since)
+
+
 async def log_contribution(
     session: AsyncSession, khatm_id, participation_id, amount: float, target: float | None
 ) -> tuple[float, float, float]:

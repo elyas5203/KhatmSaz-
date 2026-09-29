@@ -40,7 +40,7 @@ from khatmsaz.modules.khatm.models import (
     KhatmTypeEnum,
     KhatmVisibility,
 )
-from khatmsaz.modules.khatm.quran_editions import QURAN_CREATION_EDITION_IDS, QURAN_EDITIONS
+from khatmsaz.modules.khatm.quran_editions import CANONICAL_QURAN_EDITION_ID
 from khatmsaz.modules.khatm_workflow import service as workflow_service
 from khatmsaz.bot import invite_links
 from khatmsaz.modules.content import service as content_service
@@ -889,10 +889,6 @@ async def _creator_khatm_new_context(session, creator, lang: str) -> dict:
     return {
         "dua_categories": [item for item in categories if item.group == KhatmCategoryGroup.DUA],
         "laan_categories": [item for item in categories if item.group == KhatmCategoryGroup.LAAN],
-        "quran_editions": [
-            {"id": edition_id, **QURAN_EDITIONS[edition_id]}
-            for edition_id in QURAN_CREATION_EDITION_IDS
-        ],
         "creation_price": creation_price,
     }
 
@@ -908,7 +904,7 @@ async def creator_khatm_new(request: Request, error: str = ""):
         async with session_scope() as session:
             context = await _creator_khatm_new_context(session, creator, lang)
     except plan_service.PlanFeatureUnavailableError:
-        context = {"dua_categories": [], "laan_categories": [], "quran_editions": [], "creation_price": None}
+        context = {"dua_categories": [], "laan_categories": [], "creation_price": None}
         error = "plan_unavailable"
     return templates.TemplateResponse(
         request=request,
@@ -927,7 +923,6 @@ async def creator_khatm_create(
     amount: int | None = Form(None),
     category_id: str = Form(""),
     visibility: str = Form("UNLISTED"),
-    quran_edition_id: str = Form("madina-hafs"),
 ):
     creator, raw, lang = await _creator(request)
     if creator is None:
@@ -946,8 +941,6 @@ async def creator_khatm_create(
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
     if content_kind != "quran" and (amount is None or amount <= 0):
         return RedirectResponse("/creator/khatms/new?error=amount", status_code=303)
-    if content_kind == "quran" and quran_edition_id not in QURAN_CREATION_EDITION_IDS:
-        return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
     clean_title = title.strip()
     if len(clean_title) > 200:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
@@ -991,7 +984,7 @@ async def creator_khatm_create(
                 niyyat=None,
                 salawat_open_target=amount if mode == KhatmTypeEnum.OPEN else None,
                 salawat_commitment_quantity=amount if mode == KhatmTypeEnum.COMMITMENT else None,
-                quran_edition_id=quran_edition_id if content_kind == "quran" else None,
+                quran_edition_id=CANONICAL_QURAN_EDITION_ID if content_kind == "quran" else None,
                 visibility=selected_visibility,
                 allowed_platforms="BOTH",
                 creation_price_toman=price,
@@ -1221,6 +1214,7 @@ async def creator_khatm_detail(
         context=_creator_ctx(
             request, creator, raw, lang=lang, khatm=khatm, stats=stats, rows=rows,
             query=query, page=page, has_next=has_next,
+            editable_welcome_text=khatm_service.welcome_body_without_contact(khatm.welcome_text),
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -1235,7 +1229,6 @@ async def creator_khatm_settings(
     welcome_text: str = Form(""),
     allow_pause: str = Form(""),
     allow_snooze: str = Form(""),
-    allow_skip_today: str = Form(""),
     completion_announcement: str = Form(""),
     miss_threshold: int = Form(3),
     miss_window_days: int = Form(7),
@@ -1275,11 +1268,6 @@ async def creator_khatm_settings(
                     session, khatm_id=khatm.id, creator_user_id=creator.id,
                     threshold=miss_threshold, window_days=miss_window_days,
                 )
-                if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-                    await khatm_service.set_allow_skip_today(
-                        session, khatm_id=khatm.id, creator_user_id=creator.id,
-                        enabled=allow_skip_today == "on",
-                    )
             else:
                 await khatm_service.set_schedule(
                     session, khatm_id=khatm.id, creator_user_id=creator.id,

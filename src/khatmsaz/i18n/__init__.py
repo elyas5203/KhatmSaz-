@@ -543,6 +543,24 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "✅ تم الضبط! {times} مرة في ال{period}، الساعة {hour} تُرسل لك حصتك تلقائياً. 🌱",
         "en": "✅ Set! {times} time(s) per {period}, at {hour} your share will be sent automatically. 🌱",
     },
+    "commit.regular.done_button": {
+        "fa": "✅ انجام سهم", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
+    },
+    "commit.regular.done_confirmed": {
+        "fa": "✅ انجام سهمتان ثبت شد: {count} مرتبه. قبول باشد 🌱",
+        "ar": "✅ تم تسجيل إنجاز حصتك: {count} مرة. تقبل الله 🌱",
+        "en": "✅ Your share was recorded: {count} time(s).",
+    },
+    "commit.regular.already_done": {
+        "fa": "این سهم قبلاً انجام شده و ثبت شده است.",
+        "ar": "تم إنجاز هذه الحصة وتسجيلها مسبقًا.",
+        "en": "This share has already been completed and recorded.",
+    },
+    "commit.regular.invalid": {
+        "fa": "این سهم برای شما فعال نیست.",
+        "ar": "هذه الحصة غير مفعلة لك.",
+        "en": "This share is not active for you.",
+    },
     "commit.count_saved": {
         "fa": "✅ تعهدت ثبت شد: {target} بار. هر وقت خوندی، با دکمهٔ زیر ثبتش کن. 🌱",
         "ar": "✅ تم تسجيل التزامك: {target} مرة. كلما قرأت سجّله بالزر أدناه. 🌱",
@@ -1052,7 +1070,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
-    "portions.button.contribute": {"fa": "➕ ثبت مشارکت", "ar": "➕ تسجيل مشاركة", "en": "➕ Log a contribution"},
+    "portions.button.contribute": {"fa": "✅ انجام سهم", "ar": "✅ إنجاز الحصة", "en": "✅ Complete share"},
     "portions.button.show_content": {
         "fa": "📖 نمایش محتوای سهم", "ar": "📖 عرض محتوى الحصة", "en": "📖 Show portion content",
     },

@@ -7,14 +7,14 @@ from khatmsaz.modules.notification.models import NotificationKind
 
 
 @pytest.mark.asyncio
-async def test_daily_digest_combines_multiple_khatms_for_one_user(monkeypatch):
+async def test_daily_digest_sends_each_khatm_with_its_own_done_button(monkeypatch):
     sent = []
     logged = []
     user_id = "user"
     p1 = SimpleNamespace(id="p1", user_id=user_id, joined_via_bot_instance_id=None)
     p2 = SimpleNamespace(id="p2", user_id=user_id, joined_via_bot_instance_id=None)
-    k1 = SimpleNamespace(title="قرآن صبح")
-    k2 = SimpleNamespace(title="قرآن شب")
+    k1 = SimpleNamespace(id="k1", title="قرآن صبح", allow_snooze=False)
+    k2 = SimpleNamespace(id="k2", title="قرآن شب", allow_snooze=False)
     portion1 = SimpleNamespace(unit_start=1, unit_end=2)
     portion2 = SimpleNamespace(unit_start=3, unit_end=4)
 
@@ -24,8 +24,12 @@ async def test_daily_digest_combines_multiple_khatms_for_one_user(monkeypatch):
     async def fake_identities(session, target_user_id):
         return [SimpleNamespace(platform=SimpleNamespace(value="TELEGRAM"), subject="123")]
 
-    async def fake_notify(platform, subject, text, *, bot_instance_id=None):
-        sent.append((platform, subject, text))
+    async def fake_send(platform, subject, text, markup, *, bot_instance_id=None):
+        sent.append((platform, subject, text, markup.inline_keyboard[1][0].callback_data))
+        return True
+
+    async def fake_notify(*args, **kwargs):
+        raise AssertionError("actionable reminders must use the keyboard sender")
 
     async def fake_record(session, participation_id, kind):
         logged.append((participation_id, kind))
@@ -33,13 +37,16 @@ async def test_daily_digest_combines_multiple_khatms_for_one_user(monkeypatch):
     monkeypatch.setattr(service.template_service, "render", fake_render)
     monkeypatch.setattr(service.identity_service, "list_identities_for_user", fake_identities)
     monkeypatch.setattr(service.notification_service, "record_sent", fake_record)
+    monkeypatch.setattr("khatmsaz.bot.notify_adapter.send_with_keyboard", fake_send)
 
     await service._send_daily_digest(
         object(), fake_notify,
         [(p1, k1, portion1, "en", True), (p2, k2, portion2, "en", True)],
     )
 
-    assert len(sent) == 1
-    assert "قرآن صبح" in sent[0][2]
-    assert "قرآن شب" in sent[0][2]
+    assert len(sent) == 2
+    assert [(row[2], row[3]) for row in sent] == [
+        ("قرآن صبح: 1-2", "done:k1"),
+        ("قرآن شب: 3-4", "done:k2"),
+    ]
     assert logged == [("p1", NotificationKind.DAILY_REMINDER), ("p2", NotificationKind.DAILY_REMINDER)]

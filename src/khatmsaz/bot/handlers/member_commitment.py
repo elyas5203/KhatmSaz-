@@ -33,8 +33,14 @@ from khatmsaz.bot.keyboards import (
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.bot_registry.models import BotRole
+from khatmsaz.bot.member_scope import participation_matches_bot
+from khatmsaz.modules.identity import service as identity_service
+from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.khatm import service as khatm_service
+from khatmsaz.modules.open_contribution import service as open_contribution_service
 from khatmsaz.modules.participation import service as participation_service
-from khatmsaz.modules.participation.commitment import ScheduleFreq, parse_hhmm
+from khatmsaz.modules.participation.commitment import CommitmentMode, ScheduleFreq, parse_hhmm
+from khatmsaz.modules.participation.models import ParticipationStatus
 
 router = Router(name="member_commitment")
 
@@ -271,3 +277,40 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         t("commit.regular_saved", lang, times=times, period=period, hour=f"{hour:02d}:{minute:02d}"),
         reply_markup=_home_markup(message),
     )
+
+
+@router.callback_query(F.data.startswith("regular_done:"))
+async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
+    """Confirm the current scheduled occurrence once, by its owning member."""
+    pid = callback.data.split(":", 1)[1]
+    lang = _lang_of(callback.message)
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
+        participation = await participation_service.get_by_id(session, pid)
+        if (
+            participation is None
+            or participation.user_id != user.id
+            or participation.status != ParticipationStatus.ACTIVE
+            or participation.commitment_mode != CommitmentMode.REGULAR.value
+            or participation.schedule_last_sent_at is None
+            or not participation_matches_bot(participation, callback.message.bot)
+        ):
+            await safe_answer_callback(callback, t("commit.regular.invalid", lang), show_alert=True)
+            return
+        if await open_contribution_service.has_for_participation_since(
+            session, participation.id, participation.schedule_last_sent_at
+        ):
+            await safe_answer_callback(callback, t("commit.regular.already_done", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None:
+            await safe_answer_callback(callback, t("commit.regular.invalid", lang), show_alert=True)
+            return
+        amount = participation.commitment_per_occurrence or 1
+        await open_contribution_service.log_contribution(
+            session, khatm.id, participation.id, amount, khatm.repetition_target
+        )
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(t("commit.regular.done_confirmed", lang, count=amount))
+    await safe_answer_callback(callback)

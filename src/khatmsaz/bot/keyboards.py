@@ -226,23 +226,16 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa", show_creato
     `show_creator_panel=True` (creators/admins on the creator bot) adds a
     top «ورود به پنل سازنده» button that opens the creator Mini App
     (owner 2026-09-29 — creators asked for a way into their panel from here)."""
-    audio_text = t("settings.button.audio_off", lang) if audio_enabled else t("settings.button.audio_on", lang)
-    audio_value = "off" if audio_enabled else "on"
     rows = []
     if show_creator_panel:
         rows.append([InlineKeyboardButton(text=t("settings.button.creator_panel", lang), callback_data="creator:web_login")])
     rows.extend(
         [
-            [InlineKeyboardButton(text=audio_text, callback_data=f"quran_audio:{audio_value}")],
             [
                 InlineKeyboardButton(text=t("settings.button.language", lang), callback_data="settings:language"),
-                InlineKeyboardButton(text=t("settings.button.reciter", lang), callback_data="settings:reciter"),
-                # InlineKeyboardButton(text=t("settings.button.font", lang), callback_data="settings:font"),
-                # InlineKeyboardButton(text=t("settings.button.content", lang), callback_data="settings:content"),
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
-                InlineKeyboardButton(text=t("settings.button.digest", lang), callback_data="settings:digest"),
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.sms_menu", lang), callback_data="settings:sms"),
@@ -783,6 +776,13 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
             [InlineKeyboardButton(text=t("commit.count.new_pledge", lang), callback_data=f"cnew:{pid}")],
         ]
     )
+
+
+def regular_commitment_done_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    """One-tap completion for the concrete REGULAR occurrence just sent."""
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+        text=t("commit.regular.done_button", lang), callback_data=f"regular_done:{pid}"
+    )]])
 
 
 def commitment_consent_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:

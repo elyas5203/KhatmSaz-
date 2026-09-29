@@ -45,10 +45,8 @@
       <p id="category-empty" class="hidden text-xs text-amber-300 mt-2">{{ t('web.creator.create_category_empty', lang) }}</p>
     </div>
     <div id="edition-wrap" class="mt-4">
-      <label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_edition', lang) }}</label>
-      <select name="quran_edition_id" class="input-field mt-1">
-        {% for edition in quran_editions %}<option value="{{ edition.id }}">{{ edition.label }}</option>{% endfor %}
-      </select>
+      <p class="text-xs font-bold text-slate-400">{{ t('web.creator.create_edition', lang) }}</p>
+      <p class="mt-1 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">مدینه (حفص) — ۶۰۴ صفحه</p>
     </div>
   </section>
 

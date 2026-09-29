@@ -13,6 +13,8 @@ QURAN_EDITIONS: dict[str, dict] = {
     "iran-pocket": {"label": "ایرانی جیبی — ۲۸۶ صفحه", "total_pages": 286},
 }
 
+CANONICAL_QURAN_EDITION_ID = "madina-hafs"
+
 # Product choice: the creation wizard exposes only the official 604-page
 # Madina/Hafs edition. Historical records with older IDs remain readable.
-QURAN_CREATION_EDITION_IDS = ("madina-hafs",)
+QURAN_CREATION_EDITION_IDS = (CANONICAL_QURAN_EDITION_ID,)
