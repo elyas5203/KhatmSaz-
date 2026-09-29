@@ -24,7 +24,7 @@ async def create(
     daily_deadline_hour: int | None = None,
     welcome_text: str | None = None,
     capacity: int | None = None,
-    allow_skip_today: bool = True,
+    allow_skip_today: bool = False,
     allow_pause: bool = True,
     allow_snooze: bool = True,
     completion_announcement_enabled: bool = True,
@@ -97,15 +97,6 @@ async def set_status(session: AsyncSession, khatm_id, status: KhatmStatus) -> No
     if status == KhatmStatus.COMPLETED and previous != KhatmStatus.COMPLETED:
         khatm.completed_at = datetime.now(timezone.utc)
     await session.flush()
-
-
-async def set_allow_skip_today(session: AsyncSession, khatm_id, enabled: bool) -> Khatm | None:
-    khatm = await session.get(Khatm, khatm_id)
-    if khatm is None:
-        return None
-    khatm.allow_skip_today = enabled
-    await session.flush()
-    return khatm
 
 
 async def set_allow_pause(session: AsyncSession, khatm_id, enabled: bool) -> Khatm | None:

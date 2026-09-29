@@ -1,3 +1,9 @@
+## Current state — 2026-09-29 — Required shares cannot be skipped or released [Codex]
+- Removed the active skip-today workflow and creator setter/repository mutation path. New khatms always persist the compatibility field as false, and UI/keyboards no longer accept or propagate the old option.
+- Temporarily pausing reminders no longer releases the current Quran portion: the member still owes and must complete that same share after resuming.
+- The old database column remains only to read historical rows without a migration; it has no active behavior. Regression coverage asserts the public/service APIs are absent and the default is false.
+- Validation: **193 passed, 85 deselected** in the non-integration suite. No migration.
+
 ## Current state — 2026-09-29 — Automatic wallet-threshold FREE/PRO [Codex]
 - **Two active tiers**: only FREE and PRO appear in creator/admin flows. Legacy BASIC rows remain storage-compatible but are ignored by effective-plan logic and cannot be configured or manually assigned.
 - **Automatic eligibility**: effective PRO is derived on read when cash balance plus earned credit reaches the enabled admin-configured PRO threshold (`PlanDefinition.price_toman`). No money is deducted and there is no upgrade/purchase endpoint.

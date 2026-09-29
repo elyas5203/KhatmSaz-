@@ -128,7 +128,9 @@ class Khatm(Base):
     # نمی‌رسم" (release today's portion proactively, no miss) button shows
     # up. Creator-configurable per DOMAIN_MODEL.md §3 Q86. Defaults to
     # enabled — a stricter creator can turn it off.
-    allow_skip_today: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Legacy storage only. Skipping a committed share is no longer a supported
+    # domain action; new rows are always false and no UI/service mutates it.
+    allow_skip_today: Mapped[bool] = mapped_column(Boolean, default=False)
     allow_pause: Mapped[bool] = mapped_column(Boolean, default=True)
     allow_snooze: Mapped[bool] = mapped_column(Boolean, default=True)
     miss_notice_threshold: Mapped[int] = mapped_column(SmallInteger, default=2)

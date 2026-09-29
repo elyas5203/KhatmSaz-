@@ -32,7 +32,7 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
    - Contact-to-creator preserves the sender's platform username/identifier;
      profile editing cannot erase the routing identity.
 
-6. **No skip-today behavior anywhere — TODO**
+6. **No skip-today behavior anywhere — DONE**
    - Remove buttons, callbacks, commands, creator settings and active service
      behavior for skipping a required share. Preserve old DB columns only when
      removal would create avoidable migration risk; they must become inert.
@@ -85,3 +85,7 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
   creation is free, BASIC is excluded from active admin/UI choices, and the
   missing «نامحدود» translation no longer leaks its key. Evidence:
   **192 passed, 86 deselected**; DEC-PY-0098; no migration.
+- No-skip batch: the legacy database column remains compatibility-only and
+  defaults false; setter/workflow APIs and every call-site parameter are gone.
+  Pausing reminders no longer releases the current owed portion. Evidence:
+  **193 passed, 85 deselected**; no migration.

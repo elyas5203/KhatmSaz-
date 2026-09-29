@@ -1,3 +1,8 @@
+## 2026-09-29 (remove skip-today behavior)
+- Removed skip-today service/repository/workflow APIs and all keyboard/caller parameters; new khatms force the legacy compatibility field off.
+- Changed reminder pause so it never releases the member's current owed Quran share.
+- Validation: 193 non-integration tests passed, 85 deselected. No migration.
+
 ## 2026-09-29 (automatic wallet-threshold FREE/PRO)
 - Replaced the wallet-funded permanent PRO purchase with automatic FREE/PRO eligibility based on total wallet funds and the admin-configured PRO threshold; no balance is deducted.
 - Removed the creator purchase endpoint/button and manual per-user plan assignment, excluded legacy BASIC from active configuration, and made PRO khatm creation free instead of misreading its threshold as a creation charge.

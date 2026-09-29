@@ -92,7 +92,7 @@ def test_creator_settings_are_button_driven_and_scope_sensitive():
         for row in creator_settings_keyboard(
             "khatm-id", is_quran=True, is_commitment=True,
             is_open=False,
-            allow_skip_today=True, allow_pause=False, allow_snooze=True,
+            allow_pause=False, allow_snooze=True,
             miss_threshold=2, miss_window_days=7,
             content_mode="AUTO",
         ).inline_keyboard
@@ -103,7 +103,7 @@ def test_creator_settings_are_button_driven_and_scope_sensitive():
         for row in creator_settings_keyboard(
             "khatm-id", is_quran=False, is_commitment=False,
             is_open=True,
-            allow_skip_today=False, allow_pause=False, allow_snooze=False,
+            allow_pause=False, allow_snooze=False,
             miss_threshold=2, miss_window_days=7,
             content_mode="AUTO",
         ).inline_keyboard

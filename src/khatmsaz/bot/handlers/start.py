@@ -338,7 +338,7 @@ def build_join_success_message(
 
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.POSITIONAL:
         text += t("join.first_page_portion_line", lang, start=first_portion.unit_start, end=first_portion.unit_end)
-        return text, portion_done_keyboard(str(khatm.id), allow_skip_today=khatm.allow_skip_today, allow_snooze=bool(khatm.allow_snooze), lang=lang)
+        return text, portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang)
 
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.QUANTITY:
         text += t("join.first_quantity_portion_line", lang, quantity=first_portion.quantity)

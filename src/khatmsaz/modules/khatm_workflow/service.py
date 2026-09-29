@@ -151,7 +151,7 @@ async def create_and_launch_khatm(
     quran_edition_id: str | None = None,
     daily_deadline_hour: int | None = None,
     capacity: int | None = None,
-    allow_skip_today: bool = True,
+    allow_skip_today: bool = False,
     allow_pause: bool = True,
     allow_snooze: bool = True,
     completion_announcement_enabled: bool = True,
@@ -234,7 +234,7 @@ async def create_and_launch_khatm(
             # Only QURAN_PAGE + COMMITMENT has these concepts today (DEC-PY-0008/0010).
             extra["daily_deadline_hour"] = daily_deadline_hour
             extra["capacity"] = capacity
-            extra["allow_skip_today"] = allow_skip_today
+            extra["allow_skip_today"] = False
 
     khatm = await khatm_service.create_draft_khatm(
         session,
@@ -411,24 +411,8 @@ async def leave_khatm(
     return promoted_participation, new_portion
 
 
-async def skip_today(session: AsyncSession, khatm_id, participation_id) -> bool:
-    """"امروز نمی‌رسم" (DOMAIN_MODEL.md §3 Q79): proactively release today's
-    portion *before* the deadline — no miss recorded, unlike a deadline
-    passing untouched (reminder_engine's path). Returns False if there was
-    no current portion to release (nothing to do)."""
-    current = await allocation_service.get_current_portion(session, khatm_id, participation_id)
-    if current is None:
-        return False
-    await allocation_service.release_portion(session, current.id)
-    return True
-
-
 async def pause_commitment(session: AsyncSession, participation_id, khatm_id, until) -> None:
-    """"موقتاً متوقف کن" (DOMAIN_MODEL.md §3 Q80): release any current
-    portion (same as skip_today — no miss) and mark the participation
-    paused until `until`. `reminder_engine` and the emergency-claim handler
-    both check `is_paused` before acting on a paused participation."""
-    await skip_today(session, khatm_id, participation_id)
+    """Pause future reminders without releasing or completing the owed share."""
     await participation_service.set_paused_until(session, participation_id, until)
 
 

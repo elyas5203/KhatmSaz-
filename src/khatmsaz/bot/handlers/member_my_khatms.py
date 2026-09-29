@@ -142,7 +142,6 @@ async def show_member_portion(callback: CallbackQuery) -> None:
             t("report.today_page_label", lang, title=khatm.title, start=portion.unit_start, end=portion.unit_end),
             reply_markup=portion_done_keyboard(
                 str(khatm.id),
-                allow_skip_today=bool(khatm.allow_skip_today),
                 allow_snooze=bool(khatm.allow_snooze),
                 lang=lang,
             ),

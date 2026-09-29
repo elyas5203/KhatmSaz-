@@ -59,18 +59,6 @@ async def cancel_khatm(session: AsyncSession, khatm_id) -> None:
     await repository.set_status(session, khatm_id, KhatmStatus.CANCELLED)
 
 
-async def set_allow_skip_today(session: AsyncSession, *, khatm_id, creator_user_id, enabled: bool) -> Khatm:
-    khatm = await repository.get_by_id(session, khatm_id)
-    if khatm is None or khatm.creator_user_id != creator_user_id:
-        raise ValueError("khatm is not owned by creator")
-    if khatm.template_type != KhatmTemplateType.QURAN_PAGE or khatm.khatm_type != KhatmTypeEnum.COMMITMENT:
-        raise ValueError("skip-today applies only to committed Quran khatms")
-    updated = await repository.set_allow_skip_today(session, khatm_id, enabled)
-    if updated is None:
-        raise ValueError("khatm not found")
-    return updated
-
-
 async def set_allow_pause(session: AsyncSession, *, khatm_id, creator_user_id, enabled: bool) -> Khatm:
     khatm = await repository.get_by_id(session, khatm_id)
     if khatm is None or khatm.creator_user_id != creator_user_id:

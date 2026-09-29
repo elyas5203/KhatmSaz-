@@ -53,7 +53,7 @@ async def today_overview(message: Message) -> None:
     for khatm, _participation, portion in pending:
         if portion.unit_kind.value == "POSITIONAL":
             label = t("report.today_page_label", lang, title=khatm.title, start=portion.unit_start, end=portion.unit_end)
-            await message.answer(label, reply_markup=portion_done_keyboard(str(khatm.id), allow_skip_today=bool(khatm.allow_skip_today), allow_snooze=bool(khatm.allow_snooze), lang=lang))
+            await message.answer(label, reply_markup=portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang))
         else:
             await message.answer(
                 t("report.today_quantity_label", lang, title=khatm.title, quantity=portion.quantity),

@@ -616,7 +616,7 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 def portion_done_keyboard(
-    khatm_id: str, *, allow_skip_today: bool = False, allow_snooze: bool = True, undo_completed_id: str | None = None,
+    khatm_id: str, *, allow_snooze: bool = True, undo_completed_id: str | None = None,
     undo_next_id: str | None = None, lang: str = "fa",
 ) -> InlineKeyboardMarkup:
     """For a portion that's still PENDING (not completed yet) — shows the
@@ -624,9 +624,7 @@ def portion_done_keyboard(
     also being reused for the post-completion confirmation message, where
     "show content"/"done" make no sense anymore (the portion is already
     done) — see `post_completion_keyboard` below for that case instead.
-    `allow_skip_today` is kept as a no-op parameter (the "امروز نمی‌رسم"
-    button it used to add was removed with the emergency-portion system,
-    BACKLOG.md §23) so callers don't need updating."""
+    Skipping/releasing an owed share is deliberately unsupported."""
     rows = [
         [InlineKeyboardButton(text=t("portions.button.show_content", lang), callback_data=f"content:{khatm_id}")],
         [InlineKeyboardButton(text=t("portions.button.done", lang), callback_data=f"done:{khatm_id}")],
@@ -880,7 +878,6 @@ def creator_settings_keyboard(
     is_quran: bool,
     is_commitment: bool,
     is_open: bool,
-    allow_skip_today: bool,
     allow_pause: bool,
     allow_snooze: bool,
     miss_threshold: int,

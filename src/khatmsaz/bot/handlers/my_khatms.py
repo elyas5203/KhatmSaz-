@@ -58,7 +58,6 @@ def _creator_settings_markup(khatm, lang: str = "fa"):
         is_quran=khatm.template_type == KhatmTemplateType.QURAN_PAGE,
         is_commitment=khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
         is_open=khatm.khatm_type == KhatmTypeEnum.OPEN,
-        allow_skip_today=bool(khatm.allow_skip_today),
         allow_pause=bool(khatm.allow_pause),
         allow_snooze=bool(khatm.allow_snooze),
         miss_threshold=int(khatm.miss_notice_threshold),
