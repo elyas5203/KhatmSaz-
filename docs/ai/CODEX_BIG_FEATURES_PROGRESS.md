@@ -76,7 +76,7 @@ Update it after every meaningful step. Status values are `TODO`,
   successfully to **3775 nodes / 13557 edges / 257 communities**.
 - Exact next step: complete feature 4 validation and delivery.
 
-### 4. Reliable modern Persian panel font — IN-PROGRESS
+### 4. Reliable modern Persian panel font — DONE
 
 - Goal: one stable modern Persian webfont with `font-display: swap` and robust
   system/Tahoma fallbacks in both base templates, without layout changes.
@@ -87,8 +87,13 @@ Update it after every meaningful step. Status values are `TODO`,
   fallbacks. Fontsource CSS provides `font-display: swap`.
 - Open decision: final font preference remains owner-reviewable after live
   rendering; initial implementation will use a stable modern Persian font.
-- Remaining: focused/full validation, commit/push, and Graphify update.
-- Exact next step: finish the feature-4 delivery gate and final audit.
+- Validation: focused template/panel suite **12 passed**; non-integration suite
+  **185 passed, 86 deselected**; all **27** templates compiled; Alembic has one
+  head (`rot2026092805`).
+- Delivery gate: committed and pushed to `main` as `665a3c6`; Graphify updated
+  successfully to **3776 nodes / 13559 edges / 238 communities**.
+- Exact next step: owner pulls/restarts the server and performs the live visual
+  review; no required implementation work remains in this four-feature goal.
 
 ## Cross-feature validation and delivery log
 
@@ -98,3 +103,6 @@ Update it after every meaningful step. Status values are `TODO`,
 - No new migration is planned unless current schema proves insufficient.
 - Current working tree before feature work: clean; `main == origin/main` at
   commit `5a0a587`.
+- Final implementation commits pushed to `main`: `208eb86`, `48fa72d`,
+  `46dbe3b`, `89aafad`, and `665a3c6`; a final documentation/Graphify sync
+  commit follows this entry.

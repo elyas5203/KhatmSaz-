@@ -2,6 +2,7 @@
 - Replaced Vazirmatn with pinned Fontsource Estedad 5.3.0 in both shared admin and creator panel shells.
 - Added `system-ui`, `Tahoma`, and generic sans-serif fallbacks; Fontsource CSS uses `font-display: swap`.
 - Added regression coverage that keeps both panel shells on the same font source and fallback stack. No migration.
+- Validation: 12 focused tests and 185 non-integration tests passed; 27 templates compiled; Alembic remains at one head (`rot2026092805`).
 
 ## 2026-09-29 (configurable panel logo)
 - Added an operations-panel field for saving or clearing a public HTTP(S) panel logo URL in the existing system-settings store.

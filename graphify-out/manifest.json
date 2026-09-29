@@ -2208,9 +2208,9 @@
     "semantic_hash": "8e61f2fcdb3e0c1aa1d4cafd65601e7e"
   },
   "docs/ai/CHANGELOG.md": {
-    "mtime": 1790678896.343811,
-    "seen": 1790678951.8225217,
-    "ast_hash": "fbf8e7762b6db7e44804876e566a7d95",
+    "mtime": 1790679033.576079,
+    "seen": 1790679100.1601589,
+    "ast_hash": "8e6365259da645f6db668f456851efd8",
     "semantic_hash": ""
   },
   "docs/ai/DATABASE.md": {
@@ -2268,9 +2268,9 @@
     "semantic_hash": "88431f25dbe261e6d079356e7d9bb483"
   },
   "docs/ai/PROJECT_STATE.md": {
-    "mtime": 1790678896.343811,
-    "seen": 1790678951.8240337,
-    "ast_hash": "5f706ef75ce59b70dfa860ef9a718792",
+    "mtime": 1790679033.576079,
+    "seen": 1790679100.1616414,
+    "ast_hash": "3cbd0141266291e022756ad35fd559f9",
     "semantic_hash": ""
   },
   "docs/ai/QA_HANDOFF_TELEGRAM_TESTING.md": {
@@ -2376,9 +2376,9 @@
     "semantic_hash": "c140ebb9563e44008f6ad3d26fa38ff9"
   },
   "src/khatmsaz/web/templates/base.html": {
-    "mtime": 1790678823.4412625,
-    "seen": 1790678951.828067,
-    "ast_hash": "44c6bf6d42f3abcf5e562b9e4ee6eeab",
+    "mtime": 1790679033.576079,
+    "seen": 1790679100.1651716,
+    "ast_hash": "8363587b3850293df0947dcf8e209d55",
     "semantic_hash": ""
   },
   "src/khatmsaz/web/templates/broadcasts.html": {
@@ -2400,9 +2400,9 @@
     "semantic_hash": "fba13df17329cbcdf3fde70cc6219a6a"
   },
   "src/khatmsaz/web/templates/creator_base.html": {
-    "mtime": 1790678823.4412625,
-    "seen": 1790678951.8284838,
-    "ast_hash": "3e24bff14a279434f87724de4c1f679a",
+    "mtime": 1790679033.576079,
+    "seen": 1790679100.1655865,
+    "ast_hash": "beeb42547ae3ee00812ff7749ccb0e64",
     "semantic_hash": ""
   },
   "src/khatmsaz/web/templates/creator_dashboard.html": {
@@ -2628,9 +2628,9 @@
     "semantic_hash": "e6cfa3bbe3097f860d92de65d572848d"
   },
   "tests/test_admin_template_render.py": {
-    "mtime": 1790678851.4063752,
-    "seen": 1790678951.8049986,
-    "ast_hash": "8a178dfab1fdfa768fe6d6f26423f623",
+    "mtime": 1790679039.550816,
+    "seen": 1790679100.142627,
+    "ast_hash": "ccd431c87345921248e500f7f2c07b0e",
     "semantic_hash": ""
   },
   "tests/test_payment_safety.py": {
@@ -2856,9 +2856,9 @@
     "semantic_hash": ""
   },
   "docs/ai/CODEX_BIG_FEATURES_PROGRESS.md": {
-    "mtime": 1790678896.343811,
-    "seen": 1790678951.822524,
-    "ast_hash": "9101c344a5ed485d48415d04f9812dd5",
+    "mtime": 1790679033.576079,
+    "seen": 1790679100.1601624,
+    "ast_hash": "77697d399b667dcc559a03c855ff97aa",
     "semantic_hash": ""
   },
   "src/khatmsaz/web/templates/creator_khatm_new.html": {
