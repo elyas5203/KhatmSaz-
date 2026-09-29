@@ -76,6 +76,29 @@ def test_quran_join_card_button_suppressed_when_autosetup():
     assert kb2 is not None
 
 
+def test_committed_quran_portion_uses_one_tap_done_not_numeric_contribution():
+    from khatmsaz.bot.handlers.start import build_join_success_message
+    from khatmsaz.modules.allocation.models import PortionUnitKind
+
+    khatm = _make_khatm()
+    khatm.khatm_type = KhatmTypeEnum.COMMITMENT
+    portion = SimpleNamespace(unit_kind=PortionUnitKind.POSITIONAL, unit_start=1, unit_end=3)
+    _text, keyboard = build_join_success_message(
+        khatm, SimpleNamespace(id="p1"), portion, False, "علی", "", "fa",
+    )
+    callbacks = [b.callback_data for row in keyboard.inline_keyboard for b in row]
+    assert "done:k1" in callbacks
+    assert "contribute:k1" not in callbacks
+
+
+def test_niyyat_proxy_strips_repeated_be_niyyat_prefix():
+    from khatmsaz.bot.handlers.create_khatm import _compose_niyyat
+
+    assert _compose_niyyat("fa", "به نیت تست آخر بات") == (
+        "به نیت ظهور امام زمان علیه السلام — به نیابت از تست آخر بات"
+    )
+
+
 def test_my_khatms_command_wired_on_member_bot():
     from khatmsaz.bot.handlers import member_my_khatms
 

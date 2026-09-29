@@ -1,3 +1,10 @@
+## 2026-09-29 (Quran done action and niyyat cleanup)
+- Removed duplicated «به نیت» from the optional proxy/dedication suffix.
+- Restored one-tap whole-share completion for committed Quran portions; numeric page reporting remains limited to open Quran.
+- Limited automatic pages/day setup to open Quran.
+- Clarified the religious-obligation difference between commitment and open modes in Persian creation copy.
+- No migration.
+
 ## 2026-09-29 (today picker and early share delivery)
 - Reworded all family intro captions to identify the member bot the audience enters and retain the shared Imam Mahdi intention.
 - Removed the long commitment-consent warning from invite and public join paths; existing mode/setup choices continue in the tracked one-message wizard.

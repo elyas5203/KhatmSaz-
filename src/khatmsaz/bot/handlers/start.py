@@ -330,12 +330,6 @@ def build_join_success_message(
         text += t("join.waitlisted_line", lang)
         return text, contribute_keyboard(str(khatm.id), lang)
 
-    # Quran never exposes the rotating-portion action row.  The reader picks
-    # their own daily page count; this single button is retained for approval
-    # joins where no FSM can be started remotely.
-    if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-        return text, (contribute_keyboard(str(khatm.id), lang) if quran_join_button else None)
-
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.POSITIONAL:
         text += t("join.first_page_portion_line", lang, start=first_portion.unit_start, end=first_portion.unit_end)
         return text, portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang)
@@ -343,6 +337,11 @@ def build_join_success_message(
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.QUANTITY:
         text += t("join.first_quantity_portion_line", lang, quantity=first_portion.quantity)
         return text, commitment_quantity_keyboard(str(khatm.id), lang)
+
+    # Only OPEN Quran uses numeric self-reporting. A committed Quran portion
+    # is completed as one whole share with the single-tap button above.
+    if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+        return text, (contribute_keyboard(str(khatm.id), lang) if quran_join_button else None)
 
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.no_open_portion_line", lang)
@@ -467,7 +466,10 @@ async def resume_join_after_registration(
         and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH)
     )
     is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
-    if state is not None and not was_waitlisted and is_quran:
+    if (
+        state is not None and not was_waitlisted and is_quran
+        and khatm.khatm_type == KhatmTypeEnum.OPEN
+    ):
         from khatmsaz.bot.handlers.portions import start_open_quran_setup
         await start_open_quran_setup(
             join_message, state, khatm_id=str(khatm.id), lang=lang, summary=text,

@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Quran whole-share completion and clean niyyat [Codex]
+- Fixed creator-entered proxy text beginning with «به نیت» so confirmation now renders «به نیت ظهور… — به نیابت از تست…», never «به نیابت از به نیت…».
+- A committed Quran allocation now uses the whole-share `done:` action. Tapping «انجام سهم» completes that exact page range in one tap and no longer opens the numeric open-Quran contribution prompt.
+- Automatic pages/day setup now starts only for OPEN Quran; committed Quran retains its allocated portion and delivery-hour flow.
+- Mode explanations now state the owner-defined distinction: commitment leaves an unfulfilled religious obligation; open participation does not.
+- Validation: **203 passed, 85 deselected**. No migration.
+
 ## Current state — 2026-09-29 — Today picker, early delivery and streamlined commitment join [Codex]
 - **Family intro copy**: the four creator-facing captions now say that the creator's audience enters the matching Quran, Salawat, Dua/Ziyarat or La'an member bot, followed by the shared Imam Mahdi intention line. The incorrect “introduced with a special image” wording is gone.
 - **No commitment warning gate**: direct invite and public-khatm joins no longer show the long threatening consent card. Repetition commitments proceed into the existing one-message mode/setup wizard, whose steps update the tracked join message.

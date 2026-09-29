@@ -46,7 +46,7 @@ def test_join_preview_is_informational_and_escaped():
     assert "هنوز عضو نشده‌اید" in text
 
 
-def test_quran_welcome_does_not_expose_fixed_portion_actions():
+def test_committed_quran_welcome_exposes_whole_portion_done_action():
     khatm = Khatm(
         id=uuid4(), creator_user_id=uuid4(), title="ختم قرآن",
         template_type=KhatmTemplateType.QURAN_PAGE,
@@ -61,6 +61,7 @@ def test_quran_welcome_does_not_expose_fixed_portion_actions():
         khatm, participation, stale_portion, False, "عضو"
     )
 
-    assert "سهم اول شما" not in text
+    assert "سهم اول شما" in text
     callbacks = [button.callback_data for row in keyboard.inline_keyboard for button in row]
-    assert callbacks == [f"contribute:{khatm.id}"]
+    assert f"done:{khatm.id}" in callbacks
+    assert all(not value.startswith("contribute:") for value in callbacks)
