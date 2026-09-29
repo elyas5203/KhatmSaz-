@@ -1,3 +1,9 @@
+## Current state — 2026-09-29 — Reliable Estedad panel typography [Codex]
+- **Font**: the admin and creator shared panel shells now load pinned Fontsource Estedad 5.3.0 webfont CSS from jsDelivr for weights 400/600/700/800.
+- **Fallback/loading**: both Tailwind configurations use `Estedad, system-ui, Tahoma, sans-serif`; Fontsource's CSS supplies `font-display: swap`, so readable fallback text remains available during CDN/font loading.
+- **Scope**: layout, colors, and component structure are unchanged. Login/public pages are outside this shared-shell change.
+- **Coverage**: a template regression test enforces the pinned source and identical fallback stack in both shells. No migration added.
+
 ## Current state — 2026-09-29 — Configurable admin/creator panel logo [Codex]
 - **Setting**: `panel_logo_url` is now a whitelisted string system setting. Operations admins can save or clear a public HTTP(S) image URL from `/operations`; invalid/relative schemes are rejected.
 - **Rendering**: both shared admin and creator headers receive the setting through common request context and render the image when configured. The existing «خ» mark remains the automatic fallback.

@@ -57,7 +57,7 @@ Update it after every meaningful step. Status values are `TODO`,
   successfully to **3765 nodes / 13522 edges / 237 communities**.
 - Exact next step: complete feature 3 validation and delivery.
 
-### 3. Configurable panel logo — IN-PROGRESS
+### 3. Configurable panel logo — DONE
 
 - Goal: admin-editable `panel_logo_url` via system settings; both admin and
   creator headers render it with the current «خ» fallback.
@@ -70,19 +70,25 @@ Update it after every meaningful step. Status values are `TODO`,
 - Focused validation: **15 passed**.
 - Open decision/follow-up: changing the real Telegram/Bale bot profile photo is
   explicitly outside this first version.
-- Remaining: full non-integration suite, all-template compile, commit/push,
-  then Graphify update.
-- Exact next step: finish feature-3 delivery gate, then start feature 4.
+- Validation: non-integration suite **184 passed, 86 deselected**; all **27**
+  templates compiled; focused validation **15 passed**.
+- Delivery gate: committed and pushed to `main` as `89aafad`; Graphify updated
+  successfully to **3775 nodes / 13557 edges / 257 communities**.
+- Exact next step: complete feature 4 validation and delivery.
 
-### 4. Reliable modern Persian panel font — TODO
+### 4. Reliable modern Persian panel font — IN-PROGRESS
 
 - Goal: one stable modern Persian webfont with `font-display: swap` and robust
   system/Tahoma fallbacks in both base templates, without layout changes.
-- Touched files: none.
+- Touched files: `web/templates/base.html`, `creator_base.html`, template
+  regression tests, project state/changelog, and this file.
+- Completed: both panel shells load pinned Fontsource Estedad 5.3.0 weights
+  from jsDelivr; Tailwind uses Estedad with system-ui/Tahoma/sans-serif
+  fallbacks. Fontsource CSS provides `font-display: swap`.
 - Open decision: final font preference remains owner-reviewable after live
   rendering; initial implementation will use a stable modern Persian font.
-- Next step after feature 3: inspect both base templates and shared CSS/font
-  configuration, then make the smallest consistent change.
+- Remaining: focused/full validation, commit/push, and Graphify update.
+- Exact next step: finish the feature-4 delivery gate and final audit.
 
 ## Cross-feature validation and delivery log
 

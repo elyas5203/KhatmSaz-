@@ -6,10 +6,13 @@
   <meta name="theme-color" content="#020617">
   <title>{% block title %}پنل ختم‌ساز{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/400.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/600.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/700.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/800.css" rel="stylesheet" type="text/css" />
   <script>
     tailwind.config = {
-      theme: { extend: { fontFamily: { sans: ['Vazirmatn', 'sans-serif'] } } }
+      theme: { extend: { fontFamily: { sans: ['Estedad', 'system-ui', 'Tahoma', 'sans-serif'] } } }
     }
   </script>
   <style>
@@ -19,7 +22,7 @@
                         radial-gradient(circle at 85% 30%, rgba(20, 184, 166, 0.08), transparent 35%);
       color: #e2e8f0;
       min-height: 100vh;
-      /* Typography polish (owner: «فونت و ظاهر زشت») — crisp Vazirmatn,
+      /* Typography polish — screen-optimized Estedad with resilient local
          comfortable reading rhythm, and Persian digits enabled. */
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;

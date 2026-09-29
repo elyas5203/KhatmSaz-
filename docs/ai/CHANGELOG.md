@@ -1,3 +1,8 @@
+## 2026-09-29 (Estedad panel font)
+- Replaced Vazirmatn with pinned Fontsource Estedad 5.3.0 in both shared admin and creator panel shells.
+- Added `system-ui`, `Tahoma`, and generic sans-serif fallbacks; Fontsource CSS uses `font-display: swap`.
+- Added regression coverage that keeps both panel shells on the same font source and fallback stack. No migration.
+
 ## 2026-09-29 (configurable panel logo)
 - Added an operations-panel field for saving or clearing a public HTTP(S) panel logo URL in the existing system-settings store.
 - Admin and creator headers now render the configured image, while preserving the current «خ» fallback.

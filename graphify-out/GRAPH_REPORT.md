@@ -1,84 +1,84 @@
 # Graph Report - Khatm  (2026-09-29)
 
 ## Corpus Check
-- 447 files · ~314,236 words
+- 448 files · ~314,997 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .css 3, .ini 2, .example 1)
 
 ## Summary
-- 3765 nodes · 13522 edges · 237 communities (140 shown, 97 thin omitted)
-- Extraction: 85% EXTRACTED · 15% INFERRED · 0% AMBIGUOUS · INFERRED: 1989 edges (avg confidence: 0.94)
+- 3775 nodes · 13557 edges · 257 communities (156 shown, 101 thin omitted)
+- Extraction: 85% EXTRACTED · 15% INFERRED · 0% AMBIGUOUS · INFERRED: 1991 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `46dbe3b0`
+- Built from commit: `89aafadd`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- session_scope
-- create_khatm.py
+- app.py
+- FSMContext
 - sqlalchemy
 - KhatmPortion
 - phone/service.py
-- t
-- Khatm
-- Platform
-- system_settings/repository.py
-- start.py
-- my_khatms.py
-- Base
+- create_khatm.py
+- new_id
+- admin.py
+- system_settings/service.py
+- keyboards.py
+- session_scope
+- wallet/models.py
 - Participation
-- main_menu_keyboard
-- resolve_or_provision_user
-- AdminRoleGrant
+- start.py
+- settings_menu.py
+- authorization/service.py
 - typing
 - sqlalchemy_dialects
 - khatm_workflow/service.py
-- get_or_create
-- User
+- Platform
+- Khatm
 - portions.py
-- PlatformIdentity
+- User
 - alembic
 - test_deep_link_clears_old_state_before_storing_new_join_context
 - CHANGELOG
-- creator_request.py
+- start_suggestion
 - provider.py
 - PayPingGateway
 - wallet/service.py
 - test_confirm_wizard_resumes_and_finishes_creation_after_otp
-- panel.py
-- cancel_commitment
+- UserRole
+- home_keyboard_for_bot
 - creator_request/service.py
 - get_settings
 - khatmsaz_bot_handlers_join_flow
-- suggestions.py
+- KhatmRequest
 - member_commitment.py
-- bail_if_menu_button
+- _phone_keyboard
 - bot_registry/service.py
 - KhatmCategoryGroup
 - PlanTier
-- wallet/models.py
-- notification/models.py
+- wallet/repository.py
+- notification/repository.py
 - sms_subscription/service.py
 - test_member_cancel_clears_state
-- completion/service.py
-- types
-- invitation/models.py
-- sqlalchemy_ext_asyncio
+- deliver_pending
+- datetime
+- KhatmInvitation
+- Session
 - reminder_engine/service.py
-- env.py
+- test_notify_routing.py
 - DevotionalAsset
-- show_member_portion
-- create_topup
-- content/service.py
-- wallet/__init__.py
-- BotRole
-- test_creator_notified_with_phone_after_two_consecutive_missed_days
-- audit_log/service.py
-- broadcast.py
+- safe_answer_callback
+- _create_topup_payment
+- QuranAssetKind
+- test_payment_intent_is_owned_single_use_and_amount_bound
+- record
+- participation/service.py
+- finish_invite_links
+- KhatmBroadcast
 - phone/repository.py
-- test_wizard_ephemeral.py
+- _wiz
 - test_i18n_audit.py
 - Architecture Document
 - بخش سازنده (ویزارد ساخت ختم) — `create_khatm.py`
@@ -86,32 +86,32 @@
 - Admin Panel Base Layout (base.html)
 - receive_media
 - DECISIONS
-- test_registration_phone_share_only.py
+- commitment.py
 - DOMAIN_MODEL
-- AsyncSession
+- content/service.py
 - OpenContribution
 - test_bale_invite_is_a_real_clickable_link_not_a_typed_command
 - 435027907255_add_daily_deadline_hour_to_khatms.py
 - test_quran_setup_waits_for_selected_hour_before_sending
 - KhatmSaz Project (Claude Code Instructions)
 - QA MATRIX — نیازمندی ← کد ← تست ← نتیجهٔ واقعی
-- waiting_list/models.py
+- WaitingList
 - message_template/repository.py
 - FakeMessage
 - test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it
-- test_new_bale_identity_moves_to_existing_profile_after_otp
+- UserSettings
 - test_creator_contact.py
 - QA MATRIX — فاز ۱ کامل (نیازمندی ← کد ← تست ← نتیجه)
 - KhatmSaz VPS Deployment Guide
 - Multi-Bot (26-bot) Architecture
 - test_member_commitment_flow.py
 - install_command_menu
-- test_signed_telegram_admin_launch_sets_secure_scoped_cookie
+- WalletInvoice
 - BotCategory
 - test_dispatcher_routes_commands_while_profile_phone_state_is_active
-- test_channel_coverage_counts_pages_not_source_posts
+- test_recitation_text_only_for_laan.py
 - creator_broadcast/service.py
-- manual_phone_verification/service.py
+- ensure_creator_phone_verified
 - test_admin_template_render.py
 - test_fixed_salawat_content.py
 - CSS Layouts and Responsive Design Guide
@@ -120,55 +120,69 @@
 - test_health.py
 - manual_phone_verification/repository.py
 - test_broadcast_shows_khatm_picker
-- message_template/__init__.py
+- test_message_template.py
 - Multi-Bot System (26-Bot Architecture)
 - Member Bot Language Isolation (fixed per bot)
 - runtime_status.py
 - qr.py
-- UserStatus
-- new_id
+- delete_account
+- sqlalchemy_ext_asyncio
 - test_quran_channel_source.py
 - test_mini_app_entry.py
 - test_notification_snooze.py
 - Python Requirements
 - Feature checklist
-- change_phone.py
+- list_identities_for_user
 - test_creator_finance_and_support_buttons_are_wired
 - test_set_font_size_validates_and_persists
+- help_topic
 - devotional_seed.py
 - test_current_quran_delivery_is_exact_and_reciter_specific
-- digest_command
+- config.py
+- asyncio
 - str
 - test_next_portion_is_withheld_until_next_local_day_at_reminder_hour
-- test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour
+- InvoiceKind
 - test_contribute_blocked_until_delivery_hour_set
 - zzz_merge_three_heads_2026_09_28.py
-- confirm_account_deletion
-- FakeState
+- t
+- test_tapping_a_time_of_day_button_saves_the_hour_without_typing
 - test_active_otp_is_reused_without_returning_another_sms_code
 - Mini-App Only Authentication Pattern
 - test_public_khatms_reply_button_is_wired
 - Settings Menu Full-Button Test Scenario
 - _default_khatm_title
 - khatmsaz_modules_phone
-- test_content_preferences_are_independent_and_persisted
+- test_salawat_category_group_always_goes_directly_to_mode
 - test_daily_digest_combines_multiple_khatms_for_one_user
 - AdminFilter
-- test_devotional_text_and_platform_specific_audio
-- content_settings.py
-- .__call__
+- test_quran_join_is_member_controlled_without_auto_allocation
+- set_audio_callback
+- ModerationMiddleware
 - Tooltip Jinja2 Macro Component
 - FakeState
-- test_quran_page_assets_require_canonical_complete_ranges
-- FakeMessage
-- fc2337bfe5d5_add_khatm_capacity_and_participation_is_.py
+- Multi-Bot Architecture (26 bots)
+- test_registration_starts_in_the_users_saved_language
+- PROJECT_STATE
 - Bot Help Strings (Persian)
 - Identity Across Platforms (phone-based merge key)
-- resolve_creator_decision
-- zoneinfo
+- Base
+- register_devotional_content.py
+- monthly_report/service.py
+- FakeState
+- bot/__init__.py
 - test_reminder_tone_resolves_seeded_locale_template
-- test_sms_opt_in_requires_phone_and_can_be_disabled
-- test_reminder_due_fires_at_or_after_target_not_only_in_window
+- deliver_due
+- system_settings/__init__.py
+- test_payment_safety.py
+- env.py
+- 1f9fe3de23a1_add_khatm_requests_table.py
+- b7c8d9e0f1a2_add_bot_instances.py
+- c21644dab334_add_skip_today_pause_and_leave_reason_.py
+- register_devotional_content_batch2.py
+- test_private_join_approval_rejects_non_creator_before_join
+- _compose_niyyat
+- test_member_bot_fixes.py
 - start_bot.ps1
 - khatmsaz_bot
 - khatmsaz_bot_handlers
@@ -224,10 +238,12 @@
 - khatmsaz_modules_session_models
 - khatmsaz_modules_settings
 - khatmsaz_modules_settings_models
+- str
+- test_devotional_slug_link_does_not_depend_on_title_wording
 
 ## God Nodes (most connected - your core abstractions)
-1. `session_scope()` - 386 edges
-2. `t()` - 359 edges
+1. `session_scope()` - 388 edges
+2. `t()` - 360 edges
 3. `Platform` - 291 edges
 4. `Khatm` - 156 edges
 5. `User` - 143 edges
@@ -269,171 +285,171 @@
 - **Quran allocation evolution (rotating -> member-chosen -> wait-for-hour, bug + DB constraint)** — docs_ai_decisions_dec_py_0092_rotating_quran_allocation, docs_ai_decisions_dec_py_0094_member_chosen_quran_pace, docs_ai_decisions_dec_py_0095_first_pages_wait_hour, docs_ai_changelog_positional_range_for_step, docs_ai_qa_matrix_quran_page_allocation_bug [INFERRED 0.85]
 - **Core Domain Modules (Khatm, Participation, Allocation, Workflow)** — module_khatm, module_participation, module_allocation, module_khatm_workflow, module_waiting_list [INFERRED 0.95]
 
-## Communities (237 total, 97 thin omitted)
+## Communities (257 total, 101 thin omitted)
 
-### Community 0 - "session_scope"
+### Community 0 - "app.py"
 Cohesion: 0.08
-Nodes (103): fastapi, fastapi_staticfiles, fastapi_templating, get, HTMLResponse, middleware, post, RedirectResponse (+95 more)
+Nodes (70): fastapi, fastapi_staticfiles, fastapi_templating, get, HTMLResponse, middleware, Request, search_users() (+62 more)
 
-### Community 1 - "create_khatm.py"
-Cohesion: 0.09
-Nodes (92): C. ساخت ۴ نوع ختم, R6. حذف سؤال ظرفیت — ✅ **انجام شد** (این نوبت), _after_commitment_total(), _after_creator_display(), _after_recitation_text(), _after_start_schedule(), _after_welcome(), _apply_coupon_code() (+84 more)
+### Community 1 - "FSMContext"
+Cohesion: 0.17
+Nodes (38): R6. حذف سؤال ظرفیت — ✅ **انجام شد** (این نوبت), _after_commitment_total(), _after_creator_display(), _after_recitation_text(), _after_start_schedule(), _after_welcome(), _apply_coupon_code(), apply_creation_coupon() (+30 more)
 
 ### Community 2 - "sqlalchemy"
-Cohesion: 0.05
-Nodes (62): datetime, functools, httpx, khatmsaz_modules_khatm_category, khatmsaz_modules_khatm_category_models, khatmsaz_modules_sms_subscription, khatmsaz_modules_sms_subscription_models, openpyxl (+54 more)
+Cohesion: 0.06
+Nodes (50): httpx, khatmsaz_modules_khatm_category, khatmsaz_modules_sms_subscription, khatmsaz_modules_sms_subscription_models, openpyxl, pytest, re, sqlalchemy (+42 more)
 
 ### Community 3 - "KhatmPortion"
 Cohesion: 0.08
-Nodes (78): AllocationStrategy, CommittedQuantityLog, KhatmAllocationPlan, KhatmPortion, PortionStatus, PortionUnitKind, str, Per-submission log for quantity-commitment portions (salawat, dua, laan).… (+70 more)
+Nodes (77): AllocationStrategy, CommittedQuantityLog, KhatmAllocationPlan, KhatmPortion, PortionStatus, PortionUnitKind, str, Per-submission log for quantity-commitment portions (salawat, dua, laan).… (+69 more)
 
 ### Community 4 - "phone/service.py"
 Cohesion: 0.23
-Nodes (22): AccountMerge, _assert_pristine_source_account(), complete_account_link(), complete_phone_change(), _consume_challenge(), _hash_code(), normalize_e164(), OtpError (+14 more)
+Nodes (23): AccountMerge, OtpPurpose, _assert_pristine_source_account(), complete_account_link(), complete_phone_change(), _consume_challenge(), _hash_code(), normalize_e164() (+15 more)
 
-### Community 5 - "t"
-Cohesion: 0.05
-Nodes (105): base64, InlineKeyboardButton, _confirm_keyboard(), InlineKeyboardMarkup, message, request_account_deletion(), help_command(), help_open_my_khatms() (+97 more)
+### Community 5 - "create_khatm.py"
+Cohesion: 0.12
+Nodes (29): InlineKeyboardButton, Khatm creation wizard — a short multi-step conversation. Flow: **commitment…, advertising_choice_keyboard(), capacity_choice_keyboard(), category_choice_keyboard(), _ck_cancel_row(), commitment_mode_keyboard(), commitment_weekday_keyboard() (+21 more)
 
-### Community 6 - "Khatm"
-Cohesion: 0.04
-Nodes (149): build_join_success_message(), Shared with `join_requests.py`'s approval handler, which sends this same…, Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum, claim_completion_announcement(), create() (+141 more)
+### Community 6 - "new_id"
+Cohesion: 0.03
+Nodes (100): build_join_preview_message(), build_join_success_message(), _clean_niyyat(), Shared with `join_requests.py`'s approval handler, which sends this same…, Strip a leading «به نیت»/«بنية»/«Intention» so the display label…, Owner complaint (2026-09-20): the old preview only showed title/…, new_id(), UUID (+92 more)
 
-### Community 7 - "Platform"
-Cohesion: 0.10
-Nodes (77): aiogram_exceptions, _lang_for(), admin_activate(), admin_ad_rate(), admin_ban(), admin_coupon_set(), admin_coupon_toggle(), admin_coupons() (+69 more)
+### Community 7 - "admin.py"
+Cohesion: 0.09
+Nodes (71): aiogram_exceptions, admin_activate(), admin_ad_rate(), admin_ban(), admin_coupon_set(), admin_coupon_toggle(), admin_coupons(), admin_covers() (+63 more)
 
-### Community 8 - "system_settings/repository.py"
-Cohesion: 0.22
-Nodes (12): _inactivity_days(), Generic admin-editable key/value store for small system-wide numeric defaults…, SystemSetting, get(), list_all(), AsyncSession, set(), get_int() (+4 more)
+### Community 8 - "system_settings/service.py"
+Cohesion: 0.23
+Nodes (14): _inactivity_days(), Generic admin-editable key/value store for small system-wide numeric defaults…, SystemSetting, get(), list_all(), AsyncSession, set(), get_int() (+6 more)
 
-### Community 9 - "start.py"
-Cohesion: 0.05
-Nodes (88): aiogram, aiogram_filters, aiogram_fsm_context, aiogram_fsm_state, aiogram_types, عضو (Member bots) — تلگرام fa/ar/en و بله, html, Small, user-facing Telegram command menu for the primary journeys. (+80 more)
+### Community 9 - "keyboards.py"
+Cohesion: 0.06
+Nodes (73): aiogram, aiogram_filters, aiogram_fsm_context, aiogram_fsm_state, aiogram_types, apscheduler_schedulers_asyncio, base64, logging (+65 more)
 
-### Community 10 - "my_khatms.py"
+### Community 10 - "session_scope"
 Cohesion: 0.07
-Nodes (77): csv, ask_cancel_khatm(), _build_my_khatms_tree(), cancel_cancel_khatm(), confirm_cancel_khatm(), _content_group(), creator_begin_cosmetic_edit(), creator_begin_end_at() (+69 more)
+Nodes (87): csv, ask_cancel_khatm(), _build_my_khatms_tree(), cancel_cancel_khatm(), confirm_cancel_khatm(), _content_group(), creator_begin_cosmetic_edit(), creator_begin_end_at() (+79 more)
 
-### Community 11 - "Base"
-Cohesion: 0.10
-Nodes (29): DeclarativeBase, enum, sqlalchemy_dialects_postgresql, sqlalchemy_orm, Base, Shared declarative base for every module's models., Account-merge module: append-only audit of completed account merges., AdvertisingRewardRate (+21 more)
+### Community 11 - "wallet/models.py"
+Cohesion: 0.15
+Nodes (22): AdvertisingRewardRate, Append-only reward-rate history; the newest effective rate is active., accrue_first_completed_action(), get_active_rate(), AsyncSession, datetime, Advertising rewards: opt-in is per khatm and accrual is idempotent., Grant one reward only after the first completed assigned action. The… (+14 more)
 
 ### Community 12 - "Participation"
-Cohesion: 0.07
-Nodes (72): sqlalchemy_exc, leave_khatm(), Leave a khatm. If the leaver was a committed participant, promote the next…, CommitmentMode, Participation, ParticipationStatus, advance_open_reading(), count_committed_active() (+64 more)
+Cohesion: 0.14
+Nodes (32): _member_creators(), Creators of the member's ACTIVE khatms, each with the member's own…, Participation, ParticipationStatus, count_committed_active(), count_for_khatm(), create(), get_active() (+24 more)
 
-### Community 13 - "main_menu_keyboard"
-Cohesion: 0.22
-Nodes (13): FSMContext, message, receive_link_code(), receive_link_phone(), accept_join_preview(), choose_first_language(), handle_start(), callback_query (+5 more)
+### Community 13 - "start.py"
+Cohesion: 0.06
+Nodes (58): عضو (Member bots) — تلگرام fa/ar/en و بله, html, Kick off the mode picker for a freshly-joined commitment member., start_commitment_mode_picker(), choose_gender(), choose_province(), callback_query, CallbackQuery (+50 more)
 
-### Community 14 - "resolve_or_provision_user"
+### Community 14 - "settings_menu.py"
 Cohesion: 0.11
-Nodes (49): begin_account_link(), list_member_khatms(), message, message, set_reminder(), today_overview(), buy_sms_plan(), _can_open_creator_panel() (+41 more)
+Nodes (49): begin_phone_change(), buy_sms_plan(), _can_open_creator_panel(), _current_platform_user(), _lang_for(), callback_query, CallbackQuery, FSMContext (+41 more)
 
-### Community 15 - "AdminRoleGrant"
-Cohesion: 0.26
-Nodes (11): AdminRoleGrant, A revocable role assignment. Historical rows are reactivated, not deleted., grant_role(), list_active_grants(), AsyncSession, Persistence helpers for delegated admin roles., revoke_role(), asyncio (+3 more)
+### Community 15 - "authorization/service.py"
+Cohesion: 0.14
+Nodes (26): admin_approve_request(), admin_reject_request(), CommandObject, _resolve_decision(), AdminRole, AdminRoleGrant, CapabilityType, str (+18 more)
 
 ### Community 16 - "typing"
-Cohesion: 0.04
-Nodes (6): # NOTE: autogenerate also proposed dropping the 6 hand-written partial, # NOTE: autogenerate also proposed dropping the 6 hand-written partial, add bot_instances Revision ID: b7c8d9e0f1a2 Revises: 33382c085479 Create Date:…, # NOTE: autogenerate also proposed dropping the 6 hand-written partial, # NOTE: autogenerate also proposed dropping the 6 hand-written partial, typing
+Cohesion: 0.05
+Nodes (4): # NOTE: autogenerate also proposed dropping the 6 hand-written partial, # NOTE: autogenerate also proposed dropping the 6 hand-written partial, # NOTE: autogenerate also proposed dropping the 6 hand-written partial, typing
 
 ### Community 18 - "khatm_workflow/service.py"
-Cohesion: 0.06
-Nodes (47): approve_join(), _lang_for(), _lang_for_user(), callback_query, CallbackQuery, Creator approve/reject for a PRIVATE khatm's join request (DOMAIN_MODEL.md §2…, reject_join(), Unpack two UUIDs from a short base64 string. (+39 more)
+Cohesion: 0.08
+Nodes (42): _finish_creating_khatm(), Owner-reported bug (2026-09-21/22): a creator whose phone wasn't verified yet…, ContentDeliveryMode, CoverStatus, CreatorDisplayMode, KhatmScheduleKind, KhatmVisibility, str (+34 more)
 
-### Community 19 - "get_or_create"
-Cohesion: 0.09
-Nodes (42): CommandObject, message, set_font(), language_command(), CommandObject, message, CommandObject, message (+34 more)
+### Community 19 - "Platform"
+Cohesion: 0.04
+Nodes (113): begin_account_link(), _lang_for(), FSMContext, message, receive_link_code(), receive_link_phone(), _lang_for(), CommandObject (+105 more)
 
-### Community 20 - "User"
-Cohesion: 0.14
-Nodes (26): grant_role(), has_permission(), is_admin(), list_roles(), permissions_for(), AsyncSession, Role-to-permission policy for bot and web administration., revoke_role() (+18 more)
+### Community 20 - "Khatm"
+Cohesion: 0.12
+Nodes (56): creator_save_cosmetic_edit(), Khatm, KhatmStatus, claim_completion_announcement(), create(), get_by_id(), list_created_by(), list_due_endings() (+48 more)
 
 ### Community 21 - "portions.py"
-Cohesion: 0.09
-Nodes (60): _parse_delivery_time(), Parse 'H', 'HH', or 'HH:MM' into (hour, minute). Returns None if invalid., _active_participation_for_current_bot(), apply_snooze(), ask_commitment_quantity(), ask_contribution_amount(), ask_custom_pause_until(), ask_custom_snooze() (+52 more)
+Cohesion: 0.07
+Nodes (65): _parse_delivery_time(), Parse 'H', 'HH', or 'HH:MM' into (hour, minute). Returns None if invalid., callback_query, CallbackQuery, FSMContext, Show the current portion for one joined khatm, with the same action buttons the…, Per-khatm reminder-hour picker. Reuses the shared AskDeliveryHour flow…, show_member_portion() (+57 more)
 
-### Community 22 - "PlatformIdentity"
-Cohesion: 0.12
-Nodes (23): PlatformIdentity, attach_platform_identity(), create_user_with_platform_identity(), find_by_id(), find_by_platform_identity(), get_platform_identity(), list_platform_identities(), AsyncSession (+15 more)
+### Community 22 - "User"
+Cohesion: 0.10
+Nodes (36): PlatformIdentity, User, UserStatus, attach_platform_identity(), create_user_with_platform_identity(), find_by_id(), find_by_platform_identity(), get_platform_identity() (+28 more)
 
 ### Community 24 - "test_deep_link_clears_old_state_before_storing_new_join_context"
 Cohesion: 0.08
 Nodes (15): FakeMessage, FakeState, asyncio, parametrize, test_deep_link_clears_old_state_before_storing_new_join_context(), test_first_language_choice_refreshes_creator_menu_and_starts_wizard(), test_global_cancel_clears_state_and_returns_role_aware_menu(), fake_home() (+7 more)
 
 ### Community 25 - "CHANGELOG"
-Cohesion: 0.08
-Nodes (27): Multi-Bot Architecture (26 bots), CHANGELOG Archive (until 2026-09-18), PROJECT_STATE Archive (until 2026-09-18), CHANGELOG, Creator wallet-charge button, Devotional content library + seed, i18n coverage guard (fa/ar/en), Multi-bot invite links (bot/invite_links.py) (+19 more)
+Cohesion: 0.15
+Nodes (14): CHANGELOG Archive (until 2026-09-18), CHANGELOG, Creator wallet-charge button, Devotional content library + seed, i18n coverage guard (fa/ar/en), positional_range_for_step (rotating allocation helper), Reminder engine (APScheduler scan), DEC-PY-0072 — Devotional families are independent top-level choices (+6 more)
 
-### Community 26 - "creator_request.py"
-Cohesion: 0.21
-Nodes (12): admin_approve_creator(), admin_reject_creator(), handle_creator_request_button(), handle_creator_request_message(), _lang_for(), callback_query, CallbackQuery, CommandObject (+4 more)
+### Community 26 - "start_suggestion"
+Cohesion: 0.18
+Nodes (19): handle_creator_request_button(), callback_query, CallbackQuery, back_to_support_menu(), choose_creator(), callback_query, CallbackQuery, FSMContext (+11 more)
 
 ### Community 27 - "provider.py"
 Cohesion: 0.06
 Nodes (45): BaseSettings, dataclasses, hmac, json, Settings, Pluggable SMS delivery boundary. The application depends on this small…, build_provider(), KavenegarSmsProvider (+37 more)
 
 ### Community 28 - "PayPingGateway"
-Cohesion: 0.10
-Nodes (22): Response, _create_topup_payment(), Shared: build a PayPing intent for `amount` and send the pay link., GatewayError, PaymentRequest, PaymentVerification, Exception, Gateway boundary; PSP-specific code must live behind this protocol. (+14 more)
+Cohesion: 0.11
+Nodes (20): Response, GatewayError, PaymentRequest, PaymentVerification, Exception, Gateway boundary; PSP-specific code must live behind this protocol., The PSP rejected or could not complete a request., PayPingGateway (+12 more)
 
 ### Community 29 - "wallet/service.py"
-Cohesion: 0.09
-Nodes (41): PaymentGateway, Protocol, DiscountCoupon, PendingPayment, A payment intent created before redirecting to a payment gateway. Prevents IDOR…, claim_pending_payment(), create_pending_payment(), delete_expired_unused_payments() (+33 more)
+Cohesion: 0.11
+Nodes (27): PaymentGateway, Protocol, DiscountCoupon, get_coupon(), get_pending_payment_by_id(), list_coupons(), set_coupon_enabled(), upsert_coupon() (+19 more)
 
 ### Community 30 - "test_confirm_wizard_resumes_and_finishes_creation_after_otp"
+Cohesion: 0.13
+Nodes (10): ChangePhone, StatesGroup, BotRegistry, Bot, UUID, set_registry(), FakeCallback, FakeMessage (+2 more)
+
+### Community 31 - "UserRole"
 Cohesion: 0.12
-Nodes (6): set_registry(), FakeCallback, FakeMessage, FakeState, integration, test_confirm_wizard_resumes_and_finishes_creation_after_otp()
+Nodes (39): سازنده (Creator) — تلگرام, help_command(), Message, _resolve_user_info(), admin_panel_keyboard(), creator_panel_keyboard(), _get_context(), handle_admin_panel() (+31 more)
 
-### Community 31 - "panel.py"
-Cohesion: 0.11
-Nodes (39): سازنده (Creator) — تلگرام, admin_panel_keyboard(), creator_panel_keyboard(), _get_context(), handle_admin_panel(), handle_admin_panel_broadcast(), handle_admin_panel_requests(), handle_admin_panel_users() (+31 more)
-
-### Community 32 - "cancel_commitment"
-Cohesion: 0.36
-Nodes (9): accept_commitment(), cancel_commitment(), callback_query, CallbackQuery, FSMContext, message, receive_delivery_hour(), receive_delivery_hour_button() (+1 more)
+### Community 32 - "home_keyboard_for_bot"
+Cohesion: 0.13
+Nodes (21): accept_commitment(), cancel_commitment(), callback_query, CallbackQuery, FSMContext, message, receive_delivery_hour(), receive_delivery_hour_button() (+13 more)
 
 ### Community 33 - "creator_request/service.py"
 Cohesion: 0.12
 Nodes (32): Creator-request module: manages requests from users who want to become khatm…, CreatorRequest, CreatorRequestStatus, str, Data model for creator-role requests. A user submits a request to become a…, approve(), create(), get_by_id() (+24 more)
 
 ### Community 34 - "get_settings"
-Cohesion: 0.11
-Nodes (28): aiogram_client_default, aiogram_client_session_aiohttp, aiogram_client_telegram, apscheduler_schedulers_asyncio, BaseMiddleware, _build_member_bots(), _configure_logging(), main() (+20 more)
+Cohesion: 0.33
+Nodes (10): _build_member_bots(), _configure_logging(), main(), Bot, _tag_bot(), build_bale_bot(), Bot, build_telegram_bot() (+2 more)
 
-### Community 36 - "suggestions.py"
-Cohesion: 0.06
-Nodes (77): logging, admin_approve_request(), admin_reject_request(), _lang_for(), callback_query, CallbackQuery, CommandObject, FSMContext (+69 more)
+### Community 36 - "KhatmRequest"
+Cohesion: 0.21
+Nodes (19): KhatmRequest, KhatmRequestStatus, str, create(), get_by_id(), list_pending(), AsyncSession, Persistence access for khatm_request — the only place that runs SQL for this… (+11 more)
 
 ### Community 37 - "member_commitment.py"
-Cohesion: 0.10
-Nodes (46): _apply_log(), choose_count(), choose_freq(), choose_hour(), choose_regular(), CommitFlow, enter_count(), enter_custom_time() (+38 more)
+Cohesion: 0.19
+Nodes (30): _apply_log(), choose_count(), choose_freq(), choose_hour(), choose_regular(), CommitFlow, enter_count(), enter_custom_time() (+22 more)
 
-### Community 38 - "bail_if_menu_button"
-Cohesion: 0.06
-Nodes (65): D. دعوت و عضویت, choose_gender(), choose_province(), enter_city(), enter_name(), enter_phone(), callback_query, CallbackQuery (+57 more)
+### Community 38 - "_phone_keyboard"
+Cohesion: 0.10
+Nodes (26): enter_city(), enter_name(), enter_phone(), FSMContext, Message, receive_shared_contact(), enter_city(), enter_name() (+18 more)
 
 ### Community 39 - "bot_registry/service.py"
-Cohesion: 0.16
-Nodes (28): cryptography_fernet, Fernet, BotInstance, get_by_id(), get_by_slot(), list_active(), list_active_members(), list_all() (+20 more)
+Cohesion: 0.17
+Nodes (29): cryptography_fernet, Fernet, BotInstance, BotRole, get_by_id(), get_by_slot(), list_active(), list_active_members() (+21 more)
 
 ### Community 40 - "KhatmCategoryGroup"
-Cohesion: 0.06
-Nodes (53): CreateKhatm, StatesGroup, resolve_bot_category(), KhatmCategory, KhatmCategoryGroup, KhatmCategoryRequest, KhatmCategoryRequestStatus, str (+45 more)
+Cohesion: 0.17
+Nodes (35): resolve_bot_category(), KhatmCategory, KhatmCategoryGroup, KhatmCategoryRequest, KhatmCategoryRequestStatus, str, Admin-managed content library for independent devotional families. Owner…, A participant's typed request for a دعا that isn't in the library yet (owner… (+27 more)
 
 ### Community 41 - "PlanTier"
-Cohesion: 0.11
-Nodes (39): PlanDefinition, PlanTier, PricingMode, str, Admin-managed pricing and feature entitlements for a plan tier., UserPlan, get_by_user(), get_definition() (+31 more)
+Cohesion: 0.09
+Nodes (45): PlanDefinition, PlanTier, PricingMode, str, Admin-managed pricing and feature entitlements for a plan tier., UserPlan, get_by_user(), get_definition() (+37 more)
 
-### Community 42 - "wallet/models.py"
-Cohesion: 0.10
-Nodes (50): CouponDiscountType, CouponRedemption, InvoiceKind, InvoiceStatus, str, Wallet module: toman balance + advertising credit, append-only ledger, and…, Immutable purchase amounts plus a small paid/refunded lifecycle., TxType (+42 more)
+### Community 42 - "wallet/repository.py"
+Cohesion: 0.14
+Nodes (27): CouponRedemption, PendingPayment, A payment intent created before redirecting to a payment gateway. Prevents IDOR…, Wallet, add_balance(), add_credit(), claim_pending_payment(), count_coupon_redemptions() (+19 more)
 
-### Community 43 - "notification/models.py"
-Cohesion: 0.15
-Nodes (24): JobStatus, NotifChannel, NotificationJob, NotificationLog, NotificationPreference, str, Notification module: scheduled reminder jobs, per-participation preferences,…, count_logs() (+16 more)
+### Community 43 - "notification/repository.py"
+Cohesion: 0.39
+Nodes (11): NotificationLog, NotificationPreference, count_logs(), create_log(), find_log_since(), get_preference(), AsyncSession, datetime (+3 more)
 
 ### Community 44 - "sms_subscription/service.py"
 Cohesion: 0.14
@@ -443,89 +459,89 @@ Nodes (29): Time-limited SMS reminder subscriptions (owner request, 2026-09-20).
 Cohesion: 0.29
 Nodes (6): MemberRegistration, StatesGroup, _cancel_update(), asyncio, Update, test_member_cancel_clears_state()
 
-### Community 46 - "completion/service.py"
-Cohesion: 0.15
-Nodes (16): collections_abc, deliver_pending(), _message(), AsyncSession, datetime, NotifyFn, Idempotent, delayed completion announcements for every platform., Claim each eligible announcement once, then notify creator + active members. (+8 more)
+### Community 46 - "deliver_pending"
+Cohesion: 0.33
+Nodes (6): deliver_pending(), _message(), AsyncSession, datetime, NotifyFn, Claim each eligible announcement once, then notify creator + active members.
 
-### Community 47 - "types"
-Cohesion: 0.10
-Nodes (12): aiogram_enums, aiogram_fsm_storage_memory, contextlib, Regression for per-khatm broadcast targeting (owner request 2026-09-27):…, Regression (owner live QA 2026-09-28): right after joining a commitment khatm…, Regression: the creator reply-menu buttons «📊 گزارش و مالی» and «❓ راهنما و…, Regression for the 2026-09-29 member-bot fixes (owner live report): 1. Open-…, Regression: /cancel had no handler on member bots, so a member could get stuck… (+4 more)
+### Community 47 - "datetime"
+Cohesion: 0.05
+Nodes (41): aiogram_enums, aiogram_fsm_storage_memory, contextlib, datetime, enum, khatmsaz_modules_khatm_category_models, sqlalchemy_dialects_postgresql, sqlalchemy_orm (+33 more)
 
-### Community 48 - "invitation/models.py"
-Cohesion: 0.39
-Nodes (7): KhatmInvitation, Invitation module: owner-issued grants to join a khatm., create(), get_by_token_hash(), mark_accepted(), AsyncSession, Persistence access for invitation — the only place that runs SQL for this…
+### Community 48 - "KhatmInvitation"
+Cohesion: 0.52
+Nodes (6): KhatmInvitation, create(), get_by_token_hash(), mark_accepted(), AsyncSession, Persistence access for invitation — the only place that runs SQL for this…
 
-### Community 49 - "sqlalchemy_ext_asyncio"
-Cohesion: 0.16
-Nodes (26): hashlib, secrets, sqlalchemy_ext_asyncio, generate_token(), hash_token(), Opaque token generation/hashing — used by invitations (and later sessions/OTP).…, create_invitation(), mark_accepted() (+18 more)
+### Community 49 - "Session"
+Cohesion: 0.14
+Nodes (28): hashlib, secrets, generate_token(), hash_token(), Opaque token generation/hashing — used by invitations (and later sessions/OTP).…, create_invitation(), mark_accepted(), AsyncSession (+20 more)
 
 ### Community 50 - "reminder_engine/service.py"
-Cohesion: 0.21
-Nodes (20): collections, Positive khatm-completion announcements., Scheduled positive personal monthly reports., NotificationKind, already_sent_today(), record_sent(), _maybe_record_miss_and_notify_creator(), _maybe_send_reminder() (+12 more)
+Cohesion: 0.18
+Nodes (21): collections, Positive khatm-completion announcements., Scheduled positive personal monthly reports., NotificationKind, already_sent_today(), AsyncSession, datetime, Notification business logic: dedup a reminder/miss send against "already sent… (+13 more)
 
-### Community 51 - "env.py"
-Cohesion: 0.06
-Nodes (24): asyncio, fixture, logging_config, do_run_migrations(), run_migrations_online(), os, build_body(), main() (+16 more)
+### Community 51 - "test_notify_routing.py"
+Cohesion: 0.20
+Nodes (5): FakeBot, FakeRegistry, asyncio, Regression: notifications must go from the correct bot per platform. A user can…, test_notify_does_not_route_member_bot_to_other_platform()
 
 ### Community 52 - "DevotionalAsset"
+Cohesion: 0.11
+Nodes (23): deliver_devotional_media(), callback_query, InlineKeyboardMarkup, Message, Sends every registered piece of media for one devotional asset: PDF, image…, _reciter_picker_keyboard(), send_devotional_reciter_choice(), DevotionalAsset (+15 more)
+
+### Community 53 - "safe_answer_callback"
+Cohesion: 0.16
+Nodes (38): ask_creation_coupon(), _ask_mode(), cancel_wizard(), choose_allowed_platforms(), choose_category(), choose_category_group(), choose_commitment_total(), choose_content_delivery_mode() (+30 more)
+
+### Community 54 - "_create_topup_payment"
+Cohesion: 0.19
+Nodes (13): ask_custom_topup(), _create_topup_payment(), open_invoices_from_button(), open_wallet_from_button(), callback_query, CallbackQuery, FSMContext, Message (+5 more)
+
+### Community 55 - "QuranAssetKind"
 Cohesion: 0.13
-Nodes (22): deliver_devotional_media(), callback_query, CommandObject, InlineKeyboardMarkup, Message, Sends every registered piece of media for one devotional asset: PDF, image…, _reciter_picker_keyboard(), send_devotional() (+14 more)
+Nodes (22): str, QuranAssetKind, QuranPageAsset, One immutable-addressable media asset for one canonical Quran page., encode_telegram_forward_ref(), parse_quran_channel_caption(), quran_channel_coverage(), Idempotently map one source-channel post to every page it covers. (+14 more)
 
-### Community 53 - "show_member_portion"
-Cohesion: 0.33
-Nodes (7): callback_query, CallbackQuery, FSMContext, Show the current portion for one joined khatm, with the same action buttons the…, Per-khatm reminder-hour picker. Reuses the shared AskDeliveryHour flow…, show_member_portion(), show_member_reminder_hours()
+### Community 56 - "test_payment_intent_is_owned_single_use_and_amount_bound"
+Cohesion: 0.67
+Nodes (3): asyncio, integration, test_payment_intent_is_owned_single_use_and_amount_bound()
 
-### Community 54 - "create_topup"
-Cohesion: 0.31
-Nodes (9): ask_custom_topup(), create_topup(), open_invoices_from_button(), open_wallet_from_button(), callback_query, CallbackQuery, FSMContext, Owner (2026-09-29): let the user charge the wallet with any amount. (+1 more)
-
-### Community 55 - "content/service.py"
-Cohesion: 0.14
-Nodes (25): str, QuranAssetKind, QuranPageAsset, One immutable-addressable media asset for one canonical Quran page., decode_telegram_forward_ref(), encode_telegram_forward_ref(), get_quran_total_pages(), parse_quran_channel_caption() (+17 more)
-
-### Community 56 - "wallet/__init__.py"
-Cohesion: 0.18
-Nodes (9): Real PostgreSQL coverage for bounded, auditable coupon redemption., asyncio, test_purchase_pro_never_recharges_existing_paid_plan(), test_purchase_pro_requires_enabled_positive_admin_price(), test_purchase_pro_uses_database_price_spends_once_and_sets_plan(), asyncio, integration, Real PostgreSQL coverage for payment ownership and replay protection. (+1 more)
-
-### Community 57 - "BotRole"
+### Community 57 - "record"
 Cohesion: 0.23
-Nodes (6): BotRegistry, Bot, UUID, Runtime registry of all live Bot instances, built once at startup., BotRole, str
+Nodes (36): post, RedirectResponse, get_notify_fn(), record(), find_by_id(), _admin(), change_admin_role(), _chunk_devotional() (+28 more)
 
-### Community 58 - "test_creator_notified_with_phone_after_two_consecutive_missed_days"
-Cohesion: 0.38
-Nodes (6): asyncio, integration, Owner decision (2026-09-22): creator notification must include member's phone…, test_creator_notified_only_after_threshold_and_member_never_notified(), fake_notify(), test_creator_notified_with_phone_after_two_consecutive_missed_days()
+### Community 58 - "participation/service.py"
+Cohesion: 0.09
+Nodes (30): sqlalchemy_exc, advance_open_reading(), log_commitment_count(), Reserve the next `pages` pages for this open reader, advancing the cursor, and…, COUNT mode: pledge to read `target` repetitions, resetting progress., Add `amount` to a COUNT-mode member's logged total. Returns (new_done, target,…, REGULAR mode: recurring schedule delivered by the reminder engine. Reused…, set_commitment_count() (+22 more)
 
-### Community 59 - "audit_log/service.py"
-Cohesion: 0.33
-Nodes (4): Append-only audit trail for sensitive administrative actions., list_recent(), AsyncSession, Business facade for recording privileged actions.
+### Community 59 - "finish_invite_links"
+Cohesion: 0.13
+Nodes (22): _run_reminder_scan(), finish_invite_links(), handle_confirm_invite_langs(), handle_invite_platform(), handle_toggle_lang(), show_invite_languages_keyboard(), show_invite_platform_keyboard(), build_member_invite_links() (+14 more)
 
-### Community 60 - "broadcast.py"
-Cohesion: 0.17
-Nodes (28): admin_approve_broadcast(), admin_broadcasts(), admin_reject_broadcast(), _is_admin(), _moderate(), CommandObject, message, Creator message requests with mandatory admin moderation. (+20 more)
+### Community 60 - "KhatmBroadcast"
+Cohesion: 0.19
+Nodes (26): admin_approve_broadcast(), admin_broadcasts(), admin_reject_broadcast(), _is_admin(), _moderate(), CommandObject, message, submit_khatm_message() (+18 more)
 
 ### Community 61 - "phone/repository.py"
-Cohesion: 0.18
-Nodes (25): OtpChallenge, OtpPurpose, PhoneClaim, PhoneClaimStatus, str, create_challenge(), create_or_verify_claim(), get_challenge() (+17 more)
+Cohesion: 0.14
+Nodes (33): approve(), OtpChallenge, PhoneClaim, PhoneClaimStatus, str, create_challenge(), create_or_verify_claim(), get_challenge() (+25 more)
 
-### Community 62 - "test_wizard_ephemeral.py"
-Cohesion: 0.21
-Nodes (11): FakeBot, FakeMessage, FakeSent, FakeState, asyncio, R1 (owner 2026-09-28): wizard prompts must replace each other instead of piling…, test_wiz_can_keep_intro_beside_title_until_answered(), test_wiz_deletes_previous_prompt() (+3 more)
+### Community 62 - "_wiz"
+Cohesion: 0.19
+Nodes (13): R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new…, _wiz(), FakeBot, FakeMessage, FakeSent, FakeState, asyncio, R1 (owner 2026-09-28): wizard prompts must replace each other instead of piling… (+5 more)
 
 ### Community 63 - "test_i18n_audit.py"
 Cohesion: 0.11
 Nodes (12): alembic_config, alembic_script, ast, pathlib, ScriptDirectory, N1 (owner 2026-09-28): a line-by-line audit of the i18n registry. Rather than a…, The dict literal must not define the same key twice (Python would keep only the…, test_no_duplicate_keys_in_source() (+4 more)
 
 ### Community 64 - "Architecture Document"
-Cohesion: 0.18
-Nodes (15): Bootstrap (Process Entrypoint), ModerationMiddleware, Long Polling (vs Webhook), Module Isolation Rule, No Business Rule Invention Rule, Architecture Document, Module: allocation, Module: bot_registry (+7 more)
+Cohesion: 0.14
+Nodes (18): Bootstrap (Process Entrypoint), ModerationMiddleware, Long Polling (vs Webhook), Module Isolation Rule, No Business Rule Invention Rule, PayPing v3 Payment Gateway, Architecture Document, PayPing Setup Guide (Persian) (+10 more)
 
 ### Community 65 - "بخش سازنده (ویزارد ساخت ختم) — `create_khatm.py`"
-Cohesion: 0.11
-Nodes (18): R10. حذف پیش‌نمایش ختم — **بدون مایگریشن**, R11. توضیح دو مدل تعهد (اگر ختم تعهدی) — **کد + مایگریشن (مدل تعهد عضو)**, R12. عضو تعدادی بتواند تعداد جدید بزند — **کد**, R13. کمترین سؤال ممکن — اصل کلی هر دو بخش., R1. پیام‌های جای‌گزین‌شونده (کاهش شلوغی چت) — **بدون مایگریشن**, R2. عکس معرفی ختم بعد از انتخاب تعهدی/آزاد — **نیاز به مایگریشن سبک + پنل**, R3. نیت/نیابت با مثال — **بدون مایگریشن** (i18n), R4. تماس سازنده در پیام خوش‌آمد — **نیاز به مایگریشن سبک** (+10 more)
+Cohesion: 0.08
+Nodes (20): R10. حذف پیش‌نمایش ختم — **بدون مایگریشن**, R11. توضیح دو مدل تعهد (اگر ختم تعهدی) — **کد + مایگریشن (مدل تعهد عضو)**, R12. عضو تعدادی بتواند تعداد جدید بزند — **کد**, R13. کمترین سؤال ممکن — اصل کلی هر دو بخش., R1. پیام‌های جای‌گزین‌شونده (کاهش شلوغی چت) — **بدون مایگریشن**, R2. عکس معرفی ختم بعد از انتخاب تعهدی/آزاد — **نیاز به مایگریشن سبک + پنل**, R3. نیت/نیابت با مثال — **بدون مایگریشن** (i18n), R4. تماس سازنده در پیام خوش‌آمد — **نیاز به مایگریشن سبک** (+12 more)
 
 ### Community 66 - "test_deliver_due_next_portions_pushes_real_content_not_just_text"
-Cohesion: 0.33
-Nodes (4): _iana_offset_for_local_hour(), asyncio, integration, test_deliver_due_next_portions_pushes_real_content_not_just_text()
+Cohesion: 0.15
+Nodes (8): _iana_offset_for_local_hour(), asyncio, integration, test_deliver_due_next_portions_pushes_real_content_not_just_text(), _iana_offset_for_local_hour(), asyncio, integration, test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour()
 
 ### Community 67 - "Admin Panel Base Layout (base.html)"
 Cohesion: 0.18
@@ -536,24 +552,24 @@ Cohesion: 0.32
 Nodes (8): finish_manage_content(), callback_query, CallbackQuery, FSMContext, message, receive_media(), receive_slug(), start_manage_content()
 
 ### Community 69 - "DECISIONS"
-Cohesion: 0.23
-Nodes (13): DECISIONS, DEC-PY-0073 — Dashboards are messenger Mini Apps, DEC-PY-0076 — Separate participant and creator menus, DEC-PY-0077 — Daily portions stack up, DEC-PY-0091 — Creation wizard no longer asks content format, DEC-PY-0092 — Rotating Quran allocation, DEC-PY-0093 — Creator bot has one fixed menu, starts creation directly, DEC-PY-0094 — Quran reading pace chosen by each member (+5 more)
+Cohesion: 0.31
+Nodes (10): DECISIONS, DEC-PY-0076 — Separate participant and creator menus, DEC-PY-0077 — Daily portions stack up, DEC-PY-0091 — Creation wizard no longer asks content format, DEC-PY-0092 — Rotating Quran allocation, DEC-PY-0093 — Creator bot has one fixed menu, starts creation directly, DEC-PY-0094 — Quran reading pace chosen by each member, DEC-PY-0095 — First Quran pages wait for chosen hour; automatic titles; OTP dedup (+2 more)
 
-### Community 70 - "test_registration_phone_share_only.py"
-Cohesion: 0.18
-Nodes (8): StatesGroup, Registration, FakeMessage, FakeState, asyncio, Owner request (2026-09-22): during initial registration on Telegram, only the…, test_bale_typed_phone_is_still_accepted_during_registration(), test_telegram_typed_phone_is_rejected_during_registration()
+### Community 70 - "commitment.py"
+Cohesion: 0.15
+Nodes (21): CommitmentMode, is_regular_due(), log_count(), _minutes(), parse_hhmm(), datetime, str, R11 (owner 2026-09-28, revised after live QA): member-side commitment logic.… (+13 more)
 
 ### Community 71 - "DOMAIN_MODEL"
 Cohesion: 0.15
 Nodes (17): PayPing payment gateway, PendingPayment compare-and-swap replay protection, R11/N2 member commitment flow (regular/count), Codex Handoff — Next Steps, PayPing gateway activation (needs owner API token), DEC-PY-0068 — Kavenegar is first production SMS adapter, DEC-PY-0074 — Free-tier plan caps per-creator, admin-editable, DEC-PY-0090 — Fixed niyyat + optional niyabat (+9 more)
 
-### Community 72 - "AsyncSession"
-Cohesion: 0.13
-Nodes (18): add_devotional_audio_variant(), add_devotional_image_page(), _get_enabled_devotional_asset(), list_all_devotional_assets(), AsyncSession, Store the optional admin-managed image for the one fixed Salawat. Salawat is…, Mirrors `register_devotional_audio` — an image of the devotional text (owner…, Owner request (2026-09-22): a dua can have more than one reciter's audio (e.g.… (+10 more)
+### Community 72 - "content/service.py"
+Cohesion: 0.10
+Nodes (30): add_devotional_audio_variant(), add_devotional_image_page(), decode_telegram_forward_ref(), get_allowed_reciters(), get_effective_reciter(), _get_enabled_devotional_asset(), get_quran_total_pages(), list_all_devotional_assets() (+22 more)
 
 ### Community 73 - "OpenContribution"
-Cohesion: 0.12
-Nodes (22): OpenContribution, create(), AsyncSession, datetime, Persistence access for open_contribution — the only place that runs SQL for…, total_for_khatm(), total_for_khatm_between(), total_for_participation() (+14 more)
+Cohesion: 0.08
+Nodes (33): OpenContribution, create(), AsyncSession, datetime, Persistence access for open_contribution — the only place that runs SQL for…, total_for_khatm(), total_for_khatm_between(), total_for_participation() (+25 more)
 
 ### Community 74 - "test_bale_invite_is_a_real_clickable_link_not_a_typed_command"
 Cohesion: 0.18
@@ -564,36 +580,36 @@ Cohesion: 0.13
 Nodes (4): FakeMessage, FakeState, asyncio, test_quran_setup_waits_for_selected_hour_before_sending()
 
 ### Community 77 - "KhatmSaz Project (Claude Code Instructions)"
-Cohesion: 0.15
-Nodes (17): KhatmSaz Project (Codex Instructions), KhatmSaz Project (Claude Code Instructions), Admin Mini App (Telegram WebApp), AI Handoff Convention (Codex/Claude/Antigravity), i18n System (fa/ar/en), PayPing v3 Payment Gateway, Admin Mini App Guide (Persian), AI Handoff Protocol (+9 more)
+Cohesion: 0.20
+Nodes (14): KhatmSaz Project (Codex Instructions), KhatmSaz Project (Claude Code Instructions), Admin Mini App (Telegram WebApp), AI Handoff Convention (Codex/Claude/Antigravity), i18n System (fa/ar/en), Admin Mini App Guide (Persian), AI Handoff Protocol, Antigravity AI Onboarding Prompt (+6 more)
 
 ### Community 78 - "QA MATRIX — نیازمندی ← کد ← تست ← نتیجهٔ واقعی"
 Cohesion: 0.14
 Nodes (14): Live QA — 2026-09-28 (Chrome / Telegram Web / Codex), QA MATRIX — نیازمندی ← کد ← تست ← نتیجهٔ واقعی, ادمین / پنل وب, 🔴 باگ‌های live-QA مالک (2026-09-28 عصر) — برای Codex/سشن‌های بعد, رفع‌شدهٔ live-QA (2026-09-28), رفع‌شدهٔ فاز ۲ (این جلسه، با تست), رفع‌شدهٔ همین عصر (Claude Code), ممیزی‌های خودکار کدمحور (فاز ۲ — PASS با شاهد، بدون نیاز به live) (+6 more)
 
-### Community 79 - "waiting_list/models.py"
-Cohesion: 0.26
-Nodes (11): Waiting-list module: queue for full-capacity COMMITMENT khatms., WaitingList, add(), pop_first(), AsyncSession, Persistence access for waiting_list — the only place that runs SQL for this…, join(), promote_next() (+3 more)
+### Community 79 - "WaitingList"
+Cohesion: 0.27
+Nodes (10): WaitingList, add(), pop_first(), AsyncSession, Persistence access for waiting_list — the only place that runs SQL for this…, join(), promote_next(), AsyncSession (+2 more)
 
 ### Community 80 - "message_template/repository.py"
-Cohesion: 0.26
-Nodes (13): MessageTemplate, create(), get_latest(), list_latest(), list_versions(), next_version(), AsyncSession, Persistence operations for message templates. (+5 more)
+Cohesion: 0.15
+Nodes (18): MessageTemplate, create(), get_latest(), list_latest(), list_versions(), next_version(), AsyncSession, Persistence operations for message templates. (+10 more)
 
 ### Community 82 - "test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it"
 Cohesion: 0.18
 Nodes (7): FakeMessage, FakeState, asyncio, integration, R11 supersedes the old bare delivery-hour question for repetitions., test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it(), test_fresh_committed_salawat_join_asks_commitment_mode()
 
-### Community 83 - "test_new_bale_identity_moves_to_existing_profile_after_otp"
-Cohesion: 0.67
-Nodes (4): asyncio, integration, test_new_bale_identity_moves_to_existing_profile_after_otp(), test_nonempty_provisional_account_cannot_be_silently_merged()
+### Community 83 - "UserSettings"
+Cohesion: 0.13
+Nodes (21): _decision_keyboard(), list_manual_phone_requests(), InlineKeyboardMarkup, message, UserSettings, create_for_user(), find_by_contact_phones(), get_by_user() (+13 more)
 
 ### Community 84 - "test_creator_contact.py"
 Cohesion: 0.22
 Nodes (12): _compose_welcome_with_contact(), _normalize_contact(), R4: the creator's contact handle is appended to the welcome text so members…, Accept an @id, a bare id, a t.me/… link, or a phone number and store a clean,…, R4 (owner 2026-09-28): the creator is asked for a contact handle (Telegram/…, test_compose_appends_contact_line_to_welcome(), test_compose_contact_only_when_no_welcome(), test_compose_none_contact_passes_welcome_through() (+4 more)
 
 ### Community 85 - "QA MATRIX — فاز ۱ کامل (نیازمندی ← کد ← تست ← نتیجه)"
-Cohesion: 0.18
-Nodes (11): A. زیرساخت چندبات (۲۶ بات), B. ثبت‌نام, E. سهم و یادآوری, F. مدیریت ختم / گزارش / پشتیبانی / تنظیمات, G. زبان‌ها (fa/ar/en), H. پرداخت, I. Mini App + پنل ادمین, QA MATRIX — فاز ۱ کامل (نیازمندی ← کد ← تست ← نتیجه) (+3 more)
+Cohesion: 0.17
+Nodes (12): A. زیرساخت چندبات (۲۶ بات), B. ثبت‌نام, D. دعوت و عضویت, E. سهم و یادآوری, F. مدیریت ختم / گزارش / پشتیبانی / تنظیمات, G. زبان‌ها (fa/ar/en), H. پرداخت, I. Mini App + پنل ادمین (+4 more)
 
 ### Community 86 - "KhatmSaz VPS Deployment Guide"
 Cohesion: 0.12
@@ -611,33 +627,33 @@ Nodes (8): importlib_util, _callback_datas(), R11/N2 (owner 2026-09-28): the mem
 Cohesion: 0.25
 Nodes (7): install_command_menu(), Bot, Install Telegram's native command picker; Bale parity is unverified., FakeBot, asyncio, test_command_menu_installs_default_and_persian_for_telegram(), test_command_menu_skips_unverified_bale_api_parity()
 
-### Community 90 - "test_signed_telegram_admin_launch_sets_secure_scoped_cookie"
-Cohesion: 0.50
-Nodes (4): asyncio, integration, _signed_init_data(), test_signed_telegram_admin_launch_sets_secure_scoped_cookie()
+### Community 90 - "WalletInvoice"
+Cohesion: 0.15
+Nodes (20): Immutable purchase amounts plus a small paid/refunded lifecycle., WalletInvoice, bind_invoice_resource(), create_paid_invoice(), list_invoices_for_user(), add_cash(), bind_invoice_resource(), get_balances() (+12 more)
 
 ### Community 91 - "BotCategory"
-Cohesion: 0.21
-Nodes (13): _bot_category_for(), Map a wizard's (template_type, category_group) to the member-bot category value…, BotCategory, R2 (owner 2026-09-28): per-bot intro image shown after the creator picks…, test_dua_group_maps_to_dua_ziyarat_bot(), test_laan_group_maps_to_laan_bot(), test_quran_maps_to_quran_bot(), test_salawat_default() (+5 more)
+Cohesion: 0.18
+Nodes (16): _bot_category_for(), Map a wizard's (template_type, category_group) to the member-bot category value…, khatm_matches_bot(), Keep Quran/Salawat/Dua-Ziyarat/La'an families in their own member bot., BotCategory, str, R2 (owner 2026-09-28): per-bot intro image shown after the creator picks…, test_dua_group_maps_to_dua_ziyarat_bot() (+8 more)
 
 ### Community 92 - "test_dispatcher_routes_commands_while_profile_phone_state_is_active"
 Cohesion: 0.18
 Nodes (5): _command_update(), asyncio, Update, Regression for /profile → /start|/cancel|/public_khatms routing., test_dispatcher_routes_commands_while_profile_phone_state_is_active()
 
-### Community 93 - "test_channel_coverage_counts_pages_not_source_posts"
-Cohesion: 0.67
-Nodes (4): asyncio, integration, test_channel_coverage_counts_pages_not_source_posts(), test_channel_range_registry_is_idempotent_and_resolves_shared_audio()
+### Community 93 - "test_recitation_text_only_for_laan.py"
+Cohesion: 0.18
+Nodes (9): CreateKhatm, StatesGroup, FakeMessage, FakeState, Owner-reported bug (2026-09-21): "برای صلوات نباید متن رو از یوزر بخواد؛ متن…, _run(), test_dua_does_not_ask_for_recitation_text(), test_laan_asks_for_recitation_text() (+1 more)
 
 ### Community 94 - "creator_broadcast/service.py"
 Cohesion: 0.21
 Nodes (19): cancel_broadcast(), choose_broadcast_target(), confirm_broadcast(), callback_query, CallbackQuery, FSMContext, message, Owner request (2026-09-27): before composing, let the creator pick WHICH… (+11 more)
 
-### Community 95 - "manual_phone_verification/service.py"
-Cohesion: 0.24
-Nodes (13): decide_manual_phone_request(), callback_query, CallbackQuery, approve(), ManualVerificationError, AsyncSession, ValueError, Manual verification for foreign numbers that cannot receive Iranian SMS. (+5 more)
+### Community 95 - "ensure_creator_phone_verified"
+Cohesion: 0.23
+Nodes (15): ensure_creator_phone_verified(), FSMContext, Message, Return true when creation may continue; otherwise start the OTP step., receive_change_code(), receive_new_phone(), verify_creator_phone(), notify_admins_of_manual_request() (+7 more)
 
 ### Community 96 - "test_admin_template_render.py"
-Cohesion: 0.29
-Nodes (11): starlette_requests, _admin(), Render the redesigned admin pages with real Jinja templates. These tests…, _render(), _request(), test_categories_page_renders_library_picker_and_explicit_statuses(), test_creator_detail_renders_manage_stats_members_export_and_settings(), test_creator_new_khatm_form_renders_all_four_types_and_creation_route() (+3 more)
+Cohesion: 0.26
+Nodes (13): starlette_requests, _admin(), Render the redesigned admin pages with real Jinja templates. These tests…, _render(), _request(), test_both_panel_headers_support_configured_logo_and_fallback(), test_categories_page_renders_library_picker_and_explicit_statuses(), test_creator_detail_renders_manage_stats_members_export_and_settings() (+5 more)
 
 ### Community 97 - "test_fixed_salawat_content.py"
 Cohesion: 0.24
@@ -667,9 +683,9 @@ Nodes (11): ManualPhoneVerification, create(), decide(), get_for_update(), list_
 Cohesion: 0.22
 Nodes (5): asyncio, Update, test_broadcast_shows_khatm_picker(), fake_list(), _text_update()
 
-### Community 104 - "message_template/__init__.py"
-Cohesion: 0.12
-Nodes (12): Localized, versioned message templates., AsyncSession, Template lookup and safe ``{{placeholder}}`` rendering., Reject malformed or unsupported placeholders before a template is stored., render(), validate_body(), asyncio, parametrize (+4 more)
+### Community 104 - "test_message_template.py"
+Cohesion: 0.28
+Nodes (6): asyncio, parametrize, test_render_replaces_known_placeholders_and_preserves_unknown(), fake_get_latest(), test_render_uses_fallback_locale(), test_validate_body_rejects_unknown_or_malformed_placeholders()
 
 ### Community 106 - "Multi-Bot System (26-Bot Architecture)"
 Cohesion: 0.20
@@ -687,21 +703,21 @@ Nodes (7): mark_scan_failed(), mark_scheduler_started(), process_started_at(), d
 Cohesion: 0.32
 Nodes (6): io, qrcode, build_qr_png(), In-memory QR generation for shareable bot invite links., test_build_qr_png_is_nonempty_png(), test_build_qr_png_rejects_non_web_values()
 
-### Community 110 - "UserStatus"
-Cohesion: 0.15
-Nodes (18): str, UserStatus, set_status(), AccountDeletionBlocked, ban(), _bootstrap_super_admin_if_configured(), delete_account(), demote_creator() (+10 more)
+### Community 110 - "delete_account"
+Cohesion: 0.33
+Nodes (5): AccountDeletionBlocked, delete_account(), Exception, Safely deactivate a user while retaining non-PII history. Active committed…, The account still owns an obligation that must be resolved first.
 
-### Community 111 - "new_id"
-Cohesion: 0.10
-Nodes (25): new_id(), UUID, Return a fresh id as a `uuid.UUID` — matches every `Mapped[uuid.UUID]` primary-…, uuid7(), AuditLog, Audit records are immutable facts about privileged actions., list_recent(), AsyncSession (+17 more)
+### Community 111 - "sqlalchemy_ext_asyncio"
+Cohesion: 0.15
+Nodes (17): sqlalchemy_ext_asyncio, Append-only audit trail for sensitive administrative actions., AuditLog, list_recent(), AsyncSession, Persistence access for the append-only audit module., Return a bounded newest-first timeline without exposing mutation APIs., record() (+9 more)
 
 ### Community 112 - "test_quran_channel_source.py"
 Cohesion: 0.29
 Nodes (4): Verified Telegram message map for the canonical 604-page Quran channel.…, validate_seed(), test_parse_quran_channel_caption_accepts_persian_page_formats(), test_verified_channel_seed_covers_exactly_604_pages()
 
 ### Community 113 - "test_mini_app_entry.py"
-Cohesion: 0.20
-Nodes (12): _message(), asyncio, Fail-closed behavior before a public HTTPS Mini App origin exists., test_admin_mini_app_rejects_local_http_origin(), test_creator_mini_app_rejects_local_http_origin_before_database_access(), test_panel_buttons_request_chat_entry_before_opening_mini_app(), asyncio, Fast safety checks for pending-payment expiry and replay behavior. (+4 more)
+Cohesion: 0.43
+Nodes (6): _message(), asyncio, Fail-closed behavior before a public HTTPS Mini App origin exists., test_admin_mini_app_rejects_local_http_origin(), test_creator_mini_app_rejects_local_http_origin_before_database_access(), unittest_mock
 
 ### Community 114 - "test_notification_snooze.py"
 Cohesion: 0.39
@@ -713,11 +729,11 @@ Nodes (7): aiogram 3.x (Telegram Bot Framework), APScheduler Task Scheduler, Fas
 
 ### Community 116 - "Feature checklist"
 Cohesion: 0.25
-Nodes (7): 1. Graphical creator Mini App khatm creation — DONE, 2. Real FREE → PRO purchase — IN-PROGRESS, 3. Configurable panel logo — TODO, 4. Reliable modern Persian panel font — TODO, Codex big features progress — 2026-09-29, Cross-feature validation and delivery log, Feature checklist
+Nodes (7): 1. Graphical creator Mini App khatm creation — DONE, 2. Real FREE → PRO purchase — DONE, 3. Configurable panel logo — IN-PROGRESS, 4. Reliable modern Persian panel font — TODO, Codex big features progress — 2026-09-29, Cross-feature validation and delivery log, Feature checklist
 
-### Community 117 - "change_phone.py"
-Cohesion: 0.16
-Nodes (20): begin_phone_change(), ChangePhone, ensure_creator_phone_verified(), _lang_for(), FSMContext, Message, StatesGroup, Self-service verified phone replacement that keeps all account history. (+12 more)
+### Community 117 - "list_identities_for_user"
+Cohesion: 0.30
+Nodes (15): approve_leave(), ask_leave_reason(), _do_leave(), _lang_for(), _lang_for_user(), leave_reason_chosen(), callback_query, CallbackQuery (+7 more)
 
 ### Community 118 - "test_creator_finance_and_support_buttons_are_wired"
 Cohesion: 0.29
@@ -727,17 +743,25 @@ Nodes (4): asyncio, Update, test_creator_finance_and_support_buttons_are_wired()
 Cohesion: 0.33
 Nodes (4): asyncio, test_set_font_size_validates_and_persists(), test_set_language_validates_and_normalizes(), fake_get_or_create()
 
+### Community 122 - "help_topic"
+Cohesion: 0.20
+Nodes (13): help_open_my_khatms(), help_start_creation(), help_topic(), callback_query, CallbackQuery, FSMContext, help_create_actions_keyboard(), help_manage_actions_keyboard() (+5 more)
+
 ### Community 123 - "devotional_seed.py"
 Cohesion: 0.22
 Nodes (8): _chunk(), AsyncSession, Startup seed for admin-curated devotional TEXT (dua / ziyarat). Owner workflow:…, Greedily pack blank-line-separated paragraphs into <=limit chunks, joined by…, Idempotently upsert every curated devotional text. Safe to run on every startup…, seed_devotional_texts(), Raw devotional texts (Arabic + Persian translation), owner-provided. Kept in a…, register_devotional_text()
 
 ### Community 124 - "test_current_quran_delivery_is_exact_and_reciter_specific"
-Cohesion: 0.22
-Nodes (9): KhatmReciter, A creator-approved reciter for one khatm, in display priority order., get_allowed_reciters(), get_effective_reciter(), Favorite wins only when allowed; otherwise use whitelist then default., set_allowed_reciters(), asyncio, integration (+1 more)
+Cohesion: 0.33
+Nodes (6): KhatmReciter, A creator-approved reciter for one khatm, in display priority order., set_allowed_reciters(), asyncio, integration, test_current_quran_delivery_is_exact_and_reciter_specific()
 
-### Community 126 - "digest_command"
-Cohesion: 0.67
-Nodes (3): digest_command(), CommandObject, message
+### Community 125 - "config.py"
+Cohesion: 0.22
+Nodes (8): aiogram_client_default, aiogram_client_session_aiohttp, aiogram_client_telegram, functools, pydantic_settings, Bale Bot instance factory. Bale's bot platform speaks a Telegram-compatible Bot…, Telegram Bot instance factory., Central application settings, loaded once from environment / .env. Every other…
+
+### Community 126 - "asyncio"
+Cohesion: 0.20
+Nodes (7): asyncio, fixture, os, get_engine(), dispose_sqlalchemy_pool_after_test(), Shared pytest configuration for unit and opt-in integration tests., Prevent asyncpg connections from crossing pytest event loops on Windows.
 
 ### Community 127 - "str"
 Cohesion: 0.67
@@ -747,9 +771,9 @@ Nodes (3): AssignmentStatus, AssignmentUnitKind, str
 Cohesion: 0.33
 Nodes (5): _iana_offset_for_local_hour(), asyncio, integration, A fixed-offset IANA zone (Etc/GMT sign convention is inverted: `Etc/GMT-N` is…, test_next_portion_is_withheld_until_next_local_day_at_reminder_hour()
 
-### Community 129 - "test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour"
-Cohesion: 0.33
-Nodes (4): _iana_offset_for_local_hour(), asyncio, integration, test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour()
+### Community 129 - "InvoiceKind"
+Cohesion: 0.24
+Nodes (11): cancel_khatm(), Cancel an unused khatm and refund its recorded creation price internally., InvoiceKind, get_paid_invoice_by_resource(), Refund to the wallet's real-money balance — never to a bank account…, Refund a paid purchase once; return None when no invoice exists., refund_cash(), refund_purchase_invoice() (+3 more)
 
 ### Community 130 - "test_contribute_blocked_until_delivery_hour_set"
 Cohesion: 0.29
@@ -759,9 +783,13 @@ Nodes (4): _callback_update(), asyncio, Update, test_contribute_blocked_until_de
 Cohesion: 0.40
 Nodes (4): downgrade(), No-op: merge revision only unifies history., No-op: splitting back into three heads is not supported., upgrade()
 
-### Community 132 - "confirm_account_deletion"
-Cohesion: 0.60
-Nodes (5): cancel_account_deletion(), confirm_account_deletion(), _lang_for(), callback_query, CallbackQuery
+### Community 132 - "t"
+Cohesion: 0.09
+Nodes (40): cancel_account_deletion(), confirm_account_deletion(), _confirm_keyboard(), _lang_for(), callback_query, CallbackQuery, InlineKeyboardMarkup, message (+32 more)
+
+### Community 133 - "test_tapping_a_time_of_day_button_saves_the_hour_without_typing"
+Cohesion: 0.29
+Nodes (4): FakeState, asyncio, integration, test_tapping_a_time_of_day_button_saves_the_hour_without_typing()
 
 ### Community 135 - "Mini-App Only Authentication Pattern"
 Cohesion: 0.67
@@ -779,33 +807,41 @@ Nodes (4): Settings Menu Full-Button Test Scenario, Tone Checklist for i18n Stri
 Cohesion: 0.50
 Nodes (4): _default_khatm_title(), Build the standard title without asking the creator an extra question., test_devotional_title_uses_selected_category(), test_quran_title_is_automatic()
 
-### Community 140 - "test_content_preferences_are_independent_and_persisted"
-Cohesion: 0.67
-Nodes (3): asyncio, integration, test_content_preferences_are_independent_and_persisted()
+### Community 140 - "test_salawat_category_group_always_goes_directly_to_mode"
+Cohesion: 0.20
+Nodes (3): _async_value(), asyncio, test_salawat_category_group_always_goes_directly_to_mode()
 
 ### Community 142 - "AdminFilter"
 Cohesion: 0.25
 Nodes (6): BaseFilter, AdminFilter, Any, CallbackQuery, Message, Checks if the user has admin privileges. For now, we simply check if the user…
 
-### Community 143 - "test_devotional_text_and_platform_specific_audio"
+### Community 143 - "test_quran_join_is_member_controlled_without_auto_allocation"
+Cohesion: 0.27
+Nodes (6): asyncio, test_join_via_token_threads_bot_instance_id(), fake_get_khatm(), fake_join(), fake_resolve(), test_quran_join_is_member_controlled_without_auto_allocation()
+
+### Community 144 - "set_audio_callback"
 Cohesion: 0.67
-Nodes (3): asyncio, integration, test_devotional_text_and_platform_specific_audio()
+Nodes (4): callback_query, CallbackQuery, quran_help(), set_audio_callback()
 
-### Community 144 - "content_settings.py"
-Cohesion: 0.30
-Nodes (11): callback_query, CallbackQuery, CommandObject, Message, quran_help(), Per-user translation/tafsir display preferences., _set_audio(), set_audio_callback() (+3 more)
-
-### Community 145 - ".__call__"
-Cohesion: 0.60
-Nodes (4): _extract_chat_id(), Any, _reply_blocked(), TelegramObject
+### Community 145 - "ModerationMiddleware"
+Cohesion: 0.38
+Nodes (6): BaseMiddleware, _extract_chat_id(), ModerationMiddleware, Any, _reply_blocked(), TelegramObject
 
 ### Community 146 - "Tooltip Jinja2 Macro Component"
 Cohesion: 0.50
 Nodes (4): Tooltip Jinja2 Macro Component, Khatm Detail Admin Page, Khatms List Admin Page, Users Admin Page
 
-### Community 148 - "test_quran_page_assets_require_canonical_complete_ranges"
-Cohesion: 0.67
-Nodes (3): asyncio, integration, test_quran_page_assets_require_canonical_complete_ranges()
+### Community 148 - "Multi-Bot Architecture (26 bots)"
+Cohesion: 0.25
+Nodes (8): Multi-Bot Architecture (26 bots), Multi-bot invite links (bot/invite_links.py), bot_instances table (encrypted tokens), DEC-PY-0080 — Multi-bot split (1 creator + 12 member bots per platform), Creator Bot (Multi-bot doc), dp_creator Dispatcher, dp_member Dispatcher, Task Report: Member Bot Category Attribute Fix
+
+### Community 149 - "test_registration_starts_in_the_users_saved_language"
+Cohesion: 0.22
+Nodes (7): ProfileEdit, StatesGroup, FakeMessage, asyncio, integration, parametrize, test_registration_starts_in_the_users_saved_language()
+
+### Community 150 - "PROJECT_STATE"
+Cohesion: 0.29
+Nodes (8): PROJECT_STATE Archive (until 2026-09-18), DATABASE, Alembic migration workflow (reviewed, never blind autogenerate), Hand-written partial unique indexes, UUIDv7 app-generated primary keys, INDEX — Topical Documentation Map, PROJECT_STATE, Fresh-Postgres migration chain repair
 
 ### Community 151 - "Bot Help Strings (Persian)"
 Cohesion: 0.67
@@ -815,41 +851,85 @@ Nodes (3): Khatm Types: Commitment/Free/Public/Private, Bot Help Strings (Persia
 Cohesion: 0.67
 Nodes (3): Identity Across Platforms (phone-based merge key), SMS Integration (Kavenegar adapter), Cross-Bot User Recognition (same platform_identities row)
 
-### Community 154 - "resolve_creator_decision"
-Cohesion: 0.50
-Nodes (4): CommandObject, message, Owner decision (2026-09-21): the missed-portion/emergency-pool system this…, resolve_creator_decision()
+### Community 154 - "Base"
+Cohesion: 0.29
+Nodes (7): DeclarativeBase, Base, Shared declarative base for every module's models., UserCapability, NotificationJob, Assignment, The Phase-4 flat per-khatm assignment (legacy shape, kept for parity). The…
+
+### Community 155 - "register_devotional_content.py"
+Cohesion: 0.48
+Nodes (6): build_salawat_text(), build_ziyarat_ashura_text(), main(), _pair(), One-off content-registration script — run manually, not part of the app.…, sys
+
+### Community 156 - "monthly_report/service.py"
+Cohesion: 0.22
+Nodes (5): collections_abc, Timezone-aware, idempotent delivery of the previous month's progress., Open-contribution business logic: log a free-form amount toward an OPEN khatm's…, Personal and creator reporting services., zoneinfo
+
+### Community 158 - "bot/__init__.py"
+Cohesion: 0.33
+Nodes (3): parametrize, Regression: the create-khatm wizard keyboards were hardcoded Persian, so a…, test_every_wizard_keyboard_is_localized_and_cancellable()
 
 ### Community 160 - "test_reminder_tone_resolves_seeded_locale_template"
 Cohesion: 0.67
 Nodes (3): asyncio, integration, test_reminder_tone_resolves_seeded_locale_template()
 
-### Community 161 - "test_sms_opt_in_requires_phone_and_can_be_disabled"
+### Community 161 - "deliver_due"
+Cohesion: 0.40
+Nodes (6): deliver_due(), _previous_month_bounds(), AsyncSession, datetime, NotifyFn, _render()
+
+### Community 164 - "system_settings/__init__.py"
+Cohesion: 0.40
+Nodes (4): asyncio, parametrize, test_panel_logo_accepts_https_and_blank(), test_panel_logo_rejects_unsafe_or_relative_urls()
+
+### Community 165 - "test_payment_safety.py"
+Cohesion: 0.47
+Nodes (5): asyncio, Fast safety checks for pending-payment expiry and replay behavior., test_callback_cas_loss_never_credits_wallet(), test_cleanup_delegates_with_current_time_and_reports_count(), test_expired_callback_stops_before_gateway_or_credit()
+
+### Community 168 - "env.py"
+Cohesion: 0.50
+Nodes (3): logging_config, do_run_migrations(), run_migrations_online()
+
+### Community 176 - "register_devotional_content_batch2.py"
 Cohesion: 0.67
-Nodes (3): asyncio, integration, test_sms_opt_in_requires_phone_and_can_be_disabled()
+Nodes (3): build_body(), main(), Registers three new devotional texts the owner sent verbatim (2026-09-22): Dua…
+
+### Community 181 - "_compose_niyyat"
+Cohesion: 0.67
+Nodes (3): C. ساخت ۴ نوع ختم, _compose_niyyat(), Owner rule (2026-09-27, DEC-PY-0090): the niyyat is FIXED for every khatm — «به…
+
+### Community 184 - "test_member_bot_fixes.py"
+Cohesion: 0.22
+Nodes (7): _make_khatm(), Regression for the 2026-09-29 member-bot fixes (owner live report): 1. Open-…, Owner report: pages/reminders stopped arriving on member bots. The old…, test_open_quran_hour_accepts_exact_time(), test_quran_join_card_button_suppressed_when_autosetup(), test_reminder_due_fires_at_or_after_target_not_only_in_window(), test_settings_creator_panel_button_visibility()
 
 ### Community 230 - "run_once"
-Cohesion: 0.20
-Nodes (21): SendQuranPagesFn, has_started(), Return whether a scheduled khatm is allowed to deliver work yet., get_preference(), get_by_id(), _default_reminder_hour(), delegate_inactive_portions(), deliver_due_next_portions() (+13 more)
+Cohesion: 0.16
+Nodes (26): SendQuranPagesFn, has_started(), Return whether a scheduled khatm is allowed to deliver work yet., get_preference(), get_by_id(), _default_reminder_hour(), delegate_inactive_portions(), deliver_due_next_portions() (+18 more)
+
+### Community 255 - "str"
+Cohesion: 0.67
+Nodes (3): JobStatus, NotifChannel, str
+
+### Community 256 - "test_devotional_slug_link_does_not_depend_on_title_wording"
+Cohesion: 0.67
+Nodes (3): asyncio, integration, test_devotional_slug_link_does_not_depend_on_title_wording()
 
 ## Knowledge Gaps
-- **105 isolated node(s):** `claude_watchdog.sh script`, `2. Real FREE → PRO purchase — IN-PROGRESS`, `3. Configurable panel logo — TODO`, `4. Reliable modern Persian panel font — TODO`, `Cross-feature validation and delivery log` (+100 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1303 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **97 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **105 isolated node(s):** `claude_watchdog.sh script`, `2. Real FREE → PRO purchase — DONE`, `3. Configurable panel logo — IN-PROGRESS`, `4. Reliable modern Persian panel font — TODO`, `Cross-feature validation and delivery log` (+100 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1304 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **101 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `session_scope()` connect `session_scope` to `test_next_portion_is_withheld_until_next_local_day_at_reminder_hour`, `create_khatm.py`, `sqlalchemy`, `test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour`, `confirm_account_deletion`, `t`, `Khatm`, `Platform`, `start.py`, `my_khatms.py`, `test_content_preferences_are_independent_and_persisted`, `main_menu_keyboard`, `AdminFilter`, `resolve_or_provision_user`, `content_settings.py`, `.__call__`, `khatm_workflow/service.py`, `get_or_create`, `User`, `portions.py`, `AdminRoleGrant`, `test_devotional_text_and_platform_specific_audio`, `PlatformIdentity`, `test_quran_page_assets_require_canonical_complete_ranges`, `creator_request.py`, `PayPingGateway`, `test_confirm_wizard_resumes_and_finishes_creation_after_otp`, `panel.py`, `cancel_commitment`, `test_reminder_tone_resolves_seeded_locale_template`, `get_settings`, `test_sms_opt_in_requires_phone_and_can_be_disabled`, `suggestions.py`, `member_commitment.py`, `bail_if_menu_button`, `KhatmCategoryGroup`, `PlanTier`, `wallet/models.py`, `env.py`, `DevotionalAsset`, `show_member_portion`, `create_topup`, `wallet/__init__.py`, `test_creator_notified_with_phone_after_two_consecutive_missed_days`, `broadcast.py`, `phone/repository.py`, `Participation`, `test_deliver_due_next_portions_pushes_real_content_not_just_text`, `receive_media`, `OpenContribution`, `test_bale_invite_is_a_real_clickable_link_not_a_typed_command`, `message_template/repository.py`, `test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it`, `test_new_bale_identity_moves_to_existing_profile_after_otp`, `test_signed_telegram_admin_launch_sets_secure_scoped_cookie`, `test_channel_coverage_counts_pages_not_source_posts`, `creator_broadcast/service.py`, `manual_phone_verification/service.py`, `test_health.py`, `manual_phone_verification/repository.py`, `new_id`, `change_phone.py`, `test_current_quran_delivery_is_exact_and_reciter_specific`, `digest_command`?**
-  _High betweenness centrality (0.134) - this node is a cross-community bridge._
-- **Why does `t()` connect `t` to `session_scope`, `create_khatm.py`, `confirm_account_deletion`, `Khatm`, `test_public_khatms_reply_button_is_wired`, `start.py`, `_default_khatm_title`, `my_khatms.py`, `main_menu_keyboard`, `resolve_or_provision_user`, `khatm_workflow/service.py`, `get_or_create`, `User`, `portions.py`, `creator_request.py`, `resolve_creator_decision`, `PayPingGateway`, `panel.py`, `cancel_commitment`, `suggestions.py`, `member_commitment.py`, `bail_if_menu_button`, `PlanTier`, `reminder_engine/service.py`, `DevotionalAsset`, `show_member_portion`, `create_topup`, `test_creator_contact.py`, `manual_phone_verification/service.py`, `test_admin_template_render.py`, `_commitment_total_keyboard`, `run_once`, `change_phone.py`, `test_creator_finance_and_support_buttons_are_wired`, `digest_command`?**
-  _High betweenness centrality (0.089) - this node is a cross-community bridge._
-- **Why does `Platform` connect `Platform` to `session_scope`, `create_khatm.py`, `sqlalchemy`, `test_next_portion_is_withheld_until_next_local_day_at_reminder_hour`, `confirm_account_deletion`, `t`, `phone/service.py`, `Khatm`, `test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour`, `start.py`, `my_khatms.py`, `main_menu_keyboard`, `AdminFilter`, `resolve_or_provision_user`, `content_settings.py`, `khatm_workflow/service.py`, `get_or_create`, `portions.py`, `PlatformIdentity`, `FakeMessage`, `test_deep_link_clears_old_state_before_storing_new_join_context`, `creator_request.py`, `PayPingGateway`, `test_confirm_wizard_resumes_and_finishes_creation_after_otp`, `panel.py`, `cancel_commitment`, `get_settings`, `suggestions.py`, `bail_if_menu_button`, `env.py`, `DevotionalAsset`, `show_member_portion`, `create_topup`, `BotRole`, `test_creator_notified_with_phone_after_two_consecutive_missed_days`, `broadcast.py`, `test_deliver_due_next_portions_pushes_real_content_not_just_text`, `receive_media`, `test_registration_phone_share_only.py`, `OpenContribution`, `test_bale_invite_is_a_real_clickable_link_not_a_typed_command`, `test_quran_setup_waits_for_selected_hour_before_sending`, `test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it`, `test_new_bale_identity_moves_to_existing_profile_after_otp`, `install_command_menu`, `test_signed_telegram_admin_launch_sets_secure_scoped_cookie`, `creator_broadcast/service.py`, `manual_phone_verification/service.py`, `UserStatus`, `new_id`, `test_mini_app_entry.py`, `change_phone.py`, `digest_command`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
-- **Are the 4 inferred relationships involving `t()` (e.g. with `test_creator_detail_renders_manage_stats_members_export_and_settings()` and `test_creator_new_khatm_form_renders_all_four_types_and_creation_route()`) actually correct?**
-  _`t()` has 4 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `session_scope()` connect `session_scope` to `app.py`, `FSMContext`, `sqlalchemy`, `test_devotional_slug_link_does_not_depend_on_title_wording`, `t`, `create_khatm.py`, `new_id`, `admin.py`, `InvoiceKind`, `keyboards.py`, `test_tapping_a_time_of_day_button_saves_the_hour_without_typing`, `wallet/models.py`, `test_next_portion_is_withheld_until_next_local_day_at_reminder_hour`, `start.py`, `AdminFilter`, `authorization/service.py`, `settings_menu.py`, `ModerationMiddleware`, `khatm_workflow/service.py`, `Platform`, `Khatm`, `portions.py`, `User`, `test_registration_starts_in_the_users_saved_language`, `start_suggestion`, `register_devotional_content.py`, `test_confirm_wizard_resumes_and_finishes_creation_after_otp`, `UserRole`, `home_keyboard_for_bot`, `test_reminder_tone_resolves_seeded_locale_template`, `get_settings`, `KhatmRequest`, `member_commitment.py`, `KhatmCategoryGroup`, `PlanTier`, `wallet/repository.py`, `register_devotional_content_batch2.py`, `Session`, `DevotionalAsset`, `safe_answer_callback`, `_create_topup_payment`, `QuranAssetKind`, `test_payment_intent_is_owned_single_use_and_amount_bound`, `record`, `finish_invite_links`, `KhatmBroadcast`, `phone/repository.py`, `test_deliver_due_next_portions_pushes_real_content_not_just_text`, `receive_media`, `OpenContribution`, `test_bale_invite_is_a_real_clickable_link_not_a_typed_command`, `message_template/repository.py`, `test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it`, `UserSettings`, `WalletInvoice`, `creator_broadcast/service.py`, `ensure_creator_phone_verified`, `test_health.py`, `manual_phone_verification/repository.py`, `sqlalchemy_ext_asyncio`, `list_identities_for_user`, `test_current_quran_delivery_is_exact_and_reciter_specific`?**
+  _High betweenness centrality (0.156) - this node is a cross-community bridge._
+- **Why does `t()` connect `t` to `app.py`, `FSMContext`, `create_khatm.py`, `new_id`, `test_public_khatms_reply_button_is_wired`, `keyboards.py`, `_default_khatm_title`, `session_scope`, `start.py`, `settings_menu.py`, `authorization/service.py`, `khatm_workflow/service.py`, `Platform`, `Khatm`, `portions.py`, `User`, `test_registration_starts_in_the_users_saved_language`, `start_suggestion`, `bot/__init__.py`, `UserRole`, `home_keyboard_for_bot`, `member_commitment.py`, `_phone_keyboard`, `PlanTier`, `reminder_engine/service.py`, `DevotionalAsset`, `safe_answer_callback`, `_compose_niyyat`, `_create_topup_payment`, `test_member_bot_fixes.py`, `finish_invite_links`, `test_creator_contact.py`, `ensure_creator_phone_verified`, `test_admin_template_render.py`, `_commitment_total_keyboard`, `run_once`, `list_identities_for_user`, `test_creator_finance_and_support_buttons_are_wired`, `help_topic`?**
+  _High betweenness centrality (0.085) - this node is a cross-community bridge._
+- **Why does `Architecture Document` connect `Architecture Document` to `keyboards.py`, `Multi-Bot Architecture (26 bots)`, `KhatmSaz Project (Claude Code Instructions)`, `DOMAIN_MODEL`?**
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
+- **Are the 5 inferred relationships involving `t()` (e.g. with `test_both_panel_headers_support_configured_logo_and_fallback()` and `test_creator_detail_renders_manage_stats_members_export_and_settings()`) actually correct?**
+  _`t()` has 5 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 231 inferred relationships involving `Platform` (e.g. with `build_bale_bot()` and `install_command_menu()`) actually correct?**
   _`Platform` has 231 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 133 inferred relationships involving `Khatm` (e.g. with `finish_invite_links()` and `send_other_language_links()`) actually correct?**
   _`Khatm` has 133 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `claude_watchdog.sh script`, `2. Real FREE → PRO purchase — IN-PROGRESS`, `3. Configurable panel logo — TODO` to the rest of the system?**
+- **What connects `claude_watchdog.sh script`, `2. Real FREE → PRO purchase — DONE`, `3. Configurable panel logo — IN-PROGRESS` to the rest of the system?**
   _105 weakly-connected nodes found - possible documentation gaps or missing edges._

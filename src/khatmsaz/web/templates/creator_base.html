@@ -6,12 +6,15 @@
   <meta name="theme-color" content="#020617">
   <title>{% block title %}{{ t('web.creator.panel_title', lang) }} | ختم‌ساز{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.0.0/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/400.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/600.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/700.css" rel="stylesheet" type="text/css" />
+  <link href="https://cdn.jsdelivr.net/npm/@fontsource/estedad@5.3.0/800.css" rel="stylesheet" type="text/css" />
   <script>
     tailwind.config = {
       theme: {
         extend: {
-          fontFamily: { sans: ['Vazirmatn', 'sans-serif'] },
+          fontFamily: { sans: ['Estedad', 'system-ui', 'Tahoma', 'sans-serif'] },
           colors: { jade: '#0f4c45', mint: '#55a898', saffron: '#d99b2b' }
         }
       }

@@ -7,6 +7,7 @@ only discover after deployment.
 
 from types import SimpleNamespace
 from uuid import uuid4
+from pathlib import Path
 
 from starlette.requests import Request
 
@@ -65,6 +66,15 @@ def test_both_panel_headers_support_configured_logo_and_fallback():
         creator=SimpleNamespace(display_name="سازنده"), lang="fa", t=t,
         label=lambda value: str(value), **common,
     )
+
+
+def test_both_panel_shells_use_pinned_estedad_with_system_fallbacks():
+    for template_name in ("base.html", "creator_base.html"):
+        source = (Path("src/khatmsaz/web/templates") / template_name).read_text(encoding="utf-8")
+        assert "@fontsource/estedad@5.3.0/400.css" in source
+        assert "@fontsource/estedad@5.3.0/800.css" in source
+        assert "['Estedad', 'system-ui', 'Tahoma', 'sans-serif']" in source
+        assert "Vazirmatn" not in source
 
 
 def test_finance_page_renders_plain_language_guide_and_forms():
