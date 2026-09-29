@@ -25,13 +25,14 @@ Update it after every meaningful step. Status values are `TODO`,
   route + render + i18n tests.
 - Validation: non-integration suite **174 passed, 86 deselected**; all **27**
   Jinja templates compiled; focused panel/i18n tests **13 passed**.
-- Remaining before delivery gate: commit/push and Graphify update. Once those
-  pass, no required feature-1 work remains.
+- Delivery gate: committed and pushed to `main` as `208eb86`; Graphify updated
+  successfully to **3751 nodes / 13469 edges / 247 communities**. No required
+  feature-1 work remains.
 - Follow-up: web custom free-text La'an authoring is not in this minimal version;
   curated active La'an categories work. The bot wizard remains available for
   the custom-text case.
-- Exact next step: commit/push feature 1, update Graphify, then mark its delivery
-  gate complete here.
+- Exact next step: start feature 2 with a Graphify query for wallet purchase,
+  PlanDefinition PRO pricing, invoice kinds and the creator wallet route.
 
 ### 2. Real FREE → PRO purchase — TODO
 
