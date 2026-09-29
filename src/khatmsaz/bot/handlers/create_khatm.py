@@ -254,16 +254,22 @@ async def _show_category_group(
     callback: CallbackQuery, state: FSMContext, group: KhatmCategoryGroup
 ) -> None:
     lang = await _lang(state)
-    async with session_scope() as session:
-        categories = await category_service.list_active(session, group)
     await state.update_data(
         template_type=KhatmTemplateType.SALAWAT.value,
         category_group=group.value,
         content_category_id=None,
         content_category_title=None,
     )
-    await state.set_state(CreateKhatm.choosing_category)
     await safe_clear_inline_keyboard(callback.message)
+    # Owner decision (2026-09-29): Salawat is one fixed recitation and never
+    # has subcategories, even if legacy SALAWAT category rows exist.
+    if group == KhatmCategoryGroup.SALAWAT:
+        await _ask_mode(callback.message, state)
+        await safe_answer_callback(callback)
+        return
+    async with session_scope() as session:
+        categories = await category_service.list_active(session, group)
+    await state.set_state(CreateKhatm.choosing_category)
     if not categories and group != KhatmCategoryGroup.DUA:
         await callback.message.answer(t("create_khatm.category_empty", lang))
         await safe_answer_callback(callback)

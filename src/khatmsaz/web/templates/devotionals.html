@@ -14,9 +14,27 @@
 {% if saved %}
 <div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-  {% if saved == 'toggled' %}وضعیت نمایش تغییر کرد{% else %}متن ذخیره شد ✅{% endif %}
+  {% if saved == 'toggled' %}وضعیت نمایش تغییر کرد{% elif saved == 'salawat' %}تصویر صلوات ذخیره شد ✅{% else %}متن ذخیره شد ✅{% endif %}
 </div>
 {% endif %}
+
+<section class="glass-panel p-6 rounded-3xl mb-8 border border-emerald-500/20">
+  <div class="mb-5 border-b border-white/5 pb-4">
+    <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ثابت</p>
+    <h2 class="text-xl font-bold text-white">صلوات</h2>
+    <p class="text-slate-400 text-sm leading-7 mt-2">صلوات زیرگروه ندارد و متن آن ثابت است. اگر لینک تصویر وارد شود، تصویر همراه همین متن برای عضو ارسال می‌شود.</p>
+  </div>
+  <div class="rounded-2xl bg-slate-900/50 border border-slate-700/40 p-4 text-right leading-9 text-slate-100 mb-5" dir="rtl">{{ salawat_text }}</div>
+  <form method="post" action="/devotionals/salawat/image" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">لینک تصویر صلوات (اختیاری)</label>
+      <input name="image_url" value="{{ salawat_image_url }}" placeholder="https://example.com/salawat.jpg" class="input-field" dir="ltr">
+      <p class="text-xs text-slate-500">برای حذف تصویر، این کادر را خالی ذخیره کنید.</p>
+    </div>
+    <button type="submit" class="btn px-8">ذخیره تصویر</button>
+  </form>
+</section>
 
 <!-- Add new -->
 <section class="glass-panel p-6 rounded-3xl mb-8">

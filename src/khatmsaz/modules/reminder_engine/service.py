@@ -231,7 +231,32 @@ async def deliver_due_next_portions(
                 "هر وقت خواندید، دکمهٔ «✅ انجام دادم» را بزنید."
             ),
         )
-        await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
+        # Committed Quran is completed as one whole assigned portion. Keep the
+        # single-tap «done» action on its scheduled delivery; numeric logging is
+        # reserved for open/self-reported Quran reading.
+        _sent_with_button = False
+        try:
+            from khatmsaz.bot.notify_adapter import send_with_keyboard
+            from khatmsaz.bot.keyboards import portion_done_keyboard
+            markup = portion_done_keyboard(
+                str(khatm.id),
+                allow_skip_today=bool(khatm.allow_skip_today),
+                allow_snooze=bool(khatm.allow_snooze),
+                lang=user_settings.language,
+            )
+            for identity in await identity_service.list_identities_for_user(session, participation.user_id):
+                await send_with_keyboard(
+                    identity.platform.value, identity.subject, text, markup,
+                    bot_instance_id=participation.joined_via_bot_instance_id,
+                )
+            _sent_with_button = True
+        except Exception:
+            _sent_with_button = False
+        if not _sent_with_button:
+            await _notify_user(
+                session, notify, participation.user_id, text,
+                bot_instance_id=participation.joined_via_bot_instance_id,
+            )
     return delivered
 
 

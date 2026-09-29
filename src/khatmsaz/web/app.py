@@ -42,7 +42,7 @@ from khatmsaz.modules.khatm.models import (
 from khatmsaz.bot import invite_links
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.khatm_category import service as category_service
-from khatmsaz.modules.khatm_category.models import KhatmCategoryRequest, KhatmCategoryRequestStatus
+from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup, KhatmCategoryRequest, KhatmCategoryRequestStatus
 from khatmsaz.modules.manual_phone_verification.models import ManualPhoneVerification
 from khatmsaz.modules.khatm_request.models import KhatmRequest, KhatmRequestStatus
 from khatmsaz.modules.message_template import repository as template_repository
@@ -1736,15 +1736,21 @@ async def moderate_user(
 
 @app.get("/categories", response_class=HTMLResponse)
 async def categories_page(request: Request):
-    """Admin CRUD for صلوات/لعن/ادعیه content items (owner request,
+    """Admin CRUD for لعن/ادعیه content items (owner request,
     2026-09-18): new khatm categories must be addable without a code
     deploy — see `khatm_category` module."""
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
     async with session_scope() as session:
-        items = await category_service.list_all(session)
-        devotional_assets = await content_service.list_all_devotional_assets(session)
+        items = [
+            item for item in await category_service.list_all(session)
+            if item.group != KhatmCategoryGroup.SALAWAT
+        ]
+        devotional_assets = [
+            item for item in await content_service.list_all_devotional_assets(session)
+            if item.slug != content_service.SALAWAT_SLUG
+        ]
         requests = await category_service.list_pending_requests(session)
         request_rows = []
         for item in requests:
@@ -1940,8 +1946,11 @@ async def devotionals_page(request: Request):
         return _login_redirect()
     async with session_scope() as session:
         assets = await content_service.list_all_devotional_assets(session)
+        salawat_asset = next((item for item in assets if item.slug == content_service.SALAWAT_SLUG), None)
     rows = []
     for a in assets:
+        if a.slug == content_service.SALAWAT_SLUG:
+            continue
         # Re-join chunks with blank lines for editing; the separator is a
         # storage detail the admin never needs to see.
         display_text = (a.text_body or "").replace(_DEVOTIONAL_SEP, "\n\n")
@@ -1961,10 +1970,35 @@ async def devotionals_page(request: Request):
         name="devotionals.html",
         context=_ctx(
             request, admin, raw, items=rows,
+            salawat_text=content_service.SALAWAT_TEXT,
+            salawat_image_url=(salawat_asset.image_ref if salawat_asset else ""),
             type_labels=_DEVOTIONAL_TYPE_LABELS,
             saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/devotionals/salawat/image")
+async def save_salawat_image(
+    request: Request,
+    image_url: str = Form(""),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            asset = await content_service.set_salawat_image_url(session, image_url)
+        except ValueError as exc:
+            return HTMLResponse(f"لینک تصویر نامعتبر است: {exc}", status_code=400)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="SALAWAT_IMAGE_SAVE",
+            details={"has_image": bool(asset.image_ref)},
+        )
+    return RedirectResponse("/devotionals?saved=salawat", status_code=303)
 
 
 @app.post("/devotionals/save")

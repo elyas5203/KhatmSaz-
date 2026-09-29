@@ -1,6 +1,7 @@
 """Quran media registry, reciter whitelist, and user delivery resolution."""
 
 import re
+from urllib.parse import urlparse
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +31,9 @@ DEFAULT_RECITER_ID = "parhizgar"
 CANONICAL_EDITION_ID = "madina-hafs"
 DEVOTIONAL_TYPES = {"DUA", "ZIYARAT"}
 TELEGRAM_FORWARD_PREFIX = "telegram-forward:"
+SALAWAT_SLUG = "salawat"
+SALAWAT_TITLE = "صلوات"
+SALAWAT_TEXT = "الّلهُمَّ صَلِّ عَلَی مُحَمَّدٍ وَآلِ مُحَمَّدٍ وَعَجِّلْ فَرَجَهُمْ وَالْعَنْ أعْداءَهُم أجْمَعِینَ"
 
 
 def get_quran_total_pages(khatm: Khatm) -> int:
@@ -307,6 +311,37 @@ async def register_devotional_text(
     row.content_type = content_type
     row.title = title.strip()
     row.text_body = text_body.strip()
+    row.enabled = True
+    await session.flush()
+    return row
+
+
+async def set_salawat_image_url(session: AsyncSession, image_url: str) -> DevotionalAsset:
+    """Store the optional admin-managed image for the one fixed Salawat.
+
+    Salawat is deliberately not a selectable devotional/category row.  Its
+    wording is fixed by the owner; this asset only gives the admin panel a
+    durable place to add or remove an HTTPS image without a deployment.
+    """
+    image_url = image_url.strip()
+    if image_url:
+        parsed = urlparse(image_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("salawat image must be a valid HTTP(S) URL")
+    row = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == SALAWAT_SLUG))
+    if row is None:
+        row = DevotionalAsset(
+            id=new_id(), content_type="SALAWAT", slug=SALAWAT_SLUG,
+            title=SALAWAT_TITLE, text_body=SALAWAT_TEXT,
+        )
+        session.add(row)
+    row.content_type = "SALAWAT"
+    row.title = SALAWAT_TITLE
+    row.text_body = SALAWAT_TEXT
+    row.image_ref = image_url or None
+    # A public URL is usable by both Telegram and Bale; delivery intentionally
+    # does not restrict this fixed image to one platform.
+    row.image_platform = None
     row.enabled = True
     await session.flush()
     return row

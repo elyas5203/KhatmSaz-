@@ -1182,6 +1182,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم {unit} أنجزت؟ أرسل رقماً فقط (مثلاً 100):",
         "en": "How many {unit} did you complete? Send a number only (e.g. 100):",
     },
+    "portions.ask_open_amount_quran": {
+        "fa": "چند صفحه خواندید؟ عدد (مثلاً 10) یا بازه (مثلاً 20 تا 31) بفرستید:",
+        "ar": "كم صفحة قرأت؟ أرسل عدداً (مثلاً 10) أو نطاقاً (مثلاً 20 إلى 31):",
+        "en": "How many pages did you read? Send a number (e.g. 10) or range (e.g. 20 to 31):",
+    },
     "portions.ask_commitment_amount": {
         "fa": "چند بار از تعهدتون رو انجام دادید؟ فقط عدد بفرستید (مثلاً 300):",
         "ar": "كم مرة أنجزت من التزامك؟ أرسل رقماً فقط (مثلاً 300):",

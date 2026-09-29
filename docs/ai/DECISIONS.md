@@ -5,6 +5,22 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0096 — Salawat is one fixed, category-free recitation
+**Date:** 2026-09-29
+**Decision:** Salawat never has subcategories. Selecting «ختم صلوات» always
+continues directly to the commitment/open mode step with
+`content_category_id=None`, even if historical SALAWAT category rows remain in
+the database. Those legacy rows are hidden from the category-management panel.
+
+The canonical recitation text is exactly:
+«الّلهُمَّ صَلِّ عَلَی مُحَمَّدٍ وَآلِ مُحَمَّدٍ وَعَجِّلْ فَرَجَهُمْ وَالْعَنْ أعْداءَهُم أجْمَعِینَ».
+The admin may optionally save one public HTTP(S) image URL in the content
+panel. With an image, the bot sends the image with this fixed text as its
+caption; without one, it sends the text alone. Dua/Ziyarat and La'an retain
+their category flows.
+
+---
+
 ### DEC-PY-0095 — First Quran pages wait for the chosen hour; titles are automatic; OTP is deduplicated
 **Date:** 2026-09-29
 **Decision:** Choosing a Quran delivery hour configures the schedule only. No

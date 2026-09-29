@@ -1,3 +1,18 @@
+## 2026-09-29 (fixed Salawat content + optional panel image)
+- Salawat is now permanently category-free: choosing it always continues directly to mode selection, regardless of legacy SALAWAT category rows.
+- Plain Salawat sends the owner-provided canonical text exactly.
+- Added a fixed-Salawat card to `/devotionals` where an admin can save/remove a public image URL; the image is sent with the canonical text as its caption.
+- Removed Salawat from category creation/fulfillment choices and hid historical Salawat categories from that panel; Dua/Ziyarat and La'an are unchanged.
+- Added DEC-PY-0096 and regression tests. No migration. Full pytest: 173 passed, 86 skipped; imports/templates/Alembic-head checks passed.
+
+## 2026-09-29 (Quran ranges + committed button + simple Salawat creation)
+- Open Quran contribution logging accepts counts or localized ranges (`تا`, `-`, `–`, `to`; Persian/Arabic digits); inclusive range counting currently makes `20 تا 31` equal 12.
+- Added a Quran-specific fa/ar/en prompt that shows both count and range examples.
+- Scheduled committed-Quran delivery now shows `✅ انجام دادم`; open Quran retains numeric `ثبت مشارکت`.
+- Empty SALAWAT categories no longer block creation and instead continue with simple Salawat (`content_category_id=None`); LAAN and DUA empty-group behavior is unchanged.
+- Confirmed the existing Dua/Ziyarat COUNT flow already supports one-tap and custom-amount logging with progress.
+- No migration. `pytest -m "not integration"` → 170 passed, 86 deselected; handler imports and Jinja template compilation passed.
+
 ## 2026-09-29 (Quran first-send timing + automatic title + OTP dedupe)
 - Quran setup no longer sends the first pages immediately; the first and later batches are delivered only by the scheduler at the member's selected hour.
 - Removed the create-khatm title question and generate a standard localized title from the selected content.

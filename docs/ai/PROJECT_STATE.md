@@ -1,3 +1,20 @@
+## Current state — 2026-09-29 — Fixed category-free Salawat text and panel image [Codex]
+- **Creation**: `_show_category_group` now always sends SALAWAT directly to `_ask_mode` with `content_category_id=None`; it never queries or displays SALAWAT subcategories, including historical active rows. LAAN and DUA retain their category behavior.
+- **Canonical content**: plain Salawat sends the exact owner-provided text: «الّلهُمَّ صَلِّ عَلَی مُحَمَّدٍ وَآلِ مُحَمَّدٍ وَعَجِّلْ فَرَجَهُمْ وَالْعَنْ أعْداءَهُم أجْمَعِینَ».
+- **Optional image**: `/devotionals` now has a dedicated fixed-Salawat card. An admin can save/remove a public HTTP(S) image URL; when present, the bot sends that image with the canonical text as its caption. This reuses `devotional_assets`; no schema change is needed.
+- **Panel taxonomy**: legacy SALAWAT category rows are hidden from the categories panel, and new category forms offer only LAAN and DUA because Salawat has no subgroups.
+- **Decision**: DEC-PY-0096.
+- **How verified**: full pytest → **173 passed, 86 skipped** (integration tests disabled by project configuration); non-integration suite → **173 passed, 86 deselected**; 40 handler modules plus web app imported; 26 Jinja templates compiled; Alembic has one head (`rot2026092805`). No migration added or applied.
+- **Still outstanding**: owner live-check after pull/restart; no Salawat image URL was supplied, so production will send text-only until one is saved in the panel.
+
+## Current state — 2026-09-29 — Quran range logging, committed action button, simple Salawat creation [Codex]
+- **Quran contribution input**: `portions.parse_contribution_amount` accepts a positive count or a localized range separated by `تا`, `-`, `–`, or `to`, including Persian/Arabic digits. Ranges currently use inclusive counting (`20 تا 31` = 12); open-Quran prompts now explain both forms in fa/ar/en.
+- **Quran action split**: scheduled committed-Quran portions now carry `portion_done_keyboard` (`✅ انجام دادم` for the whole assigned portion), while scheduled open/self-reported Quran keeps `contribute_keyboard` for numeric logging.
+- **Dua/Ziyarat count mode**: verified the existing COUNT flow is already complete: the member receives `✅ یکی خوندم` and `🔢 تعداد دلخواه`, the service persists progress, caps at the pledge, and the handler reports the updated total.
+- **Simple Salawat creation**: an empty SALAWAT category group now proceeds directly to `_ask_mode` with `content_category_id=None`. Empty LAAN still shows the unavailable message; DUA behavior is unchanged.
+- **How verified**: `pytest -m "not integration"` → **170 passed, 86 deselected**; all 40 handler modules imported; all 26 Jinja templates compiled. No migration was added.
+- **Owner confirmation still needed**: confirm whether a typed Quran range should remain inclusive (12 for 20–31) or follow the stated example's subtraction-only count (11).
+
 ## Current state — 2026-09-29 — Scheduled first Quran delivery, automatic title, OTP dedupe [Codex]
 - **Quran timing**: `_finish_open_quran_setup` now stores pages/day + reminder hour only. It no longer reserves or sends pages during setup; `deliver_due_open_quran_reading` is the sole timed sender, including the first batch.
 - **Creation wizard**: removed `entering_title` and the title question. The title is generated from Quran/Salawat or the selected devotional category, then the wizard moves directly to niyyat.

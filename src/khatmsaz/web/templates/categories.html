@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip %}
-{% block title %}دسته‌های محتوا | ختم‌ساز{% endblock %}
+{% block title %}دسته‌های لعن و ادعیه | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4">
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ختم‌ها</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">صلوات، لعن و ادعیه</h1>
-  <p class="text-slate-400 text-sm leading-7">اینجا فقط گزینه‌هایی را مدیریت می‌کنید که سازنده هنگام ساخت ختم می‌بیند. متن کامل دعا و زیارت در صفحهٔ «دعاها و زیارات» نگهداری می‌شود.</p>
+  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">لعن و ادعیه</h1>
+  <p class="text-slate-400 text-sm leading-7">اینجا فقط زیرگروه‌های لعن، دعا و زیارت را مدیریت می‌کنید. صلوات زیرگروه ندارد و تصویر ثابت آن در صفحهٔ «دعاها و زیارات» تنظیم می‌شود.</p>
   <a href="/devotionals" class="inline-flex mt-3 text-sm font-bold text-emerald-300 hover:text-emerald-200">رفتن به متن دعاها و زیارات ←</a>
 </section>
 
@@ -46,7 +46,6 @@
           <select name="group" class="input-field">
             <option value="DUA">دعا / زیارت</option>
             <option value="LAAN">لعن</option>
-            <option value="SALAWAT">صلوات</option>
           </select>
         </div>
         
@@ -100,7 +99,6 @@
     <div class="space-y-1">
       <label class="text-xs font-bold text-slate-400">گروه</label>
       <select name="group" class="input-field">
-        <option value="SALAWAT">صلوات</option>
         <option value="LAAN">لعن</option>
         <option value="DUA">دعا / زیارت</option>
       </select>

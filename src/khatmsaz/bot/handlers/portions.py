@@ -5,6 +5,7 @@ no confirmation dialog, no proof required.
 
 from datetime import datetime, timedelta, timezone
 from html import escape
+import re
 from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
@@ -60,6 +61,28 @@ async def _active_participation_for_current_bot(session, khatm_id, user_id, bot)
 
 class LogContribution(StatesGroup):
     entering_amount = State()
+
+
+_LOCAL_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+
+
+def parse_contribution_amount(raw: str) -> int | None:
+    """Parse a positive count or an inclusive page-style range.
+
+    Ranges accept Persian/Arabic digits and ``تا``, ``-``, ``–``, or ``to``
+    separators.  ``20 تا 31`` therefore represents 12 pages.
+    """
+    normalized = raw.strip().translate(_LOCAL_DIGITS)
+    if normalized.isdigit():
+        amount = int(normalized)
+        return amount if amount > 0 else None
+    match = re.fullmatch(r"(\d+)\s*(?:تا|to|-|–)\s*(\d+)", normalized, flags=re.IGNORECASE)
+    if match is None:
+        return None
+    start, end = (int(part) for part in match.groups())
+    if start <= 0 or end < start:
+        return None
+    return end - start + 1
 
 
 class SetupOpenQuranReading(StatesGroup):
@@ -120,6 +143,20 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
         # bot's default parse mode is HTML and this is untrusted creator
         # input, unlike the curated devotional-library text below.
         await message.answer(escape(khatm.description))
+        return
+    category = None
+    if not khatm.content_category_id:
+        # Plain Salawat has one owner-defined wording and no category.  When
+        # the admin later adds its public image URL, send one photo with this
+        # exact text as the caption; otherwise send the text alone.
+        asset = await content_service.get_devotional_asset(session, content_service.SALAWAT_SLUG)
+        if asset is not None and asset.image_ref:
+            try:
+                await message.answer_photo(asset.image_ref, caption=content_service.SALAWAT_TEXT)
+                return
+            except Exception:
+                pass
+        await message.answer(content_service.SALAWAT_TEXT)
         return
     slug = "salawat"
     if khatm.content_category_id:
@@ -524,7 +561,12 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
 
     await state.set_state(LogContribution.entering_amount)
     await state.update_data(khatm_id=khatm_id, lang=lang)
-    await callback.message.answer(t("portions.ask_open_amount", lang, unit=unit))
+    prompt_key = (
+        "portions.ask_open_amount_quran"
+        if khatm is not None and khatm.template_type == KhatmTemplateType.QURAN_PAGE
+        else "portions.ask_open_amount"
+    )
+    await callback.message.answer(t(prompt_key, lang, unit=unit))
     await safe_answer_callback(callback)
 
 
@@ -638,7 +680,8 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
     data = await state.get_data()
     lang = data.get("lang", "fa")
     raw = (message.text or "").strip()
-    if not raw.isdigit() or int(raw) <= 0:
+    amount = parse_contribution_amount(raw)
+    if amount is None:
         await message.answer(t("portions.positive_number_required", lang))
         return
 
@@ -660,7 +703,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             return
         if data.get("commitment"):
             portion, counted, surplus = await allocation_service.record_quantity_commitment_progress(
-                session, khatm_id, participation.id, int(raw)
+                session, khatm_id, participation.id, amount
             )
             if portion is None:
                 await state.clear()
@@ -696,7 +739,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             await _send_recitation_content(session, message, khatm)
             return
         counted, surplus, new_total = await contribution_service.log_contribution(
-            session, khatm_id, participation.id, int(raw), khatm.repetition_target
+            session, khatm_id, participation.id, amount, khatm.repetition_target
         )
         await advertising_service.accrue_first_completed_action(session, participation.id)
         reached = khatm.repetition_target is not None and new_total >= khatm.repetition_target
@@ -711,7 +754,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
             total_pages = content_service.get_quran_total_pages(khatm)
             remaining = max(0, total_pages - participation.open_reading_next_page + 1)
-            to_send = min(int(raw), remaining)
+            to_send = min(amount, remaining)
             if to_send > 0:
                 reserved = await participation_service.advance_open_reading(session, participation.id, to_send)
                 quran_pages_sent = reserved
@@ -729,7 +772,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
     await state.clear()
     unit = _unit_label(khatm.template_type, lang)
 
-    lines = [t("portions.open_recorded", lang, amount=int(raw), unit=unit)]
+    lines = [t("portions.open_recorded", lang, amount=amount, unit=unit)]
     if quran_pages_sent is not None:
         lines.append(t("portions.open_quran.pages_sent", lang, start=quran_pages_sent[0], end=quran_pages_sent[1]))
     if surplus > 0:
