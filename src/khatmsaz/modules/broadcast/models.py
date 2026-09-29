@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,9 +22,18 @@ class KhatmBroadcast(Base):
     __tablename__ = "khatm_broadcasts"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
-    khatm_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("khatms.id"))
+    khatm_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("khatms.id"), nullable=True)
     creator_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(Text, nullable=False)
+    target_scope: Mapped[str] = mapped_column(String(16), default="KHATM")
+    channel: Mapped[str] = mapped_column(String(16), default="TELEGRAM")
+    audience_count: Mapped[int] = mapped_column(Integer, default=0)
+    cost_toman: Mapped[int] = mapped_column(Integer, default=0)
+    media_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    media_file_id_telegram: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    media_file_id_bale: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     status: Mapped[BroadcastStatus] = mapped_column(default=BroadcastStatus.PENDING)
     admin_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

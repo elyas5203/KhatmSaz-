@@ -87,6 +87,7 @@ def test_finance_page_renders_plain_language_guide_and_forms():
         "finance.html", "/finance", saved="", paid_total=120_000,
         refunded_total=10_000, coupons=[], invoice_rows=[],
         plan_definitions=[plan], sms_plan_options=[],
+        broadcast_policies={"TELEGRAM": (3, 0), "BALE": (3, 0), "SMS": (0, 1000)},
     )
 
     assert "کاربر عادی کیست؟" in html

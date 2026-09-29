@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Moderated multi-channel creator broadcasts [Codex]
+- **Creator center**: `/creator/broadcasts` lets a creator choose one active khatm or all distinct active members, select Telegram/Bale/SMS, write the message and submit it for review.
+- **Mandatory moderation**: both creator-panel and bot submissions now enter the same `khatm_broadcasts` PENDING queue. The previous direct-send implementation and duplicate module were removed; approval is the only delivery path.
+- **Dynamic policy**: operations finance UI controls a seven-day free allowance and post-quota price independently for Telegram, Bale and SMS. Pending messages reserve allowance; rejected ones release it. Paid messages charge the creator only when an admin approves.
+- **Delivery**: approval resolves a fresh, deduplicated audience for the selected scope/channel; Telegram/Bale use the live notifier and SMS uses the configured provider.
+- **Schema/validation**: migration `broadcast2026092901` adds target scope/channel/audience metadata and makes `khatm_id` nullable for all-khatm targeting. **196 passed, 85 deselected**; 28 templates compile; Alembic has one head. Live `alembic upgrade head` was attempted but NOT RUN successfully because the configured PostgreSQL endpoint refused the connection.
+
 ## Current state — 2026-09-29 — Required shares cannot be skipped or released [Codex]
 - Removed the active skip-today workflow and creator setter/repository mutation path. New khatms always persist the compatibility field as false, and UI/keyboards no longer accept or propagate the old option.
 - Temporarily pausing reminders no longer releases the current Quran portion: the member still owes and must complete that same share after resuming.

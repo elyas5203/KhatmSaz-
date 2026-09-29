@@ -28,4 +28,7 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     assert final.down_revision == "bii2026092803"
     assert rotating is not None
     assert rotating.down_revision == "fin2026092804"
-    assert script.get_heads() == ["rot2026092805"]
+    broadcast = script.get_revision("broadcast2026092901")
+    assert broadcast is not None
+    assert broadcast.down_revision == "rot2026092805"
+    assert script.get_heads() == ["broadcast2026092901"]

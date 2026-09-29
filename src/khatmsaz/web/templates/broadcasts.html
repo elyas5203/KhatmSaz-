@@ -26,7 +26,7 @@
     <div class="mb-6">
       <div class="flex justify-between items-start mb-4">
         <div>
-          <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors mb-1">{{ row.khatm.title if row.khatm else 'ختم حذف‌شده' }}</h2>
+          <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors mb-1">{% if row.item.target_scope == 'ALL' %}همهٔ ختم‌های سازنده{% else %}{{ row.khatm.title if row.khatm else 'ختم حذف‌شده' }}{% endif %}</h2>
           <div class="flex items-center gap-2">
             <span class="text-xs text-slate-400 font-mono bg-slate-800/50 px-2 py-1 rounded" dir="ltr">{{ row.time }}</span>
             <span class="text-[0.65rem] font-bold bg-amber-500/10 text-amber-500 px-2 py-1 rounded">در انتظار</span>
@@ -37,6 +37,8 @@
       <div class="bg-slate-900/40 rounded-xl p-4 mb-4">
         <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">سازنده</dt>
         <dd class="text-sm font-bold text-sky-400 mb-3">{{ row.creator.display_name if row.creator else 'نامشخص' }}</dd>
+        <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">کانال و هزینه</dt>
+        <dd class="text-sm text-slate-300 mb-3">{{ row.item.channel }} · {{ row.item.audience_count }} مخاطب · {{ '{:,}'.format(row.item.cost_toman) }} تومان</dd>
         
         <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">متن پیام</dt>
         <dd class="text-sm text-slate-300 whitespace-pre-wrap">{{ row.item.body }}</dd>
@@ -46,7 +48,7 @@
     <div class="border-t border-slate-700/50 pt-4 mt-auto">
       <form method="post" action="/broadcasts/{{ row.item.id }}/decide" class="flex flex-col sm:flex-row gap-2">
         <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button name="decision" value="approve" onclick="return confirm('این پیام برای همه اعضای فعال این ختم ارسال شود؟')" class="flex-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">تأیید و ارسال</button>
+        <button name="decision" value="approve" onclick="return confirm('این پیام برای مخاطبان انتخاب‌شده ارسال شود؟')" class="flex-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">تأیید و ارسال</button>
         <button name="decision" value="reject" onclick="return confirm('این پیام رد شود؟')" class="flex-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">رد پیام</button>
       </form>
     </div>

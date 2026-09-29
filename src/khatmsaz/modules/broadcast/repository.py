@@ -9,10 +9,14 @@ from khatmsaz.core.ids import new_id
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 
 
-async def create(session: AsyncSession, *, khatm_id, creator_user_id, body: str) -> KhatmBroadcast:
+async def create(
+    session: AsyncSession, *, khatm_id, creator_user_id, body: str,
+    target_scope: str, channel: str, audience_count: int, cost_toman: int,
+) -> KhatmBroadcast:
     item = KhatmBroadcast(
         id=new_id(), khatm_id=khatm_id, creator_user_id=creator_user_id,
-        body=body, status=BroadcastStatus.PENDING,
+        body=body, status=BroadcastStatus.PENDING, target_scope=target_scope,
+        channel=channel, audience_count=audience_count, cost_toman=cost_toman,
     )
     session.add(item)
     await session.flush()
@@ -30,6 +34,19 @@ async def list_pending(session: AsyncSession) -> list[KhatmBroadcast]:
         .order_by(KhatmBroadcast.created_at.asc())
     )
     return list(result.scalars())
+
+
+async def count_recent_for_creator_channel(session, creator_user_id, channel: str, since: datetime) -> int:
+    from sqlalchemy import func
+    result = await session.execute(select(func.count(KhatmBroadcast.id)).where(
+        KhatmBroadcast.creator_user_id == creator_user_id,
+        KhatmBroadcast.channel == channel,
+        KhatmBroadcast.created_at >= since,
+        KhatmBroadcast.status.in_([
+            BroadcastStatus.PENDING, BroadcastStatus.APPROVED, BroadcastStatus.SENT,
+        ]),
+    ))
+    return int(result.scalar_one())
 
 
 async def mark_reviewed(session: AsyncSession, item: KhatmBroadcast, status: BroadcastStatus, note: str | None) -> None:

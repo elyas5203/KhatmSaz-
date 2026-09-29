@@ -9,7 +9,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, UserRole
-from khatmsaz.modules.creator_broadcast import service as broadcast_service
+from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmStatus
 import uuid
@@ -76,20 +76,18 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
 
     async with session_scope() as session:
         khatm_uuid = uuid.UUID(target_khatm_id) if target_khatm_id else None
-        audience_count = await broadcast_service.get_creator_audience_count(session, creator_id, khatm_id=khatm_uuid)
-        broadcasts_last_7_days = await broadcast_service.get_broadcast_count_last_7_days(session, creator_id)
-        cost = await broadcast_service.calculate_broadcast_cost(audience_count, broadcasts_last_7_days)
+        audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
+        free_count, price = await broadcast_service.channel_policy(session, data["platform"])
 
-    await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count, cost=cost)
+    await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count)
 
     scope = "همهٔ ختم‌های شما" if target_khatm_id is None else "این ختم"
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count} نفر\n"
-        f"📨 پیام‌های ۷ روز گذشته: {broadcasts_last_7_days}\n\n"
+        f"🎁 سهمیهٔ رایگان این کانال: {free_count} پیام در ۷ روز\n"
+        f"💳 هزینهٔ هر پیام بعد از سهمیه: {price:,} تومان\n\n"
     )
-    info += ("✅ هزینه این پیام: رایگان (۳ پیام اول در هفته)\n\n" if cost == 0
-             else f"💳 هزینه این پیام: {cost:,} تومان\n\n")
     info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
 
     await state.set_state(CreatorBroadcastFlow.entering_message)
@@ -146,60 +144,38 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     creator_id = uuid.UUID(data["creator_id"])
     audience_count = data["audience_count"]
-    cost = data["cost"]
     platform = data["platform"]
     text = data.get("text")
     media_file_id = data.get("media_file_id")
     media_type = data["media_type"]
     
-    if cost > 0:
-        await safe_clear_inline_keyboard(callback.message)
-        await callback.message.answer(
-            "⚠️ ارسال پیام گروهی پولی در حال حاضر غیرفعال است (در حال توسعه سیستم پرداخت). لطفاً بعداً تلاش کنید."
-        )
+    await safe_clear_inline_keyboard(callback.message)
+    if not (text or "").strip():
+        await callback.message.answer("برای صف تأیید مدیر، پیام باید متن داشته باشد.")
         await state.clear()
         await safe_answer_callback(callback)
         return
-
-    is_paid = True
-    
-    await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer("در حال ارسال پیام...")
-    
-    async with session_scope() as session:
-        # Save broadcast
-        broadcast = await broadcast_service.create_broadcast(
-            session, creator_id, platform, text, media_file_id, media_type, cost, audience_count, is_paid
-        )
-        
-        _target_raw = data.get("target_khatm_id")
-        targets = await broadcast_service.get_broadcast_audience(
-            session, creator_id, platform,
-            khatm_id=uuid.UUID(_target_raw) if _target_raw else None,
-        )
-        
-    # Send
-    success = 0
-    failed = 0
-    bot = callback.bot
-    for chat_id in targets:
-        try:
-            if media_type == "text":
-                await bot.send_message(chat_id, text)
-            elif media_type == "photo":
-                await bot.send_photo(chat_id, media_file_id, caption=text)
-            elif media_type == "video":
-                await bot.send_video(chat_id, media_file_id, caption=text)
-            elif media_type == "document":
-                await bot.send_document(chat_id, media_file_id, caption=text)
-            success += 1
-        except Exception as e:
-            failed += 1
-            import logging
-            logging.getLogger("khatmsaz.broadcast").error(f"Failed to send broadcast to {chat_id}: {e}")
-            
+    _target_raw = data.get("target_khatm_id")
+    try:
+        async with session_scope() as session:
+            item = await broadcast_service.submit(
+                session,
+                creator_user_id=creator_id,
+                khatm_id=uuid.UUID(_target_raw) if _target_raw else None,
+                channel=platform,
+                body=text,
+            )
+    except ValueError:
+        await callback.message.answer("پیام معتبر نیست یا مخاطبی برای آن پیدا نشد.")
+        await state.clear()
+        await safe_answer_callback(callback)
+        return
     await state.clear()
-    await callback.message.answer(f"✅ پیام شما با موفقیت برای {success} نفر ارسال شد.\n❌ تعداد ناموفق: {failed}", reply_markup=main_menu_keyboard("fa"))
+    cost_text = "رایگان" if item.cost_toman == 0 else f"{item.cost_toman:,} تومان"
+    await callback.message.answer(
+        f"✅ پیام برای تأیید مدیر ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 هزینه پس از تأیید: {cost_text}",
+        reply_markup=main_menu_keyboard("fa"),
+    )
     await safe_answer_callback(callback)
 
 @router.callback_query(CreatorBroadcastFlow.confirming, F.data == "cbroadcast:cancel")

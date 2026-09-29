@@ -1,3 +1,9 @@
+## 2026-09-29 (moderated multi-channel creator broadcasts)
+- Added a creator-panel broadcast center for one khatm or all distinct active members, with Telegram, Bale and SMS channel selection.
+- Unified panel and bot submissions behind mandatory admin approval; removed the legacy direct-send module.
+- Added per-channel admin-configurable seven-day free allowances and post-quota prices, wallet charging at approval, deduplicated audience resolution and SMS-provider delivery.
+- Added migration `broadcast2026092901`. Validation: 196 non-integration tests passed, 85 deselected; 28 templates compiled; one Alembic head. Live migration apply could not connect to the configured PostgreSQL endpoint.
+
 ## 2026-09-29 (remove skip-today behavior)
 - Removed skip-today service/repository/workflow APIs and all keyboard/caller parameters; new khatms force the legacy compatibility field off.
 - Changed reminder pause so it never releases the member's current owed Quran share.

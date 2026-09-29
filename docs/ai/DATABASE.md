@@ -17,6 +17,14 @@ indexes don't fragment the way random UUIDs do. `new_id()` returns a
 `Mapped[uuid.UUID]` column**; see PROJECT_STATE.md's Phase 0 entry for the
 bug this caused once already.
 
+## Latest migration — `broadcast2026092901`
+
+The moderated `khatm_broadcasts` queue now supports one-khatm or all-khatm
+targeting and Telegram/Bale/SMS delivery. `khatm_id` is nullable only when
+`target_scope='ALL'`; check constraints limit scope and channel values, and
+the creator/channel/time index supports rolling seven-day allowance checks.
+Media/payment columns pre-existed from `zz9999`; the ORM now maps them.
+
 ## Invariants SQLAlchemy can't express declaratively
 
 Partial unique indexes are hand-written as raw SQL in migrations (not

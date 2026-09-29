@@ -37,7 +37,7 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
      behavior for skipping a required share. Preserve old DB columns only when
      removal would create avoidable migration risk; they must become inert.
 
-7. **Creator broadcast center — TODO**
+7. **Creator broadcast center — DONE (code; live DB apply pending)**
    - Creator web panel supports one khatm or all distinct active members.
    - Delivery channels: Telegram, Bale, SMS.
    - Admin controls allowance/count and free/paid pricing per channel; every
@@ -89,3 +89,11 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
   defaults false; setter/workflow APIs and every call-site parameter are gone.
   Pausing reminders no longer releases the current owed portion. Evidence:
   **193 passed, 85 deselected**; no migration.
+- Broadcast batch: removed the parallel direct-send implementation and unified
+  bot/web submissions behind the mandatory moderation queue. Creator panel can
+  target one active khatm or all distinct active members and select Telegram,
+  Bale or SMS. Admin configures free messages per seven days and post-quota
+  price independently for all three channels; paid cost is charged only on
+  approval. Evidence: **196 passed, 85 deselected**, 28 templates compile,
+  one Alembic head. Migration SQL is structurally covered, but live apply is
+  NOT RUN because the configured PostgreSQL endpoint refused the connection.

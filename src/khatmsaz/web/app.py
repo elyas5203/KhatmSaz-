@@ -72,6 +72,7 @@ from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanDefinition, PlanTier, PricingMode
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.sms_subscription.models import SmsPlanOption
+from khatmsaz.modules.sms.provider import build_provider as build_sms_provider
 from khatmsaz.modules.system_settings import service as system_settings_service
 from khatmsaz.bot.notify_adapter import get_notify_fn
 from khatmsaz.web.telegram_mini_app import InvalidTelegramInitData, validate_telegram_init_data
@@ -1044,6 +1045,50 @@ async def creator_wallet(request: Request):
     )
 
 
+@app.get("/creator/broadcasts", response_class=HTMLResponse)
+async def creator_broadcasts(request: Request):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    async with session_scope() as session:
+        khatms = [
+            item for item in await khatm_service.list_my_created(session, creator.id)
+            if item.status == KhatmStatus.ACTIVE
+        ]
+        policies = {
+            channel: await broadcast_service.channel_policy(session, channel)
+            for channel in broadcast_service.CHANNELS
+        }
+    return templates.TemplateResponse(
+        request=request, name="creator_broadcasts.html",
+        context=_creator_ctx(
+            request, creator, raw, lang=lang, khatms=khatms, policies=policies,
+            saved=request.query_params.get("saved", ""), error=request.query_params.get("error", ""),
+        ),
+    )
+
+
+@app.post("/creator/broadcasts")
+async def creator_broadcast_submit(
+    request: Request, csrf: str = Form(...), target: str = Form(...),
+    channel: str = Form(...), body: str = Form(...),
+):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    try:
+        khatm_id = None if target == "all" else UUID(target)
+        async with session_scope() as session:
+            await broadcast_service.submit(
+                session, khatm_id=khatm_id, creator_user_id=creator.id, body=body, channel=channel,
+            )
+    except (ValueError, TypeError):
+        return RedirectResponse("/creator/broadcasts?error=invalid", status_code=303)
+    return RedirectResponse("/creator/broadcasts?saved=pending", status_code=303)
+
+
 @app.post("/creator/wallet/topup")
 async def creator_wallet_topup(request: Request, csrf: str = Form(...), amount: int = Form(...)):
     creator, raw, lang = await _creator(request)
@@ -1633,13 +1678,30 @@ async def decide_broadcast(
             details={"broadcast_id": str(item.id)},
         )
         if decision == "approve":
-            participants = await participation_service.list_active_for_khatm(session, item.khatm_id)
-            identities = []
-            for participant in participants:
-                identities.extend(await identity_service.list_identities_for_user(session, participant.user_id))
-            notify = get_notify_fn()
-            for identity in identities:
-                await notify(identity.platform.value, identity.subject, item.body)
+            if item.cost_toman > 0 and item.paid_at is None:
+                try:
+                    invoice = await wallet_service.purchase(
+                        session, user_id=item.creator_user_id,
+                        gross_amount_toman=item.cost_toman,
+                        description=f"ارسال گروهی {item.channel}",
+                    )
+                except InsufficientFundsError:
+                    item.status = BroadcastStatus.PENDING
+                    item.reviewed_at = None
+                    item.admin_note = "موجودی کیف پول سازنده کافی نیست"
+                    await session.flush()
+                    return HTMLResponse("موجودی کیف پول سازنده برای این ارسال کافی نیست.", status_code=409)
+                item.invoice_id = invoice.id
+                item.paid_at = datetime.now(tz=ZoneInfo("UTC"))
+            destinations = await broadcast_service.audience_destinations(session, item)
+            if item.channel == "SMS":
+                provider = build_sms_provider()
+                for phone in destinations:
+                    await provider.send(phone=phone, text=item.body)
+            else:
+                notify = get_notify_fn()
+                for subject in destinations:
+                    await notify(item.channel, subject, item.body)
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
         f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303
@@ -2299,6 +2361,10 @@ async def finance(request: Request, uq: str = ""):
         sms_plan_options = list(
             (await session.execute(select(SmsPlanOption).order_by(SmsPlanOption.months))).scalars()
         )
+        broadcast_policies = {
+            channel: await broadcast_service.channel_policy(session, channel)
+            for channel in broadcast_service.CHANNELS
+        }
     return templates.TemplateResponse(
         request=request,
         name="finance.html",
@@ -2312,9 +2378,37 @@ async def finance(request: Request, uq: str = ""):
             refunded_total=int(refunded_total or 0),
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
+            broadcast_policies=broadcast_policies,
             saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/finance/broadcast-policy")
+async def update_broadcast_policy(
+    request: Request, csrf: str = Form(...), channel: str = Form(...),
+    free_count: int = Form(...), price_toman: int = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    channel = channel.upper()
+    if channel not in broadcast_service.CHANNELS:
+        return HTMLResponse("کانال نامعتبر است.", status_code=400)
+    async with session_scope() as session:
+        try:
+            prefix = channel.lower()
+            await system_settings_service.set_int(session, f"broadcast_{prefix}_free_count", free_count)
+            await system_settings_service.set_int(session, f"broadcast_{prefix}_price_toman", price_toman)
+        except ValueError:
+            return HTMLResponse("سهمیه یا مبلغ معتبر نیست.", status_code=400)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="BROADCAST_POLICY_UPDATE",
+            details={"channel": channel, "free_count": free_count, "price_toman": price_toman},
+        )
+    return RedirectResponse("/finance?saved=broadcast_policy", status_code=303)
 
 
 @app.post("/finance/plans/{plan_name}")
