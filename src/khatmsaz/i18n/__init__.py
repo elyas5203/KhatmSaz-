@@ -2946,6 +2946,12 @@ _STRINGS: dict[str, dict[str, str]] = {
     "web.creator.plan_pro_unlimited": {"fa": "بدون محدودیت تعداد عضو", "ar": "بدون حد لعدد الأعضاء", "en": "No member limit"},
     "web.creator.plan_buy_pro": {"fa": "خرید پلن پرو · {price:,} تومان", "ar": "شراء باقة برو · {price:,} تومان", "en": "Buy Pro · {price:,} toman"},
     "web.creator.plan_not_enabled": {"fa": "خرید پلن پرو هنوز فعال نشده", "ar": "شراء باقة برو غير مفعّل بعد", "en": "Pro purchasing isn't enabled yet"},
+    "web.creator.plan_unlimited": {"fa": "نامحدود", "ar": "غير محدود", "en": "Unlimited"},
+    "web.creator.plan_pro_threshold": {
+        "fa": "با موجودی کیف پول حداقل {price:,} تومان، خودکار فعال می‌شود.",
+        "ar": "يُفعّل تلقائيًا عند بلوغ رصيد المحفظة {price:,} تومان.",
+        "en": "Activates automatically when wallet funds reach {price:,} toman.",
+    },
     "web.creator.plan_purchase_success": {"fa": "پلن پرو با موفقیت فعال شد ✅ این پلن فعلاً دائمی است.", "ar": "تم تفعيل باقة برو بنجاح ✅ هذه الباقة دائمة حالياً.", "en": "Pro was activated successfully ✅ This plan is currently permanent."},
     "web.creator.plan_already_pro": {"fa": "پلن شما از قبل پرو است و دوباره هزینه‌ای کم نشد.", "ar": "باقتك برو بالفعل ولم تُخصم أي تكلفة مرة أخرى.", "en": "You're already on Pro, so you weren't charged again."},
     "web.creator.plan_purchase_insufficient": {"fa": "موجودی برای خرید پرو کافی نیست.", "ar": "الرصيد غير كافٍ لشراء برو.", "en": "Your balance isn't enough to buy Pro."},

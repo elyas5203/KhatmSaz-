@@ -1,3 +1,9 @@
+## 2026-09-29 (automatic wallet-threshold FREE/PRO)
+- Replaced the wallet-funded permanent PRO purchase with automatic FREE/PRO eligibility based on total wallet funds and the admin-configured PRO threshold; no balance is deducted.
+- Removed the creator purchase endpoint/button and manual per-user plan assignment, excluded legacy BASIC from active configuration, and made PRO khatm creation free instead of misreading its threshold as a creation charge.
+- Fixed the leaked `web.creator.plan_unlimited` key and clarified threshold copy in creator/admin panels.
+- Validation: 192 non-integration tests passed, 86 deselected. No migration. DEC-PY-0098 supersedes DEC-PY-0097.
+
 ## 2026-09-29 (actionable exact-time delivery and owner-policy cleanup)
 - Changed reminder polling from quarter-hour intervals to every minute with single-instance coalescing, preserving catch-up and dedupe behavior.
 - Added correct completion actions to every scheduled member-share branch and a secure, duplicate-safe confirmation path for regular quantity commitments.

@@ -69,7 +69,7 @@ from khatmsaz.modules.wallet.payping import PayPingGateway
 from khatmsaz.modules.wallet.models import CouponDiscountType, WalletInvoice
 from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.plan import service as plan_service
-from khatmsaz.modules.plan.models import PlanDefinition, PlanTier, PricingMode
+from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanDefinition, PlanTier, PricingMode
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.sms_subscription.models import SmsPlanOption
 from khatmsaz.modules.system_settings import service as system_settings_service
@@ -1039,36 +1039,9 @@ async def creator_wallet(request: Request):
             plan_label=plan_label, plan_view=plan_view, invoices=invoices,
             topup_amounts=(50_000, 100_000, 200_000, 500_000),
             gateway_ready=gateway_ready, free_caps=free_caps,
-            pro_price=(pro_def.price_toman if pro_def else 0),
-            pro_purchase_enabled=bool(pro_def and pro_def.enabled and pro_def.price_toman > 0),
+            pro_threshold=(pro_def.price_toman if pro_def and pro_def.enabled else 0),
         ),
     )
-
-
-@app.post("/creator/plan/upgrade")
-async def creator_plan_upgrade(request: Request, csrf: str = Form(...)):
-    creator, raw, lang = await _creator(request)
-    if creator is None:
-        return RedirectResponse("/creator/login", status_code=303)
-    if not _valid_csrf(raw, csrf):
-        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
-    try:
-        async with session_scope() as session:
-            invoice = await plan_service.purchase_pro(session, creator.id)
-            if invoice is None:
-                return RedirectResponse("/creator/wallet?plan_status=already_pro", status_code=303)
-            await audit_service.record(
-                session,
-                actor_user_id=creator.id,
-                target_user_id=creator.id,
-                action="PLAN_PURCHASED",
-                details={"price_toman": invoice.net_amount_toman, "plan": PlanTier.PRO.value},
-            )
-    except plan_service.ProPlanUnavailableError:
-        return RedirectResponse("/creator/wallet?plan_status=unavailable", status_code=303)
-    except InsufficientFundsError:
-        return RedirectResponse("/creator/wallet?plan_status=insufficient", status_code=303)
-    return RedirectResponse("/creator/wallet?plan_status=purchased", status_code=303)
 
 
 @app.post("/creator/wallet/topup")
@@ -2294,8 +2267,6 @@ async def finance(request: Request, uq: str = ""):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
         return _login_redirect()
-    user_plan_query = uq.strip()[:100]
-    user_plan_rows = []
     async with session_scope() as session:
         coupons = await wallet_service.list_coupons(session)
         invoice_rows = list(
@@ -2319,16 +2290,15 @@ async def finance(request: Request, uq: str = ""):
             )
         )
         plan_definitions = list(
-            (await session.execute(select(PlanDefinition).order_by(PlanDefinition.plan))).scalars()
+            (await session.execute(
+                select(PlanDefinition)
+                .where(PlanDefinition.plan.in_([tier.value for tier in ACTIVE_PLAN_TIERS]))
+                .order_by(PlanDefinition.plan)
+            )).scalars()
         )
         sms_plan_options = list(
             (await session.execute(select(SmsPlanOption).order_by(SmsPlanOption.months))).scalars()
         )
-        if user_plan_query:
-            found_users = await identity_service.search_users(session, user_plan_query, limit=20)
-            for u in found_users:
-                current_plan = await plan_service.get_plan(session, u.id)
-                user_plan_rows.append({"user": u, "plan": current_plan.value})
     return templates.TemplateResponse(
         request=request,
         name="finance.html",
@@ -2342,54 +2312,9 @@ async def finance(request: Request, uq: str = ""):
             refunded_total=int(refunded_total or 0),
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
-            user_plan_query=user_plan_query,
-            user_plan_rows=user_plan_rows,
-            plan_tiers=[tier.value for tier in PlanTier],
             saved=request.query_params.get("saved", ""),
         ),
     )
-
-
-@app.post("/finance/user-plan")
-async def set_user_plan(
-    request: Request,
-    csrf: str = Form(...),
-    user_id: UUID = Form(...),
-    plan: str = Form(...),
-    uq: str = Form(""),
-):
-    """Manually set a user's plan tier (owner request 2026-09-29). This ONLY
-    changes the tier row (or removes it for FREE) — wallet balance, khatms and
-    existing members are never touched. Audited with the previous and new tier."""
-    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
-    if admin is None:
-        return _login_redirect()
-    if not _valid_csrf(raw, csrf):
-        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    try:
-        new_plan = PlanTier(plan.upper())
-    except ValueError:
-        return HTMLResponse("پلن نامعتبر است.", status_code=400)
-    async with session_scope() as session:
-        target = await identity_service.find_by_id(session, user_id)
-        if target is None:
-            return HTMLResponse("کاربر پیدا نشد.", status_code=404)
-        previous_plan = await plan_service.get_plan(session, user_id)
-        await plan_service.set_plan(session, user_id, new_plan)
-        await audit_service.record(
-            session,
-            actor_user_id=admin.id,
-            target_user_id=user_id,
-            action="USER_PLAN_CHANGED",
-            details={
-                "user_id": str(user_id),
-                "previous_plan": previous_plan.value,
-                "new_plan": new_plan.value,
-            },
-        )
-    from urllib.parse import quote_plus
-    suffix = f"&uq={quote_plus(uq.strip())}" if uq.strip() else ""
-    return RedirectResponse(f"/finance?saved=user_plan{suffix}", status_code=303)
 
 
 @app.post("/finance/plans/{plan_name}")
@@ -2413,6 +2338,10 @@ async def update_plan_definition(
     try:
         plan = PlanTier(plan_name.upper())
         mode = PricingMode(pricing_mode.upper())
+        if plan not in ACTIVE_PLAN_TIERS:
+            raise ValueError
+        if plan == PlanTier.PRO:
+            mode = PricingMode.FIXED
         clean_title = title.strip()
         if not clean_title or price_toman < 0:
             raise ValueError

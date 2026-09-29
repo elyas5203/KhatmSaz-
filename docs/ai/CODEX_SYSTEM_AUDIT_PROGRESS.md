@@ -21,7 +21,7 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
    - New Quran creation always uses Madina/Hafs, 604 pages, without asking.
    - Historical editions remain readable only for compatibility.
 
-4. **Exactly FREE and PRO, balance-threshold PRO — TODO**
+4. **Exactly FREE and PRO, balance-threshold PRO — DONE**
    - Remove BASIC from active domain/UI/admin choices, with safe migration of
      historical BASIC rows.
    - PRO is derived/activated when wallet balance reaches the admin-configured
@@ -80,3 +80,8 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
   localized digits. Web welcome-text edits preserve the creator contact line.
 - Evidence: non-integration suite **189 passed, 86 deselected** before the last
   keyboard regression assertion; no migration added in this batch.
+- Plan batch: effective tier is derived from total wallet funds against the
+  enabled admin-set PRO threshold. No purchase/deduction route remains, PRO
+  creation is free, BASIC is excluded from active admin/UI choices, and the
+  missing «نامحدود» translation no longer leaks its key. Evidence:
+  **192 passed, 86 deselected**; DEC-PY-0098; no migration.

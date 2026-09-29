@@ -73,8 +73,10 @@ def test_new_panel_routes_exist():
     paths = {getattr(r, "path", "") for r in app.routes}
     for path in (
         "/creator/khatms", "/creator/khatms/new", "/creator/khatms/create",
-        "/creator/wallet", "/creator/wallet/topup", "/creator/plan/upgrade",
-        "/creator-requests", "/finance/user-plan",
+        "/creator/wallet", "/creator/wallet/topup",
+        "/creator-requests",
         "/operations/panel-logo",
     ):
         assert path in paths, f"missing route {path}"
+    assert "/creator/plan/upgrade" not in paths
+    assert "/finance/user-plan" not in paths

@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Automatic wallet-threshold FREE/PRO [Codex]
+- **Two active tiers**: only FREE and PRO appear in creator/admin flows. Legacy BASIC rows remain storage-compatible but are ignored by effective-plan logic and cannot be configured or manually assigned.
+- **Automatic eligibility**: effective PRO is derived on read when cash balance plus earned credit reaches the enabled admin-configured PRO threshold (`PlanDefinition.price_toman`). No money is deducted and there is no upgrade/purchase endpoint.
+- **Charging safety**: the PRO threshold is not reused as a khatm-creation charge; effective PRO creation resolves to zero cost. The admin panel labels PRO's amount as the activation threshold and forces fixed-threshold storage.
+- **Copy**: added the missing localized «نامحدود» string and explains automatic activation in the creator wallet; raw i18n keys and the old buy button are gone.
+- **Decision/tests**: DEC-PY-0098 supersedes DEC-PY-0097. Non-integration suite **192 passed, 86 deselected**. No migration.
+
 ## Current state — 2026-09-29 — System audit batch: reliable actionable delivery and owner-policy cleanup [Codex]
 - **Scheduling**: the reminder scan now runs every minute (single coalesced instance), so exact member-selected `HH:MM` values are no longer rounded to quarter-hour ticks; due checks remain catch-up-safe and per-day/per-period deduplicated.
 - **Actionable delivery**: committed Quran daily/next/staged reminders carry the bound «انجام دادم» action; open Quran and other open scheduled khatms carry «انجام سهم»; regular Salawat/Dua/Ziyarat/La'an reminders carry a participation-bound «انجام سهم» action with ownership, bot-scope and duplicate checks plus a clear confirmation.

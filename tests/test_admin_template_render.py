@@ -191,7 +191,7 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
     assert "20,000 تومان" in html
 
 
-def test_creator_wallet_renders_configured_pro_purchase_or_disabled_state():
+def test_creator_wallet_explains_automatic_pro_threshold_without_purchase_button():
     base = dict(
         request=_request("/creator/wallet"), creator=SimpleNamespace(display_name="سازنده"),
         csrf="test-csrf", lang="fa", t=t, label=lambda value: str(value),
@@ -200,13 +200,9 @@ def test_creator_wallet_renders_configured_pro_purchase_or_disabled_state():
         invoices=[], topup_amounts=(), gateway_ready=False,
         free_caps={"quran": 100, "devotional": 100},
     )
-    enabled = templates.get_template("creator_wallet.html").render(
-        **base, pro_price=250_000, pro_purchase_enabled=True,
-    )
-    disabled = templates.get_template("creator_wallet.html").render(
-        **base, pro_price=0, pro_purchase_enabled=False,
-    )
+    html = templates.get_template("creator_wallet.html").render(**base, pro_threshold=250_000)
 
-    assert 'action="/creator/plan/upgrade"' in enabled
-    assert "250,000 تومان" in enabled
-    assert "خرید پلن پرو هنوز فعال نشده" in disabled
+    assert 'action="/creator/plan/upgrade"' not in html
+    assert "250,000 تومان" in html
+    assert "خودکار فعال می‌شود" in html
+    assert "web.creator.plan_unlimited" not in html

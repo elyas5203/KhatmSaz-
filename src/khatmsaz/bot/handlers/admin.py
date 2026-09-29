@@ -34,7 +34,7 @@ from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import CouponDiscountType
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.modules.plan import service as plan_service
-from khatmsaz.modules.plan.models import PlanTier, PricingMode
+from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanTier, PricingMode
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.advertising import service as advertising_service
 from khatmsaz.modules.content import service as content_service
@@ -626,7 +626,7 @@ async def admin_plans(message: Message) -> None:
         return
     async with session_scope() as session:
         lines = ["پلن‌ها:"]
-        for plan in PlanTier:
+        for plan in ACTIVE_PLAN_TIERS:
             definition = await plan_service.get_definition(session, plan)
             if definition is None:
                 lines.append(f"— {plan.value}: تعریف نشده")
@@ -819,7 +819,7 @@ async def admin_plan_set(message: Message, command: CommandObject) -> None:
     parts = (command.args or "").strip().split(maxsplit=3)
     if len(parts) != 4:
         await message.answer(
-            "فرمت درست: /admin_plan_set <FREE|BASIC|PRO> <fixed|usage> <مبلغ> <feature1,feature2,key=value>\n\n"
+            "فرمت درست: /admin_plan_set <FREE|PRO> <fixed|usage> <مبلغ> <feature1,feature2,key=value>\n\n"
             "برای سقف عضو (DEC-PY-0074) از این کلیدها استفاده کن:\n"
             "max_devotional_members=100 (سقف مجموع صلوات/دعا/زیارت/لعن)\n"
             "max_quran_members=302 (سقف قرآن؛ برای نامحدود این کلید رو کلاً ننویس)\n"
@@ -830,7 +830,11 @@ async def admin_plan_set(message: Message, command: CommandObject) -> None:
     plan_name, mode_name, price_text, feature_text = parts
     try:
         plan = PlanTier(plan_name.upper())
+        if plan not in ACTIVE_PLAN_TIERS:
+            raise ValueError
         mode = {"fixed": PricingMode.FIXED, "usage": PricingMode.USAGE_BASED}[mode_name.lower()]
+        if plan == PlanTier.PRO:
+            mode = PricingMode.FIXED
         price = int(price_text)
         if price < 0:
             raise ValueError

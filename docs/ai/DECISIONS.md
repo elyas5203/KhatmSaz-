@@ -5,6 +5,18 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0098 — PRO is an automatic wallet-balance state, not a purchase
+**Date:** 2026-09-29
+**Decision:** This supersedes DEC-PY-0097. The only active/user-facing tiers
+are FREE and PRO. PRO becomes active whenever cash balance plus earned credit
+is at least the enabled PRO `PlanDefinition.price_toman`; that admin-managed
+value is a threshold and is never deducted. Falling below the threshold makes
+the effective tier FREE again. PRO creation has no per-khatm charge. Historical
+BASIC/UserPlan rows remain in storage for compatibility but cannot be selected,
+configured, displayed, or used to determine the effective tier.
+
+---
+
 ### DEC-PY-0097 — Creator-paid PRO upgrade is permanent and database-priced
 **Date:** 2026-09-29
 **Decision:** The creator UI presents only FREE and PRO. Historical BASIC rows

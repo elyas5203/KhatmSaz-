@@ -1,4 +1,4 @@
-"""Plan module: assigned plan tier per user (FREE / BASIC / PRO). Missing row implies FREE."""
+"""Plan module. Only FREE and PRO are active; BASIC is legacy storage."""
 
 import enum
 import uuid
@@ -15,6 +15,9 @@ class PlanTier(str, enum.Enum):
     FREE = "FREE"
     BASIC = "BASIC"
     PRO = "PRO"
+
+
+ACTIVE_PLAN_TIERS = (PlanTier.FREE, PlanTier.PRO)
 
 
 class PricingMode(str, enum.Enum):
