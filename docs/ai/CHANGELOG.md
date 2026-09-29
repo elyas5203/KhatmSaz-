@@ -1,3 +1,9 @@
+## 2026-09-29 (graphical creator Mini App khatm creation)
+- Added a minimal card-based `/creator/khatms/new` form and `/creator/khatms/create` action for Quran, Salawat, Dua/Ziyarat and La'an, with OPEN/COMMITMENT, optional automatic title, relevant count and visibility.
+- The web flow uses the existing workflow service, plan price, wallet purchase, FREE cap, phone verification and CSRF rules instead of duplicating business logic.
+- Added clear localized fa/ar/en errors and direct wallet top-up navigation; linked the form from the creator dashboard and khatm list.
+- Added route/template/i18n regression coverage. No migration.
+
 ## 2026-09-29 (fixed Salawat content + optional panel image)
 - Salawat is now permanently category-free: choosing it always continues directly to mode selection, regardless of legacy SALAWAT category rows.
 - Plain Salawat sends the owner-provided canonical text exactly.

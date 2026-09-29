@@ -121,3 +121,22 @@ def test_creator_detail_renders_manage_stats_members_export_and_settings():
     assert 'name="allow_pause"' in html
     assert 'name="allow_skip_today"' in html
     assert 'action="/creator/khatms/' in html
+
+
+def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
+    category = lambda title: SimpleNamespace(id=uuid4(), title=title)
+    html = templates.get_template("creator_khatm_new.html").render(
+        request=_request("/creator/khatms/new"),
+        creator=SimpleNamespace(display_name="سازنده"), csrf="test-csrf",
+        lang="fa", t=t, label=lambda value: str(value), error="",
+        dua_categories=[category("دعای عهد")], laan_categories=[category("لعن نمونه")],
+        quran_editions=[{"id": "madina-hafs", "label": "مدینه — ۶۰۴ صفحه"}],
+        creation_price=20_000,
+    )
+
+    assert 'action="/creator/khatms/create"' in html
+    assert 'value="quran"' in html
+    assert 'value="salawat"' in html
+    assert 'value="dua"' in html
+    assert 'value="laan"' in html
+    assert "20,000 تومان" in html

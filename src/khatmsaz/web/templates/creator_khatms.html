@@ -1,10 +1,13 @@
 {% extends "creator_base.html" %}
 {% block title %}{{ t('web.creator.nav_my_khatms', lang) }} | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-6">
+<section class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+  <div>
   <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_private_report', lang) }}</p>
   <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">{{ t('web.creator.nav_my_khatms', lang) }}</h1>
   <p class="text-slate-400 text-sm">{{ t('web.creator.khatms_subtitle', lang) }}</p>
+  </div>
+  <a href="/creator/khatms/new" class="btn">{{ t('web.creator.create_button', lang) }}</a>
 </section>
 
 <!-- Level 1: parent branches (status) -->

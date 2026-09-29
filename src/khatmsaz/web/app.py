@@ -27,7 +27,7 @@ from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform, User
+from khatmsaz.modules.identity.models import Platform, User, UserRole
 from khatmsaz.modules.creator_request import service as creator_request_service
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
@@ -38,11 +38,15 @@ from khatmsaz.modules.khatm.models import (
     KhatmStatus,
     KhatmTemplateType,
     KhatmTypeEnum,
+    KhatmVisibility,
 )
+from khatmsaz.modules.khatm.quran_editions import QURAN_CREATION_EDITION_IDS, QURAN_EDITIONS
+from khatmsaz.modules.khatm_workflow import service as workflow_service
 from khatmsaz.bot import invite_links
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup, KhatmCategoryRequest, KhatmCategoryRequestStatus
+from khatmsaz.modules.phone import repository as phone_repository
 from khatmsaz.modules.manual_phone_verification.models import ManualPhoneVerification
 from khatmsaz.modules.khatm_request.models import KhatmRequest, KhatmRequestStatus
 from khatmsaz.modules.message_template import repository as template_repository
@@ -59,6 +63,7 @@ from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.i18n import t as web_t
 from khatmsaz.config import get_settings
 from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.service import InsufficientFundsError
 from khatmsaz.modules.wallet.gateway import GatewayError
 from khatmsaz.modules.wallet.payping import PayPingGateway
 from khatmsaz.modules.wallet.models import CouponDiscountType, WalletInvoice
@@ -814,6 +819,133 @@ async def creator_khatms_list(request: Request, branch: str = "active"):
             request, creator, raw, lang=lang, branches=branches, active_branch=branch,
         ),
     )
+
+
+async def _creator_khatm_new_context(session, creator, lang: str) -> dict:
+    categories = await category_service.list_active(session)
+    creation_price = await plan_service.get_creation_price(
+        session,
+        creator.id,
+        fallback_price_toman=get_settings().khatm_creation_price_toman,
+    )
+    return {
+        "dua_categories": [item for item in categories if item.group == KhatmCategoryGroup.DUA],
+        "laan_categories": [item for item in categories if item.group == KhatmCategoryGroup.LAAN],
+        "quran_editions": [
+            {"id": edition_id, **QURAN_EDITIONS[edition_id]}
+            for edition_id in QURAN_CREATION_EDITION_IDS
+        ],
+        "creation_price": creation_price,
+    }
+
+
+@app.get("/creator/khatms/new", response_class=HTMLResponse)
+async def creator_khatm_new(request: Request, error: str = ""):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if creator.role not in {UserRole.CREATOR, UserRole.SUPER_ADMIN}:
+        return HTMLResponse(web_t("web.creator.create_role_required", lang), status_code=403)
+    try:
+        async with session_scope() as session:
+            context = await _creator_khatm_new_context(session, creator, lang)
+    except plan_service.PlanFeatureUnavailableError:
+        context = {"dua_categories": [], "laan_categories": [], "quran_editions": [], "creation_price": None}
+        error = "plan_unavailable"
+    return templates.TemplateResponse(
+        request=request,
+        name="creator_khatm_new.html",
+        context=_creator_ctx(request, creator, raw, lang=lang, error=error, **context),
+    )
+
+
+@app.post("/creator/khatms/create")
+async def creator_khatm_create(
+    request: Request,
+    csrf: str = Form(...),
+    content_kind: str = Form(...),
+    khatm_type: str = Form(...),
+    title: str = Form(""),
+    amount: int | None = Form(None),
+    category_id: str = Form(""),
+    visibility: str = Form("UNLISTED"),
+    quran_edition_id: str = Form("madina-hafs"),
+):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if creator.role not in {UserRole.CREATOR, UserRole.SUPER_ADMIN}:
+        return HTMLResponse(web_t("web.creator.create_role_required", lang), status_code=403)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+
+    try:
+        mode = KhatmTypeEnum(khatm_type)
+        selected_visibility = KhatmVisibility(visibility)
+    except ValueError:
+        return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
+    if content_kind not in {"quran", "salawat", "dua", "laan"}:
+        return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
+    if content_kind != "quran" and (amount is None or amount <= 0):
+        return RedirectResponse("/creator/khatms/new?error=amount", status_code=303)
+    if content_kind == "quran" and quran_edition_id not in QURAN_CREATION_EDITION_IDS:
+        return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
+    clean_title = title.strip()
+    if len(clean_title) > 200:
+        return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
+
+    async with session_scope() as session:
+        verified_phone = await phone_repository.verified_claim_for_user(session, creator.id)
+        if verified_phone is None:
+            return RedirectResponse("/creator/khatms/new?error=phone", status_code=303)
+
+        category = None
+        if content_kind in {"dua", "laan"}:
+            try:
+                parsed_category_id = UUID(category_id)
+            except ValueError:
+                return RedirectResponse("/creator/khatms/new?error=category", status_code=303)
+            category = await category_service.get(session, parsed_category_id)
+            expected_group = KhatmCategoryGroup.DUA if content_kind == "dua" else KhatmCategoryGroup.LAAN
+            if category is None or not category.is_active or category.group != expected_group:
+                return RedirectResponse("/creator/khatms/new?error=category", status_code=303)
+
+        template_type = KhatmTemplateType.QURAN_PAGE if content_kind == "quran" else KhatmTemplateType.SALAWAT
+        if not clean_title:
+            if content_kind == "quran":
+                clean_title = web_t("create_khatm.default_title.quran", lang)
+            elif content_kind == "salawat":
+                clean_title = web_t("create_khatm.default_title.salawat", lang)
+            else:
+                clean_title = web_t("create_khatm.default_title.category", lang, name=category.title)
+        try:
+            price = await plan_service.get_creation_price(
+                session,
+                creator.id,
+                fallback_price_toman=get_settings().khatm_creation_price_toman,
+            )
+            khatm, _token = await workflow_service.create_and_launch_khatm(
+                session,
+                creator_user_id=creator.id,
+                template_type=template_type,
+                khatm_type=mode,
+                title=clean_title,
+                niyyat=None,
+                salawat_open_target=amount if mode == KhatmTypeEnum.OPEN else None,
+                salawat_commitment_quantity=amount if mode == KhatmTypeEnum.COMMITMENT else None,
+                quran_edition_id=quran_edition_id if content_kind == "quran" else None,
+                visibility=selected_visibility,
+                allowed_platforms="BOTH",
+                creation_price_toman=price,
+                content_category_id=category.id if category else None,
+            )
+        except plan_service.PlanFeatureUnavailableError:
+            return RedirectResponse("/creator/khatms/new?error=plan_unavailable", status_code=303)
+        except workflow_service.PlanCapExceededError:
+            return RedirectResponse("/creator/khatms/new?error=plan_cap", status_code=303)
+        except InsufficientFundsError:
+            return RedirectResponse("/creator/khatms/new?error=wallet", status_code=303)
+    return RedirectResponse(f"/creator/khatms/{khatm.id}?saved=created", status_code=303)
 
 
 @app.get("/creator/wallet", response_class=HTMLResponse)

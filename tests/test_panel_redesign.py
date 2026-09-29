@@ -71,5 +71,8 @@ def test_new_panel_routes_exist():
     from khatmsaz.web.app import app
 
     paths = {getattr(r, "path", "") for r in app.routes}
-    for path in ("/creator/khatms", "/creator/wallet", "/creator/wallet/topup", "/creator-requests", "/finance/user-plan"):
+    for path in (
+        "/creator/khatms", "/creator/khatms/new", "/creator/khatms/create",
+        "/creator/wallet", "/creator/wallet/topup", "/creator-requests", "/finance/user-plan",
+    ):
         assert path in paths, f"missing route {path}"

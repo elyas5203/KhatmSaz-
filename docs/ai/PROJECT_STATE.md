@@ -1,3 +1,11 @@
+## Current state — 2026-09-29 — Graphical creator Mini App khatm creation [Codex]
+- **Creator Mini App**: added `GET /creator/khatms/new` and `POST /creator/khatms/create` plus `creator_khatm_new.html`. The card-based form creates Quran, fixed Salawat, active Dua/Ziyarat, and active La'an khatms in OPEN or COMMITMENT mode, with optional automatic title, relevant count, Quran edition, and visibility.
+- **One business path**: the web POST calls `khatm_workflow.create_and_launch_khatm`, obtains the authoritative creation price from `plan_service.get_creation_price`, and reuses existing wallet charging and FREE cap enforcement.
+- **Safety/UX**: creator/Super Admin role, CSRF, verified phone, active category, positive amount and canonical Quran-edition checks fail with simple localized messages. Wallet shortage links directly to top-up. Dashboard and «ختم‌های من» now link to the new form.
+- **i18n/tests**: new `web.creator.*` strings exist in fa/ar/en; route presence and the new template's four content choices are covered. Focused panel/i18n suite: **13 passed**.
+- **Resumability**: `docs/ai/CODEX_BIG_FEATURES_PROGRESS.md` tracks this four-feature sequence. Custom creator-authored La'an text remains a documented web follow-up; existing curated La'an categories work now.
+- **Migration/deploy**: no migration and no server deployment were performed.
+
 ## Current state — 2026-09-29 — Fixed category-free Salawat text and panel image [Codex]
 - **Creation**: `_show_category_group` now always sends SALAWAT directly to `_ask_mode` with `content_category_id=None`; it never queries or displays SALAWAT subcategories, including historical active rows. LAAN and DUA retain their category behavior.
 - **Canonical content**: plain Salawat sends the exact owner-provided text: «الّلهُمَّ صَلِّ عَلَی مُحَمَّدٍ وَآلِ مُحَمَّدٍ وَعَجِّلْ فَرَجَهُمْ وَالْعَنْ أعْداءَهُم أجْمَعِینَ».

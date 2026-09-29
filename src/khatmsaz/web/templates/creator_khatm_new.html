@@ -1,0 +1,97 @@
+{% extends "creator_base.html" %}
+{% block title %}{{ t('web.creator.create_title', lang) }} | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-6">
+  <a href="/creator/khatms" class="text-sm text-emerald-400 hover:text-emerald-300">{{ t('web.creator.create_back', lang) }}</a>
+  <h1 class="text-2xl sm:text-3xl font-bold text-white mt-3 mb-2">{{ t('web.creator.create_title', lang) }}</h1>
+  <p class="text-slate-400 text-sm">{{ t('web.creator.create_subtitle', lang) }}</p>
+</section>
+
+{% if error %}
+<div class="mb-5 p-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 text-rose-200 text-sm leading-7">
+  {% if error == 'phone' %}{{ t('web.creator.create_error_phone', lang) }}
+  {% elif error == 'plan_cap' %}{{ t('web.creator.create_error_plan_cap', lang) }}
+  {% elif error == 'wallet' %}{{ t('web.creator.create_error_wallet', lang) }} <a class="underline font-bold" href="/creator/wallet">{{ t('web.creator.create_wallet_link', lang) }}</a>
+  {% elif error == 'plan_unavailable' %}{{ t('web.creator.create_error_plan_unavailable', lang) }}
+  {% elif error == 'category' %}{{ t('web.creator.create_error_category', lang) }}
+  {% elif error == 'amount' %}{{ t('web.creator.create_error_amount', lang) }}
+  {% else %}{{ t('web.creator.create_error_invalid', lang) }}{% endif %}
+</div>
+{% endif %}
+
+<form method="post" action="/creator/khatms/create" class="space-y-5" id="create-khatm-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl">
+    <p class="text-xs font-bold text-emerald-400 mb-3">۱ · {{ t('web.creator.create_kind', lang) }}</p>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {% for value, icon, key in [('quran','📖','web.creator.kind_quran'),('salawat','🕊','web.creator.kind_salawat'),('dua','🤲','web.creator.kind_dua'),('laan','✨','web.creator.kind_laan')] %}
+      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10">
+        <input type="radio" name="content_kind" value="{{ value }}" class="sr-only" {% if loop.first %}checked{% endif %}>
+        <span class="text-2xl block mb-2">{{ icon }}</span><span class="font-bold text-sm">{{ t(key, lang) }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    <div id="category-wrap" class="mt-4 hidden">
+      <label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_category', lang) }}</label>
+      <select name="category_id" id="category-id" class="input-field mt-1">
+        <optgroup label="{{ t('web.creator.kind_dua', lang) }}" id="dua-options">
+          {% for item in dua_categories %}<option value="{{ item.id }}" data-kind="dua">{{ item.title }}</option>{% endfor %}
+        </optgroup>
+        <optgroup label="{{ t('web.creator.kind_laan', lang) }}" id="laan-options">
+          {% for item in laan_categories %}<option value="{{ item.id }}" data-kind="laan">{{ item.title }}</option>{% endfor %}
+        </optgroup>
+      </select>
+      <p id="category-empty" class="hidden text-xs text-amber-300 mt-2">{{ t('web.creator.create_category_empty', lang) }}</p>
+    </div>
+    <div id="edition-wrap" class="mt-4">
+      <label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_edition', lang) }}</label>
+      <select name="quran_edition_id" class="input-field mt-1">
+        {% for edition in quran_editions %}<option value="{{ edition.id }}">{{ edition.label }}</option>{% endfor %}
+      </select>
+    </div>
+  </section>
+
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl">
+    <p class="text-xs font-bold text-emerald-400 mb-3">۲ · {{ t('web.creator.create_mode', lang) }}</p>
+    <div class="grid grid-cols-2 gap-3">
+      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10"><input type="radio" name="khatm_type" value="OPEN" class="sr-only" checked><span class="font-bold">{{ t('web.label.OPEN', lang) }}</span></label>
+      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10"><input type="radio" name="khatm_type" value="COMMITMENT" class="sr-only"><span class="font-bold">{{ t('web.label.COMMITMENT', lang) }}</span></label>
+    </div>
+  </section>
+
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="md:col-span-2"><p class="text-xs font-bold text-emerald-400">۳ · {{ t('web.creator.create_details', lang) }}</p></div>
+    <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_optional_title', lang) }}</label><input name="title" maxlength="200" class="input-field mt-1" placeholder="{{ t('web.creator.create_title_placeholder', lang) }}"></div>
+    <div id="amount-wrap" class="hidden"><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_amount', lang) }}</label><input name="amount" type="number" min="1" class="input-field mt-1" inputmode="numeric"></div>
+    <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_visibility', lang) }}</label><select name="visibility" class="input-field mt-1"><option value="UNLISTED">{{ t('web.creator.visibility_unlisted', lang) }}</option><option value="PUBLIC">{{ t('web.creator.visibility_public', lang) }}</option><option value="PRIVATE">{{ t('web.creator.visibility_private', lang) }}</option></select></div>
+  </section>
+
+  <section class="glass-panel p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <p class="text-sm text-slate-300">{{ t('web.creator.create_price', lang, price=creation_price or 0) }}</p>
+    <button class="btn justify-center px-8" type="submit" {% if creation_price is none %}disabled{% endif %}>{{ t('web.creator.create_submit', lang) }}</button>
+  </section>
+</form>
+
+<script>
+(() => {
+  const radios = [...document.querySelectorAll('input[name="content_kind"]')];
+  const categoryWrap = document.getElementById('category-wrap');
+  const categorySelect = document.getElementById('category-id');
+  const categoryEmpty = document.getElementById('category-empty');
+  const editionWrap = document.getElementById('edition-wrap');
+  const amountWrap = document.getElementById('amount-wrap');
+  function sync() {
+    const kind = radios.find(r => r.checked).value;
+    editionWrap.classList.toggle('hidden', kind !== 'quran');
+    amountWrap.classList.toggle('hidden', kind === 'quran');
+    categoryWrap.classList.toggle('hidden', !['dua','laan'].includes(kind));
+    [...categorySelect.querySelectorAll('option')].forEach(o => o.hidden = o.dataset.kind !== kind);
+    const first = [...categorySelect.querySelectorAll('option')].find(o => o.dataset.kind === kind);
+    if (first) first.selected = true;
+    categoryEmpty.classList.toggle('hidden', !['dua','laan'].includes(kind) || Boolean(first));
+  }
+  radios.forEach(r => r.addEventListener('change', sync)); sync();
+})();
+</script>
+{% endblock %}
