@@ -67,13 +67,26 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
+def _can_open_creator_panel(bot, user) -> bool:
+    """Creators/Super-Admins on the creator bot may open their Mini App from
+    Settings (owner 2026-09-29). Never on a member bot (no creator panel there;
+    the `creator:web_login` handler is creator-dispatcher-only)."""
+    from khatmsaz.modules.identity.models import UserRole
+    if is_member_bot(bot):
+        return False
+    return getattr(user, "role", None) in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+
+
 @router.message(F.text.in_(SETTINGS_BUTTON_TEXTS))
 async def settings_overview(message: Message) -> None:
-    _, settings = await _current_platform_user(message)
+    user, settings = await _current_platform_user(message)
     lang = settings.language
     await message.answer(
         t("settings.home_text", lang),
-        reply_markup=settings_home_keyboard(audio_enabled=settings.quran_audio_enabled, lang=lang),
+        reply_markup=settings_home_keyboard(
+            audio_enabled=settings.quran_audio_enabled, lang=lang,
+            show_creator_panel=_can_open_creator_panel(message.bot, user),
+        ),
     )
 
 
@@ -86,7 +99,10 @@ async def settings_home(callback: CallbackQuery) -> None:
     lang = settings.language
     await callback.message.edit_text(
         t("settings.home_text", lang),
-        reply_markup=settings_home_keyboard(audio_enabled=settings.quran_audio_enabled, lang=lang),
+        reply_markup=settings_home_keyboard(
+            audio_enabled=settings.quran_audio_enabled, lang=lang,
+            show_creator_panel=_can_open_creator_panel(callback.bot, user),
+        ),
     )
     await callback.answer()
 

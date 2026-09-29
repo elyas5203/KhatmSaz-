@@ -291,7 +291,25 @@ async def deliver_due_open_quran_reading(
             title=khatm.title, start=start, end=end,
             default=f"🌱 سهم امروزتان از «{khatm.title}» فرستاده شد: صفحات {start} تا {end}.",
         )
-        await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
+        # Owner (2026-09-29): the «ثبت مشارکت» log button now rides on the daily
+        # page delivery — i.e. it appears exactly when there IS something to log,
+        # not on the pre-delivery join/setup cards. Best-effort: fall back to a
+        # plain notice if the keyboard sender is unavailable.
+        _sent_with_button = False
+        try:
+            from khatmsaz.bot.notify_adapter import send_with_keyboard
+            from khatmsaz.bot.keyboards import contribute_keyboard
+            markup = contribute_keyboard(str(khatm.id), user_settings.language)
+            for identity in await identity_service.list_identities_for_user(session, participation.user_id):
+                await send_with_keyboard(
+                    identity.platform.value, identity.subject, text, markup,
+                    bot_instance_id=participation.joined_via_bot_instance_id,
+                )
+            _sent_with_button = True
+        except Exception:
+            _sent_with_button = False
+        if not _sent_with_button:
+            await _notify_user(session, notify, participation.user_id, text, bot_instance_id=participation.joined_via_bot_instance_id)
         delivered += 1
     return delivered
 

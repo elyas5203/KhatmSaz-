@@ -1,5 +1,6 @@
 """Member bot "My Khatms" handler — lists khatms the user joined via this bot instance."""
 from aiogram import F, Router
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from sqlalchemy import select
@@ -29,6 +30,7 @@ router = Router(name="member_my_khatms")
 
 
 @router.message(F.text.in_(MY_KHATMS_BUTTON_TEXTS))
+@router.message(Command("my_khatms"))
 async def list_member_khatms(message: Message) -> None:
     bot = message.bot
     platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)

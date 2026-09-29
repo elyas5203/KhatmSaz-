@@ -4,6 +4,14 @@
 - OTP challenges now live for five minutes and repeated/concurrent requests reuse the active challenge without another SMS across creator verification, phone change and account linking.
 - Added six regression assertions/tests; non-integration suite: 158 passed.
 
+## 2026-09-29 (member-bot fixes)
+- Open-Quran setup hour accepts exact time (14:27), stores minute, confirms HH:MM.
+- Removed the stray «ثبت مشارکت» button on the Quran join/setup cards (no pages sent yet); the log button now rides on the daily page delivery.
+- Home menu now shown right after open-Quran setup.
+- `/my_khatms` command now works on member bots (was button-only).
+- Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
+- No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
+
 ## 2026-09-29 (plan panels aligned to real backend)
 - Admin `/finance`: honest plan-card wording (enabled = «فعال و قابل اعمال»), member caps shown only on FREE, BASIC/PRO note "no member limit", price titled «هزینهٔ ساخت هر ختم». New «مدیریت پلن کاربران» section + `POST /finance/user-plan` (search → set FREE/BASIC/PRO, audit `USER_PLAN_CHANGED`).
 - Creator `/creator/wallet`: read-only «پلن فعلی» card (title from PlanDefinition, FREE usage vs cap for Quran & Salawat/Dua, cap-only-blocks-new-creation note, no buy button, contact-support-to-upgrade note). Top-up and SMS kept separate.

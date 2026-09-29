@@ -295,12 +295,19 @@ def build_join_success_message(
     display_name: str,
     creator_display_name: str = "",
     lang: str = "fa",
+    quran_join_button: bool = True,
 ):
     """Shared with `join_requests.py`'s approval handler, which sends this
     same message to a requester who may be on a different platform than
     whoever approved them — via `notify_adapter`, not `message.answer`.
     `lang` must be the *recipient's* (the joining user's) own stored
-    language, not the approver's."""
+    language, not the approver's.
+
+    `quran_join_button=False` suppresses the Quran «ثبت مشارکت» button on the
+    join card (owner 2026-09-29): the in-bot join immediately auto-starts the
+    open-Quran pages/hour setup, so a second stray button on the welcome card
+    is confusing and points at nothing (no pages sent yet). The approval path
+    (`join_requests.py`) keeps it True, since it can't start an FSM remotely."""
     text = t("join.welcome_line", lang, name=escape(display_name), title=escape(khatm.title))
     if creator_display_name:
         text += t("join.creator_line", lang, name=escape(creator_display_name))
@@ -317,7 +324,7 @@ def build_join_success_message(
     # their own daily page count; this single button is retained for approval
     # joins where no FSM can be started remotely.
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-        return text, contribute_keyboard(str(khatm.id), lang)
+        return text, (contribute_keyboard(str(khatm.id), lang) if quran_join_button else None)
 
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.POSITIONAL:
         text += t("join.first_page_portion_line", lang, start=first_portion.unit_start, end=first_portion.unit_end)
@@ -424,8 +431,16 @@ async def resume_join_after_registration(
         creator_display_name = creator.display_name
         if creator_mode == CreatorDisplayMode.FIRST_NAME:
             creator_display_name = creator_display_name.split()[0]
+    # When this in-bot join will immediately auto-start the open-Quran setup
+    # (non-waitlisted Quran with an FSM available), suppress the redundant
+    # «ثبت مشارکت» button on the welcome card (owner 2026-09-29).
+    _auto_quran_setup = (
+        state is not None and not was_waitlisted
+        and khatm.template_type == KhatmTemplateType.QURAN_PAGE
+    )
     text, keyboard = build_join_success_message(
-        khatm, participation, first_portion, was_waitlisted, display_name, creator_display_name, lang
+        khatm, participation, first_portion, was_waitlisted, display_name,
+        creator_display_name, lang, quran_join_button=not _auto_quran_setup,
     )
     await message.answer(text, reply_markup=keyboard)
 

@@ -988,6 +988,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     "settings.button.link_account": {
         "fa": "🔗 اتصال حساب قبلی", "ar": "🔗 ربط حساب سابق", "en": "🔗 Link a previous account",
     },
+    "settings.button.creator_panel": {
+        "fa": "🎛 ورود به پنل سازنده", "ar": "🎛 الدخول إلى لوحة المنشئ", "en": "🎛 Open creator panel",
+    },
 
     # --- my_khatms.py: member-facing list entry point (2026-09-20) ---
     "my_khatms.bucket.active": {"fa": "فعال", "ar": "نشطة", "en": "Active"},
@@ -1232,13 +1235,13 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "یک عدد مثبت بفرستید، مثلاً 5.", "ar": "أرسل رقماً موجباً، مثلاً 5.", "en": "Please send a positive number, like 5.",
     },
     "portions.open_quran.setup_ask_hour": {
-        "fa": "چه ساعتی (بین 0 تا 23، به وقت خودتون) دوست دارید صفحات هر روز براتون فرستاده بشه؟ فقط عدد ساعت رو بفرستید (مثلاً 9):",
-        "ar": "في أي ساعة (بين 0 و23، بتوقيتك) تحب أن تصلك الصفحات كل يوم؟ أرسل رقم الساعة فقط (مثلاً 9):",
-        "en": "What hour (0 to 23, your own time) would you like the pages sent each day? Send the hour number only (e.g. 9):",
+        "fa": "چه ساعتی (به وقت خودتون) دوست دارید صفحات هر روز براتون فرستاده بشه؟ یکی از دکمه‌ها را بزنید، یا ساعت دقیق را بنویسید (مثلاً 9 یا 14:27):",
+        "ar": "في أي ساعة (بتوقيتك) تحب أن تصلك الصفحات كل يوم؟ اضغط أحد الأزرار أو اكتب الوقت بدقة (مثلاً 9 أو 14:27):",
+        "en": "What time (your own time) would you like the pages sent each day? Tap a button, or type an exact time (e.g. 9 or 14:27):",
     },
     "portions.open_quran.hour_invalid": {
-        "fa": "یک عدد بین 0 تا 23 بفرستید، مثلاً 9.", "ar": "أرسل رقماً بين 0 و23، مثلاً 9.",
-        "en": "Please send a number between 0 and 23, like 9.",
+        "fa": "یک ساعت معتبر بفرستید؛ مثلاً 9 یا 14:27.", "ar": "أرسل وقتاً صحيحاً؛ مثلاً 9 أو 14:27.",
+        "en": "Please send a valid time, like 9 or 14:27.",
     },
     "portions.open_quran.setup_done": {
         "fa": "تنظیم شد ✅ هر روز ساعت {hour} به وقت خودتون، {pages_per_day} صفحه از قرآن براتون فرستاده می‌شه. اولین صفحات هم در همین ساعت می‌رسه 🌱",

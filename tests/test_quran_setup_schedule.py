@@ -74,6 +74,6 @@ async def test_quran_setup_waits_for_selected_hour_before_sending(monkeypatch):
     )
 
     assert saved["pages"] == (participation.id, 4)
-    assert saved["preference"][1] == {"reminder_hour": 21, "enabled": True}
+    assert saved["preference"][1] == {"reminder_hour": 21, "reminder_minute": 0, "enabled": True}
     assert state.cleared is True
     assert "اولین صفحات هم در همین ساعت می‌رسه" in message.answers[0][0]

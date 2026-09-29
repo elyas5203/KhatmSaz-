@@ -214,15 +214,22 @@ def content_preferences_keyboard(*, audio_enabled: bool) -> InlineKeyboardMarkup
     )
 
 
-def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:
+def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa", show_creator_panel: bool = False) -> InlineKeyboardMarkup:
     """Every personal setting reachable by tapping — no slash command is
     required for any of these (user request, 2026-09-18): the old screen
     listed `/language`, `/timezone`, `/font`, etc. as text to type, which
-    contradicts the project's "click, don't type" principle."""
+    contradicts the project's "click, don't type" principle.
+
+    `show_creator_panel=True` (creators/admins on the creator bot) adds a
+    top «ورود به پنل سازنده» button that opens the creator Mini App
+    (owner 2026-09-29 — creators asked for a way into their panel from here)."""
     audio_text = t("settings.button.audio_off", lang) if audio_enabled else t("settings.button.audio_on", lang)
     audio_value = "off" if audio_enabled else "on"
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
+    rows = []
+    if show_creator_panel:
+        rows.append([InlineKeyboardButton(text=t("settings.button.creator_panel", lang), callback_data="creator:web_login")])
+    rows.extend(
+        [
             [InlineKeyboardButton(text=audio_text, callback_data=f"quran_audio:{audio_value}")],
             [
                 InlineKeyboardButton(text=t("settings.button.language", lang), callback_data="settings:language"),
@@ -245,6 +252,7 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa") -> InlineKe
             ],
         ]
     )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def settings_back_row(lang: str = "fa") -> list[InlineKeyboardButton]:

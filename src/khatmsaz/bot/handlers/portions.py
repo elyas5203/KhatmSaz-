@@ -546,7 +546,7 @@ async def receive_open_quran_pages_per_day(message: Message, state: FSMContext) 
     )
 
 
-async def _finish_open_quran_setup(message: Message, state: FSMContext, data: dict, hour: int) -> None:
+async def _finish_open_quran_setup(message: Message, state: FSMContext, data: dict, hour: int, minute: int = 0) -> None:
     lang = data.get("lang", "fa")
     pages_per_day = data["pages_per_day"]
     khatm_id = data["khatm_id"]
@@ -562,13 +562,19 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
             return
         await participation_service.set_open_reading_pages_per_day(session, participation.id, pages_per_day)
         await notification_service.set_reminder_preference(
-            session, participation.id, reminder_hour=hour, enabled=True
+            session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
         )
 
     await state.clear()
+    # Owner (2026-09-29): no «ثبت مشارکت» button here — no pages have been sent
+    # yet, so a "log a contribution" button is meaningless. Show the bottom home
+    # menu instead so the member always lands on their menu right after setup.
+    # The log button now rides on the *daily page delivery* (reminder engine),
+    # i.e. it appears exactly when there is something to log.
+    time_str = f"{hour:02d}:{minute:02d}"
     await message.answer(
-        t("portions.open_quran.setup_done", lang, hour=hour, pages_per_day=pages_per_day),
-        reply_markup=contribute_keyboard(khatm_id, lang),
+        t("portions.open_quran.setup_done", lang, hour=time_str, pages_per_day=pages_per_day),
+        reply_markup=home_keyboard_for_bot(message.bot, lang),
     )
 
 
@@ -580,7 +586,7 @@ async def receive_open_quran_hour_button(callback: CallbackQuery, state: FSMCont
         await callback.message.edit_reply_markup(reply_markup=None)
     except Exception:
         pass
-    await _finish_open_quran_setup(callback.message, state, data, hour)
+    await _finish_open_quran_setup(callback.message, state, data, hour, 0)
     await safe_answer_callback(callback)
 
 
@@ -591,10 +597,15 @@ async def receive_open_quran_hour(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     lang = data.get("lang", "fa")
     raw = (message.text or "").strip()
-    if not raw.isdigit() or not 0 <= int(raw) <= 23:
+    # Owner (2026-09-29): accept an exact time like «14:27», not only a bare
+    # 0–23 hour — same parser the commitment/join delivery-hour flow uses.
+    from khatmsaz.bot.handlers.join_flow import _parse_delivery_time
+    parsed = _parse_delivery_time(raw)
+    if parsed is None:
         await message.answer(t("portions.open_quran.hour_invalid", lang))
         return
-    await _finish_open_quran_setup(message, state, data, int(raw))
+    hour, minute = parsed
+    await _finish_open_quran_setup(message, state, data, hour, minute)
 
 
 @router.callback_query(F.data.startswith("commitment_contribute:"))
