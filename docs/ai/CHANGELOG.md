@@ -1,3 +1,8 @@
+## 2026-09-29 (fix category-free Salawat invite admission)
+- Fixed Salawat invite links being rejected inside the correct Salawat member bot when the khatm intentionally has no content category.
+- Member-bot admission and invite generation now use the same shared bot-category resolver, preventing future classification drift.
+- Added a focused regression test for the category-free Salawat case. No migration.
+
 ## 2026-09-29 (Estedad panel font)
 - Replaced Vazirmatn with pinned Fontsource Estedad 5.3.0 in both shared admin and creator panel shells.
 - Added `system-ui`, `Tahoma`, and generic sans-serif fallbacks; Fontsource CSS uses `font-display: swap`.

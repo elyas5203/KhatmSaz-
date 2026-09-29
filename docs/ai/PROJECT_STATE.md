@@ -1,3 +1,9 @@
+## Current state — 2026-09-29 — FIX: category-free Salawat invite rejected by correct bot [Codex]
+- **Owner report**: a generated Salawat invite opened the configured Salawat member bot, but `/start join_…` replied «این ختم مربوط به بات دیگری است.»
+- **Root cause**: invite generation used the shared `bot_registry.resolve_bot_category`, whose intentional fallback maps a category-free non-Quran khatm to SALAWAT. `member_start.py` duplicated an older mapping and left the same khatm's category as `None`, so its admission check contradicted the generated link.
+- **Fix**: member-bot admission now calls the same `invite_links.resolve_khatm_category_value` source of truth used to generate links. The obsolete duplicate category lookup was removed.
+- **Coverage**: regression proves a SALAWAT khatm with `content_category_id=None` is accepted by the Salawat bot and rejected by the Quran bot; focused related suite **7 passed**. No migration.
+
 ## Current state — 2026-09-29 — Reliable Estedad panel typography [Codex]
 - **Font**: the admin and creator shared panel shells now load pinned Fontsource Estedad 5.3.0 webfont CSS from jsDelivr for weights 400/600/700/800.
 - **Fallback/loading**: both Tailwind configurations use `Estedad, system-ui, Tahoma, sans-serif`; Fontsource's CSS supplies `font-display: swap`, so readable fallback text remains available during CDN/font loading.

@@ -11,19 +11,26 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
 from khatmsaz.bot.keyboards import member_menu_keyboard, join_preview_keyboard, safe_clear_inline_keyboard
+from khatmsaz.bot import invite_links
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
-from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.bot.handlers.start import build_join_preview_message, JoinWorkflow, _creator_display_name
 
 router = Router(name="member_start")
+
+
+async def _matches_member_bot(session, khatm: Khatm, bot_category: str | None) -> bool:
+    """Keep invite generation and member-bot admission on one category rule."""
+    if not bot_category:
+        return True
+    return await invite_links.resolve_khatm_category_value(session, khatm) == bot_category
 
 
 @router.message(CommandStart(deep_link=True))
@@ -59,29 +66,9 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                 await message.answer(t("join.error.khatm_ended", lang), reply_markup=member_menu_keyboard(lang))
                 return
 
-            from khatmsaz.modules.bot_registry.models import BotCategory
-
-            # Determine Khatm's bot category
-            khatm_bot_cat = None
-            if khatm.template_type in [KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH]:
-                khatm_bot_cat = BotCategory.QURAN.value
-            else:
-                cat_obj = await category_service.get(session, khatm.content_category_id) if khatm.content_category_id else None
-                if cat_obj:
-                    if cat_obj.group.name == "SALAWAT":
-                        khatm_bot_cat = BotCategory.SALAWAT.value
-                    elif cat_obj.group.name == "LAAN":
-                        khatm_bot_cat = BotCategory.LAAN.value
-                    elif cat_obj.group.name == "DUA":
-                        khatm_bot_cat = BotCategory.DUA_ZIYARAT.value
-
-            if bot_category and khatm_bot_cat != bot_category:
+            if not await _matches_member_bot(session, khatm, bot_category):
                 await message.answer(t("join.error.wrong_bot", lang), reply_markup=member_menu_keyboard(lang))
                 return
-
-            cat = None
-            if khatm.content_category_id:
-                cat = await category_service.get(session, khatm.content_category_id)
 
             allowed_p = getattr(khatm, "allowed_platforms", "BOTH")
             if allowed_p != "BOTH" and allowed_p != platform.value:
