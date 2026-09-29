@@ -440,9 +440,14 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Write a welcome message every new member sees the moment they join.",
     },
     "create_khatm.ask_creator_contact": {
-        "fa": "اگه دوست دارید اعضا بتونن باهاتون در ارتباط باشن، آیدی تلگرام یا بله‌تون رو بفرستید (اگه ندارید، شماره‌تون). این توی پیام خوش‌آمد قرار می‌گیره تا هر کسی خواست راحت پیداتون کنه.",
-        "ar": "إن أحببت أن يتواصل معك الأعضاء، أرسل معرّفك في تلگرام أو بله (أو رقمك إن لم يكن لديك). سيظهر في رسالة الترحيب ليجدك الجميع بسهولة.",
-        "en": "If you'd like members to reach you, send your Telegram or Bale ID (or your phone if you don't have one). It'll appear in the welcome message so anyone can find you.",
+        "fa": "برای اینکه اعضا بتونن باهاتون در ارتباط باشن، آیدی تلگرام یا بله‌تون رو بفرستید (اگه آیدی ندارید، شماره‌تون). این توی پیام خوش‌آمد قرار می‌گیره تا هر کسی خواست راحت پیداتون کنه. (این مرحله لازمه)",
+        "ar": "كي يتمكن الأعضاء من التواصل معك، أرسل معرّفك في تلگرام أو بله (أو رقمك إن لم يكن لديك معرّف). سيظهر في رسالة الترحيب. (هذه الخطوة إلزامية)",
+        "en": "So members can reach you, send your Telegram or Bale ID (or your phone if you have no ID). It'll appear in the welcome message. (This step is required)",
+    },
+    "create_khatm.creator_contact_required": {
+        "fa": "این مرحله لازمه 🙏 لطفاً یه آیدی (تلگرام/بله) یا شمارهٔ تماس بفرستید تا اعضا بتونن باهاتون ارتباط بگیرن.",
+        "ar": "هذه الخطوة إلزامية 🙏 أرسل معرّفاً (تلگرام/بله) أو رقم هاتف ليتمكن الأعضاء من التواصل معك.",
+        "en": "This step is required 🙏 Please send an ID (Telegram/Bale) or a phone number so members can contact you.",
     },
     "create_khatm.contact.use_username": {
         "fa": "همین راه ارتباطی خودم: {username}",

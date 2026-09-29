@@ -482,19 +482,16 @@ async def skip_welcome(callback: CallbackQuery, state: FSMContext) -> None:
     await safe_answer_callback(callback)
 
 
-def _creator_contact_keyboard(lang: str, contact: str | None) -> InlineKeyboardMarkup:
-    """R4: creator sets a contact handle shown in the member welcome. Offers a
-    one-tap "use my @username" (when available) plus a skip."""
-    rows: list[list[InlineKeyboardButton]] = []
-    if contact:
-        rows.append([InlineKeyboardButton(
-            text=t("create_khatm.contact.use_username", lang, username=contact),
-            callback_data="ck:contact:self",
-        )])
-    rows.append([InlineKeyboardButton(
-        text=t("ck.skip_niyyat", lang), callback_data="ck:skip_niyyat"
-    )])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+def _creator_contact_keyboard(lang: str, contact: str | None) -> InlineKeyboardMarkup | None:
+    """R4 (owner 2026-09-28): the creator MUST provide a contact so members can
+    reach them — «نباید بتونن رد بکنن». No skip button. Offers only a one-tap
+    "use my @username" when available; otherwise the creator has to type one."""
+    if not contact:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+        text=t("create_khatm.contact.use_username", lang, username=contact),
+        callback_data="ck:contact:self",
+    )]])
 
 
 def _compose_welcome_with_contact(
@@ -555,7 +552,16 @@ async def enter_creator_contact(message: Message, state: FSMContext) -> None:
         return
     lang = await _lang(state)
     contact = _normalize_contact(message.text or "")
-    await state.update_data(creator_contact=contact or None)
+    if not contact:
+        # Mandatory (owner 2026-09-28): re-ask until a real contact is given.
+        data = await state.get_data()
+        await _wiz(
+            message, state,
+            t("create_khatm.creator_contact_required", lang),
+            reply_markup=_creator_contact_keyboard(lang, data.get("_creator_own_contact")),
+        )
+        return
+    await state.update_data(creator_contact=contact)
     await _after_welcome(message, state)
 
 
@@ -563,14 +569,6 @@ async def enter_creator_contact(message: Message, state: FSMContext) -> None:
 async def use_own_contact(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     await state.update_data(creator_contact=data.get("_creator_own_contact"))
-    await safe_clear_inline_keyboard(callback.message)
-    await _after_welcome(callback.message, state)
-    await safe_answer_callback(callback)
-
-
-@router.callback_query(F.data == "ck:skip_niyyat", StateFilter(CreateKhatm.entering_creator_contact))
-async def skip_creator_contact(callback: CallbackQuery, state: FSMContext) -> None:
-    await state.update_data(creator_contact=None)
     await safe_clear_inline_keyboard(callback.message)
     await _after_welcome(callback.message, state)
     await safe_answer_callback(callback)
