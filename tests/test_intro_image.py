@@ -6,6 +6,8 @@ from khatmsaz.modules.bot_registry.models import BotCategory
 from khatmsaz.modules.khatm.models import KhatmTemplateType
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
 from khatmsaz.i18n import _STRINGS, SUPPORTED_LANGUAGES
+import pytest
+from khatmsaz.modules.bot_registry import service as registry_service
 
 
 def test_quran_maps_to_quran_bot():
@@ -27,6 +29,22 @@ def test_salawat_default():
 
 
 def test_intro_caption_present_all_langs():
-    cap = _STRINGS["intro.image_caption"]
-    for lang in SUPPORTED_LANGUAGES:
-        assert cap[lang].strip()
+    for family in BotCategory:
+        cap = _STRINGS[f"intro.image_caption.{family.value}"]
+        for lang in SUPPORTED_LANGUAGES:
+            assert cap[lang].strip()
+
+
+@pytest.mark.asyncio
+async def test_shared_family_image_wins_over_per_bot_fallback(monkeypatch):
+    async def fake_get_str(session, key, default=""):
+        assert key == "intro_image_salawat"
+        return "https://cdn.example/salawat.jpg"
+
+    monkeypatch.setattr(
+        "khatmsaz.modules.system_settings.service.get_str", fake_get_str,
+    )
+    image = await registry_service.get_intro_image_for_category(
+        object(), BotCategory.SALAWAT.value,
+    )
+    assert image == "https://cdn.example/salawat.jpg"

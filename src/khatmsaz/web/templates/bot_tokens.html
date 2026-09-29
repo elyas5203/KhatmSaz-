@@ -33,6 +33,20 @@
 {% endif %}
 
 <!-- Platform Tabs -->
+<section class="glass-panel p-6 rounded-3xl mb-6">
+  <h2 class="text-xl font-bold text-white mb-2">تصویر معرفی خانواده‌های ختم</h2>
+  <p class="text-sm text-slate-400 mb-5">این چهار تصویر بین همهٔ زبان‌ها و هر دو پیام‌رسان مشترک‌اند. اگر خالی باشد، معرفی فقط متنی ارسال می‌شود.</p>
+  <form method="post" action="/bots/family-intro-images" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    {% for key, label in [('quran','قرآن'),('salawat','صلوات'),('dua_ziyarat','دعا و زیارت'),('laan','لعن')] %}
+    <label class="text-xs font-bold text-slate-300">{{ label }}
+      <input type="url" name="{{ key }}" value="{{ family_intro_images[key] }}" placeholder="https://…/intro.jpg" class="input-field w-full mt-1 font-mono" dir="ltr">
+    </label>
+    {% endfor %}
+    <button type="submit" class="btn md:col-span-2 justify-center">ذخیرهٔ تصاویر مشترک</button>
+  </form>
+</section>
+
 <div class="flex gap-2 mb-6">
   <a href="/bots?platform=TELEGRAM" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-colors {% if platform == 'TELEGRAM' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white{% endif %}">تلگرام</a>
   <a href="/bots?platform=BALE" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-colors {% if platform == 'BALE' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white{% endif %}">بله</a>

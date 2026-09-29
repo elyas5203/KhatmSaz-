@@ -543,6 +543,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "✅ تم الضبط! {times} مرة في ال{period}، الساعة {hour} تُرسل لك حصتك تلقائياً. 🌱",
         "en": "✅ Set! {times} time(s) per {period}, at {hour} your share will be sent automatically. 🌱",
     },
+    "navigation.back_home": {
+        "fa": "🏠 منوی اصلی", "ar": "🏠 القائمة الرئيسية", "en": "🏠 Main menu",
+    },
     "commit.regular.done_button": {
         "fa": "✅ انجام سهم", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
     },
@@ -584,10 +587,25 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم قرأت؟ اكتب العدد.",
         "en": "How many did you read? Type a number.",
     },
-    "intro.image_caption": {
-        "fa": "🌱 همهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند.\nختم شما هم همین‌طور به مخاطبان نشان داده می‌شود.",
-        "ar": "🌱 جميع الختمات تُقام بنية ظهور الإمام المهدي (عج).\nوهكذا سيُعرض ختمك على المشاركين.",
-        "en": "🌱 Every Khatm is dedicated to the reappearance of Imam Mahdi (AJ).\nYours will be shown to members the same way.",
+    "intro.image_caption.QURAN": {
+        "fa": "📖 ختم قرآن شما با تصویر ویژهٔ قرآن به اعضا معرفی می‌شود.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
+        "ar": "📖 ستُعرض ختمة القرآن للأعضاء بصورة القرآن الخاصة.\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "en": "📖 Your Quran khatm is introduced with the Quran family image.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
+    },
+    "intro.image_caption.SALAWAT": {
+        "fa": "📿 ختم صلوات شما با تصویر ویژهٔ صلوات به اعضا معرفی می‌شود.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
+        "ar": "📿 ستُعرض ختمة الصلوات للأعضاء بصورة الصلوات الخاصة.\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "en": "📿 Your Salawat khatm is introduced with the Salawat family image.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
+    },
+    "intro.image_caption.DUA_ZIYARAT": {
+        "fa": "🤲 ختم دعا یا زیارت شما با تصویر ویژهٔ دعا و زیارت به اعضا معرفی می‌شود.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
+        "ar": "🤲 ستُعرض ختمة الدعاء أو الزيارة للأعضاء بصورتها الخاصة.\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "en": "🤲 Your Dua or Ziyarat khatm is introduced with its family image.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
+    },
+    "intro.image_caption.LAAN": {
+        "fa": "🏴 ختم لعن شما با تصویر ویژهٔ لعن به اعضا معرفی می‌شود.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
+        "ar": "🏴 ستُعرض ختمة اللعن للأعضاء بصورة اللعن الخاصة.\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "en": "🏴 Your La'an khatm is introduced with the La'an family image.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "reminder.regular_commitment": {
         "fa": "🌱 وقت خواندن سهم شما از «{title}» است: {count} مرتبه.",

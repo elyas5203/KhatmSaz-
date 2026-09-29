@@ -86,14 +86,20 @@ async def _mwiz(message: Message, state: FSMContext, text: str, reply_markup=Non
     return sent
 
 
-async def start_commitment_mode_picker(message: Message, participation_id, lang: str) -> None:
-    """Kick off the mode picker for a freshly-joined commitment member."""
-    await message.answer(t("commit.explain", lang))
-    sent = await message.answer(
-        t("commit.ask_mode", lang),
-        reply_markup=member_commitment_mode_keyboard(str(participation_id), lang),
-    )
-    # seed the ephemeral tracker so the first real step deletes this prompt too
+async def start_commitment_mode_picker(
+    message: Message, state: FSMContext, participation_id, lang: str, *, summary: str = "",
+) -> None:
+    """Keep join summary, explanation and choice in one bot-owned message."""
+    combined = "\n\n".join(part for part in (
+        summary.strip(), t("commit.explain", lang).strip(), t("commit.ask_mode", lang).strip(),
+    ) if part)
+    markup = member_commitment_mode_keyboard(str(participation_id), lang)
+    try:
+        await message.edit_text(combined, reply_markup=markup)
+        sent = message
+    except Exception:
+        sent = await message.answer(combined, reply_markup=markup)
+    await state.update_data(_cwiz_mid=getattr(sent, "message_id", None))
 
 
 # ---- Mode selection ---------------------------------------------------------

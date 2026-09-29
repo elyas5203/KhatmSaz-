@@ -26,7 +26,13 @@ KNOWN_SETTINGS: dict[str, dict] = {
     "broadcast_sms_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر ارسال گروهی پیامک پس از سهمیه"},
 }
 
-KNOWN_STRING_SETTINGS = {"panel_logo_url"}
+KNOWN_STRING_SETTINGS = {
+    "panel_logo_url",
+    "intro_image_quran",
+    "intro_image_salawat",
+    "intro_image_dua_ziyarat",
+    "intro_image_laan",
+}
 
 
 async def get_int(session: AsyncSession, key: str) -> int:

@@ -452,7 +452,7 @@ async def resume_join_after_registration(
         khatm, participation, first_portion, was_waitlisted, display_name,
         creator_display_name, lang, quran_join_button=not _auto_quran_setup,
     )
-    await message.answer(text, reply_markup=keyboard)
+    join_message = await message.answer(text, reply_markup=keyboard)
 
     # Owner request (2026-09-21/22): ask every freshly-joined member what
     # hour they'd like their daily nudge/portion sent, instead of silently
@@ -484,17 +484,28 @@ async def resume_join_after_registration(
     is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
     if state is not None and not was_waitlisted and is_quran:
         from khatmsaz.bot.handlers.portions import start_open_quran_setup
-        await start_open_quran_setup(message, state, khatm_id=str(khatm.id), lang=lang)
+        await start_open_quran_setup(
+            join_message, state, khatm_id=str(khatm.id), lang=lang, summary=text,
+        )
     elif state is not None and not was_waitlisted and is_repetition_commitment:
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
-        await start_commitment_mode_picker(message, participation.id, lang)
+        await start_commitment_mode_picker(
+            join_message, state, participation.id, lang, summary=text,
+        )
     elif (
         state is not None and is_fresh_join
         and await notification_service.get_preference(session, participation.id) is None
     ):
         await state.set_state(AskDeliveryHour.entering_hour)
-        await state.update_data(delivery_hour_participation_id=str(participation.id), lang=lang)
-        await message.answer(t("join.ask_delivery_hour", lang), reply_markup=delivery_hour_keyboard("join_hour", lang))
+        await state.update_data(
+            delivery_hour_participation_id=str(participation.id),
+            lang=lang,
+            _join_wizard_mid=join_message.message_id,
+        )
+        await join_message.edit_text(
+            f"{text}\n\n{t('join.ask_delivery_hour', lang)}",
+            reply_markup=delivery_hour_keyboard("join_hour", lang),
+        )
     else:
         # Owner report (2026-09-27): after joining via a deep link the bottom
         # menu never appeared — the member had to send /start manually. The

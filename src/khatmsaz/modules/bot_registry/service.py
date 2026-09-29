@@ -96,6 +96,18 @@ async def get_intro_image_for_category(
     Prefers an exact platform+language match, then any bot of that category that
     has an image set. Returns None if none configured (caller falls back to a
     text-only caption)."""
+    from khatmsaz.modules.system_settings import service as system_settings_service
+
+    shared_key = {
+        BotCategory.QURAN.value: "intro_image_quran",
+        BotCategory.SALAWAT.value: "intro_image_salawat",
+        BotCategory.DUA_ZIYARAT.value: "intro_image_dua_ziyarat",
+        BotCategory.LAAN.value: "intro_image_laan",
+    }.get(category)
+    if shared_key:
+        shared = await system_settings_service.get_str(session, shared_key)
+        if shared:
+            return shared
     candidates = [
         b for b in await repository.list_all(session)
         if b.bot_role == BotRole.MEMBER.value and b.category == category and b.intro_image_url

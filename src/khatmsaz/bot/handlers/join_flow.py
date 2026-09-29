@@ -35,6 +35,23 @@ from khatmsaz.bot.handlers.start import AskDeliveryHour, resume_join_after_regis
 router = Router(name="join_flow")
 
 
+async def _finish_join_prompt(message: Message, data: dict, text: str) -> None:
+    """Replace only the bot-owned join wizard message, never unrelated chat history."""
+    message_id = data.get("_join_wizard_mid")
+    if message_id:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=message_id,
+                text=text,
+                reply_markup=None,
+            )
+            return
+        except Exception:
+            pass
+    await message.answer(text)
+
+
 async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0) -> None:
     async with session_scope() as session:
         await notification_service.set_reminder_preference(
@@ -66,15 +83,16 @@ async def receive_delivery_hour_button(callback: CallbackQuery, state: FSMContex
     data = await state.get_data()
     lang = data.get("lang", "fa")
     participation_id = data.get("delivery_hour_participation_id")
-    await state.clear()
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
     if participation_id:
         await _save_delivery_time(participation_id, hour, 0)
+    await _finish_join_prompt(
+        callback.message,
+        data,
+        t("join.delivery_hour_saved", lang, hour=f"{hour:02d}:00"),
+    )
+    await state.clear()
     await callback.message.answer(
-        t("join.delivery_hour_saved", lang, hour=hour),
+        t("join.menu_hint", lang),
         reply_markup=home_keyboard_for_bot(callback.message.bot, lang),
     )
     await callback.answer()
@@ -89,16 +107,25 @@ async def receive_delivery_hour(message: Message, state: FSMContext) -> None:
     raw = (message.text or "").strip()
     parsed = _parse_delivery_time(raw)
     if parsed is None:
-        await message.answer(t("join.delivery_hour_invalid", lang))
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        await _finish_join_prompt(message, data, t("join.delivery_hour_invalid", lang))
         return
     hour, minute = parsed
     participation_id = data.get("delivery_hour_participation_id")
-    await state.clear()
     if participation_id:
         await _save_delivery_time(participation_id, hour, minute)
     time_str = f"{hour:02d}:{minute:02d}"
+    try:
+        await message.delete()
+    except Exception:
+        pass
+    await _finish_join_prompt(message, data, t("join.delivery_hour_saved", lang, hour=time_str))
+    await state.clear()
     await message.answer(
-        t("join.delivery_hour_saved", lang, hour=time_str),
+        t("join.menu_hint", lang),
         reply_markup=home_keyboard_for_bot(message.bot, lang),
     )
 

@@ -128,8 +128,8 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
     shown (the owner does not want completed questions left in the chat)."""
     lang = await _lang(state)
     data = await state.get_data()
-    caption = t("intro.image_caption", lang)
     category = _bot_category_for(data.get("template_type"), data.get("category_group"))
+    caption = t(f"intro.image_caption.{category}", lang)
     from khatmsaz.modules.bot_registry import service as bot_registry_service
     image = None
     try:

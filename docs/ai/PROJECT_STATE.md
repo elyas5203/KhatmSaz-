@@ -1,3 +1,10 @@
+## Current state — 2026-09-29 — Family intro media and single-message join setup [Codex]
+- **Shared family media**: operations can configure one optional HTTP(S) intro image for each of Quran, Salawat, Dua/Ziyarat and La'an. The image is shared by every language/platform bot in that family; the existing per-bot image remains a fallback and empty configuration remains text-only.
+- **Family copy**: each family now has its own localized intro caption instead of one generic caption.
+- **Join UX**: Quran setup, repetition commitment selection and the generic delivery-time question reuse the original join-summary message. Typed wizard input is deleted best-effort, but only the message owned by this join flow is edited; unrelated chat history is never swept.
+- **Live Salawat-link diagnosis**: the exact category-free Salawat admission bug shown by the owner is already fixed and present on `origin/main` (`df83fd9`). The screenshot therefore indicates the production process is still running an older checkout/process and needs pull + restart after this push.
+- **Coverage**: non-integration suite **197 passed, 85 deselected**; 40 handler modules imported; 28 templates compiled; Alembic has one head. No migration added.
+
 ## Current state — 2026-09-29 — Moderated multi-channel creator broadcasts [Codex]
 - **Creator center**: `/creator/broadcasts` lets a creator choose one active khatm or all distinct active members, select Telegram/Bale/SMS, write the message and submit it for review.
 - **Mandatory moderation**: both creator-panel and bot submissions now enter the same `khatm_broadcasts` PENDING queue. The previous direct-send implementation and duplicate module were removed; approval is the only delivery path.

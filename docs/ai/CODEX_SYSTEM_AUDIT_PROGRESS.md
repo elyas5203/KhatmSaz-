@@ -43,7 +43,7 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
    - Admin controls allowance/count and free/paid pricing per channel; every
      creator broadcast requires admin approval before delivery.
 
-8. **Family-specific onboarding and intro media — TODO**
+8. **Family-specific onboarding and intro media — DONE (code/tests)**
    - Four admin-configured intro images: Quran, Salawat, Dua/Ziyarat, La'an;
      shared across language/platform bots, with text-only fallback.
    - Commitment/count wording and units are family-specific.
@@ -97,3 +97,9 @@ broadcast review. `TODO`, `IN-PROGRESS`, `DONE` are evidence-based only.
   approval. Evidence: **196 passed, 85 deselected**, 28 templates compile,
   one Alembic head. Migration SQL is structurally covered, but live apply is
   NOT RUN because the configured PostgreSQL endpoint refused the connection.
+- Family onboarding batch: operations can set four shared family intro images;
+  family-specific fa/ar/en captions replace the generic copy, with per-bot and
+  text-only fallbacks. Quran, repetition-commitment and delivery-hour join setup
+  now update one tracked bot message and never delete unrelated history.
+  Evidence: **197 passed, 85 deselected**, 40 handlers import, 28 templates
+  compile, one Alembic head; no migration added.

@@ -97,12 +97,43 @@ class SetupOpenQuranReading(StatesGroup):
 
 
 async def start_open_quran_setup(
-    message: Message, state: FSMContext, *, khatm_id: str, lang: str
+    message: Message, state: FSMContext, *, khatm_id: str, lang: str, summary: str = ""
 ) -> None:
     """Start the member-controlled Quran reading plan immediately after join."""
     await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
-    await state.update_data(khatm_id=khatm_id, lang=lang)
-    await message.answer(t("portions.open_quran.setup_ask_pages_per_day", lang))
+    await state.update_data(khatm_id=khatm_id, lang=lang, _join_wizard_mid=message.message_id)
+    text = "\n\n".join(part for part in (
+        summary.strip(), t("portions.open_quran.setup_ask_pages_per_day", lang).strip(),
+    ) if part)
+    try:
+        await message.edit_text(text)
+    except Exception:
+        sent = await message.answer(text)
+        await state.update_data(_join_wizard_mid=sent.message_id)
+
+
+async def _open_join_prompt(message: Message, state: FSMContext, text: str, reply_markup=None) -> None:
+    """Edit only the bot message owned by this join flow; delete typed input."""
+    get_data = getattr(state, "get_data", None)
+    data = await get_data() if get_data is not None else {}
+    if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
+        try:
+            await message.bot.delete_message(message.chat.id, message.message_id)
+        except Exception:
+            pass
+    mid = data.get("_join_wizard_mid")
+    if mid:
+        try:
+            await message.bot.edit_message_text(
+                text=text, chat_id=message.chat.id, message_id=mid, reply_markup=reply_markup,
+            )
+            return
+        except Exception:
+            pass
+    sent = await message.answer(text, reply_markup=reply_markup)
+    update_data = getattr(state, "update_data", None)
+    if update_data is not None and sent is not None:
+        await update_data(_join_wizard_mid=sent.message_id)
 
 
 class PauseCommitment(StatesGroup):
@@ -578,12 +609,12 @@ async def receive_open_quran_pages_per_day(message: Message, state: FSMContext) 
     lang = data.get("lang", "fa")
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await message.answer(t("portions.open_quran.pages_per_day_invalid", lang))
+        await _open_join_prompt(message, state, t("portions.open_quran.pages_per_day_invalid", lang))
         return
     await state.update_data(pages_per_day=int(raw))
     await state.set_state(SetupOpenQuranReading.entering_hour)
-    await message.answer(
-        t("portions.open_quran.setup_ask_hour", lang),
+    await _open_join_prompt(
+        message, state, t("portions.open_quran.setup_ask_hour", lang),
         reply_markup=delivery_hour_keyboard("open_quran_hour", lang),
     )
 
@@ -607,17 +638,17 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
             session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
         )
 
-    await state.clear()
     # Owner (2026-09-29): no «ثبت مشارکت» button here — no pages have been sent
     # yet, so a "log a contribution" button is meaningless. Show the bottom home
     # menu instead so the member always lands on their menu right after setup.
     # The log button now rides on the *daily page delivery* (reminder engine),
     # i.e. it appears exactly when there is something to log.
     time_str = f"{hour:02d}:{minute:02d}"
-    await message.answer(
-        t("portions.open_quran.setup_done", lang, hour=time_str, pages_per_day=pages_per_day),
-        reply_markup=home_keyboard_for_bot(message.bot, lang),
+    await _open_join_prompt(
+        message, state, t("portions.open_quran.setup_done", lang, hour=time_str, pages_per_day=pages_per_day),
     )
+    await state.clear()
+    await message.answer(t("navigation.back_home", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 
 @router.callback_query(F.data.startswith("open_quran_hour:"), StateFilter(SetupOpenQuranReading.entering_hour))
@@ -644,7 +675,7 @@ async def receive_open_quran_hour(message: Message, state: FSMContext) -> None:
     from khatmsaz.bot.handlers.join_flow import _parse_delivery_time
     parsed = _parse_delivery_time(raw)
     if parsed is None:
-        await message.answer(t("portions.open_quran.hour_invalid", lang))
+        await _open_join_prompt(message, state, t("portions.open_quran.hour_invalid", lang))
         return
     hour, minute = parsed
     await _finish_open_quran_setup(message, state, data, hour, minute)

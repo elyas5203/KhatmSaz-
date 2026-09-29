@@ -1,3 +1,10 @@
+## 2026-09-29 (family intro images and compact join flow)
+- Added four admin-configurable shared intro-image URLs for Quran, Salawat, Dua/Ziyarat and La'an, with per-bot and text-only fallback behavior.
+- Added distinct localized intro captions for all four families.
+- Consolidated Quran setup, repetition commitment selection and delivery-hour selection into the bot-owned join-summary message; only typed flow input and that tracked message are touched.
+- Reconfirmed the category-free Salawat invite regression is fixed on `origin/main`; production must pull/restart to replace the older running behavior shown in the owner's screenshot.
+- No migration.
+
 ## 2026-09-29 (moderated multi-channel creator broadcasts)
 - Added a creator-panel broadcast center for one khatm or all distinct active members, with Telegram, Bale and SMS channel selection.
 - Unified panel and bot submissions behind mandatory admin approval; removed the legacy direct-send module.
