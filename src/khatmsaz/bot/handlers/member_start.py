@@ -21,7 +21,7 @@ from khatmsaz.modules.invitation.service import InvitationExpiredError, Invitati
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.participation import service as participation_service
-from khatmsaz.bot.handlers.start import build_join_preview_message, JoinWorkflow, _creator_display_name
+from khatmsaz.bot.handlers.start import build_join_preview_message, build_join_trust_message, JoinWorkflow, _creator_display_name
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 router = Router(name="member_start")
@@ -100,11 +100,17 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
             await state.update_data(
                 joined_via_bot_instance_id=getattr(bot, "khatmsaz_instance_id", None)
             )
+            creator = await identity_service.find_by_id(session, khatm.creator_user_id)
+            join_intro = build_join_trust_message(
+                khatm, _creator_display_name(khatm, creator), lang,
+            )
             from khatmsaz.bot.handlers.member_registration import start_member_registration
             from khatmsaz.bot.handlers.start import resume_join_after_registration
             from khatmsaz.modules.settings import service as settings_service
             if not await settings_service.is_registered(session, user.id) or not user.display_name:
-                await start_member_registration(message, state, pending_join_token=token)
+                await start_member_registration(
+                    message, state, pending_join_token=token, join_intro=join_intro,
+                )
             else:
                 await resume_join_after_registration(message, session, user.id, token, state=state)
 

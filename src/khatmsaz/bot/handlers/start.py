@@ -83,6 +83,16 @@ def _creator_display_name(khatm: Khatm, creator) -> str:
     return name.split()[0] if mode == CreatorDisplayMode.FIRST_NAME and name else name
 
 
+def build_join_trust_message(khatm: Khatm, creator_name: str, lang: str = "fa") -> str:
+    """Compact trust context shown before a first-time member enters profile data."""
+    creator = escape(creator_name or t("join.creator_display.anonymous", lang))
+    text = t("join.trust.invited", lang, creator=creator, title=escape(khatm.title))
+    text += t("join.trust.from", lang, creator=creator)
+    if khatm.niyyat:
+        text += t("join.trust.niyyat", lang, niyyat=escape(_clean_niyyat(khatm.niyyat)))
+    return text
+
+
 def build_join_preview_message(
     khatm: Khatm,
     creator_name: str,
@@ -100,12 +110,7 @@ def build_join_preview_message(
     caller from `content_category_id`, since this function stays sync."""
     text = t("join.preview.header", lang)
     text += t("join.preview.title", lang, title=escape(khatm.title))
-    text += t(
-        "join.preview.creator", lang,
-        creator=escape(creator_name or t("join.creator_display.anonymous", lang)),
-    )
-    if khatm.niyyat:
-        text += t("join.preview.niyyat", lang, niyyat=escape(_clean_niyyat(khatm.niyyat)))
+    text += "\n\n" + build_join_trust_message(khatm, creator_name, lang)
 
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.preview.type_line", lang, icon="📖", type=t("join.preview.type_quran", lang))

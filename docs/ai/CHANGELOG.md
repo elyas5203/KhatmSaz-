@@ -1,3 +1,9 @@
+## 2026-09-30 (owner spec D6 trust-first join message; Section D complete)
+- Added creator-name and khatm-title invitation context before first-time member registration.
+- Displayed who the khatm is from, plus its fixed intention and optional proxy/dedication, while preserving creator display-mode privacy.
+- Reused the trust copy in join previews and kept it inside the one-message registration flow.
+- Added regression coverage for HTML escaping, proxy text and duplicate «به نیت» prevention. No migration.
+
 ## 2026-09-30 (owner spec D5 single-message join UX)
 - Converted member registration to one owned, replaceable prompt and removed only typed replies belonging to that registration step.
 - Added previous-step navigation throughout registration after the initial name step.

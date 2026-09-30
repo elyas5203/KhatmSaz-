@@ -1,3 +1,10 @@
+## Current state — 2026-09-30 — Owner spec Section D complete [Codex]
+- **D6 trust context:** direct member-bot joins now show the creator identity, invited khatm title, fixed intention and optional proxy/dedication before a first-time member enters profile data. The same compact context remains attached to the single registration prompt.
+- Join previews use the same trust copy, and join-success cards describe the creator as the person the khatm is from. Display-mode privacy (full/first/pseudonym/anonymous) remains authoritative.
+- `_clean_niyyat` is regression-tested against stored values that already begin with «به نیت», including a «به نیابت از …» suffix.
+- **Section D:** D1–D6 are implemented and marked complete in `OWNER_SPEC_MASTER.md`.
+- **Validation:** focused D6/related suite **21 passed**; full suite **236 passed, 86 skipped**; non-integration suite **236 passed, 86 deselected**. Alembic has one head (`broadcastfilters2026093001`); live upgrade was attempted but PostgreSQL refused the configured connection. Graphify refreshed to **4,064 nodes / 14,466 edges / 278 communities**. No migration was added.
+
 ## Current state — 2026-09-30 — Owner spec D5 single-message join UX [Codex]
 - Member registration owns one tracked prompt: typed replies and the preceding registration prompt are cleaned up without touching unrelated chat history.
 - Registration exposes real previous-step navigation after the first name step; Telegram contact sharing and Bale text-phone entry retain the same tracked flow.

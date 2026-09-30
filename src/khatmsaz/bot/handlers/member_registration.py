@@ -69,7 +69,9 @@ async def _member_reg_prompt(message: Message, state: FSMContext, text: str, rep
             await message.bot.delete_message(message.chat.id, prompt_id)
         except Exception:
             pass
-    sent = await message.answer(text, reply_markup=reply_markup)
+    intro = data.get("_member_reg_intro")
+    rendered = f"{intro}\n\n{text}" if intro else text
+    sent = await message.answer(rendered, reply_markup=reply_markup)
     await state.update_data(_member_reg_mid=sent.message_id)
     return sent
 
@@ -83,12 +85,19 @@ async def _remove_phone_keyboard(message: Message) -> None:
         pass
 
 
-async def start_member_registration(message: Message, state: FSMContext, *, pending_join_token: str | None) -> None:
+async def start_member_registration(
+    message: Message,
+    state: FSMContext,
+    *,
+    pending_join_token: str | None,
+    join_intro: str | None = None,
+) -> None:
     bot = message.bot
     lang = getattr(bot, "khatmsaz_language", "fa")
-    await state.update_data(pending_join_token=pending_join_token)
+    await state.update_data(pending_join_token=pending_join_token, _member_reg_intro=join_intro)
     await state.set_state(MemberRegistration.entering_name)
-    sent = await message.answer(t("registration.ask_name", lang))
+    prompt = t("registration.ask_name", lang)
+    sent = await message.answer(f"{join_intro}\n\n{prompt}" if join_intro else prompt)
     await state.update_data(_member_reg_mid=sent.message_id)
 
 

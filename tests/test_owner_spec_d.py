@@ -9,6 +9,9 @@ from khatmsaz.bot.keyboards import member_menu_keyboard, participant_menu_keyboa
 from khatmsaz.i18n import t
 from khatmsaz.bot.handlers import member_registration
 from khatmsaz.bot.handlers import join_flow
+from khatmsaz.bot.handlers.start import build_join_trust_message
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
+from uuid import uuid4
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -136,3 +139,17 @@ async def test_d5_delivery_hour_completion_keeps_the_join_welcome_summary():
     )
     assert edits[0]["message_id"] == 12
     assert edits[0]["text"] == "خوش آمدید به ختم نمونه\n\nساعت ۰۹:۰۰ ذخیره شد"
+
+
+def test_d6_join_trust_copy_has_creator_invitation_and_clean_proxy_niyyat():
+    khatm = Khatm(
+        id=uuid4(), creator_user_id=uuid4(), title="ختم ظهور",
+        template_type=KhatmTemplateType.SALAWAT, khatm_type=KhatmTypeEnum.OPEN,
+        status=KhatmStatus.ACTIVE,
+        niyyat="به نیت ظهور امام زمان علیه السلام — به نیابت از حاج احمد",
+    )
+    text = build_join_trust_message(khatm, "آقای رضایی")
+    assert "آقای رضایی شما را به ختم «ختم ظهور» دعوت کرده است" in text
+    assert "این ختم از طرف آقای رضایی است" in text
+    assert "به نیابت از حاج احمد" in text
+    assert "به نیت: به نیت" not in text

@@ -1665,7 +1665,20 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Welcome {name} 🌱\nYou joined the khatm “{title}”.",
     },
     "join.creator_line": {
-        "fa": "\nسازنده: {name}", "ar": "\nالمنشئ: {name}", "en": "\nCreator: {name}",
+        "fa": "\nاین ختم از طرف {name} است.", "ar": "\nهذه الختمة مقدمة من {name}.", "en": "\nThis khatm is from {name}.",
+    },
+    "join.trust.invited": {
+        "fa": "🌱 {creator} شما را به ختم «{title}» دعوت کرده است.",
+        "ar": "🌱 دعاك {creator} إلى ختمة «{title}».",
+        "en": "🌱 {creator} invited you to the khatm “{title}”.",
+    },
+    "join.trust.from": {
+        "fa": "\nاین ختم از طرف {creator} است.",
+        "ar": "\nهذه الختمة مقدمة من {creator}.",
+        "en": "\nThis khatm is from {creator}.",
+    },
+    "join.trust.niyyat": {
+        "fa": "\nبه نیت: {niyyat}", "ar": "\nبنية: {niyyat}", "en": "\nIntention: {niyyat}",
     },
     "join.niyyat_line": {
         "fa": "\nبه نیت: {niyyat}", "ar": "\nبنية: {niyyat}", "en": "\nIntention: {niyyat}",
