@@ -582,7 +582,7 @@ system_settings) در بالا فرستاده شود و **کپشنش** این م
 **آخرین** پیام دکمهٔ «✅ انجام سهم» باشد. (`report.py::deliver_today_early` COUNT/REGULAR
 branches → `portions._send_recitation_content` را صدا بزن قبل از دکمه.)
 
-### L6 — بازنویسیِ پیام‌های «انجام سهم» طبق نمونه‌های مالک ⬜
+### L6 — پیام‌های «انجام سهم» ✅ (verify) — پیام تکمیل قرآن از قبل «لینک اشتراکِ همان ختم» را دارد (`portions.invite_friends_line` + `_invite_friends_line`)؛ متن‌های ما «ارتباط با ما/@کانال» ندارند (آن‌ها نمونهٔ بات دیگر بودند). بهبود جزئی: افزودن invite line به پیام COUNT اگر مالک خواست.
 - تعهدی/یادآوری: متن با مهلت + «قرائت بخش فوق انجام شد»؛ به‌جای «ارتباط با ما / @…»
   آیدیِ **سازنده** گذاشته شود.
 - قرآن (تکمیل): «✅ صفحات X,Y خوانده شد… با ارسال این لینک برای دوستان…» که لینک =
@@ -602,11 +602,11 @@ branches → `portions._send_recitation_content` را صدا بزن قبل از 
 (فلوی `creator_broadcast` از قبل مدیا می‌گیرد؛ فقط دکمه/ورودی لازم است). `keyboards.py` +
 `panel.py`/`creator_broadcast.py`.
 
-### L10 — آیدی عددیِ تلگرام و بله فرق دارد ⬜
+### L10 — تفکیک آیدی تلگرام/بله ✅ (verify) — همهٔ مسیرها (notify/send_with_keyboard/send_media/تیکت/براودکست) با `platform` + `bot_instance_id` + PlatformIdentityِ همان پلتفرم تفکیک می‌کنند.
 مطمئن شو مسیرِ ارسال/تیکت/براودکست همیشه با `platform` + `bot_instance_id` درست تفکیک
 می‌کند (نه اختلاطِ chat_idها). بازبینیِ `notify_adapter` و suggestions/broadcast.
 
-### L11 — متنِ دعا/زیارت/لعن/صلوات ارسال نمی‌شود (باگ) ⬜
+### L11 — ارسال متن دعا/زیارت/لعن/صلوات 🟡 — فلوی «انجام قرائت امروز» حالا محتوا را می‌فرستد (L5). باقی‌مانده: ارسال محتوا در یادآوریِ خودکارِ موتور (`deliver_due_regular_commitments`) — چون موتور platform-agnostic است، نیاز به تزریق sender دارد. (follow-up)
 با اینکه دسته به اسلاگ لینک شده، محتوا فرستاده نمی‌شود. `portions._send_recitation_content`
 + `devotional` + لینکِ `KhatmCategory.devotional_slug` بررسی و رفع شود.
 
