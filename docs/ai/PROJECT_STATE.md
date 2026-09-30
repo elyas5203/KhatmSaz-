@@ -159,6 +159,15 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-09-30 (شب) — Live-fix batch L1–L11 (join/today/tickets/broadcast) [Claude Code]
+- Added the owner's night batch as a resumable checklist in `OWNER_SPEC_MASTER.md` §L (L1–L13) + §M (test checklist). Done this session:
+  - **L1** join line no longer doubles «ختم». **L2** removed the wrong «پیام سازنده:» label. **L3** the 🔒 privacy note moved off create-start onto the member's join **intro-image caption** (family image shown on top at join).
+  - **L5** the «انجام قرائت امروز» flow now delivers the zekr/dua/ziyarat/salawat **content** first, then the «انجام سهم» button as the last message.
+  - **L7** creator tickets now include the member's name + phone/id. **L8** broadcasts are prefixed «📢 از طرف <سازنده>». **L9** «📢 ارسال پیام گروهی» is now in the creator main menu (accepts text/photo/video/voice).
+  - **L6/L10** verified already-correct (quran-done uses the khatm share link; platform/bot_instance routing separates Telegram/Bale ids).
+- **Verified**: `pytest -m "not integration"` → 236 passed. No migration this batch.
+- **Remaining (each its own goal, resumable via §L/§M)**: **L4** weekly multi-day schedule + remove monthly (needs a `schedule_weekdays` column/migration; the half-started `commitment_weekday_keyboard` + conflicting anchor semantics must be reconciled); **L11 engine part** (send devotional content in the automatic regular-commitment reminder); **L12** easier content management (text/image/audio); **L13** full panel feature audit; **M** graph-driven test checklist.
+
 ## Current state — 2026-09-30 — Section A completed: A2 media promo, A3 paid SMS, A4 servant ads [Claude Code]
 - **A2 (done)**: creator promo broadcast now truly supports media — added voice; `broadcast_service.submit`
   stores `media_type`+platform file_id; media-only allowed; `decide_broadcast` delivers photo/video/voice/

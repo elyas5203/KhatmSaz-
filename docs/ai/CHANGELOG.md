@@ -125,6 +125,12 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-09-30 (شب) — live-fix batch L1–L11
+- Join: no double «ختم»; removed wrong «پیام سازنده:» label; 🔒 privacy note now the join intro-image caption (family image on top).
+- «انجام قرائت امروز» delivers the zekr/dua content, then the done button last.
+- Tickets include member name+id; broadcasts prefixed «از طرف <سازنده>»; «ارسال پیام گروهی» in creator main menu (text/photo/video/voice).
+- 236 tests pass. Remaining (spec §L/§M): L4 weekly-multiday+migration, L11 engine content, L12 content mgmt, L13 panel audit, M test checklist.
+
 ## 2026-09-30 (Section A completed: promo media, paid SMS, servant ads)
 - A2: creator promo broadcasts now carry media (photo/video/voice/document) end-to-end — submit stores it, `send_media` delivers it; media-only allowed.
 - A3: SMS broadcast channel is paid from the first message (free_count=0), admin-reviewed, wallet-charged on approve.
