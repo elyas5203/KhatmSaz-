@@ -111,12 +111,16 @@ def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     )
 
 def support_inline_keyboard(lang: str = "fa", is_participant: bool = False, is_admin: bool = False, is_creator: bool = False) -> InlineKeyboardMarkup:
-    buttons = [
-        [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")]
-    ]
-    if not is_participant and not is_creator and not is_admin:
-        buttons.append([InlineKeyboardButton(text=t("menu.creator_request", lang), callback_data="creator_request:start")])
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    # Owner (2026-09-30, OWNER_SPEC_MASTER A5): the creator role is granted
+    # automatically the moment someone builds a khatm in the ختم‌ساز bot
+    # (DEC-PY-0093), so the «درخواست سازنده‌شدن» upgrade button is obsolete and
+    # removed. Everyone in the creator bot can already create; everyone in a
+    # member bot is an audience member.
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("support.button.send_message", lang), callback_data="suggest:start")]
+        ]
+    )
 
 def back_to_support_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(

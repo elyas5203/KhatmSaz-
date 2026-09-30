@@ -12,6 +12,7 @@ No platform-specific logic here: the platform is read off
 constructed (see bot/telegram/client.py, bot/bale/client.py).
 """
 
+import logging
 from html import escape
 
 from aiogram import F, Router
@@ -43,6 +44,7 @@ from khatmsaz.modules.participation.service import AlreadyParticipatingError
 from khatmsaz.modules.settings import service as settings_service
 
 router = Router(name="start")
+logger = logging.getLogger(__name__)
 
 WELCOME_TEXT = t("welcome.text", "fa")
 
@@ -406,6 +408,22 @@ async def resume_join_after_registration(
         return
 
     await invitation_service.mark_accepted(session, token, user_id)
+
+    # Owner model §A1 (2026-09-30): a fresh (non-waitlisted) join may push the
+    # creator's total audience past the FREE cap → auto-upgrade to BASIC and tell
+    # the creator once (only the FREE→BASIC transition returns True, so no spam).
+    if not was_waitlisted:
+        try:
+            from khatmsaz.modules.plan import service as _plan_service
+            if await _plan_service.maybe_autoupgrade_free_to_basic(session, khatm.creator_user_id):
+                from khatmsaz.bot.notify_adapter import get_notify_fn as _get_notify
+                _notify = _get_notify()
+                _creator_ids = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
+                _msg = t("plan.autoupgrade_basic_notice", "fa")
+                for _idn in _creator_ids:
+                    await _notify(_idn.platform.value, _idn.subject, _msg)
+        except Exception:
+            logger.warning("FREE→BASIC auto-upgrade notify failed", exc_info=True)
 
     user = await identity_service.find_by_platform(
         session, getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM), str(message.chat.id)

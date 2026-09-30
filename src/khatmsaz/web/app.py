@@ -741,47 +741,27 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
         _QURAN_TEMPLATE_TYPES, _DEVOTIONAL_TEMPLATE_TYPES,
     )
 
+    # Owner model §A (2026-09-30): real stored tier (FREE/BASIC/PRO). FREE/BASIC
+    # show the total-audience usage vs the admin cap (crossing it moves FREE→BASIC,
+    # which turns on خدمتگزاران ads). PRO = no ads.
     plan = await plan_service.get_plan(session, user_id)
     definition = await plan_service.get_definition(session, plan)
     fallback = web_t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
-    title = (definition.title if definition and definition.title else fallback)
-    is_free = plan == PlanTier.FREE
-    if not is_free:
-        pro_definition = await plan_service.get_definition(session, PlanTier.PRO)
-        title = (
-            pro_definition.title if pro_definition and pro_definition.title
-            else web_t("web.creator.plan_pro_name", lang)
-        )
+    title = definition.title if definition and definition.title else fallback
+    total_members = await plan_service.count_total_active_members(session, user_id)
+    total_cap = await plan_service.get_free_total_member_cap(session)
     view = {
-        "tier": PlanTier.FREE.value if is_free else PlanTier.PRO.value,
+        "tier": plan.value,
         "title": title,
-        "is_free": is_free,
-        "is_pro": not is_free,
+        "is_free": plan == PlanTier.FREE,
+        "is_basic": plan == PlanTier.BASIC,
+        "is_pro": plan == PlanTier.PRO,
+        "ads_shown": await plan_service.ads_enabled_for_creator(session, user_id),
+        "total_members": total_members,
+        "total_cap": total_cap,
+        # legacy keys kept so older template branches still render safely
         "caps": None,
     }
-    if plan == PlanTier.FREE:
-        free_def = definition
-        quran_cap = free_def.entitlements.get("max_quran_members") if free_def else None
-        dev_cap = free_def.entitlements.get("max_devotional_members") if free_def else None
-
-        async def _count(types):
-            return int((await session.execute(
-                select(func.count())
-                .select_from(Participation)
-                .join(Khatm, Khatm.id == Participation.khatm_id)
-                .where(
-                    Khatm.creator_user_id == user_id,
-                    Khatm.template_type.in_(types),
-                    Participation.status == ParticipationStatus.ACTIVE,
-                )
-            )).scalar_one())
-
-        view["caps"] = {
-            "quran_used": await _count(_QURAN_TEMPLATE_TYPES),
-            "quran_cap": int(quran_cap) if quran_cap is not None else None,
-            "dev_used": await _count(_DEVOTIONAL_TEMPLATE_TYPES),
-            "dev_cap": int(dev_cap) if dev_cap is not None else None,
-        }
     return view
 
 
@@ -2421,6 +2401,8 @@ async def update_plan_definition(
     price_toman: int = Form(0),
     max_devotional_members: str = Form(""),
     max_quran_members: str = Form(""),
+    free_total_member_cap: str = Form(""),
+    ads_enabled: str = Form(""),
     khatm_create: str = Form(""),
     enabled: str = Form(""),
 ):
@@ -2449,6 +2431,11 @@ async def update_plan_definition(
                 if value <= 0:
                     raise ValueError
                 limits[key] = value
+        total_cap: int | None = None
+        if free_total_member_cap.strip():
+            total_cap = int(free_total_member_cap)
+            if total_cap <= 0:
+                raise ValueError
     except (TypeError, ValueError):
         return HTMLResponse("اطلاعات پلن معتبر نیست.", status_code=400)
 
@@ -2459,6 +2446,12 @@ async def update_plan_definition(
         entitlements.pop("max_quran_members", None)
         entitlements.update(limits)
         entitlements["khatm.create"] = khatm_create == "on"
+        # Owner model §A1 (2026-09-30): total-audience cap (FREE) + خدمتگزاران
+        # ads flag (BASIC). Empty cap → remove the key (no cap / unlimited).
+        entitlements.pop("free_total_member_cap", None)
+        if total_cap is not None:
+            entitlements["free_total_member_cap"] = total_cap
+        entitlements["ads_enabled"] = ads_enabled == "on"
         definition = await plan_service.set_definition(
             session,
             plan=plan,

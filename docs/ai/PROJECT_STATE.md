@@ -132,6 +132,27 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-09-30 — Section A backbone: stored 3-tier plans + role removal [Claude Code]
+- **A5 (done)**: removed the leftover "upgrade to creator" UI (support inline button,
+  admin inline-panel button, `/creator-requests` sidebar link). Creation already
+  auto-promotes (DEC-PY-0093); `get_creation_price` no longer blocks on the
+  `khatm.create` gate — everyone in the ختم‌ساز bot can build.
+- **A1 backbone (done)**: reverted `plan_service.get_plan` from wallet-derivation to a
+  STORED tier (UserPlan; missing=FREE); re-activated 3 tiers (FREE/BASIC/PRO). Admin-
+  editable `free_total_member_cap` (default 1000) + `ads_enabled` on plan definitions
+  (`/finance`). New helpers: `count_total_active_members`, `get_free_total_member_cap`,
+  `ads_enabled_for_creator` (BASIC-only), `maybe_autoupgrade_free_to_basic` (idempotent).
+  Auto-upgrade FREE→BASIC after a fresh join + one-time creator notice
+  (`plan.autoupgrade_basic_notice`). Old per-family creation block is disabled once the
+  new cap key is set. Creator wallet page now shows the real tier + total-audience vs cap +
+  ads status + 3-tier comparison.
+- **Verified**: `pytest -m "not integration"` → 208 passed (updated `test_pro_plan_purchase.py`,
+  `test_admin_template_render.py` for the new model). No migration yet.
+- **Staged (own goals)**: A2 (creator promo messaging w/ media + quota/buy-more),
+  A3 (paid SMS request flow), A4 (خدمتگزاران ads delivery to BASIC audiences), and the
+  PRO "buy member blocks" purchase + stored no-ad capacity (needs a migration). Details +
+  next steps in `docs/ai/OWNER_SPEC_MASTER.md` §A2–A4.
+
 ## Current state — 2026-09-30 — E2 verified + E3 range arithmetic aligned to owner [Claude Code]
 - **E2** (انجام قرائت امروز): verified `report.py::today_overview`/`deliver_today_early` —
   lists the user's active khatms by the creator's title, delivers the picked khatm's share

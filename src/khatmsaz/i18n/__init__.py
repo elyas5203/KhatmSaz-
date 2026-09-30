@@ -3229,6 +3229,18 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "📞 الدعم الفني",
         "en": "📞 Contact Support",
     },
+    "web.creator.plan_total_audience": {"fa": "مجموع مخاطبان شما (همهٔ ختم‌ها)", "ar": "إجمالي جمهورك (كل الختمات)", "en": "Your total audience (all khatms)"},
+    "web.creator.plan_ads_on": {"fa": "⚠️ در پلن فعلی ممکن است برای مخاطبان شما پیام تبلیغاتی خدمتگزاران ارسال شود. برای حذف تبلیغ، پلن پرو را تهیه کنید.", "ar": "⚠️ في باقتك الحالية قد تُرسَل رسائل ترويجية لجمهورك. للإزالة، اقتنِ الباقة الاحترافية.", "en": "⚠️ On your current plan, promo messages may be sent to your audience. Get Pro to remove ads."},
+    "web.creator.plan_ads_off": {"fa": "✅ در پلن فعلی هیچ تبلیغی برای مخاطبان شما ارسال نمی‌شود.", "ar": "✅ لا تُرسَل أي إعلانات لجمهورك في باقتك الحالية.", "en": "✅ No ads are sent to your audience on your current plan."},
+    "web.creator.plan_basic_name": {"fa": "پلن پایه", "ar": "الباقة الأساسية", "en": "Basic"},
+    "web.creator.plan_free_desc": {"fa": "تا سقف مشخصِ مخاطب، رایگان و بدون تبلیغ.", "ar": "مجاني وبدون إعلانات حتى حدّ جمهور معيّن.", "en": "Free and ad-free up to a set audience cap."},
+    "web.creator.plan_basic_desc": {"fa": "بعد از عبور از سقف رایگان؛ ختم‌ها ادامه دارند اما تبلیغ خدمتگزاران فعال می‌شود.", "ar": "بعد تجاوز الحد المجاني؛ تستمر الختمات لكن تُفعَّل الإعلانات.", "en": "After the free cap; khatms continue but خدمتگزاران ads turn on."},
+    "web.creator.plan_pro_desc": {"fa": "بدون تبلیغ؛ با خرید بستهٔ نفرات و امکان پیام تبلیغاتی به مخاطبان.", "ar": "بدون إعلانات؛ بشراء باقة أعضاء وإمكانية مراسلة الجمهور.", "en": "No ads; buy member blocks and message your audience."},
+    "plan.autoupgrade_basic_notice": {
+        "fa": "🌱 تعداد کل مخاطبان ختم‌های شما از سقف پلن رایگان گذشت، پس وارد «پلن پایه» شدید.\n\nدر پلن پایه، ممکن است از طرف خدمتگزاران برای مخاطبان شما پیام تبلیغاتی ارسال شود. اگر می‌خواهید تبلیغی ارسال نشود، کیف پول را شارژ و «پلن پرو» را تهیه کنید.",
+        "ar": "🌱 تجاوز إجمالي جمهور ختماتك سقف الباقة المجانية، لذا انتقلت إلى «الباقة الأساسية».\n\nفي الباقة الأساسية قد تُرسَل رسائل ترويجية لجمهورك من الخدمتغزاران. إن أردت إيقافها، اشحن محفظتك واقتنِ «الباقة الاحترافية».",
+        "en": "🌱 Your total audience passed the free-plan cap, so you moved to the Basic plan.\n\nOn Basic, promotional messages may be sent to your audience. To stop ads, top up your wallet and get the Pro plan.",
+    },
     "menu.contact_creator": {
         "fa": "✉️ ارتباط با سازندهٔ ختم",
         "ar": "✉️ التواصل مع منشئ الختمة",

@@ -102,22 +102,25 @@
           </div>
 
           {% if plan.plan == 'FREE' %}
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">بیشترین عضو ختم صلوات/دعا</label>
-            <input name="max_devotional_members" type="number" min="1" value="{{ plan.entitlements.get('max_devotional_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
-          </div>
-
-          <div class="space-y-1">
-            <label class="text-xs font-bold text-slate-400">بیشترین عضو ختم قرآن</label>
-            <input name="max_quran_members" type="number" min="1" value="{{ plan.entitlements.get('max_quran_members', '') }}" placeholder="نامحدود" class="input-field bg-slate-900/50 font-mono">
+          <div class="space-y-1 sm:col-span-2">
+            <label class="text-xs font-bold text-emerald-400">سقف کل مخاطبان پلن رایگان (مجموع همهٔ ختم‌ها)</label>
+            <input name="free_total_member_cap" type="number" min="1" value="{{ plan.entitlements.get('free_total_member_cap', '') }}" placeholder="مثلاً 1000 — خالی یعنی بدون سقف" class="input-field bg-slate-900/50 font-mono">
+            <p class="text-[0.68rem] text-slate-500 leading-5">با عبور از این عدد، سازنده خودکار وارد «پلن پایه» می‌شود (تبلیغ خدمتگزاران فعال).</p>
           </div>
           {% else %}
           <div class="sm:col-span-2 rounded-xl bg-slate-900/40 border border-slate-700/40 px-4 py-3">
-            <p class="text-xs text-slate-400 leading-6">در نسخهٔ فعلی پلن‌های پولی محدودیت عضو ندارند. سقف عضو فقط روی پلن رایگان اعمال می‌شود.</p>
+            <p class="text-xs text-slate-400 leading-6">{% if plan.plan == 'BASIC' %}پلن پایه: وقتی سازنده از سقف رایگان می‌گذرد به این پلن می‌آید و تبلیغ خدمتگزاران برای مخاطبانش فعال می‌شود.{% else %}پلن پرو: بدون تبلیغ. مبلغ زیر، هزینهٔ خرید بستهٔ نفرات بدون‌تبلیغ است.{% endif %}</p>
           </div>
           {% endif %}
         </div>
-        
+
+        <div class="flex flex-col gap-2 py-2">
+          <label class="flex items-center gap-2 cursor-pointer group">
+            <input name="ads_enabled" type="checkbox" class="w-4 h-4 text-amber-500 rounded border-slate-600 bg-slate-700/50 focus:ring-amber-500" {% if plan.entitlements.get('ads_enabled') %}checked{% endif %}>
+            <span class="text-sm text-slate-300 group-hover:text-white transition-colors">در این پلن، تبلیغ خدمتگزاران به مخاطبان ارسال شود {% if plan.plan == 'BASIC' %}(پیشنهادی: روشن){% elif plan.plan == 'PRO' %}(پیشنهادی: خاموش){% endif %}</span>
+          </label>
+        </div>
+
         <div class="flex flex-col gap-2 mt-2 py-3 border-y border-slate-700/50">
           <label class="flex items-center gap-2 cursor-pointer group">
             <input name="khatm_create" type="checkbox" class="w-4 h-4 text-emerald-500 rounded border-slate-600 bg-slate-700/50 focus:ring-emerald-500" {% if plan.entitlements.get('khatm.create') %}checked{% endif %}>

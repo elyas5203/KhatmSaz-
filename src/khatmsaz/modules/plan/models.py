@@ -17,7 +17,10 @@ class PlanTier(str, enum.Enum):
     PRO = "PRO"
 
 
-ACTIVE_PLAN_TIERS = (PlanTier.FREE, PlanTier.PRO)
+# Owner model §A (2026-09-30): three real tiers again — FREE (auto-upgrades to
+# BASIC past the audience cap), BASIC (خدمتگزاران ads shown), PRO (bought no-ad
+# member blocks, no ads).
+ACTIVE_PLAN_TIERS = (PlanTier.FREE, PlanTier.BASIC, PlanTier.PRO)
 
 
 class PricingMode(str, enum.Enum):

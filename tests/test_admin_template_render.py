@@ -192,18 +192,27 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
     assert "20,000 تومان" in html
 
 
-def test_creator_wallet_explains_automatic_pro_threshold_without_purchase_button():
+def test_creator_wallet_shows_three_tier_audience_view():
+    """Owner model §A (2026-09-30): the wallet plan card shows the real tier, the
+    total-audience usage vs the free cap, the ads status, and a FREE/BASIC/PRO
+    comparison — no fake purchase button yet."""
     base = dict(
         request=_request("/creator/wallet"), creator=SimpleNamespace(display_name="سازنده"),
         csrf="test-csrf", lang="fa", t=t, label=lambda value: str(value),
         balance="500,000", credit="0", plan_label="رایگان",
-        plan_view={"title": "رایگان", "tier": "FREE", "is_free": True, "caps": None},
+        plan_view={
+            "title": "رایگان", "tier": "FREE", "is_free": True, "is_basic": False,
+            "is_pro": False, "ads_shown": False, "total_members": 120, "total_cap": 1000,
+            "caps": None,
+        },
         invoices=[], topup_amounts=(), gateway_ready=False,
         free_caps={"quran": 100, "devotional": 100},
     )
-    html = templates.get_template("creator_wallet.html").render(**base, pro_threshold=250_000)
+    html = templates.get_template("creator_wallet.html").render(**base, pro_threshold=0)
 
     assert 'action="/creator/plan/upgrade"' not in html
-    assert "250,000 تومان" in html
-    assert "خودکار فعال می‌شود" in html
-    assert "web.creator.plan_unlimited" not in html
+    assert t("web.creator.plan_total_audience", "fa") in html
+    assert "120" in html and "1000" in html
+    assert t("web.creator.plan_basic_name", "fa") in html
+    assert t("web.creator.plan_ads_off", "fa") in html
+    assert "web.creator.plan_" not in html  # no raw i18n keys leaked

@@ -42,37 +42,30 @@
       </div>
     </div>
 
-    {% if plan_view.is_free and plan_view.caps %}
-    <div class="grid grid-cols-2 gap-3 mb-3">
-      <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3">
-        <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_usage_quran', lang) }}</p>
-        <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.caps.quran_used }}{% if plan_view.caps.quran_cap is not none %} / {{ plan_view.caps.quran_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
-      </div>
-      <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3">
-        <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_usage_dev', lang) }}</p>
-        <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.caps.dev_used }}{% if plan_view.caps.dev_cap is not none %} / {{ plan_view.caps.dev_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
-      </div>
+    <!-- Total audience vs the free cap (the number that drives FREE→BASIC) -->
+    <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3 mb-3">
+      <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_total_audience', lang) }}</p>
+      <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.total_members }}{% if plan_view.total_cap is not none %} / {{ plan_view.total_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
     </div>
-    <p class="text-xs text-slate-400 leading-6 mb-4">{{ t('web.creator.plan_cap_note', lang) }}</p>
+    {% if plan_view.ads_shown %}
+    <p class="text-xs text-amber-300 leading-6 mb-4">{{ t('web.creator.plan_ads_on', lang) }}</p>
     {% else %}
-    <p class="text-xs text-slate-400 leading-6 mb-4">{{ t('web.creator.plan_paid_no_limit', lang) }}</p>
+    <p class="text-xs text-emerald-300 leading-6 mb-4">{{ t('web.creator.plan_ads_off', lang) }}</p>
     {% endif %}
 
-    <!-- FREE vs PRO comparison (factual, from backend: caps apply only to FREE) -->
-    <div class="grid grid-cols-2 gap-3 mt-1">
+    <!-- Three-tier comparison -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
       <div class="rounded-xl border {% if plan_view.is_free %}border-emerald-500/40 bg-emerald-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
         <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_free_name', lang) }}{% if plan_view.is_free %} <span class="text-[0.65rem] text-emerald-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
-        <ul class="text-[0.72rem] text-slate-300 space-y-1 leading-6">
-          <li>• {{ t('web.creator.plan_free_quran', lang, n=(free_caps.quran if free_caps.quran is not none else t('web.creator.plan_unlimited', lang))) }}</li>
-          <li>• {{ t('web.creator.plan_free_dev', lang, n=(free_caps.devotional if free_caps.devotional is not none else t('web.creator.plan_unlimited', lang))) }}</li>
-        </ul>
+        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_free_desc', lang) }}</p>
       </div>
-      <div class="rounded-xl border {% if not plan_view.is_free %}border-fuchsia-500/40 bg-fuchsia-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
-        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_pro_name', lang) }}{% if not plan_view.is_free %} <span class="text-[0.65rem] text-fuchsia-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
-        <ul class="text-[0.72rem] text-slate-300 space-y-1 leading-6">
-          <li>• {{ t('web.creator.plan_pro_unlimited', lang) }}</li>
-          <li>• {{ t('web.creator.plan_pro_threshold', lang, price=pro_threshold) }}</li>
-        </ul>
+      <div class="rounded-xl border {% if plan_view.is_basic %}border-amber-500/40 bg-amber-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
+        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_basic_name', lang) }}{% if plan_view.is_basic %} <span class="text-[0.65rem] text-amber-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
+        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_basic_desc', lang) }}</p>
+      </div>
+      <div class="rounded-xl border {% if plan_view.is_pro %}border-fuchsia-500/40 bg-fuchsia-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
+        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_pro_name', lang) }}{% if plan_view.is_pro %} <span class="text-[0.65rem] text-fuchsia-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
+        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_pro_desc', lang) }}</p>
       </div>
     </div>
   </div>

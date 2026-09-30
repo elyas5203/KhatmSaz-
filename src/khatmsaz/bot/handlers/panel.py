@@ -44,7 +44,6 @@ def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
                 text=t("panel.admin.open_mini_app", lang),
                 callback_data="admin:web_login",
             )],
-            [InlineKeyboardButton(text="📝 تایید درخواست‌های سازندگان", callback_data="admin_panel:creator_requests")],
             [InlineKeyboardButton(text="👥 مدیریت لیست کاربران", callback_data="admin_panel:users")],
             [InlineKeyboardButton(text="📢 پیام گروهی سراسری (اعلان)", callback_data="admin_panel:broadcast")],
         ]

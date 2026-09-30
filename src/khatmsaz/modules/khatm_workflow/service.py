@@ -99,6 +99,13 @@ async def _enforce_creation_cap(session: AsyncSession, creator_user_id, template
     definition = await plan_service.get_definition(session, PlanTier.FREE)
     if definition is None or not definition.enabled:
         return
+    # Owner model §A1 (2026-09-30): once the admin configures the new total-audience
+    # cap (`free_total_member_cap`), creation is NEVER blocked — passing the cap
+    # auto-upgrades the creator to BASIC instead (see
+    # plan_service.maybe_autoupgrade_free_to_basic). The legacy per-family block
+    # below only applies to old deployments that never set the new key.
+    if definition.entitlements.get(plan_service.FREE_TOTAL_MEMBER_CAP_KEY) is not None:
+        return
     if template_type in _QURAN_TEMPLATE_TYPES:
         cap = definition.entitlements.get("max_quran_members")
     else:

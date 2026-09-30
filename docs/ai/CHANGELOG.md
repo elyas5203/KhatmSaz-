@@ -113,6 +113,14 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-09-30 (Section A backbone: 3-tier plans + role removal)
+- Plans are now a STORED tier again (FREE/BASIC/PRO); `get_plan` reads UserPlan (no wallet derivation).
+- Admin-editable `free_total_member_cap` (default 1000) + `ads_enabled` per plan on /finance.
+- FREE auto-upgrades to BASIC when total audience passes the cap, with a one-time creator notice; BASIC = خدمتگزاران ads flag on, PRO = off. Old per-family creation block disabled when the new cap is set; creation no longer blocked by member count.
+- Removed the "upgrade to creator" buttons (support inline, admin panel, sidebar) — everyone in the ختم‌ساز bot is a creator.
+- Creator wallet shows the real tier + total-audience vs cap + ads status + 3-tier comparison. 208 tests pass.
+- Staged (own goals): A2 promo messaging, A3 paid SMS, A4 servant ads, PRO buy-member-blocks.
+
 ## 2026-09-30 (E2 verified, E3 range arithmetic aligned)
 - E2: verified the "today" pick→deliver→done→no-resend flow (report.py) across all khatm types.
 - E3: `parse_contribution_amount` now treats «۲۰ تا ۳۱» as 11 pages (end−start, owner's rule) and rejects «۲۰ تا ۲۰». Used in both open and committed-count logging. 205 tests pass.
