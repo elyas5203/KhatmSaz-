@@ -552,10 +552,10 @@
     "semantic_hash": "dd1bfc641531240470044bf3e1132f5e"
   },
   "src/khatmsaz/bot/handlers/creator_broadcast.py": {
-    "mtime": 1790686777.9405696,
-    "seen": 1790755033.6456046,
-    "ast_hash": "8b965ce4b20bab3be797086a193a53ce",
-    "semantic_hash": "8b965ce4b20bab3be797086a193a53ce"
+    "mtime": 1790758978.4901433,
+    "seen": 1790759920.9021664,
+    "ast_hash": "99c1407a1281b2a1a5f4676922e22cb4",
+    "semantic_hash": "99c1407a1281b2a1a5f4676922e22cb4"
   },
   "src/khatmsaz/bot/handlers/creator_decisions.py": {
     "mtime": 1789998913.9663324,
@@ -762,10 +762,10 @@
     "semantic_hash": "7ef748b609a266681ad9c07b50996d18"
   },
   "src/khatmsaz/bot/notify_adapter.py": {
-    "mtime": 1790685267.5979443,
-    "seen": 1790755033.645622,
-    "ast_hash": "a2dff7d2470fcb09ad46941287124a49",
-    "semantic_hash": "a2dff7d2470fcb09ad46941287124a49"
+    "mtime": 1790758929.8352487,
+    "seen": 1790759920.9021716,
+    "ast_hash": "934a3109d441b6a7c6d0f543e8ed5d76",
+    "semantic_hash": "934a3109d441b6a7c6d0f543e8ed5d76"
   },
   "src/khatmsaz/bot/qr.py": {
     "mtime": 1789581878.0535796,
@@ -984,16 +984,16 @@
     "semantic_hash": "5823a3fe0429e18ac022b2317d2583fc"
   },
   "src/khatmsaz/modules/broadcast/repository.py": {
-    "mtime": 1790686646.0072882,
-    "seen": 1790755033.6456287,
-    "ast_hash": "4e791e8e157c5246c239be1b08ea6a14",
-    "semantic_hash": "4e791e8e157c5246c239be1b08ea6a14"
+    "mtime": 1790758832.4790046,
+    "seen": 1790759920.9021738,
+    "ast_hash": "36715c0e5f4bd4d75f0fb2dcf7fa4bc9",
+    "semantic_hash": "36715c0e5f4bd4d75f0fb2dcf7fa4bc9"
   },
   "src/khatmsaz/modules/broadcast/service.py": {
-    "mtime": 1790686426.7967882,
-    "seen": 1790755033.64563,
-    "ast_hash": "c4b0ea8c500c71b6e18f17c910d6c251",
-    "semantic_hash": "c4b0ea8c500c71b6e18f17c910d6c251"
+    "mtime": 1790758859.6846688,
+    "seen": 1790759920.9021754,
+    "ast_hash": "0bda9fa057856be5307788204289a28a",
+    "semantic_hash": "0bda9fa057856be5307788204289a28a"
   },
   "src/khatmsaz/modules/completion/__init__.py": {
     "mtime": 1789654171.2221112,
@@ -1560,10 +1560,10 @@
     "semantic_hash": "bf34925ca422cabf22fa5488e752c29f"
   },
   "src/khatmsaz/web/app.py": {
-    "mtime": 1790757539.2265015,
-    "seen": 1790758475.1097481,
-    "ast_hash": "d494e6cd0410a879eb89eb1033741fc5",
-    "semantic_hash": "d494e6cd0410a879eb89eb1033741fc5"
+    "mtime": 1790759406.6253352,
+    "seen": 1790759920.9021807,
+    "ast_hash": "6a458f352e88bb8a836efcc001c49828",
+    "semantic_hash": "6a458f352e88bb8a836efcc001c49828"
   },
   "src/khatmsaz/web/telegram_mini_app.py": {
     "mtime": 1789886370.7762544,
@@ -2896,5 +2896,23 @@
     "seen": 1790755033.645673,
     "ast_hash": "81e1657776f30b930558e6094c740c89",
     "semantic_hash": "81e1657776f30b930558e6094c740c89"
+  },
+  "src/khatmsaz/modules/servant_ad/__init__.py": {
+    "mtime": 1790759249.7867372,
+    "seen": 1790759920.9021773,
+    "ast_hash": "68e8a0252f16856f2d596e593695c7ba",
+    "semantic_hash": "68e8a0252f16856f2d596e593695c7ba"
+  },
+  "src/khatmsaz/modules/servant_ad/service.py": {
+    "mtime": 1790759294.0171163,
+    "seen": 1790759920.9021788,
+    "ast_hash": "829770346e40d0fdd459096995d0ed32",
+    "semantic_hash": "829770346e40d0fdd459096995d0ed32"
+  },
+  "tests/test_servant_ad.py": {
+    "mtime": 1790759575.0211864,
+    "seen": 1790759920.9021819,
+    "ast_hash": "a6dd746cd915d6282cd0f1b4e6de528c",
+    "semantic_hash": "a6dd746cd915d6282cd0f1b4e6de528c"
   }
 }
