@@ -20,14 +20,14 @@ def test_mode_keyboard_callbacks():
 
 def test_freq_keyboard_callbacks():
     data = _callback_datas(k.commitment_freq_keyboard("pid1", "fa"))
-    assert data == ["cfreq:DAILY:pid1", "cfreq:WEEKLY:pid1", "cfreq:MONTHLY:pid1"]
+    assert data == ["cfreq:DAILY:pid1", "cfreq:WEEKLY:pid1", "cfreq:MONTHLY:pid1", "cmback:mode"]
 
 
 def test_hour_keyboard_has_presets_and_custom():
     data = _callback_datas(k.commitment_hour_keyboard("fa"))
     assert "chour:9" in data
     assert "chour:custom" in data
-    assert all(d.startswith("chour:") for d in data)
+    assert all(d.startswith("chour:") or d == "cmback:times" for d in data)
 
 
 def test_count_log_keyboard_callbacks():

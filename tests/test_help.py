@@ -34,7 +34,7 @@ def test_creation_coupon_is_available_without_a_typed_command() -> None:
     }
     assert "ck:coupon" in paid_callbacks
     assert "ck:coupon" not in free_callbacks
-    assert entry_callbacks == {"ck:coupon_back", "ck:cancel"}
+    assert entry_callbacks == {"ck:coupon_back", "ck:back", "ck:cancel"}
 
 
 def test_help_is_complete_and_button_driven() -> None:

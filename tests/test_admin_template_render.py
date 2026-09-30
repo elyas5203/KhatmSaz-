@@ -151,6 +151,9 @@ def test_creator_detail_renders_manage_stats_members_export_and_settings():
         allow_snooze=False, allow_skip_today=True, miss_notice_threshold=3,
         miss_notice_window_days=7, completion_announcement_enabled=True,
         schedule_kind="NONE", schedule_value=None,
+        repetition_target=None, visibility=enum_value("UNLISTED"),
+        allowed_platforms="BOTH", reminder_tone="FRIENDLY",
+        daily_deadline_hour=23,
     )
     stats = SimpleNamespace(
         active_members=2, completed_portions=4, total_portions=10,

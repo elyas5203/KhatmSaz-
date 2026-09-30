@@ -44,12 +44,41 @@
     {{ t('web.creator.settings_title', lang) }}
     <span class="block mt-1 text-xs font-normal text-slate-400">{{ t('web.creator.settings_hint', lang) }}</span>
   </summary>
-  {% if khatm.status.value == 'ACTIVE' %}
   <form method="post" action="/creator/khatms/{{ khatm.id }}/settings" class="border-t border-white/5 p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <label class="space-y-2 md:col-span-2">
       <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_khatm_name', lang) }}</span>
       <input name="title" value="{{ khatm.title }}" required maxlength="200" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">
+    </label>
+
+    {% if khatm.template_type.value not in ['QURAN_PAGE', 'QURAN_SURAH'] %}
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_target', lang) }}</span>
+      <input name="repetition_target" type="number" min="{{ khatm.repetition_target or 1 }}" value="{{ khatm.repetition_target or '' }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_target_hint', lang) }}</span>
+    </label>
+    {% else %}
+    <input type="hidden" name="repetition_target" value="">
+    {% endif %}
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_visibility', lang) }}</span>
+      <select name="visibility" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+        {% for value in ['PUBLIC', 'UNLISTED', 'PRIVATE'] %}<option value="{{ value }}" {% if khatm.visibility.value == value %}selected{% endif %}>{{ t('create_khatm.visibility_label.' ~ value, lang) }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_platforms', lang) }}</span>
+      <select name="allowed_platforms" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+        <option value="BOTH" {% if khatm.allowed_platforms == 'BOTH' %}selected{% endif %}>{{ t('web.creator.platform_both', lang) }}</option>
+        <option value="TELEGRAM" {% if khatm.allowed_platforms == 'TELEGRAM' %}selected{% endif %}>{{ t('web.creator.platform_telegram', lang) }}</option>
+        <option value="BALE" {% if khatm.allowed_platforms == 'BALE' %}selected{% endif %}>{{ t('web.creator.platform_bale', lang) }}</option>
+      </select>
+    </label>
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_tone', lang) }}</span>
+      <select name="reminder_tone" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+        {% for value in ['FRIENDLY', 'FORMAL', 'DEVOTIONAL', 'SHORT'] %}<option value="{{ value }}" {% if khatm.reminder_tone == value %}selected{% endif %}>{{ t('create_khatm.tone_label.' ~ value, lang) }}</option>{% endfor %}
+      </select>
     </label>
     <label class="space-y-2 md:col-span-2">
       <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_welcome', lang) }}</span>
@@ -58,6 +87,10 @@
     </label>
 
     {% if khatm.khatm_type.value == 'COMMITMENT' %}
+    <label class="space-y-2">
+      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_deadline_hour', lang) }}</span>
+      <input name="daily_deadline_hour" type="number" min="0" max="23" value="{{ khatm.daily_deadline_hour if khatm.daily_deadline_hour is not none else '' }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
+    </label>
     <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4">
       <input name="allow_pause" type="checkbox" {% if khatm.allow_pause %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
       <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_pause', lang) }}</span>
@@ -95,9 +128,6 @@
       <button type="submit" class="rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white hover:bg-emerald-500 transition-colors">{{ t('web.creator.settings_save', lang) }}</button>
     </div>
   </form>
-  {% else %}
-  <p class="border-t border-white/5 p-5 text-sm text-amber-300">{{ t('web.creator.settings_active_only', lang) }}</p>
-  {% endif %}
 </details>
 
 <!-- Actions & Search -->

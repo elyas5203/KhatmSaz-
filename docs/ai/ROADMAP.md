@@ -4,6 +4,19 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-09-30 — Owner creation/editing UX B6–B10 (DONE)
+- [x] Trust copy explains isolated invite audiences and required contact purpose.
+- [x] Creation and join setup use one updating message with visible progress/back navigation.
+- [x] Creator bot/web edit every safely mutable khatm setting; numeric goals are increase-only.
+- [x] Welcome examples and commitment questions are specific to each content family.
+
+## 2026-09-30 — Owner creation UX B1–B5 (DONE)
+- [x] Creation prompts clean up only their own previous prompt/input messages.
+- [x] Quran family is labelled «ختم قرآن».
+- [x] Every active creation step has a stateful previous-step action.
+- [x] Final confirmation describes available later edits without the old absolute warning.
+- [x] Numeric-goal prompts explain completion and future increases without mentioning payment.
+
 ## 2026-09-28 — Rotating committed-Quran allocation (DONE)
 - [x] Each committed reader advances through their own sequential Quran ranges
       from a distinct staggered offset and wraps at the end (DEC-PY-0092).

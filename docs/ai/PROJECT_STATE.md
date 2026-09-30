@@ -1,3 +1,17 @@
+## Current state — 2026-09-30 — Owner spec B6–B10 complete creation and editing UX [Codex]
+- **Trust + family copy (B6/B9/B10):** creation now explains link/audience isolation and why creator contact is required. Welcome examples and commitment/target questions are family-specific for Quran, Salawat, Dua/Ziyarat and La'an.
+- **Single-message flows (B7):** the creation wizard edits one tracked prompt and shows a non-personal running summary. Open-Quran and repetition-commitment join setup retain the join card, edit only that message, remove only typed setup replies and expose previous-step actions after the first choice.
+- **Expanded editing (B8):** creators can edit title/welcome regardless of lifecycle and can change visibility, allowed platforms, reminder tone, deadline hour and safely increase repetition goals. Bot settings expose goal/deadline; the creator web form exposes all supported settings. Quran structure and target decreases remain blocked by DEC-PY-0099.
+- **Architecture:** new runtime mutation is validated in `khatm.service` and persisted only in `khatm.repository`; handlers/routes contain no direct mutation logic. No schema migration was needed.
+- **Validation:** dedicated B6–B10 suite **6 passed**; focused affected suite **28 passed**; full suite **220 passed, 85 skipped**; non-integration suite **220 passed, 85 deselected**; **29** templates compiled; **40** handler modules imported; Alembic has one head (`broadcast2026092901`). Live `alembic upgrade head` was attempted but PostgreSQL refused the configured connection. Graphify refreshed to **4,002 nodes / 14,191 edges / 273 communities**; push result is recorded in the task report.
+
+## Current state — 2026-09-30 — Owner spec B1–B5 creation-wizard UX [Codex]
+- **Cleaner flow (B1):** all active creation prompts now use the wizard-owned cleanup path, including devotional category, custom count, scheduling/capacity, confirmation and coupon screens; unrelated chat messages are never swept.
+- **Labels/copy (B2, B4, B5):** the Quran family button is now «ختم قرآن»; final confirmation points creators to editable settings instead of claiming nothing can change; numeric-goal prompts explain that participation stops at completion and future increases will be possible without mentioning payment.
+- **Real previous-step navigation (B3):** every active button and typed-input step exposes localized `ck:back`; `previous_wizard_step` moves the FSM to the preceding visible step while retaining entered data.
+- **Scope truth:** this does not unlock structural edits on an active khatm; full post-creation editing remains B8 and must respect `DOMAIN_MODEL.md` locking rules. No pricing/storage/migration was invented for the future increase feature.
+- **Validation:** focused B1–B5 suite **20 passed**; full suite **214 passed, 85 skipped**; non-integration suite **214 passed, 85 deselected**; Alembic has one head (`broadcast2026092901`). Live `alembic upgrade head` was attempted but PostgreSQL refused the configured connection. `mypy` is not installed. Graphify refreshed to 3,980 nodes / 14,103 edges / 306 communities.
+
 ## Current state — 2026-09-29 — Quran whole-share completion and clean niyyat [Codex]
 - Fixed creator-entered proxy text beginning with «به نیت» so confirmation now renders «به نیت ظهور… — به نیابت از تست…», never «به نیابت از به نیت…».
 - A committed Quran allocation now uses the whole-share `done:` action. Tapping «انجام سهم» completes that exact page range in one tap and no longer opens the numeric open-Quran contribution prompt.

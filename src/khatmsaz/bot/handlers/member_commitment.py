@@ -27,6 +27,7 @@ from khatmsaz.bot.keyboards import (
     commitment_count_log_keyboard,
     commitment_freq_keyboard,
     commitment_hour_keyboard,
+    member_commitment_back_keyboard,
     member_commitment_mode_keyboard,
     member_menu_keyboard,
     main_menu_keyboard,
@@ -71,27 +72,35 @@ def _home_markup(obj):
 
 
 async def _mwiz(message: Message, state: FSMContext, text: str, reply_markup=None):
-    """Ephemeral prompt: delete the previous bot prompt AND the member's own typed
-    message, then send the new one — «هی پاک بشه چون قاطی می‌کنن». Best-effort."""
+    """Edit the one join-owned prompt and remove only typed setup replies."""
     data = await state.get_data()
     prev = data.get("_cwiz_mid")
-    if prev:
-        try:
-            await message.bot.delete_message(message.chat.id, prev)
-        except Exception:
-            pass
     if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
         try:
             await message.bot.delete_message(message.chat.id, message.message_id)
         except Exception:
             pass
-    sent = await message.answer(text, reply_markup=reply_markup)
+    summary = (data.get("commit_summary") or "").strip()
+    rendered = f"{summary}\n\n{text}" if summary and summary not in text else text
+    sent = None
+    if prev:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id, message_id=prev,
+                text=rendered, reply_markup=reply_markup,
+            )
+            sent = type("EditedJoinMessage", (), {"message_id": prev})()
+        except Exception:
+            pass
+    if sent is None:
+        sent = await message.answer(rendered, reply_markup=reply_markup)
     await state.update_data(_cwiz_mid=getattr(sent, "message_id", None))
     return sent
 
 
 async def start_commitment_mode_picker(
     message: Message, state: FSMContext, participation_id, lang: str, *, summary: str = "",
+    family=None,
 ) -> None:
     """Keep join summary, explanation and choice in one bot-owned message."""
     combined = "\n\n".join(part for part in (
@@ -103,7 +112,59 @@ async def start_commitment_mode_picker(
         sent = message
     except Exception:
         sent = await message.answer(combined, reply_markup=markup)
-    await state.update_data(_cwiz_mid=getattr(sent, "message_id", None))
+    family_value = getattr(family, "value", family)
+    await state.update_data(
+        _cwiz_mid=getattr(sent, "message_id", None),
+        commit_pid=str(participation_id),
+        commit_family=family_value,
+        commit_summary=summary,
+    )
+
+
+def _family_prompt(base: str, family: str | None) -> str:
+    suffix = {
+        "SALAWAT": "salawat",
+        "DUA": "dua",
+        "LAAN": "laan",
+    }.get(family or "")
+    return f"{base}.{suffix}" if suffix else base
+
+
+@router.callback_query(F.data.startswith("cmback:"))
+async def previous_commitment_step(callback: CallbackQuery, state: FSMContext) -> None:
+    target = callback.data.split(":", 1)[1]
+    data = await state.get_data()
+    lang = _lang_of(callback.message)
+    pid = str(data.get("commit_pid") or "")
+    family = data.get("commit_family")
+    if target == "mode":
+        await state.set_state(None)
+        text = "\n\n".join((t("commit.explain", lang), t("commit.ask_mode", lang)))
+        await _mwiz(
+            callback.message, state, text,
+            reply_markup=member_commitment_mode_keyboard(pid, lang),
+        )
+    elif target == "freq":
+        await state.set_state(None)
+        await _mwiz(
+            callback.message, state, t("commit.ask_freq", lang),
+            reply_markup=commitment_freq_keyboard(pid, lang),
+        )
+    elif target == "times":
+        await state.set_state(CommitFlow.entering_times_per_period)
+        period = t(_PERIOD_KEY.get(data.get("commit_freq"), "commit.period.day"), lang)
+        await _mwiz(
+            callback.message, state,
+            t(_family_prompt("commit.ask_times_per_period", family), lang, period=period),
+            reply_markup=member_commitment_back_keyboard("freq", lang),
+        )
+    elif target == "hour":
+        await state.set_state(None)
+        await _mwiz(
+            callback.message, state, t("commit.ask_hour", lang),
+            reply_markup=commitment_hour_keyboard(lang),
+        )
+    await safe_answer_callback(callback)
 
 
 # ---- Mode selection ---------------------------------------------------------
@@ -125,7 +186,12 @@ async def choose_count(callback: CallbackQuery, state: FSMContext) -> None:
     await safe_clear_inline_keyboard(callback.message)
     await state.set_state(CommitFlow.entering_count)
     await state.update_data(commit_pid=pid, _cwiz_mid=callback.message.message_id)
-    await _mwiz(callback.message, state, t("commit.ask_count", lang))
+    data = await state.get_data()
+    await _mwiz(
+        callback.message, state,
+        t(_family_prompt("commit.ask_count", data.get("commit_family")), lang),
+        reply_markup=member_commitment_back_keyboard("mode", lang),
+    )
     await safe_answer_callback(callback)
 
 
@@ -221,7 +287,14 @@ async def choose_freq(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(commit_pid=pid, commit_freq=freq)
     await state.set_state(CommitFlow.entering_times_per_period)
     period = t(_PERIOD_KEY.get(freq, "commit.period.day"), lang)
-    await _mwiz(callback.message, state, t("commit.ask_times_per_period", lang, period=period))
+    data = await state.get_data()
+    await _mwiz(
+        callback.message, state,
+        t(
+            _family_prompt("commit.ask_times_per_period", data.get("commit_family")),
+            lang, period=period,
+        ), reply_markup=member_commitment_back_keyboard("freq", lang),
+    )
     await safe_answer_callback(callback)
 
 
@@ -244,7 +317,10 @@ async def choose_hour(callback: CallbackQuery, state: FSMContext) -> None:
     if payload == "custom":
         await safe_clear_inline_keyboard(callback.message)
         await state.set_state(CommitFlow.entering_custom_time)
-        await _mwiz(callback.message, state, t("commit.ask_custom_time", lang))
+        await _mwiz(
+            callback.message, state, t("commit.ask_custom_time", lang),
+            reply_markup=member_commitment_back_keyboard("hour", lang),
+        )
         await safe_answer_callback(callback)
         return
     await safe_clear_inline_keyboard(callback.message)

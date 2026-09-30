@@ -137,6 +137,10 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
   description, welcome text) stay editable afterward. Rationale: changing
   the plan mid-flight breaks participants' already-assigned portions and
   stats.
+- **Owner override (2026-09-30, DEC-PY-0099):** creators may increase (never
+  decrease) an active repetition target because this preserves all recorded
+  progress. Quran's fixed 604-page plan and division remain locked. Cosmetic,
+  presentation, reminder and access settings remain editable by the creator.
 - **Visibility**: public (discoverable), unlisted (link-only), or private
   (creator manually approves each join request) — creator picks per khatm.
 - **Creator-authored content**: creator may set a custom personal welcome

@@ -166,3 +166,8 @@
 - `docs/ai/SHARED_EXECUTION_PLAN.md` — برنامهٔ اجرایی زنده و چک‌لیست مشترک سه عامل.
 - `docs/ai/BACKLOG.md` — کارهای درخواستی هنوز نساخته.
 - همین فایل (`INDEX.md`) — نقشهٔ موضوعی.
+## ویرایش ختم فعال و UX ساخت (B1–B10)
+- تصمیم افزایش امن هدف و قفل ساختار قرآن: `docs/ai/DECISIONS.md` → DEC-PY-0099
+- ویزارد ساخت و بازگشت/خلاصهٔ تک‌پیام: `src/khatmsaz/bot/handlers/create_khatm.py`
+- تنظیمات بات سازنده: `src/khatmsaz/bot/handlers/my_khatms.py`
+- تنظیمات پنل سازنده: `src/khatmsaz/web/app.py::creator_khatm_settings`

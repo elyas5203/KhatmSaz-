@@ -263,6 +263,34 @@ async def update_cosmetic(
     return khatm
 
 
+async def update_creator_runtime_settings(
+    session: AsyncSession,
+    khatm_id,
+    *,
+    repetition_target: int | None = None,
+    visibility=None,
+    allowed_platforms: str | None = None,
+    reminder_tone: str | None = None,
+    daily_deadline_hour: int | None = None,
+) -> Khatm | None:
+    """Persist creator-editable settings after service-level validation."""
+    khatm = await session.get(Khatm, khatm_id)
+    if khatm is None:
+        return None
+    if repetition_target is not None:
+        khatm.repetition_target = repetition_target
+    if visibility is not None:
+        khatm.visibility = visibility
+    if allowed_platforms is not None:
+        khatm.allowed_platforms = allowed_platforms
+    if reminder_tone is not None:
+        khatm.reminder_tone = reminder_tone
+    if daily_deadline_hour is not None:
+        khatm.daily_deadline_hour = daily_deadline_hour
+    await session.flush()
+    return khatm
+
+
 async def list_created_by(session: AsyncSession, user_id) -> list[Khatm]:
     stmt = select(Khatm).where(Khatm.creator_user_id == user_id).order_by(Khatm.created_at.desc())
     result = await session.execute(stmt)

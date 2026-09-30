@@ -10,12 +10,18 @@ from khatmsaz.bot.handlers.create_khatm import _wiz
 class FakeBot:
     def __init__(self, fail_delete=False):
         self.deleted = []
+        self.edited = []
         self.fail_delete = fail_delete
 
     async def delete_message(self, chat_id, mid):
         if self.fail_delete:
             raise RuntimeError("too old")
         self.deleted.append((chat_id, mid))
+
+    async def edit_message_text(self, *, chat_id, message_id, text, reply_markup=None):
+        if self.fail_delete:
+            raise RuntimeError("cannot edit")
+        self.edited.append((chat_id, message_id, text))
 
 
 class FakeSent:
@@ -64,7 +70,8 @@ async def test_wiz_deletes_previous_prompt():
     msg = FakeMessage(bot)
     state = FakeState({"_wiz_mid": 101})
     await _wiz(msg, state, "step 2")
-    assert bot.deleted == [(555, 101)]
+    assert bot.deleted == []
+    assert bot.edited == [(555, 101, "step 2")]
     assert (await state.get_data())["_wiz_mid"] == 101
 
 
@@ -86,7 +93,8 @@ async def test_wiz_deletes_tracked_intro_with_next_completed_step():
 
     await _wiz(msg, state, "next question")
 
-    assert bot.deleted == [(555, 101), (555, 102)]
+    assert bot.deleted == [(555, 102)]
+    assert bot.edited == [(555, 101, "next question")]
     assert (await state.get_data())["_wiz_extra_mids"] == []
 
 
@@ -98,5 +106,6 @@ async def test_wiz_can_keep_intro_beside_title_until_answered():
 
     await _wiz(msg, state, "title question", keep_extra=True)
 
-    assert bot.deleted == [(555, 101)]
+    assert bot.deleted == []
+    assert bot.edited == [(555, 101, "title question")]
     assert (await state.get_data())["_wiz_extra_mids"] == [102]

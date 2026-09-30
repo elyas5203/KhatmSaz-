@@ -31,6 +31,7 @@ from khatmsaz.bot.keyboards import (
     confirm_keyboard,
     coupon_entry_keyboard,
     content_delivery_mode_keyboard,
+    create_wizard_back_keyboard,
     creator_display_keyboard,
     start_schedule_keyboard,
     reminder_tone_keyboard,
@@ -152,19 +153,9 @@ async def _wiz(
     message: Message, state: FSMContext, text: str, reply_markup=None, *,
     keep_extra: bool = False,
 ):
-    """R1 (owner 2026-09-28): keep the wizard from cluttering the chat. Each new
-    wizard prompt deletes the previous *bot* prompt AND the user's own typed
-    answer (bots CAN delete incoming messages in a private chat), so only the
-    current step remains — «فقط اون پیام آخر باشه، پیامای خودم و بات پاک بشن».
-    Best-effort: a failed delete (message too old / already gone) never blocks
-    the new prompt. Tracks the last prompt id in FSM data."""
+    """Render the complete creation flow in one bot-owned, updating message."""
     data = await state.get_data()
     prev = data.get("_wiz_mid")
-    if prev:
-        try:
-            await message.bot.delete_message(message.chat.id, prev)
-        except Exception:
-            pass
     if not keep_extra:
         for extra in data.get("_wiz_extra_mids", []):
             if extra:
@@ -179,12 +170,63 @@ async def _wiz(
             await message.bot.delete_message(message.chat.id, message.message_id)
         except Exception:
             pass
-    sent = await message.answer(text, reply_markup=reply_markup)
+    rendered = _wizard_progress(data, data.get("lang", "fa"), text)
+    sent = None
+    if prev:
+        try:
+            await message.bot.edit_message_text(
+                chat_id=message.chat.id,
+                message_id=prev,
+                text=rendered,
+                reply_markup=reply_markup,
+            )
+            sent = type("EditedWizardMessage", (), {"message_id": prev})()
+        except Exception:
+            # Editing can fail for an old/non-text prompt. Remove only the
+            # tracked wizard message, then continue with a fresh anchor.
+            try:
+                await message.bot.delete_message(message.chat.id, prev)
+            except Exception:
+                pass
+    if sent is None:
+        sent = await message.answer(rendered, reply_markup=reply_markup)
     update = {"_wiz_mid": getattr(sent, "message_id", None)}
     if not keep_extra:
         update["_wiz_extra_mids"] = []
     await state.update_data(**update)
     return sent
+
+
+def _wizard_progress(data: dict, lang: str, question: str) -> str:
+    """Show non-personal choices above the current question (B7)."""
+    lines: list[str] = []
+    template = data.get("template_type")
+    group = data.get("category_group")
+    if template:
+        if template == KhatmTemplateType.QURAN_PAGE.value:
+            content = t("create_khatm.group_label.quran", lang)
+        else:
+            key = _GROUP_LABEL_KEYS.get(group, "create_khatm.group_label.generic")
+            content = data.get("content_category_title") or t(key, lang)
+        lines.append(t("create_khatm.progress.content", lang, value=content))
+    if data.get("khatm_type") in _MODE_LABEL_KEYS:
+        lines.append(t(
+            "create_khatm.progress.mode", lang,
+            value=t(_MODE_LABEL_KEYS[data["khatm_type"]], lang),
+        ))
+    if data.get("niyyat"):
+        lines.append(t("create_khatm.progress.niyyat", lang, value=data["niyyat"]))
+    target = data.get("salawat_open_target")
+    if target:
+        lines.append(t("create_khatm.progress.target", lang, value=target))
+    if data.get("visibility") in _VISIBILITY_LABEL_KEYS:
+        lines.append(t(
+            "create_khatm.progress.visibility", lang,
+            value=t(_VISIBILITY_LABEL_KEYS[data["visibility"]], lang),
+        ))
+    if not lines:
+        return question
+    return f"{t('create_khatm.progress.header', lang)}\n" + "\n".join(lines) + f"\n\n{question}"
 
 
 @router.message(F.text.in_(CREATE_BUTTON_TEXTS))
@@ -218,7 +260,12 @@ async def start_wizard_command(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data.startswith("ck:tpl:"), StateFilter(CreateKhatm.choosing_template))
 async def choose_template(callback: CallbackQuery, state: FSMContext) -> None:
     template_name = callback.data.split(":")[2]
-    await state.update_data(template_type=template_name)
+    await state.update_data(
+        template_type=template_name,
+        category_group=None,
+        content_category_id=None,
+        content_category_title=None,
+    )
     await safe_clear_inline_keyboard(callback.message)
     if template_name == KhatmTemplateType.SALAWAT.value:
         # Compatibility for buttons sent before devotional families became
@@ -266,15 +313,27 @@ async def _show_category_group(
         await _ask_mode(callback.message, state)
         await safe_answer_callback(callback)
         return
+    await _show_category_prompt(callback.message, state, group)
+    await safe_answer_callback(callback)
+
+
+async def _show_category_prompt(
+    message: Message, state: FSMContext, group: KhatmCategoryGroup
+) -> None:
+    """Render one devotional-family picker through the clutter-free wizard path."""
+    lang = await _lang(state)
     async with session_scope() as session:
         categories = await category_service.list_active(session, group)
     await state.set_state(CreateKhatm.choosing_category)
-    if not categories and group != KhatmCategoryGroup.DUA:
-        await callback.message.answer(t("create_khatm.category_empty", lang))
-        await safe_answer_callback(callback)
-        return
-    await callback.message.answer(
-        t(_CATEGORY_GROUP_PROMPT_KEYS[group], lang),
+    text = (
+        t(_CATEGORY_GROUP_PROMPT_KEYS[group], lang)
+        if categories or group == KhatmCategoryGroup.DUA
+        else t("create_khatm.category_empty", lang)
+    )
+    await _wiz(
+        message,
+        state,
+        text,
         reply_markup=category_choice_keyboard(
             categories,
             group=group.value,
@@ -282,7 +341,6 @@ async def _show_category_group(
             lang=lang,
         ),
     )
-    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data == "ck:cat:custom", StateFilter(CreateKhatm.choosing_category))
@@ -294,7 +352,10 @@ async def choose_custom_category(callback: CallbackQuery, state: FSMContext) -> 
         return
     await safe_clear_inline_keyboard(callback.message)
     await state.set_state(CreateKhatm.entering_custom_dua_title)
-    await callback.message.answer(t("create_khatm.ask_custom_dua_title", lang))
+    await _wiz(
+        callback.message, state, t("create_khatm.ask_custom_dua_title", lang),
+        reply_markup=create_wizard_back_keyboard(lang),
+    )
     await safe_answer_callback(callback)
 
 
@@ -444,6 +505,12 @@ _WELCOME_EXAMPLE_KEYS = {
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.LAAN.value): "create_khatm.welcome_example.laan",
 }
 
+_COMMITMENT_TOTAL_PROMPT_KEYS = {
+    KhatmCategoryGroup.SALAWAT.value: "create_khatm.ask_commitment_total.salawat",
+    KhatmCategoryGroup.DUA.value: "create_khatm.ask_commitment_total.dua",
+    KhatmCategoryGroup.LAAN.value: "create_khatm.ask_commitment_total.laan",
+}
+
 
 async def _ask_welcome(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
@@ -478,16 +545,18 @@ async def skip_welcome(callback: CallbackQuery, state: FSMContext) -> None:
     await safe_answer_callback(callback)
 
 
-def _creator_contact_keyboard(lang: str, contact: str | None) -> InlineKeyboardMarkup | None:
+def _creator_contact_keyboard(lang: str, contact: str | None) -> InlineKeyboardMarkup:
     """R4 (owner 2026-09-28): the creator MUST provide a contact so members can
     reach them — «نباید بتونن رد بکنن». No skip button. Offers only a one-tap
     "use my @username" when available; otherwise the creator has to type one."""
-    if not contact:
-        return None
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=t("create_khatm.contact.use_username", lang, username=contact),
-        callback_data="ck:contact:self",
-    )]])
+    rows = []
+    if contact:
+        rows.append([InlineKeyboardButton(
+            text=t("create_khatm.contact.use_username", lang, username=contact),
+            callback_data="ck:contact:self",
+        )])
+    rows.extend(create_wizard_back_keyboard(lang).inline_keyboard)
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def _compose_welcome_with_contact(
@@ -631,7 +700,10 @@ async def choose_creator_display(callback: CallbackQuery, state: FSMContext) -> 
     await safe_clear_inline_keyboard(callback.message)
     if mode == CreatorDisplayMode.PSEUDONYM.value:
         await state.set_state(CreateKhatm.entering_creator_pseudonym)
-        await _wiz(callback.message, state, t("create_khatm.ask_pseudonym", lang))
+        await _wiz(
+            callback.message, state, t("create_khatm.ask_pseudonym", lang),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
     else:
         await _after_creator_display(callback.message, state)
     await safe_answer_callback(callback)
@@ -672,7 +744,10 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
             else t("create_khatm.unit.time", lang)
         )
         title = data.get("content_category_title") or t("create_khatm.group_label.generic", lang)
-        await _wiz(message, state, t("create_khatm.ask_open_target", lang, title=title, unit=unit))
+        await _wiz(
+            message, state, t("create_khatm.ask_open_target", lang, title=title, unit=unit),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
     elif template == KhatmTemplateType.SALAWAT.value and mode == KhatmTypeEnum.COMMITMENT.value:
         # R5 (owner 2026-09-28): the creator picks the khatm's TOTAL goal from
         # preset buttons (not a per-person quantity); each participant later
@@ -685,7 +760,12 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
         await state.set_state(CreateKhatm.choosing_commitment_total)
         await _wiz(
             message, state,
-            t("create_khatm.ask_commitment_total", lang, unit=unit),
+            t(
+                _COMMITMENT_TOTAL_PROMPT_KEYS.get(
+                    data.get("category_group"), "create_khatm.ask_commitment_total"
+                ),
+                lang, unit=unit,
+            ),
             reply_markup=_commitment_total_keyboard(lang),
         )
     else:  # QURAN_PAGE, either mode — always Madina/Hafs, 604 pages.
@@ -695,7 +775,10 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
         )
         if mode == KhatmTypeEnum.COMMITMENT.value:
             await state.set_state(CreateKhatm.entering_deadline_hour)
-            await _wiz(message, state, t("create_khatm.ask_deadline_hour", lang))
+            await _wiz(
+                message, state, t("create_khatm.ask_deadline_hour", lang),
+                reply_markup=create_wizard_back_keyboard(lang),
+            )
         else:
             await _ask_visibility(message, state)
 
@@ -707,6 +790,8 @@ def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=str(n), callback_data=f"ck:total:{n}") for n in presets[3:]]]
     rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.custom", lang), callback_data="ck:total:custom")])
     rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.unlimited", lang), callback_data="ck:total:unlimited")])
+    rows.append([InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")])
+    rows.append([InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -723,7 +808,10 @@ async def choose_commitment_total(callback: CallbackQuery, state: FSMContext) ->
     await safe_clear_inline_keyboard(callback.message)
     if value == "custom":
         await state.set_state(CreateKhatm.entering_commitment_total_custom)
-        await callback.message.answer(t("create_khatm.ask_commitment_total_custom", lang))
+        await _wiz(
+            callback.message, state, t("create_khatm.ask_commitment_total_custom", lang),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
         await safe_answer_callback(callback)
         return
     total = None if value == "unlimited" else int(value)
@@ -756,7 +844,10 @@ async def choose_start_future(callback: CallbackQuery, state: FSMContext) -> Non
     lang = await _lang(state)
     await state.set_state(CreateKhatm.entering_start_at)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(t("create_khatm.ask_start_at", lang))
+    await _wiz(
+        callback.message, state, t("create_khatm.ask_start_at", lang),
+        reply_markup=create_wizard_back_keyboard(lang),
+    )
     await safe_answer_callback(callback)
 
 
@@ -825,7 +916,10 @@ async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.set_state(CreateKhatm.entering_deadline_hour)
-        await _wiz(callback.message, state, t("create_khatm.ask_deadline_hour", lang))
+        await _wiz(
+            callback.message, state, t("create_khatm.ask_deadline_hour", lang),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
     else:
         await _ask_visibility(callback.message, state)
     await safe_answer_callback(callback)
@@ -840,7 +934,10 @@ async def choose_content_delivery_mode(callback: CallbackQuery, state: FSMContex
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.set_state(CreateKhatm.entering_deadline_hour)
-        await _wiz(callback.message, state, t("create_khatm.ask_deadline_hour", lang))
+        await _wiz(
+            callback.message, state, t("create_khatm.ask_deadline_hour", lang),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
     else:
         await _ask_visibility(callback.message, state)
     await safe_answer_callback(callback)
@@ -873,7 +970,10 @@ async def choose_limited_capacity(callback: CallbackQuery, state: FSMContext) ->
     lang = await _lang(state)
     await state.set_state(CreateKhatm.entering_capacity_number)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(t("create_khatm.ask_capacity_number", lang))
+    await _wiz(
+        callback.message, state, t("create_khatm.ask_capacity_number", lang),
+        reply_markup=create_wizard_back_keyboard(lang),
+    )
     await safe_answer_callback(callback)
 
 
@@ -924,26 +1024,29 @@ async def choose_visibility(callback: CallbackQuery, state: FSMContext) -> None:
     value = callback.data.split(":")[2]
     await state.update_data(visibility=value)
     await safe_clear_inline_keyboard(callback.message)
-    
-    # Next step: Ask for allowed platforms
+    await _ask_allowed_platforms(callback.message, state)
+    await safe_answer_callback(callback)
+
+
+async def _ask_allowed_platforms(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     await state.set_state(CreateKhatm.choosing_allowed_platforms)
-    
     # Owner (2026-09-28): order = هر دو (default) first, then تلگرام, then بله.
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="🌐 هر دو پیام‌رسان (پیشنهادی)", callback_data="ck:platforms:BOTH")],
             [InlineKeyboardButton(text="تلگرام", callback_data="ck:platforms:TELEGRAM")],
             [InlineKeyboardButton(text="بله", callback_data="ck:platforms:BALE")],
+            [InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")],
+            [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")],
         ]
     )
     
     await _wiz(
-        callback.message, state,
+        message, state,
         "این ختم برای کاربران کدام پیام‌رسان‌ها قابل عضویت باشد؟",
         reply_markup=markup
     )
-    await safe_answer_callback(callback)
 
 @router.callback_query(F.data.startswith("ck:platforms:"), StateFilter(CreateKhatm.choosing_allowed_platforms))
 async def choose_allowed_platforms(callback: CallbackQuery, state: FSMContext) -> None:
@@ -1085,7 +1188,10 @@ async def _show_confirmation(
 
     lines.append(t("create_khatm.confirm.final_warning", lang))
     await state.set_state(CreateKhatm.confirming)
-    await message.answer("\n".join(lines), reply_markup=confirm_keyboard(allow_coupon=price > 0, lang=lang))
+    await _wiz(
+        message, state, "\n".join(lines),
+        reply_markup=confirm_keyboard(allow_coupon=price > 0, lang=lang),
+    )
 
 
 @router.callback_query(F.data == "ck:coupon", StateFilter(CreateKhatm.confirming))
@@ -1097,8 +1203,8 @@ async def ask_creation_coupon(callback: CallbackQuery, state: FSMContext) -> Non
         return
     await state.set_state(CreateKhatm.entering_coupon)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(
-        t("create_khatm.ask_coupon", lang),
+    await _wiz(
+        callback.message, state, t("create_khatm.ask_coupon", lang),
         reply_markup=coupon_entry_keyboard(lang),
     )
     await safe_answer_callback(callback)
@@ -1147,7 +1253,8 @@ async def _apply_coupon_code(message: Message, state: FSMContext, code: str) -> 
             return False
     await state.update_data(coupon_code=code, coupon_discount_toman=discount)
     await state.set_state(CreateKhatm.confirming)
-    await message.answer(
+    await _wiz(
+        message, state,
         t(
             "create_khatm.coupon_accepted",
             lang,
@@ -1181,6 +1288,94 @@ async def apply_creation_coupon(
         )
         return
     await _apply_coupon_code(message, state, code)
+
+
+async def _show_template_step(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_template)
+    await _wiz(
+        message, state, t("create_khatm.ask_template", lang),
+        reply_markup=template_choice_keyboard(lang),
+    )
+
+
+async def _show_niyyat_step(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.entering_niyyat)
+    await _wiz(
+        message, state, t("create_khatm.ask_niyyat", lang),
+        reply_markup=skip_niyyat_keyboard(lang),
+    )
+
+
+@router.callback_query(F.data == "ck:back", StateFilter(CreateKhatm))
+async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> None:
+    """Move the creation FSM back one visible step without discarding its data."""
+    current = await state.get_state()
+    data = await state.get_data()
+    message = callback.message
+    lang = await _lang(state)
+
+    if current == CreateKhatm.choosing_template.state:
+        await state.clear()
+        await message.answer(t("create_khatm.cancelled", lang), reply_markup=main_menu_keyboard(lang))
+    elif current in {CreateKhatm.choosing_category.state, CreateKhatm.choosing_mode.state}:
+        if current == CreateKhatm.choosing_mode.state and data.get("category_group") in {
+            KhatmCategoryGroup.DUA.value, KhatmCategoryGroup.LAAN.value,
+        }:
+            await _show_category_prompt(message, state, KhatmCategoryGroup(data["category_group"]))
+        else:
+            await _show_template_step(message, state)
+    elif current == CreateKhatm.entering_custom_dua_title.state:
+        await _show_category_prompt(message, state, KhatmCategoryGroup.DUA)
+    elif current == CreateKhatm.entering_niyyat.state:
+        await _ask_mode(message, state)
+    elif current == CreateKhatm.entering_welcome.state:
+        await _show_niyyat_step(message, state)
+    elif current == CreateKhatm.entering_creator_contact.state:
+        await _ask_welcome(message, state)
+    elif current == CreateKhatm.entering_recitation_text.state:
+        await _ask_creator_contact(message, state, actor=callback.from_user)
+    elif current in {
+        CreateKhatm.choosing_creator_display.state,
+        CreateKhatm.entering_creator_pseudonym.state,
+    }:
+        if data.get("category_group") == KhatmCategoryGroup.LAAN.value:
+            await state.set_state(CreateKhatm.entering_recitation_text)
+            await _wiz(
+                message, state, t("create_khatm.ask_recitation_text", lang),
+                reply_markup=skip_niyyat_keyboard(lang),
+            )
+        else:
+            await _ask_creator_contact(message, state, actor=callback.from_user)
+    elif current in {
+        CreateKhatm.entering_open_target.state,
+        CreateKhatm.choosing_commitment_total.state,
+        CreateKhatm.entering_deadline_hour.state,
+    }:
+        await _after_recitation_text(message, state)
+    elif current == CreateKhatm.entering_commitment_total_custom.state:
+        await _after_start_schedule(message, state)
+    elif current == CreateKhatm.choosing_reminder_tone.state:
+        await _after_start_schedule(message, state)
+    elif current == CreateKhatm.choosing_visibility.state:
+        await _ask_visibility(message, state)
+    elif current == CreateKhatm.choosing_allowed_platforms.state:
+        await state.set_state(CreateKhatm.choosing_visibility)
+        await _wiz(
+            message, state, t("create_khatm.ask_visibility", lang),
+            reply_markup=visibility_choice_keyboard(lang),
+        )
+    elif current == CreateKhatm.confirming.state:
+        await _ask_allowed_platforms(message, state)
+    elif current == CreateKhatm.entering_coupon.state:
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        await _show_confirmation(
+            message, state, platform=platform, platform_subject=str(callback.from_user.id),
+        )
+    else:
+        await _show_template_step(message, state)
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data == "ck:cancel")

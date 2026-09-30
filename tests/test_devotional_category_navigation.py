@@ -15,7 +15,7 @@ def test_creation_menu_exposes_devotional_families_as_independent_parents():
     assert ("📿 ختم صلوات", "ck:group:SALAWAT") in buttons
     assert ("🤲 ختم دعا و زیارت", "ck:group:DUA") in buttons
     assert ("🗡 ختم لعن", "ck:group:LAAN") in buttons
-    assert ("📖 ختم صفحات قرآن", "ck:tpl:QURAN_PAGE") in buttons
+    assert ("📖 ختم قرآن", "ck:tpl:QURAN_PAGE") in buttons
     assert all(callback != "ck:tpl:SALAWAT" for _, callback in buttons)
 
 

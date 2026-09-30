@@ -234,19 +234,23 @@ async def creator_clear_end_at(callback) -> None:
 async def creator_begin_cosmetic_edit(callback, state: FSMContext) -> None:
     _prefix, _edit, khatm_id, field = callback.data.split(":", 3)
     lang = await _lang_for(callback.message.chat.id, callback.bot)
-    if field not in {"title", "welcome"}:
+    if field not in {"title", "welcome", "target", "deadline"}:
         await safe_answer_callback(callback, t("my_khatms.creator.edit_field_invalid", lang), show_alert=True)
         return
     _user_id, khatm = await _owned_khatm_for_callback(callback, khatm_id)
-    if khatm is None or khatm.status.value != "ACTIVE":
+    if khatm is None:
         await safe_answer_callback(callback, t("my_khatms.creator.active_only_edit", lang), show_alert=True)
         return
     await state.update_data(creator_edit_khatm_id=khatm_id, creator_edit_field=field, lang=lang)
     await state.set_state(CreatorKhatmEdit.entering_value)
     await safe_clear_inline_keyboard(callback.message)
-    prompt = t(
-        "my_khatms.creator.ask_new_title" if field == "title" else "my_khatms.creator.ask_new_welcome", lang
-    )
+    prompt_key = {
+        "title": "my_khatms.creator.ask_new_title",
+        "welcome": "my_khatms.creator.ask_new_welcome",
+        "target": "my_khatms.creator.ask_new_target",
+        "deadline": "my_khatms.creator.ask_new_deadline",
+    }[field]
+    prompt = t(prompt_key, lang)
     await callback.message.answer(prompt, reply_markup=creator_edit_cancel_keyboard(khatm_id, lang))
     await safe_answer_callback(callback)
 
@@ -275,7 +279,7 @@ async def creator_save_cosmetic_edit(message: Message, state: FSMContext) -> Non
     lang = data.get("lang", "fa")
     khatm_id = data.get("creator_edit_khatm_id")
     field = data.get("creator_edit_field")
-    if not khatm_id or field not in {"title", "welcome", "end_at", "schedule_date"}:
+    if not khatm_id or field not in {"title", "welcome", "target", "deadline", "end_at", "schedule_date"}:
         await state.clear()
         await message.answer(t("my_khatms.creator.edit_data_lost", lang))
         return
@@ -304,6 +308,22 @@ async def creator_save_cosmetic_edit(message: Message, state: FSMContext) -> Non
                 result = t(
                     "my_khatms.creator.welcome_cleared" if welcome_text is None else "my_khatms.creator.welcome_saved",
                     lang,
+                )
+            elif field in {"target", "deadline"}:
+                if not value.isdigit():
+                    raise ValueError("numeric setting required")
+                kwargs = (
+                    {"repetition_target": int(value)}
+                    if field == "target"
+                    else {"daily_deadline_hour": int(value)}
+                )
+                khatm = await khatm_service.update_creator_runtime_settings(
+                    session, khatm_id=khatm_id, creator_user_id=user.id, **kwargs
+                )
+                result = t(
+                    "my_khatms.creator.target_saved" if field == "target"
+                    else "my_khatms.creator.deadline_saved",
+                    lang, value=value,
                 )
             elif field == "end_at":
                 end_at = datetime.strptime(value, "%Y-%m-%d %H:%M").replace(

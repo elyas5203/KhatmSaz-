@@ -9,7 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.config import get_settings
 from khatmsaz.modules.khatm import repository
-from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import (
+    Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum,
+    KhatmVisibility, ReminderTone,
+)
 
 
 async def create_draft_khatm(
@@ -232,8 +235,8 @@ async def update_title(session: AsyncSession, *, khatm_id, creator_user_id, titl
     if not title or len(title) > 200:
         raise ValueError("title must be between 1 and 200 characters")
     khatm = await repository.get_by_id(session, khatm_id)
-    if khatm is None or khatm.creator_user_id != creator_user_id or khatm.status != KhatmStatus.ACTIVE:
-        raise ValueError("only the creator of an active khatm may edit the title")
+    if khatm is None or khatm.creator_user_id != creator_user_id:
+        raise ValueError("only the creator may edit the title")
     updated = await repository.update_cosmetic(session, khatm_id, title=title)
     if updated is None:
         raise ValueError("khatm not found")
@@ -242,11 +245,68 @@ async def update_title(session: AsyncSession, *, khatm_id, creator_user_id, titl
 
 async def update_welcome_text(session: AsyncSession, *, khatm_id, creator_user_id, welcome_text: str | None) -> Khatm:
     khatm = await repository.get_by_id(session, khatm_id)
-    if khatm is None or khatm.creator_user_id != creator_user_id or khatm.status != KhatmStatus.ACTIVE:
-        raise ValueError("only the creator of an active khatm may edit the welcome text")
+    if khatm is None or khatm.creator_user_id != creator_user_id:
+        raise ValueError("only the creator may edit the welcome text")
     welcome_text = preserve_creator_contact(khatm.welcome_text, welcome_text)
     updated = await repository.update_cosmetic(
         session, khatm_id, welcome_text=welcome_text, update_welcome=True
+    )
+    if updated is None:
+        raise ValueError("khatm not found")
+    return updated
+
+
+async def update_creator_runtime_settings(
+    session: AsyncSession,
+    *,
+    khatm_id,
+    creator_user_id,
+    repetition_target: int | None = None,
+    visibility: str | None = None,
+    allowed_platforms: str | None = None,
+    reminder_tone: str | None = None,
+    daily_deadline_hour: int | None = None,
+) -> Khatm:
+    """Safely edit non-structural runtime settings of an active khatm.
+
+    Numeric goals are increase-only so existing progress can never be made
+    invalid. Quran's structural 604-page plan is intentionally immutable.
+    """
+    khatm = await repository.get_by_id(session, khatm_id)
+    if khatm is None or khatm.creator_user_id != creator_user_id:
+        raise ValueError("only the creator may edit settings")
+    target_value = None
+    if repetition_target is not None:
+        if khatm.template_type in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
+            raise ValueError("quran plan size is structural")
+        current = int(khatm.repetition_target or 0)
+        if repetition_target <= 0 or repetition_target < current:
+            raise ValueError("repetition target may only increase")
+        target_value = repetition_target
+    visibility_value = None
+    if visibility is not None:
+        try:
+            visibility_value = KhatmVisibility(visibility)
+        except ValueError as exc:
+            raise ValueError("invalid visibility") from exc
+    if allowed_platforms is not None and allowed_platforms not in {"BOTH", "TELEGRAM", "BALE"}:
+        raise ValueError("invalid allowed platform")
+    if reminder_tone is not None:
+        try:
+            reminder_tone = ReminderTone(reminder_tone).value
+        except ValueError as exc:
+            raise ValueError("invalid reminder tone") from exc
+    if daily_deadline_hour is not None:
+        if khatm.khatm_type != KhatmTypeEnum.COMMITMENT or not 0 <= daily_deadline_hour <= 23:
+            raise ValueError("invalid commitment deadline")
+    updated = await repository.update_creator_runtime_settings(
+        session,
+        khatm.id,
+        repetition_target=target_value,
+        visibility=visibility_value,
+        allowed_platforms=allowed_platforms,
+        reminder_tone=reminder_tone,
+        daily_deadline_hour=daily_deadline_hour,
     )
     if updated is None:
         raise ValueError("khatm not found")

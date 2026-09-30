@@ -5,6 +5,22 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0099 — Active-khatm editing permits safe goal increases, never destructive restructuring
+
+**Decision:** Owner spec B8 requires creators to edit their khatm whenever needed,
+including schedule and count where possible. Cosmetic and presentation settings
+(title, welcome, visibility, allowed platforms, reminder tone and deadline hour)
+remain editable by the owner. A repetition target may only stay equal or increase;
+it may never decrease, and Quran's fixed 604-page structure remains immutable.
+
+**Why:** Increasing a repetition goal preserves every recorded contribution while
+meeting the owner's editing requirement. Decreasing a goal or changing Quran's
+division can contradict already-issued portions and completion history.
+
+**Implementation:** `khatm.service.update_creator_runtime_settings`, creator bot
+settings and `/creator/khatms/{id}/settings`. This decision narrows the older
+blanket structural lock in `DOMAIN_MODEL.md` without permitting destructive edits.
+
 ### DEC-PY-0098 — PRO is an automatic wallet-balance state, not a purchase
 **Date:** 2026-09-29
 **Decision:** This supersedes DEC-PY-0097. The only active/user-facing tiers

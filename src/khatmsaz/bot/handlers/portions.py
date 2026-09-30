@@ -22,6 +22,7 @@ from khatmsaz.bot.keyboards import (
     home_keyboard_for_bot,
     is_member_bot,
     main_menu_keyboard,
+    open_quran_hour_keyboard,
     pause_duration_keyboard,
     portion_done_keyboard,
     post_completion_keyboard,
@@ -104,7 +105,10 @@ async def start_open_quran_setup(
 ) -> None:
     """Start the member-controlled Quran reading plan immediately after join."""
     await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
-    await state.update_data(khatm_id=khatm_id, lang=lang, _join_wizard_mid=message.message_id)
+    await state.update_data(
+        khatm_id=khatm_id, lang=lang, _join_wizard_mid=message.message_id,
+        _join_summary=summary,
+    )
     text = "\n\n".join(part for part in (
         summary.strip(), t("portions.open_quran.setup_ask_pages_per_day", lang).strip(),
     ) if part)
@@ -119,6 +123,9 @@ async def _open_join_prompt(message: Message, state: FSMContext, text: str, repl
     """Edit only the bot message owned by this join flow; delete typed input."""
     get_data = getattr(state, "get_data", None)
     data = await get_data() if get_data is not None else {}
+    summary = (data.get("_join_summary") or "").strip()
+    if summary and summary not in text:
+        text = f"{summary}\n\n{text}"
     if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
         try:
             await message.bot.delete_message(message.chat.id, message.message_id)
@@ -618,8 +625,19 @@ async def receive_open_quran_pages_per_day(message: Message, state: FSMContext) 
     await state.set_state(SetupOpenQuranReading.entering_hour)
     await _open_join_prompt(
         message, state, t("portions.open_quran.setup_ask_hour", lang),
-        reply_markup=delivery_hour_keyboard("open_quran_hour", lang),
+        reply_markup=open_quran_hour_keyboard(lang),
     )
+
+
+@router.callback_query(F.data == "open_quran_back:pages", StateFilter(SetupOpenQuranReading.entering_hour))
+async def back_to_open_quran_pages(callback: CallbackQuery, state: FSMContext) -> None:
+    data = await state.get_data()
+    lang = data.get("lang", "fa")
+    await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
+    await _open_join_prompt(
+        callback.message, state, t("portions.open_quran.setup_ask_pages_per_day", lang)
+    )
+    await safe_answer_callback(callback)
 
 
 async def _finish_open_quran_setup(message: Message, state: FSMContext, data: dict, hour: int, minute: int = 0) -> None:

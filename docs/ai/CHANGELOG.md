@@ -1541,3 +1541,14 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Made the template, intro caption/image, and deadline wizard messages ephemeral like the rest of the creation flow.
 - Clarified Quran-audio toggle labels so the current on/off state cannot be mistaken for the action.
 - Added regression tests for member-controlled Quran joining and the absence of fixed-portion controls; Graphify output refreshed.
+## 2026-09-30 (owner spec B6–B10 creation and editing UX)
+- Added trust-building creator copy and family-specific welcome/commitment prompts.
+- Converted creation and member join setup to tracked, updating-message flows with preserved summaries and back navigation.
+- Expanded creator editing in bot/web with safe repetition-goal increases, visibility, platform, tone and deadline controls.
+- Added DEC-PY-0099 and dedicated B6–B10 regression coverage.
+
+## 2026-09-30 (owner spec B1–B5 creation wizard)
+- Routed the remaining creation questions through the wizard-owned message cleanup path.
+- Added a localized, stateful previous-step action across active creation stages.
+- Renamed the Quran family button to «ختم قرآن» and corrected confirmation/goal copy for B4/B5.
+- Added focused regressions for B1–B5 and updated keyboard expectations for the new navigation action.

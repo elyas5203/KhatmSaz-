@@ -263,7 +263,7 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     # --- create_khatm.py wizard (2026-09-20) ---
     "create_khatm.ask_template": {
-        "fa": "چه نوع ختمی می‌خواید بسازید؟", "ar": "ما نوع الختمة التي تريد إنشاءها؟",
+        "fa": "چه نوع ختمی می‌خواید بسازید؟\n\n🔒 همه با لینک اختصاصی شما وارد می‌شوند و با اعضای ختم‌های دیگر قاطی نمی‌شوند. مخاطبان این ختم برای خودتان هستند و دیگران به فهرستشان دسترسی ندارند.", "ar": "ما نوع الختمة التي تريد إنشاءها؟",
         "en": "What kind of khatm do you want to create?",
     },
     "create_khatm.category_prompt.SALAWAT": {
@@ -444,7 +444,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Write a welcome message every new member sees the moment they join.",
     },
     "create_khatm.ask_creator_contact": {
-        "fa": "برای اینکه اعضا بتونن باهاتون در ارتباط باشن، آیدی تلگرام یا بله‌تون رو بفرستید (اگه آیدی ندارید، شماره‌تون). این توی پیام خوش‌آمد قرار می‌گیره تا هر کسی خواست راحت پیداتون کنه. (این مرحله لازمه)",
+        "fa": "برای اینکه اگر مخاطبان ختم شما مشکلی داشتند بتوانند با شما ارتباط بگیرند، آیدی تلگرام یا بله‌تون رو بفرستید (اگه آیدی ندارید، شماره‌تون). این راه ارتباطی در پیام خوش‌آمد قرار می‌گیره. (این مرحله لازمه)",
         "ar": "كي يتمكن الأعضاء من التواصل معك، أرسل معرّفك في تلگرام أو بله (أو رقمك إن لم يكن لديك معرّف). سيظهر في رسالة الترحيب. (هذه الخطوة إلزامية)",
         "en": "So members can reach you, send your Telegram or Bale ID (or your phone if you have no ID). It'll appear in the welcome message. (This step is required)",
     },
@@ -481,6 +481,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة تريد أن تقرأ؟ اكتب العدد (مثلاً 100).",
         "en": "How many times will you read? Type a number (e.g. 100).",
     },
+    "commit.ask_count.salawat": {
+        "fa": "چه تعداد صلوات می‌فرستید؟ عدد رو بنویسید (مثلاً 100).",
+        "ar": "كم صلاة سترسل؟ اكتب العدد (مثلاً 100).",
+        "en": "How many Salawat will you send? Type a number (e.g. 100).",
+    },
+    "commit.ask_count.dua": {
+        "fa": "چند بار می‌خواهید این دعا یا زیارت را بخوانید؟ عدد را بنویسید.",
+        "ar": "كم مرة تريد قراءة هذا الدعاء أو الزيارة؟ اكتب العدد.",
+        "en": "How many times will you read this dua or ziyarat? Type a number.",
+    },
+    "commit.ask_count.laan": {
+        "fa": "چه تعداد لعن می‌فرستید؟ عدد را بنویسید.",
+        "ar": "كم مرة ستقرأ اللعن؟ اكتب العدد.",
+        "en": "How many la'an recitations will you make? Type a number.",
+    },
     "commit.ask_count_invalid": {
         "fa": "یک عدد درست بنویس (مثلاً 100).",
         "ar": "اكتب عددًا صحيحًا (مثلاً 100).",
@@ -498,6 +513,21 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "چند بار در {period} می‌خوای بخونی؟ عدد رو بنویس (مثلاً 3).",
         "ar": "كم مرة في ال{period} تريد أن تقرأ؟ اكتب العدد (مثلاً 3).",
         "en": "How many times per {period} will you read? Type a number (e.g. 3).",
+    },
+    "commit.ask_times_per_period.salawat": {
+        "fa": "در هر {period} چه تعداد صلوات می‌فرستید؟ عدد را بنویسید.",
+        "ar": "كم صلاة سترسل في كل {period}؟ اكتب العدد.",
+        "en": "How many Salawat will you send per {period}? Type a number.",
+    },
+    "commit.ask_times_per_period.dua": {
+        "fa": "در هر {period} چند بار می‌خواهید این دعا یا زیارت را بخوانید؟",
+        "ar": "كم مرة ستقرأ هذا الدعاء أو الزيارة في كل {period}؟",
+        "en": "How many times per {period} will you read this dua or ziyarat?",
+    },
+    "commit.ask_times_per_period.laan": {
+        "fa": "در هر {period} چه تعداد لعن می‌فرستید؟ عدد را بنویسید.",
+        "ar": "كم مرة ستقرأ اللعن في كل {period}؟ اكتب العدد.",
+        "en": "How many la'an recitations per {period}? Type a number.",
     },
     "commit.hour.custom": {
         "fa": "🕒 ساعت دلخواه (مثلاً 13:25)",
@@ -639,7 +669,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "\n\nExample: “We're reciting this dua for our family's well-being.”",
     },
     "create_khatm.welcome_example.laan": {
-        "fa": "\n\nمثلاً: «این لعن رو با نیت فرج امام زمان عج می‌گیم».",
+        "fa": "\n\nمثلاً: «این لعن را به نیت ظهور امام زمان علیه‌السلام می‌خوانیم».",
         "ar": "\n\nمثلاً: «نقول هذا اللعن بنية الفرج».",
         "en": "\n\nExample: “We're reciting this la'an with the intention of a swift relief.”",
     },
@@ -672,14 +702,29 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Should this khatm start right now, or on a specific future date?\n(If you pick a future date, the invite link works immediately and members can join, but portions and reminders only start on that date)",
     },
     "create_khatm.ask_open_target": {
-        "fa": "هدف کل «{title}» چند {unit} باشه؟ فقط عدد بفرستید (مثلاً 1000):",
+        "fa": "هدف کل «{title}» چند {unit} باشه؟ فقط عدد بفرستید (مثلاً 1000).\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
         "ar": "كم يكون الهدف الكلي لـ«{title}» ({unit})؟ أرسل رقماً فقط (مثلاً 1000):",
         "en": "What should the total goal for “{title}” be, in {unit}? Send a number only (e.g. 1000):",
     },
     "create_khatm.ask_commitment_total": {
-        "fa": "هدف کل این ختم چند {unit} باشه؟ یکی از دکمه‌ها را بزنید (سهم هر نفر را خودِ شرکت‌کننده تعیین می‌کند):",
+        "fa": "هدف کل این ختم چند {unit} باشه؟ یکی از دکمه‌ها را بزنید (سهم هر نفر را خودِ شرکت‌کننده تعیین می‌کند).\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
         "ar": "كم يكون الهدف الكلي لهذه الختمة ({unit})؟ اختر أحد الأزرار (كل مشارك يحدّد حصته بنفسه):",
         "en": "What's the total goal for this khatm, in {unit}? Tap a button (each participant sets their own share):",
+    },
+    "create_khatm.ask_commitment_total.salawat": {
+        "fa": "هدف کل این ختم چه تعداد صلوات باشد؟ سهم روزانه/هفتگی/ماهانه را هر مخاطب برای خودش انتخاب می‌کند.\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
+        "ar": "كم يكون مجموع الصلوات في هذه الختمة؟ يختار كل مشارك حصته بنفسه.",
+        "en": "What should the total Salawat goal be? Each member chooses their own schedule.",
+    },
+    "create_khatm.ask_commitment_total.dua": {
+        "fa": "این دعا یا زیارت در مجموع چند بار خوانده شود؟\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
+        "ar": "كم مرة يُقرأ هذا الدعاء أو الزيارة إجمالاً؟",
+        "en": "How many times should this dua or ziyarat be read in total?",
+    },
+    "create_khatm.ask_commitment_total.laan": {
+        "fa": "هدف کل این ختم چه تعداد لعن باشد؟ سهم روزانه/هفتگی/ماهانه را هر مخاطب برای خودش انتخاب می‌کند.\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
+        "ar": "كم يكون مجموع اللعن في هذه الختمة؟",
+        "en": "What should the total la'an goal be?",
     },
     "create_khatm.commitment_total.custom": {
         "fa": "🔢 عدد دلخواه", "ar": "🔢 رقم مخصص", "en": "🔢 Custom number",
@@ -688,7 +733,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "♾ نامحدود", "ar": "♾ غير محدود", "en": "♾ Unlimited",
     },
     "create_khatm.ask_commitment_total_custom": {
-        "fa": "عدد هدف کل را بنویسید (مثلاً 5000):",
+        "fa": "عدد هدف کل را بنویسید (مثلاً 5000).\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
         "ar": "اكتب رقم الهدف الكلي (مثلاً 5000):",
         "en": "Type the total goal number (e.g. 5000):",
     },
@@ -781,6 +826,13 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.group_label.DUA": {"fa": "دعا یا زیارت", "ar": "دعاء أو زيارة", "en": "Dua or Ziyarat"},
     "create_khatm.group_label.LAAN": {"fa": "لعن", "ar": "لعن", "en": "La'an"},
     "create_khatm.group_label.generic": {"fa": "ذکر شمارشی", "ar": "ذكر عدّي", "en": "Countable recitation"},
+    "create_khatm.group_label.quran": {"fa": "قرآن", "ar": "القرآن", "en": "Quran"},
+    "create_khatm.progress.header": {"fa": "📋 انتخاب‌های شما تا اینجا:", "ar": "📋 اختياراتك حتى الآن:", "en": "📋 Your choices so far:"},
+    "create_khatm.progress.content": {"fa": "• نوع ختم: {value}", "ar": "• نوع الختمة: {value}", "en": "• Khatm type: {value}"},
+    "create_khatm.progress.mode": {"fa": "• شیوه: {value}", "ar": "• النمط: {value}", "en": "• Mode: {value}"},
+    "create_khatm.progress.niyyat": {"fa": "• نیت: {value}", "ar": "• النية: {value}", "en": "• Intention: {value}"},
+    "create_khatm.progress.target": {"fa": "• هدف کل: {value}", "ar": "• الهدف الكلي: {value}", "en": "• Total goal: {value}"},
+    "create_khatm.progress.visibility": {"fa": "• عضویت: {value}", "ar": "• الانضمام: {value}", "en": "• Membership: {value}"},
     "create_khatm.capacity_unlimited": {"fa": "نامحدود", "ar": "غير محدود", "en": "Unlimited"},
     "create_khatm.confirm.title": {"fa": "عنوان: {value}", "ar": "العنوان: {value}", "en": "Title: {value}"},
     "create_khatm.confirm.niyyat": {"fa": "نیت: {value}", "ar": "النية: {value}", "en": "Intention: {value}"},
@@ -829,7 +881,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "ظرفیت تعهدی: {value}", "ar": "سعة الالتزام: {value}", "en": "Commitment capacity: {value}",
     },
     "create_khatm.confirm.quran_content": {
-        "fa": "نوع محتوا: ختم صفحات قرآن", "ar": "نوع المحتوى: ختمة صفحات القرآن", "en": "Content type: Quran page khatm",
+        "fa": "نوع محتوا: ختم قرآن", "ar": "نوع المحتوى: ختمة القرآن", "en": "Content type: Quran khatm",
     },
     "create_khatm.confirm.edition": {"fa": "نسخه: {value}", "ar": "النسخة: {value}", "en": "Edition: {value}"},
     "create_khatm.confirm.delivery_format": {
@@ -849,7 +901,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "If you have a discount code, tap “I have a coupon”.",
     },
     "create_khatm.confirm.final_warning": {
-        "fa": "\n⚠️ بعد از تایید، این تنظیمات دیگه قابل تغییر نیستن. تایید می‌کنید؟",
+        "fa": "\n✅ بعد از شروع هم می‌توانید از بخش «ختم‌های من» اطلاعات قابل‌ویرایش ختم را تغییر دهید. تایید می‌کنید؟",
         "ar": "\n⚠️ بعد التأكيد لا يمكن تغيير هذه الإعدادات. هل تؤكد؟",
         "en": "\n⚠️ After you confirm, these settings can no longer be changed. Confirm?",
     },
@@ -1301,7 +1353,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     # --- Create-khatm wizard keyboards (i18n; BACKLOG #1) ---
     "ck.mode.commitment": {"fa": "🔒 تعهدی (سهم مشخص برای هرکس)", "ar": "🔒 التزامي (حصة محددة لكل شخص)", "en": "🔒 Commitment (a set share each)"},
     "ck.mode.open": {"fa": "🌿 آزاد (هرکس با میل خودش)", "ar": "🌿 حر (كلٌّ حسب رغبته)", "en": "🌿 Open (each at their own pace)"},
-    "ck.tpl.quran": {"fa": "📖 ختم صفحات قرآن", "ar": "📖 ختم صفحات القرآن", "en": "📖 Quran pages khatm"},
+    "ck.tpl.quran": {"fa": "📖 ختم قرآن", "ar": "📖 ختم القرآن", "en": "📖 Quran khatm"},
     "ck.tpl.salawat": {"fa": "📿 ختم صلوات", "ar": "📿 ختم الصلوات", "en": "📿 Salawat khatm"},
     "ck.tpl.dua": {"fa": "🤲 ختم دعا و زیارت", "ar": "🤲 ختم الدعاء والزيارة", "en": "🤲 Dua & Ziyarat khatm"},
     "ck.tpl.laan": {"fa": "🗡 ختم لعن", "ar": "🗡 ختم اللعن", "en": "🗡 La'n khatm"},
@@ -1331,6 +1383,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "ck.confirm": {"fa": "✅ تایید و شروع ختم", "ar": "✅ تأكيد وبدء الختمة", "en": "✅ Confirm & start"},
     "ck.coupon": {"fa": "🎟 کد تخفیف دارم", "ar": "🎟 لديّ رمز خصم", "en": "🎟 I have a coupon"},
     "ck.coupon_back": {"fa": "🔙 ادامه بدون کد", "ar": "🔙 المتابعة بدون رمز", "en": "🔙 Continue without code"},
+    "ck.back": {"fa": "⬅️ مرحلهٔ قبل", "ar": "⬅️ الخطوة السابقة", "en": "⬅️ Previous step"},
     "ck.cancel": {"fa": "❌ انصراف", "ar": "❌ إلغاء", "en": "❌ Cancel"},
     # --- Creator khatm-management keyboards (cs:* tree, i18n) ---
     "cs.members": {"fa": "👥 لیست اعضا", "ar": "👥 قائمة الأعضاء", "en": "👥 Members"},
@@ -1341,6 +1394,12 @@ _STRINGS: dict[str, dict[str, str]] = {
     "cs.cancel_khatm": {"fa": "🗑 لغو ختم", "ar": "🗑 إلغاء الختمة", "en": "🗑 Cancel khatm"},
     "cs.title": {"fa": "✏️ عنوان", "ar": "✏️ العنوان", "en": "✏️ Title"},
     "cs.welcome": {"fa": "💬 پیام خوش‌آمد", "ar": "💬 رسالة الترحيب", "en": "💬 Welcome message"},
+    "cs.target": {"fa": "🔢 افزایش هدف کل", "ar": "🔢 زيادة الهدف", "en": "🔢 Increase total goal"},
+    "cs.deadline": {"fa": "⏰ ساعت پایان مهلت", "ar": "⏰ ساعة انتهاء المهلة", "en": "⏰ Deadline hour"},
+    "my_khatms.creator.ask_new_target": {"fa": "هدف کل جدید را بنویسید. برای حفظ سابقهٔ اعضا، عدد جدید باید برابر یا بیشتر از هدف فعلی باشد.", "ar": "اكتب الهدف الكلي الجديد؛ يجب ألا يقل عن الهدف الحالي.", "en": "Type the new total goal. It cannot be lower than the current goal."},
+    "my_khatms.creator.ask_new_deadline": {"fa": "ساعت جدید پایان مهلت روزانه را با عددی بین ۰ تا ۲۳ بنویسید.", "ar": "اكتب ساعة انتهاء المهلة بين 0 و23.", "en": "Type the new daily deadline hour from 0 to 23."},
+    "my_khatms.creator.target_saved": {"fa": "✅ هدف کل به {value} افزایش یافت.", "ar": "✅ تم تحديث الهدف إلى {value}.", "en": "✅ Total goal updated to {value}."},
+    "my_khatms.creator.deadline_saved": {"fa": "✅ پایان مهلت روزانه ساعت {value} تنظیم شد.", "ar": "✅ تم ضبط الموعد عند الساعة {value}.", "en": "✅ Daily deadline set to {value}:00."},
     "cs.end_date": {"fa": "🗓 پایان تاریخی", "ar": "🗓 تاريخ الانتهاء", "en": "🗓 End date"},
     "cs.end_clear": {"fa": "🧹 حذف پایان", "ar": "🧹 حذف تاريخ الانتهاء", "en": "🧹 Clear end date"},
     "cs.schedule": {"fa": "⏰ زمان‌بندی مشارکت", "ar": "⏰ جدولة المشاركة", "en": "⏰ Participation schedule"},
@@ -2374,6 +2433,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "⚙️ إعدادات «{title}»\n\nكل خيار تلمسه يتفعّل أو يتوقف. ✅ يعني مفعّل و🚫 يعني متوقف.\nهذا لا يمسح الحصص المسجَّلة ولا سجل الأعضاء.",
         "en": "⚙️ Settings for “{title}”\n\nTapping any option turns it on or off. ✅ means on, 🚫 means off.\nThis doesn't erase logged portions or member history.",
     },
+    "web.creator.settings_target": {"fa": "هدف کل ختم", "ar": "الهدف الكلي", "en": "Total goal"},
+    "web.creator.settings_target_hint": {"fa": "برای حفظ پیشرفت اعضا، تعداد فقط قابل افزایش است.", "ar": "لحفظ تقدم الأعضاء يمكن زيادة العدد فقط.", "en": "To preserve member progress, the goal can only be increased."},
+    "web.creator.settings_visibility": {"fa": "روش عضویت", "ar": "طريقة الانضمام", "en": "Membership visibility"},
+    "web.creator.settings_platforms": {"fa": "پیام‌رسان‌های مجاز", "ar": "المنصات المسموحة", "en": "Allowed platforms"},
+    "web.creator.settings_tone": {"fa": "لحن یادآوری", "ar": "نبرة التذكير", "en": "Reminder tone"},
+    "web.creator.settings_deadline_hour": {"fa": "ساعت پایان مهلت روزانه (۰ تا ۲۳)", "ar": "ساعة نهاية المهلة اليومية", "en": "Daily deadline hour (0–23)"},
+    "web.creator.platform_both": {"fa": "تلگرام و بله", "ar": "تلگرام وبله", "en": "Telegram and Bale"},
+    "web.creator.platform_telegram": {"fa": "فقط تلگرام", "ar": "تلگرام فقط", "en": "Telegram only"},
+    "web.creator.platform_bale": {"fa": "فقط بله", "ar": "بله فقط", "en": "Bale only"},
     "my_khatms.creator.schedule_current": {
         "fa": "\n\n⏰ زمان‌بندی الان: {label}", "ar": "\n\n⏰ الجدولة الحالية: {label}",
         "en": "\n\n⏰ Current schedule: {label}",

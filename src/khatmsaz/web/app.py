@@ -1231,6 +1231,11 @@ async def creator_khatm_settings(
     miss_threshold: int = Form(3),
     miss_window_days: int = Form(7),
     schedule: str = Form("off"),
+    repetition_target: str = Form(""),
+    visibility: str = Form(""),
+    allowed_platforms: str = Form(""),
+    reminder_tone: str = Form(""),
+    daily_deadline_hour: str = Form(""),
 ):
     """Update only settings already supported by the khatm domain service."""
     creator, raw, lang = await _creator(request)
@@ -1243,8 +1248,6 @@ async def creator_khatm_settings(
         khatm = await session.get(Khatm, khatm_id)
         if khatm is None or khatm.creator_user_id != creator.id:
             return HTMLResponse(web_t("web.creator.khatm_not_found", lang), status_code=404)
-        if khatm.status != KhatmStatus.ACTIVE:
-            return HTMLResponse(web_t("web.creator.settings_active_only", lang), status_code=409)
         try:
             await khatm_service.update_title(
                 session, khatm_id=khatm.id, creator_user_id=creator.id, title=title
@@ -1253,7 +1256,19 @@ async def creator_khatm_settings(
                 session, khatm_id=khatm.id, creator_user_id=creator.id,
                 welcome_text=welcome_text,
             )
-            if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+            target_value = int(repetition_target) if repetition_target.strip() else None
+            deadline_value = int(daily_deadline_hour) if daily_deadline_hour.strip() else None
+            await khatm_service.update_creator_runtime_settings(
+                session,
+                khatm_id=khatm.id,
+                creator_user_id=creator.id,
+                repetition_target=target_value,
+                visibility=visibility or None,
+                allowed_platforms=allowed_platforms or None,
+                reminder_tone=reminder_tone or None,
+                daily_deadline_hour=deadline_value,
+            )
+            if khatm.status == KhatmStatus.ACTIVE and khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
                 await khatm_service.set_allow_pause(
                     session, khatm_id=khatm.id, creator_user_id=creator.id,
                     enabled=allow_pause == "on",
@@ -1266,15 +1281,16 @@ async def creator_khatm_settings(
                     session, khatm_id=khatm.id, creator_user_id=creator.id,
                     threshold=miss_threshold, window_days=miss_window_days,
                 )
-            else:
+            elif khatm.status == KhatmStatus.ACTIVE:
                 await khatm_service.set_schedule(
                     session, khatm_id=khatm.id, creator_user_id=creator.id,
                     raw=schedule,
                 )
-            await khatm_service.set_completion_announcement(
-                session, khatm_id=khatm.id, creator_user_id=creator.id,
-                enabled=completion_announcement == "on",
-            )
+            if khatm.status == KhatmStatus.ACTIVE:
+                await khatm_service.set_completion_announcement(
+                    session, khatm_id=khatm.id, creator_user_id=creator.id,
+                    enabled=completion_announcement == "on",
+                )
         except ValueError:
             return HTMLResponse(web_t("web.creator.settings_invalid", lang), status_code=400)
         await audit_service.record(

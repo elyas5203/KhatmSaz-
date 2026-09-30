@@ -494,8 +494,14 @@ async def resume_join_after_registration(
         )
     elif state is not None and not was_waitlisted and is_repetition_commitment:
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        commitment_family = "SALAWAT"
+        if khatm.content_category_id:
+            commitment_category = await category_service.get(session, khatm.content_category_id)
+            if commitment_category is not None:
+                commitment_family = commitment_category.group.value
         await start_commitment_mode_picker(
             join_message, state, participation.id, lang, summary=text,
+            family=commitment_family,
         )
     elif (
         state is not None and is_fresh_join

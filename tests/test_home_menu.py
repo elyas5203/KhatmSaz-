@@ -80,6 +80,7 @@ def test_visibility_keyboard_contains_all_three_modes():
         "ck:visibility:PUBLIC",
         "ck:visibility:UNLISTED",
         "ck:visibility:PRIVATE",
+        "ck:back",
         "ck:cancel",
     ]
 
@@ -118,8 +119,9 @@ def test_creator_settings_are_button_driven_and_scope_sensitive():
     assert "cs:skip:khatm-id" not in quran_callbacks
     assert "cs:misses:khatm-id" not in quran_callbacks
     assert open_salawat_callbacks == {
-        "cs:edit:khatm-id:title", "cs:edit:khatm-id:welcome",
-        "cs:end:khatm-id", "cs:end_clear:khatm-id", "cs:schedule:khatm-id",
+            "cs:edit:khatm-id:title", "cs:edit:khatm-id:welcome",
+            "cs:edit:khatm-id:target",
+            "cs:end:khatm-id", "cs:end_clear:khatm-id", "cs:schedule:khatm-id",
         "my_khatms:open"
     }
 
