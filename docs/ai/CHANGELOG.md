@@ -125,6 +125,12 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-10-01 — spec batch finished (L4/L11/L12/L13/M)
+- L4: weekly multi-day commitment schedule (+migration schedweekdays2026100101); monthly removed. RUN alembic upgrade head.
+- L11: automatic regular-commitment reminder now includes the zekr/dua text.
+- L12: one devotional form sets text + image + audio (URL or file_id).
+- L13/M: panels audited (29 templates compile, routes ok); added TEST_CHECKLIST.md + MANUAL_TEST_NOTES.md. 236 tests pass.
+
 ## 2026-09-30 (شب) — live-fix batch L1–L11
 - Join: no double «ختم»; removed wrong «پیام سازنده:» label; 🔒 privacy note now the join intro-image caption (family image on top).
 - «انجام قرائت امروز» delivers the zekr/dua content, then the done button last.

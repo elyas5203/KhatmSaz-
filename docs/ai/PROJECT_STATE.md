@@ -159,6 +159,21 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-10-01 — Finished spec batch: L4 weekly, L11 engine content, L12 content mgmt, L13/M test phase [Claude Code]
+- **L4 (done, needs migration)**: weekly multi-day commitment — new nullable column
+  `khatm_participations.schedule_weekdays` (migration `schedweekdays2026100101`); WEEKLY flow
+  = multi-select weekdays → times/occurrence → hour; `is_regular_due(weekdays=…)` fires per chosen
+  day (Persian 0=Sat..6=Fri); MONTHLY removed from the UI. **Run `alembic upgrade head` on the server.**
+- **L11 (done)**: the automatic regular-commitment reminder now includes the zekr/dua text
+  (`reminder_engine._devotional_text_for_khatm`), plus the on-demand today flow (L5).
+- **L12 (done)**: unified devotional content — one `/devotionals` form sets text + image + audio
+  (URL or file_id) together (`register_devotional_text` extended).
+- **L13 (verified)**: all 29 templates compile, every nav link has a route, key pages render.
+- **M (done)**: `docs/ai/TEST_CHECKLIST.md` (automated results: 236 pass) + `docs/ai/MANUAL_TEST_NOTES.md`
+  (owner's live-bot scenarios, one by one).
+- Full batch L1–L13 from OWNER_SPEC_MASTER §L is complete. `pytest -m "not integration"` → 236 passed.
+- **Deploy**: `git pull` → `alembic upgrade head` (mandatory this time) → restart.
+
 ## Current state — 2026-09-30 (شب) — Live-fix batch L1–L11 (join/today/tickets/broadcast) [Claude Code]
 - Added the owner's night batch as a resumable checklist in `OWNER_SPEC_MASTER.md` §L (L1–L13) + §M (test checklist). Done this session:
   - **L1** join line no longer doubles «ختم». **L2** removed the wrong «پیام سازنده:» label. **L3** the 🔒 privacy note moved off create-start onto the member's join **intro-image caption** (family image shown on top at join).
