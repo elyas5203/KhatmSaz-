@@ -736,14 +736,15 @@ def commitment_freq_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup
         inline_keyboard=[
             [InlineKeyboardButton(text=t("commit.freq.daily", lang), callback_data=f"cfreq:DAILY:{pid}")],
             [InlineKeyboardButton(text=t("commit.freq.weekly", lang), callback_data=f"cfreq:WEEKLY:{pid}")],
-            [InlineKeyboardButton(text=t("commit.freq.monthly", lang), callback_data=f"cfreq:MONTHLY:{pid}")],
             [InlineKeyboardButton(text=t("ck.back", lang), callback_data="cmback:mode")],
         ]
     )
 
 
-def commitment_weekday_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
-    """WEEKLY anchor picker: 0=Saturday .. 6=Friday (Persian week order)."""
+def commitment_weekday_keyboard(pid: str, selected=None, lang: str = "fa") -> InlineKeyboardMarkup:
+    """WEEKLY multi-select day picker (0=Sat..6=Fri, Persian order). `selected` is
+    a set of chosen indices; chosen days get a ✅. A confirm button finishes."""
+    selected = set(selected or [])
     days = [
         t("weekday.sat", lang), t("weekday.sun", lang), t("weekday.mon", lang),
         t("weekday.tue", lang), t("weekday.wed", lang), t("weekday.thu", lang),
@@ -751,11 +752,14 @@ def commitment_weekday_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMar
     ]
     rows, row = [], []
     for i, label in enumerate(days):
-        row.append(InlineKeyboardButton(text=label, callback_data=f"cdow:{i}:{pid}"))
+        mark = "✅ " if i in selected else ""
+        row.append(InlineKeyboardButton(text=f"{mark}{label}", callback_data=f"cdow:{i}:{pid}"))
         if len(row) == 2:
             rows.append(row); row = []
     if row:
         rows.append(row)
+    rows.append([InlineKeyboardButton(text=t("commit.weekdays_confirm", lang), callback_data=f"cdowok:{pid}")])
+    rows.append([InlineKeyboardButton(text=t("ck.back", lang), callback_data="cmback:freq")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 

@@ -201,12 +201,14 @@ async def log_commitment_count(session: AsyncSession, participation_id, amount: 
 
 
 async def set_commitment_schedule(
-    session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int, times_per_period: int
+    session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int,
+    times_per_period: int, weekdays: str | None = None,
 ) -> None:
     """REGULAR mode: recurring schedule delivered by the reminder engine.
 
     Reused columns: schedule_anchor holds the reminder MINUTE (exact HH:MM),
-    commitment_per_occurrence holds TIMES-PER-PERIOD («چند بار در روز/هفته/ماه»)."""
+    commitment_per_occurrence holds TIMES-PER-PERIOD. `weekdays` (Persian indices
+    «0,1,4») applies only to WEEKLY (owner L4)."""
     participation = await session.get(Participation, participation_id)
     if participation is None:
         return
@@ -215,6 +217,7 @@ async def set_commitment_schedule(
     participation.schedule_freq = freq
     participation.schedule_hour = hour
     participation.schedule_anchor = minute
+    participation.schedule_weekdays = weekdays if freq == "WEEKLY" else None
     participation.commitment_per_occurrence = times_per_period
     # clear COUNT fields
     participation.commitment_target = None

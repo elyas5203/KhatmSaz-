@@ -94,6 +94,10 @@ class Participation(Base):
     # REGULAR mode anchor: day-of-week (0=Sat..6=Fri) for WEEKLY, or
     # day-of-month (1..31) for MONTHLY. Ignored for DAILY.
     schedule_anchor: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # REGULAR + WEEKLY: comma-separated Persian weekday indices (0=Sat..6=Fri),
+    # e.g. "0,1,4". Owner L4 (2026-09-30): a weekly commitment can fall on several
+    # chosen days of the week; `schedule_anchor` stays the reminder MINUTE.
+    schedule_weekdays: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # REGULAR mode local send hour (0..23).
     schedule_hour: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # REGULAR mode: how many repetitions to read each occurrence.

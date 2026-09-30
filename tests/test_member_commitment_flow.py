@@ -20,7 +20,8 @@ def test_mode_keyboard_callbacks():
 
 def test_freq_keyboard_callbacks():
     data = _callback_datas(k.commitment_freq_keyboard("pid1", "fa"))
-    assert data == ["cfreq:DAILY:pid1", "cfreq:WEEKLY:pid1", "cfreq:MONTHLY:pid1", "cmback:mode"]
+    # Owner L4 (2026-09-30): MONTHLY removed; WEEKLY now leads to a multi-day picker.
+    assert data == ["cfreq:DAILY:pid1", "cfreq:WEEKLY:pid1", "cmback:mode"]
 
 
 def test_hour_keyboard_has_presets_and_custom():

@@ -102,10 +102,12 @@ async def log_commitment_count(session: AsyncSession, participation_id, amount: 
 
 
 async def set_commitment_schedule(
-    session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int, times_per_period: int
+    session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int,
+    times_per_period: int, weekdays: str | None = None,
 ) -> None:
     await repository.set_commitment_schedule(
-        session, participation_id, freq=freq, hour=hour, minute=minute, times_per_period=times_per_period
+        session, participation_id, freq=freq, hour=hour, minute=minute,
+        times_per_period=times_per_period, weekdays=weekdays,
     )
 
 

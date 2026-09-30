@@ -372,6 +372,7 @@ async def deliver_due_regular_commitments(
             participation.schedule_hour,
             participation.schedule_anchor or 0,  # minute (exact HH:MM)
             last_sent_local_date,
+            weekdays=getattr(participation, "schedule_weekdays", None),
         ):
             continue
 

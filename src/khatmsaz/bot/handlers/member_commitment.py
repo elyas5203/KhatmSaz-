@@ -27,6 +27,7 @@ from khatmsaz.bot.keyboards import (
     commitment_count_log_keyboard,
     commitment_freq_keyboard,
     commitment_hour_keyboard,
+    commitment_weekday_keyboard,
     member_commitment_back_keyboard,
     member_commitment_mode_keyboard,
     member_menu_keyboard,
@@ -53,7 +54,8 @@ router = Router(name="member_commitment")
 class CommitFlow(StatesGroup):
     entering_count = State()           # COUNT: pledge amount (also re-pledge)
     entering_log_amount = State()      # COUNT: custom log amount
-    entering_times_per_period = State()  # REGULAR: how many times per day/week/month
+    choosing_weekdays = State()        # REGULAR + WEEKLY: multi-select days (owner L4)
+    entering_times_per_period = State()  # REGULAR: how many times per day/week
     entering_custom_time = State()     # REGULAR: typed exact HH:MM
 
 
@@ -279,22 +281,72 @@ _PERIOD_KEY = {
 }
 
 
+async def _ask_times_per_period(message: Message, state: FSMContext) -> None:
+    lang = _lang_of(message)
+    data = await state.get_data()
+    freq = data.get("commit_freq")
+    await state.set_state(CommitFlow.entering_times_per_period)
+    period = t(_PERIOD_KEY.get(freq, "commit.period.day"), lang)
+    if freq == ScheduleFreq.WEEKLY.value:
+        period = t("commit.period.these_days", lang)
+    await _mwiz(
+        message, state,
+        t(_family_prompt("commit.ask_times_per_period", data.get("commit_family")), lang, period=period),
+        reply_markup=member_commitment_back_keyboard("freq", lang),
+    )
+
+
 @router.callback_query(F.data.startswith("cfreq:"))
 async def choose_freq(callback: CallbackQuery, state: FSMContext) -> None:
     _, freq, pid = callback.data.split(":", 2)
     lang = _lang_of(callback.message)
     await safe_clear_inline_keyboard(callback.message)
     await state.update_data(commit_pid=pid, commit_freq=freq)
-    await state.set_state(CommitFlow.entering_times_per_period)
-    period = t(_PERIOD_KEY.get(freq, "commit.period.day"), lang)
+    # Owner L4 (2026-09-30): WEEKLY first asks which days of the week (multi-select).
+    if freq == ScheduleFreq.WEEKLY.value:
+        await state.set_state(CommitFlow.choosing_weekdays)
+        await state.update_data(commit_weekdays=[])
+        await _mwiz(
+            callback.message, state, t("commit.ask_weekdays", lang),
+            reply_markup=commitment_weekday_keyboard(pid, set(), lang),
+        )
+        await safe_answer_callback(callback)
+        return
+    await _ask_times_per_period(callback.message, state)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cdow:"), StateFilter(CommitFlow.choosing_weekdays))
+async def toggle_weekday(callback: CallbackQuery, state: FSMContext) -> None:
+    _, idx, pid = callback.data.split(":", 2)
+    lang = _lang_of(callback.message)
     data = await state.get_data()
-    await _mwiz(
-        callback.message, state,
-        t(
-            _family_prompt("commit.ask_times_per_period", data.get("commit_family")),
-            lang, period=period,
-        ), reply_markup=member_commitment_back_keyboard("freq", lang),
-    )
+    selected = set(data.get("commit_weekdays") or [])
+    i = int(idx)
+    if i in selected:
+        selected.discard(i)
+    else:
+        selected.add(i)
+    await state.update_data(commit_weekdays=sorted(selected))
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=commitment_weekday_keyboard(pid, selected, lang)
+        )
+    except Exception:
+        pass
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cdowok:"), StateFilter(CommitFlow.choosing_weekdays))
+async def confirm_weekdays(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = _lang_of(callback.message)
+    data = await state.get_data()
+    selected = sorted(set(data.get("commit_weekdays") or []))
+    if not selected:
+        await safe_answer_callback(callback, t("commit.weekdays_need_one", lang), show_alert=True)
+        return
+    await safe_clear_inline_keyboard(callback.message)
+    await _ask_times_per_period(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -346,9 +398,14 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
     pid = data.get("commit_pid")
     freq = data.get("commit_freq")
     times = data.get("commit_times") or 1
+    weekdays = None
+    if freq == ScheduleFreq.WEEKLY.value:
+        sel = sorted(set(data.get("commit_weekdays") or []))
+        weekdays = ",".join(str(i) for i in sel) if sel else None
     async with session_scope() as session:
         await participation_service.set_commitment_schedule(
-            session, pid, freq=freq, hour=hour, minute=minute, times_per_period=times
+            session, pid, freq=freq, hour=hour, minute=minute,
+            times_per_period=times, weekdays=weekdays,
         )
     # delete the last prompt, then send a persistent confirmation + home menu
     prev = (await state.get_data()).get("_cwiz_mid")

@@ -74,12 +74,24 @@ def _minutes(hour: int, minute: int) -> int:
     return hour * 60 + minute
 
 
+def _persian_weekdays_to_py(weekdays: str | None) -> set[int]:
+    """Parse «0,1,4» (Persian index 0=Sat..6=Fri) → Python weekday()s (Mon=0..Sun=6).
+    Mapping: py = (persian + 5) % 7 (Sat→5, Sun→6, Mon→0, …)."""
+    out: set[int] = set()
+    for part in (weekdays or "").split(","):
+        part = part.strip()
+        if part.isdigit() and 0 <= int(part) <= 6:
+            out.add((int(part) + 5) % 7)
+    return out
+
+
 def is_regular_due(
     now_local: datetime,
     freq: str,
     hour: int,
     minute: int,
     last_sent_local_date,
+    weekdays: str | None = None,
 ) -> bool:
     """Decision for the reminder engine: the exact time has been reached and this
     period's reminder hasn't been sent yet.
@@ -87,14 +99,21 @@ def is_regular_due(
     ``last_sent_local_date`` is the local calendar date of the last delivery (or
     None). Period gating:
       • DAILY   — once per calendar day.
-      • WEEKLY  — once every 7 days.
-      • MONTHLY — once per calendar month.
+      • WEEKLY  — owner L4 (2026-09-30): fires on each chosen weekday (``weekdays``,
+        Persian 0=Sat..6=Fri), once per that day. Legacy weekly without ``weekdays``
+        falls back to once-every-7-days.
+      • MONTHLY — (removed from the UI) once per calendar month, kept for old rows.
     """
     if _minutes(now_local.hour, now_local.minute) < _minutes(hour, minute):
         return False
+    today = now_local.date()
+    if freq == ScheduleFreq.WEEKLY.value and weekdays:
+        py_days = _persian_weekdays_to_py(weekdays)
+        if now_local.weekday() not in py_days:
+            return False
+        return last_sent_local_date is None or today > last_sent_local_date
     if last_sent_local_date is None:
         return True
-    today = now_local.date()
     if freq == ScheduleFreq.DAILY.value:
         return today > last_sent_local_date
     if freq == ScheduleFreq.WEEKLY.value:

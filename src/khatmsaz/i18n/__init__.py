@@ -513,6 +513,14 @@ _STRINGS: dict[str, dict[str, str]] = {
     "commit.period.day": {"fa": "روز", "ar": "يوم", "en": "day"},
     "commit.period.week": {"fa": "هفته", "ar": "أسبوع", "en": "week"},
     "commit.period.month": {"fa": "ماه", "ar": "شهر", "en": "month"},
+    "commit.period.these_days": {"fa": "هر یک از این روزها", "ar": "كل يوم من هذه الأيام", "en": "each of these days"},
+    "commit.ask_weekdays": {
+        "fa": "کدام روزهای هفته؟ روزهای موردنظر را بزنید (می‌توانید چند روز انتخاب کنید) و بعد «تأیید روزها» را بزنید.",
+        "ar": "أي أيام الأسبوع؟ اختر الأيام (يمكن اختيار عدة أيام) ثم اضغط «تأكيد الأيام».",
+        "en": "Which days of the week? Tap the days you want (you can pick several), then tap “Confirm days”.",
+    },
+    "commit.weekdays_confirm": {"fa": "✅ تأیید روزها", "ar": "✅ تأكيد الأيام", "en": "✅ Confirm days"},
+    "commit.weekdays_need_one": {"fa": "حداقل یک روز را انتخاب کنید.", "ar": "اختر يوماً واحداً على الأقل.", "en": "Pick at least one day."},
     "commit.ask_times_per_period": {
         "fa": "چند بار در {period} می‌خوای بخونی؟ عدد رو بنویس (مثلاً 3).",
         "ar": "كم مرة في ال{period} تريد أن تقرأ؟ اكتب العدد (مثلاً 3).",
