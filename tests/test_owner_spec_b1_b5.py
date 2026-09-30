@@ -19,6 +19,8 @@ def test_b2_quran_family_has_short_owner_label():
 def test_b3_typed_and_total_steps_offer_real_previous_action():
     assert "ck:back" in _callbacks(create_wizard_back_keyboard("fa"))
     assert "ck:back" in _callbacks(_commitment_total_keyboard("fa"))
+    assert "ck:cancel" not in _callbacks(create_wizard_back_keyboard("fa"))
+    assert "ck:cancel" not in _callbacks(_commitment_total_keyboard("fa"))
 
 
 def test_b4_confirmation_promises_available_edits_instead_of_no_changes():

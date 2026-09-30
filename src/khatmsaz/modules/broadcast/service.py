@@ -1,6 +1,5 @@
 """Business rules for creator messages requiring mandatory moderation."""
 
-from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, func
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,16 +7,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.modules.broadcast import repository
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmStatus
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 from khatmsaz.modules.participation.models import Participation, ParticipationStatus
 from khatmsaz.modules.identity.models import PlatformIdentity, Platform
 from khatmsaz.modules.settings.models import UserSettings
+from khatmsaz.modules.plan import service as plan_service
+from khatmsaz.modules.plan.models import PlanTier
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 CHANNELS = ("TELEGRAM", "BALE", "SMS")
 
 
-async def audience_user_ids(session: AsyncSession, creator_user_id, *, khatm_id=None) -> list:
+async def audience_user_ids(
+    session: AsyncSession, creator_user_id, *, khatm_id=None,
+    province: str | None = None, gender: str | None = None,
+) -> list:
     stmt = (
         select(Participation.user_id).distinct()
         .join(Khatm, Khatm.id == Participation.khatm_id)
@@ -25,6 +29,15 @@ async def audience_user_ids(session: AsyncSession, creator_user_id, *, khatm_id=
     )
     if khatm_id is not None:
         stmt = stmt.where(Participation.khatm_id == khatm_id)
+    if province or gender:
+        stmt = stmt.join(UserSettings, UserSettings.user_id == Participation.user_id)
+    if province:
+        stmt = stmt.where(func.lower(UserSettings.province) == province.strip().lower())
+    if gender:
+        normalized_gender = gender.strip().upper()
+        if normalized_gender not in {"MALE", "FEMALE"}:
+            raise ValueError("invalid audience gender")
+        stmt = stmt.where(UserSettings.gender == normalized_gender)
     return list((await session.execute(stmt)).scalars())
 
 
@@ -42,6 +55,7 @@ async def channel_policy(session, channel: str) -> tuple[int, int]:
 async def submit(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str, channel: str = "TELEGRAM",
     media_type: str | None = None, media_file_id: str | None = None,
+    province: str | None = None, gender: str | None = None,
 ) -> KhatmBroadcast:
     # Owner §A2 (2026-09-30): a promo message can be text OR media (photo/video/
     # voice/document) with an optional caption. Media file_ids are platform-
@@ -61,26 +75,42 @@ async def submit(
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if khatm is None or khatm.creator_user_id != creator_user_id or khatm.status != KhatmStatus.ACTIVE:
             raise ValueError("only the creator of an active khatm may submit a broadcast")
-    users = await audience_user_ids(session, creator_user_id, khatm_id=khatm_id)
+    province = (province or "").strip() or None
+    gender = (gender or "").strip().upper() or None
+    users = await audience_user_ids(
+        session, creator_user_id, khatm_id=khatm_id, province=province, gender=gender,
+    )
     if not users:
         raise ValueError("broadcast audience is empty")
-    free_count, price = await channel_policy(session, channel)
-    since = datetime.now(timezone.utc) - timedelta(days=7)
-    recent = await repository.count_recent_for_creator_channel(session, creator_user_id, channel, since)
-    cost = 0 if recent < free_count else price
+    _free_count, price = await channel_policy(session, channel)
+    if channel in {"TELEGRAM", "BALE"}:
+        plan = await plan_service.get_plan(session, creator_user_id)
+        used = await repository.count_lifetime_digital_for_creator(session, creator_user_id)
+        if plan != PlanTier.PRO and (len(users) >= 1000 or used >= 2):
+            raise plan_service.PlanFeatureUnavailableError(
+                "more than two digital broadcasts or an audience of 1000+ requires PRO"
+            )
+        cost = 0
+    else:
+        # SMS is paid from the first request. Operations controls its price.
+        cost = price
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
     bale_media = media_file_id if (has_media and channel == "BALE") else None
     return await repository.create(
         session, khatm_id=khatm_id, creator_user_id=creator_user_id, body=body,
         target_scope="KHATM" if khatm_id else "ALL", channel=channel,
         audience_count=len(users), cost_toman=cost,
+        target_province=province, target_gender=gender,
         media_type=media_type if has_media else None,
         media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
 
 
 async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
-    user_ids = await audience_user_ids(session, item.creator_user_id, khatm_id=item.khatm_id)
+    user_ids = await audience_user_ids(
+        session, item.creator_user_id, khatm_id=item.khatm_id,
+        province=item.target_province, gender=item.target_gender,
+    )
     if item.channel == "SMS":
         result = await session.execute(select(UserSettings.contact_phone).where(
             UserSettings.user_id.in_(user_ids), UserSettings.contact_phone.isnot(None)

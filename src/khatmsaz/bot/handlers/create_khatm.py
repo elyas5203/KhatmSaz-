@@ -791,7 +791,6 @@ def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
     rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.custom", lang), callback_data="ck:total:custom")])
     rows.append([InlineKeyboardButton(text=t("create_khatm.commitment_total.unlimited", lang), callback_data="ck:total:unlimited")])
     rows.append([InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")])
-    rows.append([InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -1038,7 +1037,6 @@ async def _ask_allowed_platforms(message: Message, state: FSMContext) -> None:
             [InlineKeyboardButton(text="تلگرام", callback_data="ck:platforms:TELEGRAM")],
             [InlineKeyboardButton(text="بله", callback_data="ck:platforms:BALE")],
             [InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")],
-            [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")],
         ]
     )
     

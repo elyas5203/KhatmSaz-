@@ -77,7 +77,6 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     async with session_scope() as session:
         khatm_uuid = uuid.UUID(target_khatm_id) if target_khatm_id else None
         audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
-        free_count, price = await broadcast_service.channel_policy(session, data["platform"])
 
     await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count)
 
@@ -85,8 +84,8 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count} نفر\n"
-        f"🎁 سهمیهٔ رایگان این کانال: {free_count} پیام در ۷ روز\n"
-        f"💳 هزینهٔ هر پیام بعد از سهمیه: {price:,} تومان\n\n"
+        "🎁 در پلن رایگان، دو پیام تلگرام/بله برای جمعیت زیر ۱۰۰۰ نفر دارید.\n"
+        "پس از آن برای ادامه، پلن حرفه‌ای لازم است.\n\n"
     )
     info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
 
@@ -135,7 +134,7 @@ async def receive_broadcast_message(message: Message, state: FSMContext) -> None
     
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ تایید و ارسال", callback_data="cbroadcast:confirm")],
+            [InlineKeyboardButton(text="✅ برای تأیید محتوا", callback_data="cbroadcast:confirm")],
             [InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")],
         ]
     )
@@ -172,6 +171,11 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
                 media_type=media_type,
                 media_file_id=media_file_id,
             )
+    except broadcast_service.plan_service.PlanFeatureUnavailableError:
+        await callback.message.answer("دو پیام رایگان شما مصرف شده یا این پیام ۱۰۰۰ مخاطب و بیشتر دارد؛ برای ادامه پلن حرفه‌ای لازم است.")
+        await state.clear()
+        await safe_answer_callback(callback)
+        return
     except ValueError:
         await callback.message.answer("پیام معتبر نیست یا مخاطبی برای آن پیدا نشد.")
         await state.clear()
@@ -180,7 +184,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     cost_text = "رایگان" if item.cost_toman == 0 else f"{item.cost_toman:,} تومان"
     await callback.message.answer(
-        f"✅ پیام برای تأیید مدیر ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 هزینه پس از تأیید: {cost_text}",
+        f"✅ پیام برای تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 هزینه پس از تأیید: {cost_text}",
         reply_markup=main_menu_keyboard("fa"),
     )
     await safe_answer_callback(callback)

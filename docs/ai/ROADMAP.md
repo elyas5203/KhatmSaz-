@@ -415,3 +415,9 @@ mode must be asked independently of content type, not derived from it.
 - Public leaderboards / competitive ranking — will not be built (see
   DOMAIN_MODEL "deliberately out of scope").
 - Proof-of-completion (photo/audio) — will not be built.
+## Completed — 2026-09-30 — Owner spec Section C
+
+- C1–C2: secure member↔creator and creator↔Super Admin ticket/reply paths.
+- C3–C6: positive content moderation, shared two-message digital allowance,
+  composable audience filters, and moderated text/photo/video/voice delivery.
+- Creation wizard: removed its visible cancel action at the owner's request.

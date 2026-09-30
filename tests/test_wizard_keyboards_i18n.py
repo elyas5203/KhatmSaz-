@@ -1,7 +1,7 @@
 """Regression: the create-khatm wizard keyboards were hardcoded Persian, so a
 creator on the Arabic/English bot saw Persian buttons; and several steps had
-no cancel. Now every wizard keyboard is language-aware and ends with a cancel
-row (goal: «انصراف» available at every step)."""
+no previous-step action. The owner later removed the explicit cancel button;
+every wizard keyboard remains language-aware and ends with a back row."""
 import pytest
 
 from khatmsaz.bot import keyboards as k
@@ -23,23 +23,20 @@ _NO_ARG = [
 
 
 @pytest.mark.parametrize("lang", ["fa", "ar", "en"])
-def test_every_wizard_keyboard_is_localized_and_cancellable(lang):
+def test_every_wizard_keyboard_is_localized_without_cancel(lang):
     for fn in _NO_ARG:
         kb = fn(lang)
-        last = kb.inline_keyboard[-1][0]
-        assert last.callback_data == "ck:cancel", f"{fn.__name__} missing cancel row"
-        assert last.text == t("ck.cancel", lang), f"{fn.__name__} cancel not localized for {lang}"
-        previous = kb.inline_keyboard[-2][0]
+        callbacks = [button.callback_data for row in kb.inline_keyboard for button in row]
+        assert "ck:cancel" not in callbacks
+        previous = kb.inline_keyboard[-1][0]
         assert previous.callback_data == "ck:back", f"{fn.__name__} missing previous-step row"
         assert previous.text == t("ck.back", lang)
     # keyboards that take extra args
     conf = k.confirm_keyboard(allow_coupon=True, lang=lang)
     assert conf.inline_keyboard[0][0].text == t("ck.confirm", lang)
-    assert conf.inline_keyboard[-1][0].callback_data == "ck:cancel"
-    assert conf.inline_keyboard[-2][0].callback_data == "ck:back"
+    assert conf.inline_keyboard[-1][0].callback_data == "ck:back"
     cat = k.category_choice_keyboard([], group="DUA", allow_custom_request=True, lang=lang)
-    assert cat.inline_keyboard[-1][0].callback_data == "ck:cancel"
-    assert cat.inline_keyboard[-2][0].callback_data == "ck:back"
+    assert cat.inline_keyboard[-1][0].callback_data == "ck:back"
     assert cat.inline_keyboard[0][0].text == t("ck.cat.custom", lang)
 
 

@@ -26,6 +26,8 @@ class KhatmBroadcast(Base):
     creator_user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     body: Mapped[str] = mapped_column(Text, nullable=False)
     target_scope: Mapped[str] = mapped_column(String(16), default="KHATM")
+    target_province: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    target_gender: Mapped[str | None] = mapped_column(String(16), nullable=True)
     channel: Mapped[str] = mapped_column(String(16), default="TELEGRAM")
     audience_count: Mapped[int] = mapped_column(Integer, default=0)
     cost_toman: Mapped[int] = mapped_column(Integer, default=0)

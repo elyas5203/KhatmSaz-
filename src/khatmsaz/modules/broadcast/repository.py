@@ -12,12 +12,14 @@ from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 async def create(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str,
     target_scope: str, channel: str, audience_count: int, cost_toman: int,
+    target_province: str | None = None, target_gender: str | None = None,
     media_type: str | None = None, media_file_id_telegram: str | None = None,
     media_file_id_bale: str | None = None,
 ) -> KhatmBroadcast:
     item = KhatmBroadcast(
         id=new_id(), khatm_id=khatm_id, creator_user_id=creator_user_id,
         body=body, status=BroadcastStatus.PENDING, target_scope=target_scope,
+        target_province=target_province, target_gender=target_gender,
         channel=channel, audience_count=audience_count, cost_toman=cost_toman,
         media_type=media_type, media_file_id_telegram=media_file_id_telegram,
         media_file_id_bale=media_file_id_bale,
@@ -46,6 +48,19 @@ async def count_recent_for_creator_channel(session, creator_user_id, channel: st
         KhatmBroadcast.creator_user_id == creator_user_id,
         KhatmBroadcast.channel == channel,
         KhatmBroadcast.created_at >= since,
+        KhatmBroadcast.status.in_([
+            BroadcastStatus.PENDING, BroadcastStatus.APPROVED, BroadcastStatus.SENT,
+        ]),
+    ))
+    return int(result.scalar_one())
+
+
+async def count_lifetime_digital_for_creator(session, creator_user_id) -> int:
+    """Count reserved/used Telegram+Bale messages; rejected requests do not consume quota."""
+    from sqlalchemy import func
+    result = await session.execute(select(func.count(KhatmBroadcast.id)).where(
+        KhatmBroadcast.creator_user_id == creator_user_id,
+        KhatmBroadcast.channel.in_(["TELEGRAM", "BALE"]),
         KhatmBroadcast.status.in_([
             BroadcastStatus.PENDING, BroadcastStatus.APPROVED, BroadcastStatus.SENT,
         ]),

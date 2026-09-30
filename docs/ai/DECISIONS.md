@@ -5,6 +5,23 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0100 — The two free digital broadcasts are one shared lifetime allowance
+
+**Date:** 2026-09-30
+**Decision:** OWNER_SPEC_MASTER C4's phrase «کلاً دو پیام» is implemented as
+two lifetime broadcasts total across Telegram and Bale, not two per channel and
+not a rolling weekly allowance. Each free send must resolve to fewer than 1000
+distinct members. Pending requests reserve a slot, approved/sent requests consume
+it, and rejected requests release it. A non-PRO creator needs PRO for a third
+digital send or an audience of 1000 or more. SMS is excluded and paid from its
+first request at the admin-configured price.
+
+**Why:** This is the literal shared-total interpretation of the owner's wording,
+prevents parallel pending requests from exceeding the allowance, and keeps SMS's
+explicit paid-from-first rule independent.
+
+---
+
 ### DEC-PY-0099 — Active-khatm editing permits safe goal increases, never destructive restructuring
 
 **Decision:** Owner spec B8 requires creators to edit their khatm whenever needed,

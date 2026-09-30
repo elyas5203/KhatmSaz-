@@ -39,6 +39,8 @@
         <dd class="text-sm font-bold text-sky-400 mb-3">{{ row.creator.display_name if row.creator else 'نامشخص' }}</dd>
         <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">کانال و هزینه</dt>
         <dd class="text-sm text-slate-300 mb-3">{{ row.item.channel }} · {{ row.item.audience_count }} مخاطب · {{ '{:,}'.format(row.item.cost_toman) }} تومان</dd>
+        {% if row.item.target_province or row.item.target_gender %}<dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">فیلتر مخاطب</dt>
+        <dd class="text-sm text-slate-300 mb-3">{% if row.item.target_province %}استان: {{ row.item.target_province }}{% endif %}{% if row.item.target_province and row.item.target_gender %} · {% endif %}{% if row.item.target_gender == 'FEMALE' %}فقط خانم‌ها{% elif row.item.target_gender == 'MALE' %}فقط آقایان{% endif %}</dd>{% endif %}
         
         <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">متن پیام</dt>
         <dd class="text-sm text-slate-300 whitespace-pre-wrap">{{ row.item.body }}</dd>

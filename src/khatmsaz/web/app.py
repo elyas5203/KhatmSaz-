@@ -1052,6 +1052,7 @@ async def creator_broadcasts(request: Request):
 async def creator_broadcast_submit(
     request: Request, csrf: str = Form(...), target: str = Form(...),
     channel: str = Form(...), body: str = Form(...),
+    province: str = Form(""), gender: str = Form(""),
 ):
     creator, raw, lang = await _creator(request)
     if creator is None:
@@ -1063,7 +1064,10 @@ async def creator_broadcast_submit(
         async with session_scope() as session:
             await broadcast_service.submit(
                 session, khatm_id=khatm_id, creator_user_id=creator.id, body=body, channel=channel,
+                province=province, gender=gender,
             )
+    except plan_service.PlanFeatureUnavailableError:
+        return RedirectResponse("/creator/broadcasts?error=plan_required", status_code=303)
     except (ValueError, TypeError):
         return RedirectResponse("/creator/broadcasts?error=invalid", status_code=303)
     return RedirectResponse("/creator/broadcasts?saved=pending", status_code=303)

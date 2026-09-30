@@ -18,9 +18,10 @@ from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, UserRole, User, PlatformIdentity
 from khatmsaz.modules.settings import service as settings_service
-from sqlalchemy import func, select
+from sqlalchemy import select
 from khatmsaz.modules.participation.models import Participation, ParticipationStatus
 from khatmsaz.modules.khatm.models import Khatm
+from khatmsaz.modules.bot_registry.models import BotInstance
 import logging
 import uuid
 
@@ -65,10 +66,7 @@ async def _member_creators(session, member_user_id):
     bot_instance_id for that khatm (so a reply can route back via the right
     member bot). Returns list of dicts {id, name, bot_instance_id}."""
     stmt = (
-        select(
-            User.id, User.display_name,
-            func.max(Khatm.title), func.max(Participation.joined_via_bot_instance_id),
-        )
+        select(User.id, User.display_name, Khatm.title, Participation.joined_via_bot_instance_id)
         .select_from(Participation)
         .join(Khatm, Khatm.id == Participation.khatm_id)
         .join(User, User.id == Khatm.creator_user_id)
@@ -76,13 +74,16 @@ async def _member_creators(session, member_user_id):
             Participation.user_id == member_user_id,
             Participation.status == ParticipationStatus.ACTIVE,
         )
-        .group_by(User.id, User.display_name)
     )
     rows = (await session.execute(stmt)).all()
-    return [
-        {"id": r[0], "name": r[1] or r[2] or "سازنده", "bot_instance_id": r[3]}
-        for r in rows
-    ]
+    creators = {}
+    for creator_id, display_name, khatm_title, bot_instance_id in rows:
+        creators.setdefault(creator_id, {
+            "id": creator_id,
+            "name": display_name or khatm_title or "سازنده",
+            "bot_instance_id": bot_instance_id,
+        })
+    return list(creators.values())
 
 
 @router.message(F.text.in_(CONTACT_CREATOR_BUTTON_TEXTS))
@@ -173,11 +174,9 @@ async def start_suggestion(callback: CallbackQuery, state: FSMContext) -> None:
                     reply_markup=markup
                 )
             else:
-                # No active khatms (or fallback), route to Super Admin
-                await state.set_state(Suggestion.entering_text)
-                await state.update_data(lang=lang, target_creator_id="SUPER_ADMIN")
-                from khatmsaz.bot.keyboards import back_to_support_keyboard
-                await callback.message.edit_text(t("suggestions.ask_text", lang), reply_markup=back_to_support_keyboard(lang))
+                # C2: members never open a direct path to the head admin.
+                await state.clear()
+                await callback.message.edit_text(t("contact_creator.none", lang))
         else:
             # CREATOR or SUPER_ADMIN -> route to Super Admin
             await state.set_state(Suggestion.entering_text)
@@ -236,13 +235,19 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
         )
         
         if target_creator_id == "SUPER_ADMIN":
+            if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+                await state.clear()
+                await message.answer(t("contact_creator.none", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
+                return
             admin_ids = [
                 item.strip() for item in get_settings().super_admin_telegram_chat_ids.split(",") if item.strip()
             ]
-            notify = get_notify_fn()
             admin_text = t("suggestions.admin_notice", "fa", name=display_name, text=text)
+            markup = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="پاسخ به این سازنده", callback_data=f"reply_user:{user.id}")
+            ]])
             for chat_id in admin_ids:
-                await notify(Platform.TELEGRAM.value, chat_id, admin_text)
+                await send_with_keyboard(Platform.TELEGRAM.value, chat_id, admin_text, markup)
         else:
             # Send to creator using their primary platform identity
             creator = await session.get(User, uuid.UUID(target_creator_id))
@@ -304,12 +309,12 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
             # sent from the creator bot can't reach them (a bot can't message a
             # user who never started it). Route the reply through the exact member
             # bot the member joined via, per platform.
-            member_bot_by_platform = {}
+            member_routes = []
             inst_rows = (await session.execute(
-                select(PlatformIdentity.platform, Participation.joined_via_bot_instance_id)
+                select(BotInstance.platform, Participation.joined_via_bot_instance_id)
                 .select_from(Participation)
                 .join(Khatm, Khatm.id == Participation.khatm_id)
-                .join(PlatformIdentity, PlatformIdentity.user_id == Participation.user_id)
+                .join(BotInstance, BotInstance.id == Participation.joined_via_bot_instance_id)
                 .where(
                     Participation.user_id == target_user.id,
                     Khatm.creator_user_id == sender.id,
@@ -318,7 +323,12 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                 )
             )).all()
             for plat, inst in inst_rows:
-                member_bot_by_platform[plat.value if hasattr(plat, "value") else plat] = inst
+                member_routes.append((plat.value if hasattr(plat, "value") else plat, inst))
+
+            if sender.role != UserRole.SUPER_ADMIN and not member_routes:
+                await message.answer("شما اجازهٔ پاسخ به این کاربر را ندارید.")
+                await state.clear()
+                return
 
             stmt = select(PlatformIdentity).where(PlatformIdentity.user_id == target_user.id).order_by(PlatformIdentity.created_at.desc())
             identities = list((await session.execute(stmt)).scalars())
@@ -327,10 +337,18 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                 notify = get_notify_fn()
                 reply_text = f"📨 پیام از طرف سازندهٔ ختم شما ({sender.display_name or 'سازنده'}):\n\n{text}"
                 delivered = False
-                for pid in identities:
-                    inst = member_bot_by_platform.get(pid.platform.value)
+                routes = (
+                    [(pid.platform.value, None) for pid in identities]
+                    if sender.role == UserRole.SUPER_ADMIN
+                    else member_routes
+                )
+                identities_by_platform = {pid.platform.value: pid for pid in identities}
+                for route_platform, inst in dict.fromkeys(routes):
+                    pid = identities_by_platform.get(route_platform)
+                    if pid is None:
+                        continue
                     try:
-                        await notify(pid.platform.value, pid.subject, reply_text, bot_instance_id=inst)
+                        await notify(route_platform, pid.subject, reply_text, bot_instance_id=inst)
                         delivered = True
                     except Exception as e:
                         logger.error(f"Failed to send reply to user {target_user_id} on {pid.platform.value}: {e}")

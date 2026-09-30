@@ -1552,3 +1552,11 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Added a localized, stateful previous-step action across active creation stages.
 - Renamed the Quran family button to «ختم قرآن» and corrected confirmation/goal copy for B4/B5.
 - Added focused regressions for B1–B5 and updated keyboard expectations for the new navigation action.
+## 2026-09-30 (owner spec C1–C6 and creation wizard cleanup)
+- Removed the visible cancel button from every create-khatm wizard screen while retaining back navigation and compatibility with old callback messages.
+- Fixed member→creator and creator→Super Admin ticket routing, reply authorization, and exact member-bot reply delivery.
+- Replaced negative moderation copy with «برای تأیید محتوا» and aligned bot/web approval delivery for text and media.
+- Enforced two lifetime free Telegram/Bale broadcasts under 1000 recipients for non-PRO creators; SMS is paid from the first send.
+- Added composable khatm/province/gender audience filters and migration `broadcastfilters2026093001`.
+- Added Section C regression and PostgreSQL integration coverage.
+- Validation: 226 passed/86 skipped; one Alembic head; Graphify refreshed to 4,019 nodes and 14,246 edges. Live PostgreSQL migration apply was unavailable because the configured endpoint refused the connection.

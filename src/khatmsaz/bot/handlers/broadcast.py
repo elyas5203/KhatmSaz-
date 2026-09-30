@@ -7,15 +7,19 @@ from aiogram import Router
 from aiogram.filters import Command, CommandObject
 from aiogram.types import Message
 
-from khatmsaz.bot.notify_adapter import get_notify_fn
+from khatmsaz.bot.notify_adapter import get_notify_fn, send_media
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.broadcast import service as broadcast_service
+from khatmsaz.modules.broadcast.models import BroadcastStatus
 from khatmsaz.modules.authorization import service as authorization_service
 from khatmsaz.modules.authorization.models import AdminPermission
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
-from khatmsaz.modules.participation import service as participation_service
+from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.service import InsufficientFundsError
+from khatmsaz.modules.sms.provider import build_provider as build_sms_provider
+from datetime import datetime, timezone
 
 router = Router(name="broadcast")
 
@@ -39,12 +43,15 @@ async def submit_khatm_message(message: Message, command: CommandObject) -> None
             return
         try:
             item = await broadcast_service.submit(
-                session, khatm_id=khatm_id, creator_user_id=user.id, body=parts[1]
+                session, khatm_id=khatm_id, creator_user_id=user.id, body=parts[1], channel=platform.value,
             )
+        except broadcast_service.plan_service.PlanFeatureUnavailableError:
+            await message.answer("دو پیام رایگان شما مصرف شده یا مخاطبان ۱۰۰۰ نفر و بیشترند؛ برای ادامه پلن حرفه‌ای لازم است.")
+            return
         except ValueError:
             await message.answer("ختم پیدا نشد، فعال نیست، یا متعلق به شما نیست؛ پیام حداکثر ۱۰۰۰ کاراکتر است.")
             return
-    await message.answer(f"پیام شما ثبت شد و برای تأیید مدیریت ارسال شد ✅\nشناسه درخواست: {item.id}")
+    await message.answer(f"پیام شما برای تأیید محتوا ثبت شد ✅\nشناسه درخواست: {item.id}")
 
 
 async def _is_admin(message: Message) -> tuple[Platform, object] | None:
@@ -105,13 +112,35 @@ async def _moderate(message: Message, command: CommandObject, *, approve: bool) 
             details={"broadcast_id": str(item.id), "note": note},
         )
         if approve:
-            participants = await participation_service.list_active_for_khatm(session, item.khatm_id)
-            identities = []
-            for participant in participants:
-                identities.extend(await identity_service.list_identities_for_user(session, participant.user_id))
-            notify = get_notify_fn()
-            for identity in identities:
-                await notify(identity.platform.value, identity.subject, item.body)
+            if item.cost_toman > 0 and item.paid_at is None:
+                try:
+                    invoice = await wallet_service.purchase(
+                        session, user_id=item.creator_user_id, gross_amount_toman=item.cost_toman,
+                        description=f"ارسال گروهی {item.channel}",
+                    )
+                except InsufficientFundsError:
+                    item.status = BroadcastStatus.PENDING
+                    item.reviewed_at = None
+                    item.admin_note = "موجودی کیف پول سازنده کافی نیست"
+                    await session.flush()
+                    await message.answer("موجودی کیف پول سازنده برای این ارسال کافی نیست.")
+                    return
+                item.invoice_id = invoice.id
+                item.paid_at = datetime.now(timezone.utc)
+            destinations = await broadcast_service.audience_destinations(session, item)
+            if item.channel == "SMS":
+                provider = build_sms_provider()
+                for phone in destinations:
+                    await provider.send(phone=phone, text=item.body)
+            else:
+                media_file_id = item.media_file_id_telegram if item.channel == "TELEGRAM" else item.media_file_id_bale
+                if item.media_type and media_file_id:
+                    for subject in destinations:
+                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=item.body or None)
+                else:
+                    notify = get_notify_fn()
+                    for subject in destinations:
+                        await notify(item.channel, subject, item.body)
             await broadcast_service.mark_sent(session, item)
     await message.answer("پیام تأیید و برای اعضای فعال ارسال شد ✅" if approve else "پیام رد شد.")
 

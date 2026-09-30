@@ -7,7 +7,7 @@
   <p class="text-slate-400 text-sm leading-7 mt-2">یک ختم یا همهٔ اعضای یکتای ختم‌هایتان را انتخاب کنید. هر پیام پیش از ارسال باید به تأیید مدیر برسد.</p>
 </section>
 {% if saved == 'pending' %}<div class="mb-5 p-4 rounded-2xl bg-emerald-500/10 text-emerald-300">پیام برای بررسی مدیر ثبت شد ✅</div>{% endif %}
-{% if error %}<div class="mb-5 p-4 rounded-2xl bg-rose-500/10 text-rose-300">اطلاعات پیام معتبر نیست یا مخاطبی ندارد.</div>{% endif %}
+{% if error == 'plan_required' %}<div class="mb-5 p-4 rounded-2xl bg-amber-500/10 text-amber-300">دو پیام رایگان شما مصرف شده یا مخاطبان این ارسال ۱۰۰۰ نفر و بیشترند؛ برای ادامه پلن حرفه‌ای لازم است.</div>{% elif error %}<div class="mb-5 p-4 rounded-2xl bg-rose-500/10 text-rose-300">اطلاعات پیام معتبر نیست یا مخاطبی ندارد.</div>{% endif %}
 <section class="glass-panel p-5 sm:p-6 rounded-2xl">
   <form method="post" action="/creator/broadcasts" class="space-y-5">
     <input type="hidden" name="csrf" value="{{ csrf }}">
@@ -17,17 +17,27 @@
         {% for khatm in khatms %}<option value="{{ khatm.id }}">اعضای «{{ khatm.title }}»</option>{% endfor %}
       </select>
     </div>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div><label class="block text-sm font-bold text-slate-300 mb-2">استان (اختیاری)</label>
+        <input name="province" maxlength="100" class="input-field w-full" placeholder="مثلاً خراسان رضوی">
+      </div>
+      <div><label class="block text-sm font-bold text-slate-300 mb-2">جنسیت (اختیاری)</label>
+        <select name="gender" class="input-field w-full">
+          <option value="">همه</option><option value="FEMALE">فقط خانم‌ها</option><option value="MALE">فقط آقایان</option>
+        </select>
+      </div>
+    </div>
     <div><label class="block text-sm font-bold text-slate-300 mb-2">روش ارسال</label>
       <select name="channel" class="input-field w-full" required>
-        <option value="TELEGRAM">تلگرام — {{ policies.TELEGRAM[0] }} پیام رایگان در ۷ روز، سپس {{ '{:,}'.format(policies.TELEGRAM[1]) }} تومان</option>
-        <option value="BALE">بله — {{ policies.BALE[0] }} پیام رایگان در ۷ روز، سپس {{ '{:,}'.format(policies.BALE[1]) }} تومان</option>
-        <option value="SMS">پیامک — {{ policies.SMS[0] }} پیام رایگان در ۷ روز، سپس {{ '{:,}'.format(policies.SMS[1]) }} تومان</option>
+        <option value="TELEGRAM">تلگرام — جزو دو پیام رایگان پلن پایه</option>
+        <option value="BALE">بله — جزو دو پیام رایگان پلن پایه</option>
+        <option value="SMS">پیامک — از اولین ارسال {{ '{:,}'.format(policies.SMS[1]) }} تومان</option>
       </select>
     </div>
     <div><label class="block text-sm font-bold text-slate-300 mb-2">متن پیام</label>
       <textarea name="body" required maxlength="1000" rows="7" class="input-field w-full" placeholder="متن پیام را ساده و روشن بنویسید…"></textarea>
     </div>
-    <button class="btn w-full justify-center" type="submit">ثبت برای تأیید مدیر</button>
+    <button class="btn w-full justify-center" type="submit">برای تأیید محتوا</button>
   </form>
 </section>
 {% endblock %}

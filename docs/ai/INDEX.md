@@ -135,6 +135,8 @@
 - گزارش اکسل کامل اعضا برای سازنده — کد در `src/khatmsaz/web/app.py`
   (تابع `creator_khatm_export`).
 - پیام گروهی از پنل ادمین — `src/khatmsaz/web/app.py` (`/broadcasts`).
+- پیام گروهی سازنده، سهمیه و فیلتر ختم/استان/جنسیت — `src/khatmsaz/modules/broadcast/service.py` + `src/khatmsaz/web/templates/creator_broadcasts.html`.
+- تیکت مخاطب↔سازنده و سازنده↔ادمین اصلی — `src/khatmsaz/bot/handlers/suggestions.py`.
 
 ## معماری چند-باتی (۲۶ بات)
 - DEC-PY-0080 — تقسیم به ۱ بات سازنده + ۱۲ بات ممبر در هر پلتفرم: `DECISIONS.md` (بالای فایل)

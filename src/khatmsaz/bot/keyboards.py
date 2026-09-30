@@ -447,16 +447,12 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _ck_cancel_row(lang: str) -> list[InlineKeyboardButton]:
-    return [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")]
-
-
 def _ck_back_row(lang: str) -> list[InlineKeyboardButton]:
     return [InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")]
 
 
 def create_wizard_back_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(inline_keyboard=[_ck_back_row(lang), _ck_cancel_row(lang)])
+    return InlineKeyboardMarkup(inline_keyboard=[_ck_back_row(lang)])
 
 
 def commitment_mode_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
@@ -465,7 +461,6 @@ def commitment_mode_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.mode.commitment", lang), callback_data="ck:mode:COMMITMENT")],
             [InlineKeyboardButton(text=t("ck.mode.open", lang), callback_data="ck:mode:OPEN")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -478,7 +473,6 @@ def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
             [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -500,7 +494,6 @@ def category_choice_keyboard(
     if allow_custom_request:
         rows.append([InlineKeyboardButton(text=t("ck.cat.custom", lang), callback_data="ck:cat:custom")])
     rows.append(_ck_back_row(lang))
-    rows.append(_ck_cancel_row(lang))
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -509,7 +502,6 @@ def skip_niyyat_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text=t("ck.skip_niyyat", lang), callback_data="ck:skip_niyyat")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -530,7 +522,6 @@ def content_delivery_mode_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.content_mode.photo", lang), callback_data="ck:content_mode:PHOTO")],
             [InlineKeyboardButton(text=t("ck.content_mode.text", lang), callback_data="ck:content_mode:TEXT")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -543,7 +534,6 @@ def reminder_tone_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tone.devotional", lang), callback_data="ck:tone:DEVOTIONAL")],
             [InlineKeyboardButton(text=t("ck.tone.short", lang), callback_data="ck:tone:SHORT")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -558,7 +548,6 @@ def creator_display_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.display.full", lang), callback_data="ck:creator_display:FULL_NAME")],
             [InlineKeyboardButton(text=t("ck.display.institution", lang), callback_data="ck:creator_display:PSEUDONYM")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -569,7 +558,6 @@ def start_schedule_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.start.now", lang), callback_data="ck:start:now")],
             [InlineKeyboardButton(text=t("ck.start.future", lang), callback_data="ck:start:future")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -580,7 +568,6 @@ def capacity_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.capacity.limited", lang), callback_data="ck:capacity:limited")],
             [InlineKeyboardButton(text=t("ck.capacity.unlimited", lang), callback_data="ck:capacity:unlimited")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -592,7 +579,6 @@ def visibility_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.visibility.unlisted", lang), callback_data="ck:visibility:UNLISTED")],
             [InlineKeyboardButton(text=t("ck.visibility.private", lang), callback_data="ck:visibility:PRIVATE")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -614,7 +600,6 @@ def advertising_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.ads.on", lang), callback_data="ck:ads:ON")],
             [InlineKeyboardButton(text=t("ck.ads.off", lang), callback_data="ck:ads:OFF")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
@@ -624,7 +609,6 @@ def confirm_keyboard(*, allow_coupon: bool = False, lang: str = "fa") -> InlineK
     if allow_coupon:
         rows.append([InlineKeyboardButton(text=t("ck.coupon", lang), callback_data="ck:coupon")])
     rows.append(_ck_back_row(lang))
-    rows.append(_ck_cancel_row(lang))
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
@@ -635,7 +619,6 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text=t("ck.coupon_back", lang), callback_data="ck:coupon_back")],
             _ck_back_row(lang),
-            _ck_cancel_row(lang),
         ]
     )
 
