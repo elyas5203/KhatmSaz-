@@ -11,12 +11,14 @@ from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
-        ("20 تا 31", 12),
-        ("۲۰-۳۱", 12),
-        ("٢٠–٣١", 12),
-        ("20 to 31", 12),
+        # Owner arithmetic: «۲۰ تا ۳۱» = from page 20 to 31 = 11 pages (end - start).
+        ("20 تا 31", 11),
+        ("۲۰-۳۱", 11),
+        ("٢٠–٣١", 11),
+        ("20 to 31", 11),
         ("۱۰", 10),
         ("31 تا 20", None),
+        ("20 تا 20", None),
     ],
 )
 def test_parse_contribution_amount_accepts_localized_quran_ranges(raw, expected):

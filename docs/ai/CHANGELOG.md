@@ -113,6 +113,10 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-09-30 (E2 verified, E3 range arithmetic aligned)
+- E2: verified the "today" pick→deliver→done→no-resend flow (report.py) across all khatm types.
+- E3: `parse_contribution_amount` now treats «۲۰ تا ۳۱» as 11 pages (end−start, owner's rule) and rejects «۲۰ تا ۲۰». Used in both open and committed-count logging. 205 tests pass.
+
 ## 2026-09-30 (E1 scheduling audit + duplicate-send fix)
 - Audited reminder_engine: every-minute scan, at/after-time once-per-day due check, per-participation time, per-user timezone, correct per-bot delivery — all khatm families.
 - Fixed a duplicate send: `deliver_due_next_portions` now records DAILY_REMINDER so the digest path doesn't re-send the freshly-allocated portion next scan.

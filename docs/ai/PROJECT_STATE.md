@@ -132,6 +132,17 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-09-30 — E2 verified + E3 range arithmetic aligned to owner [Claude Code]
+- **E2** (انجام قرائت امروز): verified `report.py::today_overview`/`deliver_today_early` —
+  lists the user's active khatms by the creator's title, delivers the picked khatm's share
+  now and marks today consumed (per type), so the scheduler never re-sends; «done» completes
+  and dedupe + `updated_at` gate prevent same-day resend. Complete.
+- **E3** (custom contribution logging): `parse_contribution_amount` handles count OR range
+  in both the open and committed-count paths; per-family unit prompts. **Fixed** the range
+  arithmetic to the owner's stated rule: «۲۰ تا ۳۱» = 11 pages (`end - start`), «۲۰ تا ۲۰»
+  rejected. (Flag in OWNER_SPEC_MASTER if owner actually meant inclusive 12.)
+- **Verified**: `pytest -m "not integration"` → 205 passed. No migration.
+
 ## Current state — 2026-09-30 — E1 scheduling audit + duplicate-send fix [Claude Code]
 - **Goal**: OWNER_SPEC_MASTER.md item E1 (critical auto-delivery on time). Audited the
   whole `reminder_engine/service.py`. Confirmed the delivery system is now correct:

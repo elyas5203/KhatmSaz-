@@ -67,10 +67,13 @@ _LOCAL_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234
 
 
 def parse_contribution_amount(raw: str) -> int | None:
-    """Parse a positive count or an inclusive page-style range.
+    """Parse a positive count or a page-style range.
 
     Ranges accept Persian/Arabic digits and ``تا``, ``-``, ``–``, or ``to``
-    separators.  ``20 تا 31`` therefore represents 12 pages.
+    separators. Owner decision (2026-09-30): «۲۰ تا ۳۱» means "I read from page
+    20 up to page 31" = 11 pages (``end - start``), NOT 12 — this matches the
+    owner's stated arithmetic. A single page is logged as «1», and «20 تا 20»
+    (no progress) is rejected.
     """
     normalized = raw.strip().translate(_LOCAL_DIGITS)
     if normalized.isdigit():
@@ -80,9 +83,9 @@ def parse_contribution_amount(raw: str) -> int | None:
     if match is None:
         return None
     start, end = (int(part) for part in match.groups())
-    if start <= 0 or end < start:
+    if start <= 0 or end <= start:
         return None
-    return end - start + 1
+    return end - start
 
 
 class SetupOpenQuranReading(StatesGroup):
