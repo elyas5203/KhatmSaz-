@@ -1,3 +1,9 @@
+## Current state — 2026-09-30 — Owner spec D5 single-message join UX [Codex]
+- Member registration owns one tracked prompt: typed replies and the preceding registration prompt are cleaned up without touching unrelated chat history.
+- Registration exposes real previous-step navigation after the first name step; Telegram contact sharing and Bale text-phone entry retain the same tracked flow.
+- The join welcome/selection summary remains visible when the delivery-hour step is saved instead of being replaced by a bare completion line.
+- Validation: focused D suite **28 passed, 1 skipped**; non-integration suite **234 passed, 86 deselected**. No migration.
+
 ## Current state — 2026-09-30 — Owner spec B6–B10 complete creation and editing UX [Codex]
 - **Trust + family copy (B6/B9/B10):** creation now explains link/audience isolation and why creator contact is required. Welcome examples and commitment/target questions are family-specific for Quran, Salawat, Dua/Ziyarat and La'an.
 - **Single-message flows (B7):** the creation wizard edits one tracked prompt and shows a non-personal running summary. Open-Quran and repetition-commitment join setup retain the join card, edit only that message, remove only typed setup replies and expose previous-step actions after the first choice.

@@ -1,9 +1,14 @@
 """Regression coverage for OWNER_SPEC_MASTER section D."""
 
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from khatmsaz.bot.keyboards import member_menu_keyboard, participant_menu_keyboard
 from khatmsaz.i18n import t
+from khatmsaz.bot.handlers import member_registration
+from khatmsaz.bot.handlers import join_flow
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,3 +55,84 @@ def test_d4_member_menu_and_admin_panel_expose_custom_khatm_contact():
     operations = (ROOT / "src/khatmsaz/web/templates/operations.html").read_text(encoding="utf-8")
     assert 'name="custom_khatm_admin_phone"' in operations
     assert "/operations/custom-khatm-phone" in operations
+
+
+class _RegistrationState:
+    def __init__(self):
+        self.data = {"_member_reg_mid": 41}
+
+    async def get_data(self):
+        return dict(self.data)
+
+    async def update_data(self, **kwargs):
+        self.data.update(kwargs)
+
+
+class _RegistrationBot:
+    def __init__(self):
+        self.deleted = []
+
+    async def delete_message(self, chat_id, message_id):
+        self.deleted.append((chat_id, message_id))
+
+
+class _RegistrationMessage:
+    def __init__(self):
+        self.bot = _RegistrationBot()
+        self.chat = SimpleNamespace(id=7)
+        self.from_user = SimpleNamespace(is_bot=False)
+        self.message_id = 42
+        self.deleted = False
+        self.answers = []
+
+    async def delete(self):
+        self.deleted = True
+
+    async def answer(self, text, **kwargs):
+        self.answers.append((text, kwargs))
+        return SimpleNamespace(message_id=43)
+
+
+@pytest.mark.asyncio
+async def test_d5_member_registration_replaces_only_its_owned_prompt_and_typed_reply():
+    state = _RegistrationState()
+    message = _RegistrationMessage()
+
+    await member_registration._member_reg_prompt(message, state, "مرحله بعد")
+
+    assert message.deleted is True
+    assert message.bot.deleted == [(7, 41)]
+    assert state.data["_member_reg_mid"] == 43
+    assert message.answers[0][0] == "مرحله بعد"
+
+
+def test_d5_member_registration_has_previous_step_actions_after_name():
+    province_callbacks = [
+        button.callback_data
+        for row in member_registration._member_province_keyboard("fa").inline_keyboard
+        for button in row
+    ]
+    gender_callbacks = [
+        button.callback_data
+        for row in member_registration._member_gender_keyboard("fa").inline_keyboard
+        for button in row
+    ]
+    assert "mreg:back:phone" in province_callbacks
+    assert "mreg:back:city" in gender_callbacks
+
+
+@pytest.mark.asyncio
+async def test_d5_delivery_hour_completion_keeps_the_join_welcome_summary():
+    edits = []
+
+    class Bot:
+        async def edit_message_text(self, **kwargs):
+            edits.append(kwargs)
+
+    message = SimpleNamespace(bot=Bot(), chat=SimpleNamespace(id=9), answer=None)
+    await join_flow._finish_join_prompt(
+        message, {"_join_wizard_mid": 12, "_join_summary": "خوش آمدید به ختم نمونه"},
+        "ساعت ۰۹:۰۰ ذخیره شد",
+    )
+    assert edits[0]["message_id"] == 12
+    assert edits[0]["text"] == "خوش آمدید به ختم نمونه\n\nساعت ۰۹:۰۰ ذخیره شد"

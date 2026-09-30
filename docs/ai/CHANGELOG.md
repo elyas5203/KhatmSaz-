@@ -1,3 +1,9 @@
+## 2026-09-30 (owner spec D5 single-message join UX)
+- Converted member registration to one owned, replaceable prompt and removed only typed replies belonging to that registration step.
+- Added previous-step navigation throughout registration after the initial name step.
+- Preserved the join welcome/selection summary when the reminder hour is confirmed.
+- Added focused regression coverage. No migration.
+
 ## 2026-09-29 (Quran done action and niyyat cleanup)
 - Removed duplicated «به نیت» from the optional proxy/dedication suffix.
 - Restored one-tap whole-share completion for committed Quran portions; numeric page reporting remains limited to open Quran.

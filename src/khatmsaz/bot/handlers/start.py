@@ -512,6 +512,7 @@ async def resume_join_after_registration(
             delivery_hour_participation_id=str(participation.id),
             lang=lang,
             _join_wizard_mid=join_message.message_id,
+            _join_summary=text,
         )
         await join_message.edit_text(
             f"{text}\n\n{t('join.ask_delivery_hour', lang)}",

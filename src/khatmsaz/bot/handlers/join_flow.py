@@ -37,6 +37,9 @@ router = Router(name="join_flow")
 
 async def _finish_join_prompt(message: Message, data: dict, text: str) -> None:
     """Replace only the bot-owned join wizard message, never unrelated chat history."""
+    summary = (data.get("_join_summary") or "").strip()
+    if summary and summary not in text:
+        text = f"{summary}\n\n{text}"
     message_id = data.get("_join_wizard_mid")
     if message_id:
         try:
