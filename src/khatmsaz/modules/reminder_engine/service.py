@@ -246,6 +246,13 @@ async def deliver_due_next_portions(
                 session, notify, participation.user_id, text,
                 bot_instance_id=participation.joined_via_bot_instance_id,
             )
+        # Record the daily reminder so the digest path (which also sends the
+        # current ASSIGNED portion at the reminder hour) does not re-send this
+        # freshly-allocated portion on the next 1-minute scan — that produced a
+        # duplicate message on the day after a completion (E1 audit 2026-09-30).
+        await notification_service.record_sent(
+            session, participation.id, NotificationKind.DAILY_REMINDER
+        )
     return delivered
 
 

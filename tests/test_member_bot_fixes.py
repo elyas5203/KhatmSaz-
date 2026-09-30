@@ -8,6 +8,7 @@
 """
 from types import SimpleNamespace
 
+import pytest
 from aiogram.filters import Command
 
 from khatmsaz.bot import keyboards
@@ -127,3 +128,54 @@ def test_settings_creator_panel_button_visibility():
         b.callback_data == "creator:web_login"
         for row in with_btn.inline_keyboard for b in row
     )
+
+
+@pytest.mark.asyncio
+async def test_next_portion_delivery_records_daily_reminder_to_prevent_duplicate(monkeypatch):
+    """E1 audit (2026-09-30): after allocating+sending the next committed-Quran
+    portion, the engine must record DAILY_REMINDER so the digest path doesn't
+    re-send the same fresh portion on the next 1-minute scan."""
+    import pytest as _pytest
+    from datetime import datetime, timezone
+    from types import SimpleNamespace
+    from khatmsaz.modules.reminder_engine import service as re
+    from khatmsaz.modules.notification.models import NotificationKind
+
+    part = SimpleNamespace(id="part-1", user_id="user-1", joined_via_bot_instance_id=None)
+    khatm = SimpleNamespace(id="k1", title="ختم قرآن", allow_snooze=False)
+    old_portion = SimpleNamespace(
+        participation_id="part-1", khatm_id="k1",
+        updated_at=datetime(2020, 1, 1, tzinfo=timezone.utc),  # long ago → due
+    )
+    next_portion = SimpleNamespace(unit_start=4, unit_end=6)
+    recorded = []
+
+    async def _list_latest(_s): return [old_portion]
+    async def _get_by_id(_s, _pid): return part
+    async def _get_khatm(_s, _kid): return khatm
+    def _has_started(_k): return True
+    async def _get_pref(_s, _pid): return SimpleNamespace(enabled=True, reminder_hour=0, reminder_minute=0)
+    async def _get_settings(_s, _uid): return SimpleNamespace(timezone="Asia/Tehran", language="fa")
+    async def _allocate(_s, _kid, _pid): return next_portion
+    async def _push(*a, **k): return None
+    async def _render(_s, *a, **k): return "متن"
+    async def _kb(_s, _uid, _text, _markup, *, bot_instance_id=None): return 1
+    async def _record(_s, pid, kind): recorded.append((pid, kind))
+
+    monkeypatch.setattr(re.allocation_service, "list_latest_portion_per_participation", _list_latest)
+    monkeypatch.setattr(re.participation_repository, "get_by_id", _get_by_id)
+    monkeypatch.setattr(re.khatm_service, "get_khatm", _get_khatm)
+    monkeypatch.setattr(re.khatm_service, "has_started", _has_started)
+    monkeypatch.setattr(re.notification_service, "get_preference", _get_pref)
+    monkeypatch.setattr(re.settings_service, "get_or_create", _get_settings)
+    monkeypatch.setattr(re.allocation_service, "allocate_next_portion_to", _allocate)
+    monkeypatch.setattr(re, "_push_portion_content", _push)
+    monkeypatch.setattr(re, "_render_or_default", _render)
+    monkeypatch.setattr(re, "_notify_user_with_keyboard", _kb)
+    monkeypatch.setattr(re.notification_service, "record_sent", _record)
+
+    async def _noop_notify(*a, **k): return None
+    delivered = await re.deliver_due_next_portions(object(), _noop_notify, "Asia/Tehran", None)
+
+    assert delivered == 1
+    assert ("part-1", NotificationKind.DAILY_REMINDER) in recorded

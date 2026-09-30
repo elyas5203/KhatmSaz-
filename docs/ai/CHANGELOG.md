@@ -113,6 +113,11 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-09-30 (E1 scheduling audit + duplicate-send fix)
+- Audited reminder_engine: every-minute scan, at/after-time once-per-day due check, per-participation time, per-user timezone, correct per-bot delivery — all khatm families.
+- Fixed a duplicate send: `deliver_due_next_portions` now records DAILY_REMINDER so the digest path doesn't re-send the freshly-allocated portion next scan.
+- Added `docs/ai/OWNER_SPEC_MASTER.md` (living spec of all owner requirements). No migration. 204 tests pass.
+
 ## 2026-09-29 (plan panels aligned to real backend)
 - Admin `/finance`: honest plan-card wording (enabled = «فعال و قابل اعمال»), member caps shown only on FREE, BASIC/PRO note "no member limit", price titled «هزینهٔ ساخت هر ختم». New «مدیریت پلن کاربران» section + `POST /finance/user-plan` (search → set FREE/BASIC/PRO, audit `USER_PLAN_CHANGED`).
 - Creator `/creator/wallet`: read-only «پلن فعلی» card (title from PlanDefinition, FREE usage vs cap for Quran & Salawat/Dua, cap-only-blocks-new-creation note, no buy button, contact-support-to-upgrade note). Top-up and SMS kept separate.

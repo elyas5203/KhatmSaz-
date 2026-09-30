@@ -228,7 +228,27 @@
 
 # بخش E — بخش زمان‌بندی و تحویل (بحرانی — احتمالاً بازنویسی کامل)
 
-### E1 — تحویل خودکارِ سهم/پیام سرِ تایمِ درست، per-timezone، per-khatm 🔴 CRITICAL ⬜🔵
+### E1 — تحویل خودکارِ سهم/پیام سرِ تایمِ درست، per-timezone، per-khatm 🔴 CRITICAL ✅ (ممیزی و رفع ۲۰۲۶-۰۹-۳۰)
+**چطور انجام شد (Claude Code, 2026-09-30):** کل موتور `reminder_engine/service.py`
+ممیزی شد. وضعیت درست فعلی که تأیید شد: اسکجولر **هر دقیقه** اجرا می‌شود
+(`bootstrap.py` cron `minute="*"`)؛ `_is_reminder_due` = «به‌محضِ رسیدن/گذشتن از
+ساعتِ محلی، یک‌بار در روز» (نه پنجرهٔ ۱۵دقیقه‌ایِ سفت)؛ زمان per-participation از
+`notification_preferences` خوانده می‌شود (یک نفر در ۳ ختم = ۳ ساعت مستقل)؛ tz هر
+کاربر از `user_settings.timezone`؛ `send_with_keyboard` مقدار bool موفقیت برمی‌گرداند
+و با `joined_via_bot_instance_id` روی همان بات/پلتفرمِ درست ارسال می‌کند؛ dedupe per-day
+(`already_sent_today`/`open_reading_last_sent_at`/`updated_at`/`schedule_last_sent_at`).
+همهٔ خانواده‌ها پوشش دارند: قرآن تعهدی (`deliver_due_next_portions` + digest)، قرآن آزاد
+(`deliver_due_open_quran_reading`)، صلوات/دعا/لعن منظم (`deliver_due_regular_commitments`)،
+آزادِ زمان‌بندی‌شده (`_send_open_schedule_reminders`).
+**باگ واقعی که رفع شد:** بعد از تخصیصِ سهمِ بعدیِ قرآن در `deliver_due_next_portions`،
+`DAILY_REMINDER` ثبت نمی‌شد؛ پس در اسکنِ دقیقهٔ بعد مسیر digest همان سهمِ تازه را دوباره
+می‌فرستاد (پیام تکراری روزِ بعد از یک تکمیل). حالا بعد از ارسال، `record_sent(DAILY_REMINDER)`
+صدا زده می‌شود. تست: `tests/test_member_bot_fixes.py::test_next_portion_delivery_records_daily_reminder_to_prevent_duplicate`.
+**باقی‌ماندهٔ E2 (قاطی‌نکردن/انتخاب ختم امروز/done→عدم‌ارسال‌مجدد):** با dedupeها پوشش
+داده شده؛ اگر مالک سناریوی قاطی‌شدنِ مشخصی دید، جدا گزارش کند.
+
+<!-- نسخهٔ قدیمی این آیتم (پیش از ممیزی): -->
+#### E1 (شرح اولیه) ⬜🔵
 - باگ: «ساعت ارسال ختم که باید خودکار و اصلی‌ترین بخش باشد خراب است؛ یا نمی‌فرستد
   یا سرِ تایم نمی‌فرستد.» کل سیستم بررسی و در صورت لزوم از نو ساخته شود.
 - الزامات دقیق:

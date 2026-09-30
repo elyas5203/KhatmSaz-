@@ -132,6 +132,22 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-09-30 — E1 scheduling audit + duplicate-send fix [Claude Code]
+- **Goal**: OWNER_SPEC_MASTER.md item E1 (critical auto-delivery on time). Audited the
+  whole `reminder_engine/service.py`. Confirmed the delivery system is now correct:
+  every-minute scan (`bootstrap.py` cron `minute="*"`), `_is_reminder_due` = "at/after
+  the local time, once per day", per-participation reminder time, per-user timezone,
+  `send_with_keyboard` returns success bool and routes via `joined_via_bot_instance_id`,
+  per-day dedupe on every path; all families covered (committed/open Quran, regular
+  Salawat/Dua/La'an, scheduled open).
+- **Bug fixed**: `deliver_due_next_portions` didn't record `DAILY_REMINDER` after sending
+  the freshly-allocated next portion, so the digest path re-sent the same portion on the
+  next 1-minute scan (duplicate the day after a completion). Now records it. Test:
+  `tests/test_member_bot_fixes.py::test_next_portion_delivery_records_daily_reminder_to_prevent_duplicate`.
+- **Verified**: `pytest -m "not integration"` → 204 passed. No migration.
+- **Handoff**: full living spec of all owner requirements in `docs/ai/OWNER_SPEC_MASTER.md`
+  (statuses per item). Next priority per that file: C1 (ticketing), then A (plans + role removal).
+
 ## Current state — 2026-09-29 — Plan panels aligned to real backend (no invented features) [Claude Code]
 - **Why**: owner flagged that the panels implied plan features the backend does not have (subscription/expiry, a creator plan store, per-plan member caps, a buy flow). This pass makes the panels tell the truth; **no domain/pricing/DB change**.
 - **Backend reality confirmed**: `PlanTier` FREE/BASIC/PRO; `UserPlan` holds only the tier (no `expires_at`); missing row = FREE; caps (`max_quran_members`/`max_devotional_members`) live in the FREE `PlanDefinition.entitlements` and are enforced **only for FREE** in `khatm_workflow._enforce_creation_cap` (summed across the creator's same-family khatms, DEC-PY-0074); `set_plan` is internal, no purchase/renewal/expiry/auto-upgrade; wallet top-up never changes the plan; SMS subscription is a separate product.
