@@ -515,7 +515,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     elif stacked_portion is not None:
         allow_snooze = bool(khatm and khatm.allow_snooze)
         await callback.message.answer(
-            f"✅ سهم شما ({completed.unit_start} تا {completed.unit_end}) با موفقیت ثبت شد.\n\nشما هنوز سهم‌های عقب‌افتاده دارید (سهم بعدی: {stacked_portion.unit_start} تا {stacked_portion.unit_end}). هر زمان آماده بودید، دکمه «امروز» را از منو انتخاب کنید.{invite_line}",
+            f"✅ سهم شما ({completed.unit_start} تا {completed.unit_end}) با موفقیت ثبت شد.\n\nشما هنوز سهم‌های عقب‌افتاده دارید (سهم بعدی: {stacked_portion.unit_start} تا {stacked_portion.unit_end}). هر زمان آماده بودید، دکمه «انجام قرائت امروز» را از منو انتخاب کنید.{invite_line}",
             reply_markup=post_completion_keyboard(
                 khatm_id, allow_snooze=allow_snooze,
                 undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,

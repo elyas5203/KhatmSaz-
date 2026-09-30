@@ -2742,3 +2742,17 @@ the entries above.
 - **Broadcasts (C3–C6):** positive «برای تأیید محتوا» copy, two lifetime free Telegram/Bale sends shared across both channels for audiences under 1000, PRO gating beyond that, paid-from-first SMS, composable khatm/province/gender targeting, and moderated text/photo/video/voice delivery are implemented. Bot-command approval now uses the same destination/media/payment behavior as web approval.
 - **Schema:** migration `broadcastfilters2026093001` adds nullable `target_province` and `target_gender`; it was reviewed and Alembic reports a single head. PostgreSQL integration coverage for multi-creator/exact-member-bot ticket routing was added; it remains opt-in with the project integration suite.
 - **Validation:** full suite **226 passed, 86 skipped**; non-integration suite **226 passed, 86 deselected**; focused suite **27 passed**; Python compile and diff check passed. Alembic apply was attempted but PostgreSQL refused the configured connection; mypy is not installed. Graphify refreshed to **4,019 nodes / 14,246 edges / 288 communities**.
+## Current state — 2026-09-30 — Owner spec D1 today-action rename [Codex]
+- Renamed the member-menu action from the vague «📅 امروز» to «📖 انجام قرائت امروز» and synchronized direct references in help, Quran content settings and overdue-share guidance; Arabic/English labels remain structurally aligned for later reactivation.
+- Added `tests/test_owner_spec_d.py` to prevent any old direct button label from returning. Focused D1/navigation/i18n/today suite: **22 passed**. No migration.
+- Section D continues sequentially with D2; no later D item is claimed complete by this entry.
+## Current state — 2026-09-30 — Owner spec D2 help audit [Codex]
+- Rewrote the button-driven help around current behavior: automatic titles and reversible creation, actual personal settings, expanded safe khatm editing, private member data and moderated text/photo/video/voice broadcasts with audience filters.
+- Removed stale claims about immediate join allocation, retired settings and title/welcome-only editing. Persian, Arabic and English copies stay structurally aligned. Focused D1/D2/help/i18n/navigation suite: **19 passed**. No migration.
+- The first creation screen is now the sole owner-approved exception to cancel removal: it shows «انصراف» because no previous step exists; every later step keeps «مرحلهٔ قبل» and no cancel button.
+## Current state — 2026-09-30 — Owner spec D3 member contact menu [Codex]
+- Unified the legacy participant menu with the authoritative member-bot menu. Both now expose «ارتباط با سازندهٔ ختم», include My Khatms, and never show generic support to a member.
+- The button enters the C1 active-participation creator picker and exact-member-bot reply route. Focused D1–D3/help/i18n/navigation suite: **28 passed**. No migration.
+## Current state — 2026-09-30 — Owner spec D4 custom-khatm member entry [Codex]
+- Added «ساخت ختم اختصاصی» to every member-bot menu. It displays an admin-managed phone number with clear Telegram/Bale contact instructions and a safe unavailable state when not configured.
+- Operations admins can save/clear the number at `/operations`; input is normalized/validated, CSRF-protected and audited without storing the phone in audit details. Focused D1–D4/settings/template/i18n suite: **30 passed**. No migration (system-settings KV).

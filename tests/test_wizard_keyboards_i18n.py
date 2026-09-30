@@ -9,7 +9,6 @@ from khatmsaz.i18n import t
 
 _NO_ARG = [
     k.commitment_mode_keyboard,
-    k.template_choice_keyboard,
     k.skip_niyyat_keyboard,
     k.content_delivery_mode_keyboard,
     k.reminder_tone_keyboard,
@@ -38,6 +37,11 @@ def test_every_wizard_keyboard_is_localized_without_cancel(lang):
     cat = k.category_choice_keyboard([], group="DUA", allow_custom_request=True, lang=lang)
     assert cat.inline_keyboard[-1][0].callback_data == "ck:back"
     assert cat.inline_keyboard[0][0].text == t("ck.cat.custom", lang)
+
+    first = k.template_choice_keyboard(lang)
+    assert first.inline_keyboard[-1][0].callback_data == "ck:cancel"
+    assert first.inline_keyboard[-1][0].text == t("ck.cancel", lang)
+    assert "ck:back" not in [button.callback_data for row in first.inline_keyboard for button in row]
 
 
 def test_wizard_labels_actually_differ_by_language():

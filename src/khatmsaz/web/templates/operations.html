@@ -10,6 +10,8 @@
 
 {% if saved == 'logo' %}
 <div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">لوگوی پنل ذخیره شد.</div>
+{% elif saved == 'custom_khatm_phone' %}
+<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">شمارهٔ ساخت ختم اختصاصی ذخیره شد.</div>
 {% endif %}
 
 <section class="glass-panel p-6 rounded-3xl mb-8">
@@ -24,6 +26,20 @@
       <input class="input-field mt-2" dir="ltr" type="url" name="panel_logo_url" maxlength="500" placeholder="https://example.com/logo.png" value="{{ panel_logo_url }}">
     </label>
     <button class="btn whitespace-nowrap" type="submit">ذخیره لوگو</button>
+  </form>
+</section>
+
+<section class="glass-panel p-6 rounded-3xl mb-8">
+  <div class="mb-5 border-b border-white/5 pb-4">
+    <h2 class="text-xl font-bold text-white">ساخت ختم اختصاصی</h2>
+    <p class="mt-2 text-sm text-slate-400">این شماره با زدن دکمهٔ «ساخت ختم اختصاصی» در بات‌های ممبر نمایش داده می‌شود.</p>
+  </div>
+  <form action="/operations/custom-khatm-phone" method="post" class="flex flex-col sm:flex-row gap-3 items-end">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="flex-1 w-full text-sm text-slate-300">شماره مدیریت
+      <input class="input-field mt-2" dir="ltr" type="tel" name="custom_khatm_admin_phone" maxlength="20" placeholder="+989121234567" value="{{ custom_khatm_admin_phone }}">
+    </label>
+    <button class="btn whitespace-nowrap" type="submit">ذخیره شماره</button>
   </form>
 </section>
 

@@ -42,6 +42,7 @@ HELP_BUTTON_TEXTS = variants("menu.help")
 PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
 SUPPORT_BUTTON_TEXTS = variants("menu.support")
 CONTACT_CREATOR_BUTTON_TEXTS = variants("menu.contact_creator")
+CUSTOM_KHATM_BUTTON_TEXTS = variants("menu.custom_khatm")
 CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
 CREATOR_MANAGEMENT_BUTTON_TEXTS = variants("menu.creator.management")
 CREATOR_FINANCE_BUTTON_TEXTS = variants("menu.creator.finance")
@@ -59,7 +60,7 @@ PHONE_SHARE_BUTTON_TEXTS = variants("registration.share_phone")
 RESERVED_MENU_TEXTS = (
     CREATE_BUTTON_TEXTS | MY_KHATMS_BUTTON_TEXTS | TODAY_BUTTON_TEXTS
     | REPORT_BUTTON_TEXTS | SETTINGS_BUTTON_TEXTS | HELP_BUTTON_TEXTS
-    | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CONTACT_CREATOR_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
+    | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CONTACT_CREATOR_BUTTON_TEXTS | CUSTOM_KHATM_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
     | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
     | CREATOR_SUPPORT_BUTTON_TEXTS | CREATOR_WALLET_BUTTON_TEXTS
     | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
@@ -74,6 +75,7 @@ def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.today", lang))],
             [KeyboardButton(text=t("menu.my_khatms", lang))],
             [KeyboardButton(text=t("menu.public_khatms", lang))],
+            [KeyboardButton(text=t("menu.custom_khatm", lang))],
             [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.contact_creator", lang))],
         ],
         resize_keyboard=True,
@@ -101,14 +103,8 @@ def home_keyboard_for_bot(bot, lang: str) -> ReplyKeyboardMarkup:
 
 
 def participant_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=t("menu.today", lang))],
-            [KeyboardButton(text=t("menu.public_khatms", lang))],
-            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.support", lang))],
-        ],
-        resize_keyboard=True,
-    )
+    """Compatibility alias; member navigation has one authoritative layout."""
+    return member_menu_keyboard(lang)
 
 def support_inline_keyboard(lang: str = "fa", is_participant: bool = False, is_admin: bool = False, is_creator: bool = False) -> InlineKeyboardMarkup:
     # Owner (2026-09-30, OWNER_SPEC_MASTER A5): the creator role is granted
@@ -447,6 +443,11 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def _ck_cancel_row(lang: str) -> list[InlineKeyboardButton]:
+    """Only for the first creation screen, where no previous step exists."""
+    return [InlineKeyboardButton(text=t("ck.cancel", lang), callback_data="ck:cancel")]
+
+
 def _ck_back_row(lang: str) -> list[InlineKeyboardButton]:
     return [InlineKeyboardButton(text=t("ck.back", lang), callback_data="ck:back")]
 
@@ -472,7 +473,7 @@ def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tpl.salawat", lang), callback_data="ck:group:SALAWAT")],
             [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
             [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
-            _ck_back_row(lang),
+            _ck_cancel_row(lang),
         ]
     )
 

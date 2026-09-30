@@ -389,6 +389,7 @@ async def operations_page(request: Request):
     settings = get_settings()
     database_ok = True
     queue_counts = {"broadcasts": 0, "covers": 0, "phones": 0, "categories": 0}
+    custom_khatm_admin_phone = ""
     try:
         async with session_scope() as session:
             await session.execute(text("SELECT 1"))
@@ -398,6 +399,9 @@ async def operations_page(request: Request):
                 "phones": int(await session.scalar(select(func.count()).select_from(ManualPhoneVerification).where(ManualPhoneVerification.status == "PENDING")) or 0),
                 "categories": int(await session.scalar(select(func.count()).select_from(KhatmCategoryRequest).where(KhatmCategoryRequest.status == KhatmCategoryRequestStatus.PENDING)) or 0),
             }
+            custom_khatm_admin_phone = await system_settings_service.get_str(
+                session, "custom_khatm_admin_phone"
+            )
     except Exception:
         database_ok = False
 
@@ -420,6 +424,7 @@ async def operations_page(request: Request):
         context=_ctx(
             request, admin, raw, services=services, queues=queue_counts,
             worker=runtime_status.snapshot(), scan_interval=settings.reminder_scan_interval_minutes,
+            custom_khatm_admin_phone=custom_khatm_admin_phone,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -453,6 +458,29 @@ async def update_panel_logo(
             details={"has_logo": bool(panel_logo_url.strip())},
         )
     return RedirectResponse("/operations?saved=logo", status_code=303)
+
+
+@app.post("/operations/custom-khatm-phone")
+async def update_custom_khatm_phone(
+    request: Request, custom_khatm_admin_phone: str = Form(""), csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await system_settings_service.set_str(
+                session, "custom_khatm_admin_phone", custom_khatm_admin_phone
+            )
+        except ValueError:
+            return HTMLResponse("شماره تماس معتبر نیست.", status_code=400)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="CUSTOM_KHATM_PHONE_UPDATE",
+            details={"configured": bool(custom_khatm_admin_phone.strip())},
+        )
+    return RedirectResponse("/operations?saved=custom_khatm_phone", status_code=303)
 
 
 @app.get("/join/{token}", response_class=HTMLResponse)

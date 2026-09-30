@@ -6,6 +6,7 @@ correspond to a real place in the code that reads it via `get_int`."""
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from urllib.parse import urlparse
+import re
 
 from khatmsaz.modules.system_settings import repository
 
@@ -32,6 +33,7 @@ KNOWN_STRING_SETTINGS = {
     "intro_image_salawat",
     "intro_image_dua_ziyarat",
     "intro_image_laan",
+    "custom_khatm_admin_phone",
 }
 
 
@@ -74,6 +76,12 @@ async def set_str(session: AsyncSession, key: str, value: str) -> None:
     if key not in KNOWN_STRING_SETTINGS:
         raise ValueError(f"unknown string system setting: {key}")
     normalized = value.strip()
+    if key == "custom_khatm_admin_phone":
+        compact = re.sub(r"[\s()-]", "", normalized)
+        if compact and not re.fullmatch(r"\+?\d{8,15}", compact):
+            raise ValueError("custom khatm admin phone must be a valid phone number")
+        await repository.set(session, key, compact)
+        return
     if normalized:
         parsed = urlparse(normalized)
         if parsed.scheme not in {"http", "https"} or not parsed.netloc:

@@ -29,10 +29,16 @@ def test_c6_bot_accepts_text_photo_video_and_voice():
         assert media in source
 
 
-def test_create_wizard_never_renders_cancel_button():
-    keyboard_source = (ROOT / "src/khatmsaz/bot/keyboards.py").read_text(encoding="utf-8")
-    create_source = (ROOT / "src/khatmsaz/bot/handlers/create_khatm.py").read_text(encoding="utf-8")
-    assert 'callback_data="ck:cancel"' not in keyboard_source
-    # The legacy callback handler remains so old Telegram messages do not break.
-    assert create_source.count('callback_data="ck:cancel"') == 0
-    assert '@router.callback_query(F.data == "ck:cancel")' in create_source
+def test_create_wizard_renders_cancel_only_on_the_first_screen():
+    from khatmsaz.bot import keyboards
+
+    first_callbacks = [
+        button.callback_data for row in keyboards.template_choice_keyboard("fa").inline_keyboard for button in row
+    ]
+    later_callbacks = [
+        button.callback_data for row in keyboards.commitment_mode_keyboard("fa").inline_keyboard for button in row
+    ]
+    assert first_callbacks.count("ck:cancel") == 1
+    assert "ck:back" not in first_callbacks
+    assert "ck:cancel" not in later_callbacks
+    assert "ck:back" in later_callbacks

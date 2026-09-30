@@ -10,7 +10,7 @@ from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
-from khatmsaz.bot.keyboards import member_menu_keyboard, join_preview_keyboard, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import CUSTOM_KHATM_BUTTON_TEXTS, member_menu_keyboard, join_preview_keyboard, safe_clear_inline_keyboard
 from khatmsaz.bot import invite_links
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
@@ -22,8 +22,22 @@ from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.bot.handlers.start import build_join_preview_message, JoinWorkflow, _creator_display_name
+from khatmsaz.modules.system_settings import service as system_settings_service
 
 router = Router(name="member_start")
+
+
+@router.message(F.text.in_(CUSTOM_KHATM_BUTTON_TEXTS))
+async def custom_khatm_contact(message: Message) -> None:
+    """Give members the admin-managed contact for a bespoke khatm request."""
+    lang = getattr(message.bot, "khatmsaz_language", "fa")
+    async with session_scope() as session:
+        phone = await system_settings_service.get_str(session, "custom_khatm_admin_phone")
+    key = "custom_khatm.contact" if phone else "custom_khatm.unavailable"
+    await message.answer(
+        t(key, lang, phone=phone) if phone else t(key, lang),
+        reply_markup=member_menu_keyboard(lang),
+    )
 
 
 async def _matches_member_bot(session, khatm: Khatm, bot_category: str | None) -> bool:

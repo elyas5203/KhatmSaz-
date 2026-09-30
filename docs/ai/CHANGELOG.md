@@ -1560,3 +1560,16 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Added composable khatm/province/gender audience filters and migration `broadcastfilters2026093001`.
 - Added Section C regression and PostgreSQL integration coverage.
 - Validation: 226 passed/86 skipped; one Alembic head; Graphify refreshed to 4,019 nodes and 14,246 edges. Live PostgreSQL migration apply was unavailable because the configured endpoint refused the connection.
+## 2026-09-30 (owner spec D1 today-action label)
+- Renamed the member action to «📖 انجام قرائت امروز» in the menu and every direct user-facing reference.
+- Added regression coverage across navigation, help, i18n and today delivery. Focused suite: 22 passed. No migration.
+## 2026-09-30 (owner spec D2 help synchronization)
+- Updated all help topics to match current creation, joining, settings, editing and moderated-broadcast behavior.
+- Removed stale feature claims and aligned Persian/Arabic/English help structure.
+- Restored «انصراف» only on the first four-family creation screen, where a previous-step action is impossible.
+## 2026-09-30 (owner spec D3 member contact menu)
+- Made both member-menu constructors use one layout with direct creator contact and no generic support entry.
+- Verified the menu routes into the secured C1 ticket flow. Focused suite: 28 passed.
+## 2026-09-30 (owner spec D4 custom khatm contact)
+- Added a custom-khatm request button to member bots and an admin-managed contact number in Operations.
+- Added phone validation, CSRF protection, privacy-safe audit metadata and localized empty-state copy. No migration.

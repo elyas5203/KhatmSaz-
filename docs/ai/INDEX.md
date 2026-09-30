@@ -137,6 +137,8 @@
 - پیام گروهی از پنل ادمین — `src/khatmsaz/web/app.py` (`/broadcasts`).
 - پیام گروهی سازنده، سهمیه و فیلتر ختم/استان/جنسیت — `src/khatmsaz/modules/broadcast/service.py` + `src/khatmsaz/web/templates/creator_broadcasts.html`.
 - تیکت مخاطب↔سازنده و سازنده↔ادمین اصلی — `src/khatmsaz/bot/handlers/suggestions.py`.
+- «انجام قرائت امروز» و انتخاب ختم — `src/khatmsaz/i18n/__init__.py` (`menu.today`) + `src/khatmsaz/bot/handlers/report.py`.
+- ساخت ختم اختصاصی از بات ممبر — `src/khatmsaz/bot/handlers/member_start.py::custom_khatm_contact` + `/operations` setting `custom_khatm_admin_phone`.
 
 ## معماری چند-باتی (۲۶ بات)
 - DEC-PY-0080 — تقسیم به ۱ بات سازنده + ۱۲ بات ممبر در هر پلتفرم: `DECISIONS.md` (بالای فایل)
