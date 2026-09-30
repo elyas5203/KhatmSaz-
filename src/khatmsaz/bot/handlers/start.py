@@ -455,6 +455,28 @@ async def resume_join_after_registration(
         state is not None and not was_waitlisted
         and khatm.template_type == KhatmTemplateType.QURAN_PAGE
     )
+    # L3 (owner 2026-09-30): show the family intro image on top of the join card,
+    # captioned with the privacy/trust note — this is where the member sees it,
+    # not at the creator's create-khatm start. Best-effort.
+    try:
+        from khatmsaz.modules.bot_registry import service as _bot_registry_service
+        from khatmsaz.modules.bot_registry.models import BotCategory
+        _cat = None
+        if khatm.template_type in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
+            _cat = BotCategory.QURAN.value
+        elif khatm.content_category_id:
+            _c = await category_service.get(session, khatm.content_category_id)
+            if _c is not None:
+                _cat = {"SALAWAT": BotCategory.SALAWAT.value, "LAAN": BotCategory.LAAN.value,
+                        "DUA": BotCategory.DUA_ZIYARAT.value}.get(_c.group.name)
+        if _cat is None:
+            _cat = BotCategory.SALAWAT.value
+        _intro_image = await _bot_registry_service.get_intro_image_for_category(session, _cat)
+        if _intro_image:
+            await message.answer_photo(_intro_image, caption=t("join.trust_privacy_caption", lang))
+    except Exception:
+        logger.warning("join intro image failed", exc_info=True)
+
     text, keyboard = build_join_success_message(
         khatm, participation, first_portion, was_waitlisted, display_name,
         creator_display_name, lang, quran_join_button=not _auto_quran_setup,

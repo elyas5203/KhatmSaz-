@@ -267,7 +267,7 @@ _STRINGS: dict[str, dict[str, str]] = {
 
     # --- create_khatm.py wizard (2026-09-20) ---
     "create_khatm.ask_template": {
-        "fa": "چه نوع ختمی می‌خواید بسازید؟\n\n🔒 همه با لینک اختصاصی شما وارد می‌شوند و با اعضای ختم‌های دیگر قاطی نمی‌شوند. مخاطبان این ختم برای خودتان هستند و دیگران به فهرستشان دسترسی ندارند.", "ar": "ما نوع الختمة التي تريد إنشاءها؟",
+        "fa": "چه نوع ختمی می‌خواید بسازید؟", "ar": "ما نوع الختمة التي تريد إنشاءها؟",
         "en": "What kind of khatm do you want to create?",
     },
     "create_khatm.category_prompt.SALAWAT": {
@@ -1660,9 +1660,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     # --- join.success message: shared by start.py (direct join) and
     # join_requests.py (private-khatm approval) (2026-09-20) ---
     "join.welcome_line": {
-        "fa": "خوش آمدید {name} 🌱\nبه ختم «{title}» پیوستید.",
-        "ar": "أهلاً بك {name} 🌱\nانضممت إلى ختمة «{title}».",
-        "en": "Welcome {name} 🌱\nYou joined the khatm “{title}”.",
+        "fa": "خوش آمدید {name} 🌱\nبه «{title}» پیوستید.",
+        "ar": "أهلاً بك {name} 🌱\nانضممت إلى «{title}».",
+        "en": "Welcome {name} 🌱\nYou joined “{title}”.",
     },
     "join.creator_line": {
         "fa": "\nاین ختم از طرف {name} است.", "ar": "\nهذه الختمة مقدمة من {name}.", "en": "\nThis khatm is from {name}.",
@@ -1684,7 +1684,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "\nبه نیت: {niyyat}", "ar": "\nبنية: {niyyat}", "en": "\nIntention: {niyyat}",
     },
     "join.welcome_text_line": {
-        "fa": "\n\nپیام سازنده:\n{text}", "ar": "\n\nرسالة المنشئ:\n{text}", "en": "\n\nCreator's message:\n{text}",
+        "fa": "\n\n{text}", "ar": "\n\n{text}", "en": "\n\n{text}",
+    },
+    "join.trust_privacy_caption": {
+        "fa": "🔒 همه با لینک اختصاصی شما وارد می‌شوند و با اعضای ختم‌های دیگر قاطی نمی‌شوند. مخاطبان این ختم برای خودتان هستند و دیگران به فهرستشان دسترسی ندارند.",
+        "ar": "🔒 يدخل الجميع عبر رابطك الخاص ولا يختلطون بأعضاء الختمات الأخرى. جمهور هذه الختمة لك وحدك ولا يصل إليه غيرك.",
+        "en": "🔒 Everyone joins via your own link and never mixes with other khatms' members. This khatm's audience is yours alone.",
     },
     "join.waitlisted_line": {
         "fa": "\n\nظرفیت بخش تعهدی این ختم پره — فعلاً تو لیست انتظارید، ولی می‌تونید همین حالا "

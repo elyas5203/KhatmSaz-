@@ -19,11 +19,15 @@ def _callbacks(markup):
 
 
 def test_b6_creation_explains_private_audience_and_contact_reason():
+    # L3 (owner 2026-09-30): the privacy/trust note moved OFF the create-khatm
+    # start prompt and ONTO the member's join intro-image caption.
     intro = t("create_khatm.ask_template", "fa")
     contact = t("create_khatm.ask_creator_contact", "fa")
-    assert "لینک اختصاصی شما" in intro
-    assert "قاطی نمی‌شوند" in intro
-    assert "دیگران به فهرستشان دسترسی ندارند" in intro
+    trust = t("join.trust_privacy_caption", "fa")
+    assert "لینک اختصاصی شما" not in intro  # removed from creation start
+    assert "لینک اختصاصی شما" in trust
+    assert "قاطی نمی‌شوند" in trust
+    assert "دیگران به فهرستشان دسترسی ندارند" in trust
     assert "اگر مخاطبان ختم شما مشکلی داشتند" in contact
 
 
