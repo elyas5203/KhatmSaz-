@@ -606,7 +606,7 @@ branches → `portions._send_recitation_content` را صدا بزن قبل از 
 مطمئن شو مسیرِ ارسال/تیکت/براودکست همیشه با `platform` + `bot_instance_id` درست تفکیک
 می‌کند (نه اختلاطِ chat_idها). بازبینیِ `notify_adapter` و suggestions/broadcast.
 
-### L11 — ارسال متن دعا/زیارت/لعن/صلوات 🟡 — فلوی «انجام قرائت امروز» حالا محتوا را می‌فرستد (L5). باقی‌مانده: ارسال محتوا در یادآوریِ خودکارِ موتور (`deliver_due_regular_commitments`) — چون موتور platform-agnostic است، نیاز به تزریق sender دارد. (follow-up)
+### L11 — ارسال متن دعا/زیارت/لعن/صلوات ✅ — هم فلوی «امروز» (L5) هم یادآوریِ خودکارِ موتور (deliver_due_regular_commitments) حالا متن ذکر را می‌فرستند (متن؛ مدیا on-demand).
 با اینکه دسته به اسلاگ لینک شده، محتوا فرستاده نمی‌شود. `portions._send_recitation_content`
 + `devotional` + لینکِ `KhatmCategory.devotional_slug` بررسی و رفع شود.
 

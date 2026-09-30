@@ -336,6 +336,29 @@ async def deliver_due_open_quran_reading(
     return delivered
 
 
+async def _devotional_text_for_khatm(session, khatm) -> str | None:
+    """Resolve the zekr/dua/ziyarat/salawat TEXT for a devotional khatm (mirrors
+    the bot handler's `_send_recitation_content`, but pure text so the platform-
+    agnostic engine can include it in reminders). Returns None for non-devotional
+    khatms or when nothing is configured."""
+    if khatm.template_type != KhatmTemplateType.SALAWAT:
+        return None
+    if getattr(khatm, "description", None):
+        return khatm.description
+    slug = content_service.SALAWAT_SLUG
+    category = None
+    if khatm.content_category_id:
+        from khatmsaz.modules.khatm_category import service as category_service
+        category = await category_service.get(session, khatm.content_category_id)
+        slug = category.devotional_slug if category else None
+    if slug is None:
+        return category.body_text if category and getattr(category, "body_text", None) else None
+    asset = await content_service.get_devotional_asset(session, slug)
+    if asset is None or not getattr(asset, "text_body", None):
+        return category.body_text if category and getattr(category, "body_text", None) else None
+    return asset.text_body.replace("\x1e", "\n\n")
+
+
 async def deliver_due_regular_commitments(
     session: AsyncSession, notify: NotifyFn, tz_name: str = "Asia/Tehran"
 ) -> int:
@@ -383,6 +406,18 @@ async def deliver_due_regular_commitments(
             title=khatm.title, count=count,
             default=_t("reminder.regular_commitment", user_settings.language, title=khatm.title, count=count),
         )
+        # L11 (owner 2026-09-30): include the actual zekr/dua/ziyarat/salawat text
+        # with the scheduled reminder, not just the count. Best-effort, text only
+        # (media stays available on demand via «انجام قرائت امروز»).
+        try:
+            _zekr = await _devotional_text_for_khatm(session, khatm)
+            if _zekr:
+                await _notify_user(
+                    session, notify, participation.user_id, _zekr,
+                    bot_instance_id=participation.joined_via_bot_instance_id,
+                )
+        except Exception:
+            logger.warning("regular reminder devotional text failed", exc_info=True)
         from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
