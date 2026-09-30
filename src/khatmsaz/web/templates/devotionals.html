@@ -69,6 +69,15 @@
       <textarea name="text_body" rows="10" required placeholder="متن دعا یا زیارت را اینجا پیست کنید…" class="input-field font-mono text-sm leading-loose"></textarea>
     </div>
 
+    <div class="space-y-1 md:col-span-3 sm:col-span-1">
+      <label class="text-xs font-bold text-slate-400">🖼 تصویر (اختیاری) {{ tooltip("لینک عکس (https) یا file_id تلگرام/بله. خالی = بدون تصویر.") }}</label>
+      <input name="image_ref" placeholder="https://…/dua.jpg یا AgAC…" class="input-field font-mono text-left" dir="ltr">
+    </div>
+    <div class="space-y-1 md:col-span-3 sm:col-span-1">
+      <label class="text-xs font-bold text-slate-400">🎧 صوت (اختیاری) {{ tooltip("لینک صوت (https) یا file_id تلگرام/بله. خالی = بدون صوت.") }}</label>
+      <input name="audio_ref" placeholder="https://…/dua.mp3 یا file_id" class="input-field font-mono text-left" dir="ltr">
+    </div>
+
     <div class="md:col-span-3 flex justify-end">
       <button type="submit" class="btn px-8 shadow-lg shadow-emerald-900/20">افزودن</button>
     </div>
@@ -133,6 +142,15 @@
         <div class="space-y-1 md:col-span-3">
           <label class="text-xs font-bold text-slate-400">متن کامل</label>
           <textarea name="text_body" rows="8" required class="input-field bg-slate-900/50 font-mono text-sm leading-loose">{{ item.text }}</textarea>
+        </div>
+
+        <div class="space-y-1 md:col-span-3 sm:col-span-1">
+          <label class="text-xs font-bold text-slate-400">🖼 تصویر (لینک یا file_id)</label>
+          <input name="image_ref" value="{{ item.image_ref }}" placeholder="خالی = بدون تصویر" class="input-field bg-slate-900/50 font-mono text-left" dir="ltr">
+        </div>
+        <div class="space-y-1 md:col-span-3 sm:col-span-1">
+          <label class="text-xs font-bold text-slate-400">🎧 صوت (لینک یا file_id)</label>
+          <input name="audio_ref" value="{{ item.audio_ref }}" placeholder="خالی = بدون صوت" class="input-field bg-slate-900/50 font-mono text-left" dir="ltr">
         </div>
 
         <div class="md:col-span-3 flex justify-end">

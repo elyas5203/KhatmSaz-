@@ -296,8 +296,13 @@ async def set_content_delivery_mode(
 
 
 async def register_devotional_text(
-    session: AsyncSession, *, content_type: str, slug: str, title: str, text_body: str
+    session: AsyncSession, *, content_type: str, slug: str, title: str, text_body: str,
+    image_ref: str | None = None, image_platform: str | None = None,
+    audio_ref: str | None = None, audio_platform: str | None = None,
 ) -> DevotionalAsset:
+    """Owner L12 (2026-09-30): one place to set a devotional's text AND its
+    image/audio (URL or a bot file_id). Empty image/audio strings clear them;
+    ``None`` leaves the existing value untouched."""
     content_type = content_type.upper().strip()
     slug = slug.strip().lower()
     if content_type not in DEVOTIONAL_TYPES:
@@ -311,6 +316,12 @@ async def register_devotional_text(
     row.content_type = content_type
     row.title = title.strip()
     row.text_body = text_body.strip()
+    if image_ref is not None:
+        row.image_ref = image_ref.strip() or None
+        row.image_platform = (image_platform or "TELEGRAM") if row.image_ref else None
+    if audio_ref is not None:
+        row.audio_ref = audio_ref.strip() or None
+        row.audio_platform = (audio_platform or "TELEGRAM") if row.audio_ref else None
     row.enabled = True
     await session.flush()
     return row

@@ -2317,6 +2317,8 @@ async def devotionals_page(request: Request):
             "char_count": len(a.text_body or ""),
             "has_image": bool(a.image_ref),
             "has_audio": bool(a.audio_ref),
+            "image_ref": a.image_ref or "",
+            "audio_ref": a.audio_ref or "",
         })
     return templates.TemplateResponse(
         request=request,
@@ -2361,6 +2363,8 @@ async def save_devotional(
     title: str = Form(...),
     content_type: str = Form(...),
     text_body: str = Form(...),
+    image_ref: str = Form(""),
+    audio_ref: str = Form(""),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2376,6 +2380,8 @@ async def save_devotional(
                 slug=slug,
                 title=title,
                 text_body=_chunk_devotional(text_body),
+                image_ref=image_ref,
+                audio_ref=audio_ref,
             )
         except ValueError as exc:
             return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)
