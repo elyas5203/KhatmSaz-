@@ -132,6 +132,21 @@
 - **Support button**: verified `suggestions` (with the `menu.support` handler) is registered on both dispatchers, so it is wired on member bots; could not reproduce a hard break from static analysis (likely the mid-wizard interrupt case, which the menu fix reduces). Needs an owner live repro from a clean state if it still fails.
 - **How verified**: `pytest -m "not integration"` → **162 passed** (new `tests/test_member_bot_fixes.py`; updated `test_quran_setup_schedule.py` for the added `reminder_minute`). No migration.
 
+## Current state — 2026-09-30 — Section A completed: A2 media promo, A3 paid SMS, A4 servant ads [Claude Code]
+- **A2 (done)**: creator promo broadcast now truly supports media — added voice; `broadcast_service.submit`
+  stores `media_type`+platform file_id; media-only allowed; `decide_broadcast` delivers photo/video/voice/
+  document via new `notify_adapter.send_media`. Quota/price via `channel_policy` (admin-editable), charged on
+  admin approval. (Quota model is "N free/7d + flat price", not per-N-people blocks — noted in spec.)
+- **A3 (done)**: SMS is a priced broadcast channel; `broadcast_sms_free_count` default 0 (paid from the first
+  message), price admin-set, admin-reviewed, wallet-charged on approve = request→price→pay→send.
+- **A4 (done)**: new isolated `modules/servant_ad` (KV-backed, no migration). Admin `/servant-ad` page defines
+  the system ad (text + optional media) and sends it — admin-initiated only (no auto timer) — to the deduped
+  audience of BASIC creators (`ads_enabled_for_creator`). Audit + nav link (MODERATION_MANAGE). Test added.
+- **Verified**: `pytest -m "not integration"` → 210 passed. No migration.
+- **Remaining nuances (documented in OWNER_SPEC_MASTER, not blocking)**: PRO "buy member blocks" purchase +
+  stored no-ad capacity (needs a migration); per-N-people promo/SMS block pricing; C5 province/gender
+  broadcast filters; optional auto-scheduled servant ads.
+
 ## Current state — 2026-09-30 — Section A backbone: stored 3-tier plans + role removal [Claude Code]
 - **A5 (done)**: removed the leftover "upgrade to creator" UI (support inline button,
   admin inline-panel button, `/creator-requests` sidebar link). Creation already

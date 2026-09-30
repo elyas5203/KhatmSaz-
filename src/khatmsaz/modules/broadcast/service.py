@@ -41,13 +41,22 @@ async def channel_policy(session, channel: str) -> tuple[int, int]:
 
 async def submit(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str, channel: str = "TELEGRAM",
+    media_type: str | None = None, media_file_id: str | None = None,
 ) -> KhatmBroadcast:
-    body = body.strip()
-    if not body or len(body) > 1000:
-        raise ValueError("broadcast body must be between 1 and 1000 characters")
+    # Owner §A2 (2026-09-30): a promo message can be text OR media (photo/video/
+    # voice/document) with an optional caption. Media file_ids are platform-
+    # specific, so store the uploaded one under the column matching the channel.
+    body = (body or "").strip()
+    has_media = bool(media_type and media_type != "text" and media_file_id)
+    if not has_media and not body:
+        raise ValueError("broadcast needs text or media")
+    if len(body) > 1000:
+        raise ValueError("broadcast body must be at most 1000 characters")
     channel = channel.upper()
     if channel not in CHANNELS:
         raise ValueError("invalid broadcast channel")
+    if channel == "SMS" and has_media:
+        raise ValueError("SMS broadcasts cannot carry media")
     if khatm_id is not None:
         khatm = await khatm_service.get_khatm(session, khatm_id)
         if khatm is None or khatm.creator_user_id != creator_user_id or khatm.status != KhatmStatus.ACTIVE:
@@ -59,10 +68,14 @@ async def submit(
     since = datetime.now(timezone.utc) - timedelta(days=7)
     recent = await repository.count_recent_for_creator_channel(session, creator_user_id, channel, since)
     cost = 0 if recent < free_count else price
+    tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
+    bale_media = media_file_id if (has_media and channel == "BALE") else None
     return await repository.create(
         session, khatm_id=khatm_id, creator_user_id=creator_user_id, body=body,
         target_scope="KHATM" if khatm_id else "ALL", channel=channel,
         audience_count=len(users), cost_toman=cost,
+        media_type=media_type if has_media else None,
+        media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
 
 

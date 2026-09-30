@@ -12,11 +12,15 @@ from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 async def create(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str,
     target_scope: str, channel: str, audience_count: int, cost_toman: int,
+    media_type: str | None = None, media_file_id_telegram: str | None = None,
+    media_file_id_bale: str | None = None,
 ) -> KhatmBroadcast:
     item = KhatmBroadcast(
         id=new_id(), khatm_id=khatm_id, creator_user_id=creator_user_id,
         body=body, status=BroadcastStatus.PENDING, target_scope=target_scope,
         channel=channel, audience_count=audience_count, cost_toman=cost_toman,
+        media_type=media_type, media_file_id_telegram=media_file_id_telegram,
+        media_file_id_bale=media_file_id_bale,
     )
     session.add(item)
     await session.flush()

@@ -113,6 +113,12 @@
 - Added «ورود به پنل سازنده» to Settings for creators/admins (callback creator:web_login).
 - No migration. pytest -m "not integration" → 162 passed (new tests/test_member_bot_fixes.py).
 
+## 2026-09-30 (Section A completed: promo media, paid SMS, servant ads)
+- A2: creator promo broadcasts now carry media (photo/video/voice/document) end-to-end — submit stores it, `send_media` delivers it; media-only allowed.
+- A3: SMS broadcast channel is paid from the first message (free_count=0), admin-reviewed, wallet-charged on approve.
+- A4: new isolated `servant_ad` module + `/servant-ad` admin page — admin-initiated system ad to BASIC creators' deduped audiences.
+- 210 tests pass (new tests/test_servant_ad.py). No migration.
+
 ## 2026-09-30 (Section A backbone: 3-tier plans + role removal)
 - Plans are now a STORED tier again (FREE/BASIC/PRO); `get_plan` reads UserPlan (no wallet derivation).
 - Admin-editable `free_total_member_cap` (default 1000) + `ads_enabled` per plan on /finance.

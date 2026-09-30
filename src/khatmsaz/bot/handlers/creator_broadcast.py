@@ -115,6 +115,10 @@ async def receive_broadcast_message(message: Message, state: FSMContext) -> None
         media_file_id = message.video.file_id
         text = message.caption
         media_type = "video"
+    elif message.voice:
+        media_file_id = message.voice.file_id
+        text = message.caption
+        media_type = "voice"
     elif message.document:
         media_file_id = message.document.file_id
         text = message.caption
@@ -150,8 +154,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     media_type = data["media_type"]
     
     await safe_clear_inline_keyboard(callback.message)
-    if not (text or "").strip():
-        await callback.message.answer("برای صف تأیید مدیر، پیام باید متن داشته باشد.")
+    _has_media = bool(media_type and media_type != "text" and media_file_id)
+    if not (text or "").strip() and not _has_media:
+        await callback.message.answer("برای صف تأیید مدیر، پیام باید متن یا رسانه داشته باشد.")
         await state.clear()
         await safe_answer_callback(callback)
         return
@@ -163,7 +168,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
                 creator_user_id=creator_id,
                 khatm_id=uuid.UUID(_target_raw) if _target_raw else None,
                 channel=platform,
-                body=text,
+                body=text or "",
+                media_type=media_type,
+                media_file_id=media_file_id,
             )
     except ValueError:
         await callback.message.answer("پیام معتبر نیست یا مخاطبی برای آن پیدا نشد.")

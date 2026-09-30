@@ -161,3 +161,38 @@ async def send_with_keyboard(
             "Failed to deliver keyboard message to %s:%s", platform_value, chat_id, exc_info=True
         )
         return False
+
+
+async def send_media(
+    platform_value: str, chat_id: str, media_type: str, file_id: str,
+    caption: str | None = None, *, bot_instance_id=None,
+) -> bool:
+    """Deliver a photo/video/voice/document by file_id (owner §A2 promo media).
+    file_ids are platform-specific — the caller must pass one captured on the
+    same platform. Best-effort; returns True on success."""
+    from khatmsaz.core.bot_registry import get_registry
+    registry = get_registry()
+    if bot_instance_id:
+        bot = registry.get_by_instance_id(bot_instance_id)
+        if bot is not None and getattr(bot, "khatmsaz_platform", None) != Platform(platform_value):
+            bot = None
+    else:
+        bot = registry.get_creator_bot(Platform(platform_value))
+    if bot is None:
+        return False
+    try:
+        cid = int(chat_id)
+        if media_type == "photo":
+            await bot.send_photo(chat_id=cid, photo=file_id, caption=caption or None)
+        elif media_type == "video":
+            await bot.send_video(chat_id=cid, video=file_id, caption=caption or None)
+        elif media_type == "voice":
+            await bot.send_voice(chat_id=cid, voice=file_id, caption=caption or None)
+        elif media_type == "document":
+            await bot.send_document(chat_id=cid, document=file_id, caption=caption or None)
+        else:
+            await bot.send_message(chat_id=cid, text=caption or "")
+        return True
+    except Exception:
+        logger.warning("Failed to deliver media to %s:%s", platform_value, chat_id, exc_info=True)
+        return False

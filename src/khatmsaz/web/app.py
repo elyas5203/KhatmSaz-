@@ -1679,13 +1679,91 @@ async def decide_broadcast(
                 for phone in destinations:
                     await provider.send(phone=phone, text=item.body)
             else:
-                notify = get_notify_fn()
-                for subject in destinations:
-                    await notify(item.channel, subject, item.body)
+                media_file_id = (
+                    item.media_file_id_telegram if item.channel == "TELEGRAM"
+                    else item.media_file_id_bale
+                )
+                if item.media_type and media_file_id:
+                    from khatmsaz.bot.notify_adapter import send_media
+                    for subject in destinations:
+                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=item.body or None)
+                else:
+                    notify = get_notify_fn()
+                    for subject in destinations:
+                        await notify(item.channel, subject, item.body)
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
         f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303
     )
+
+
+@app.get("/servant-ad", response_class=HTMLResponse)
+async def servant_ad_page(request: Request):
+    """Owner §A4: خدمتگزاران system ad → BASIC creators' audiences (admin-initiated)."""
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    from khatmsaz.modules.servant_ad import service as servant_ad_service
+    async with session_scope() as session:
+        ad = await servant_ad_service.get_ad(session)
+        audience = await servant_ad_service.audience_size(session)
+    return templates.TemplateResponse(
+        request=request, name="servant_ad.html",
+        context=_ctx(request, admin, raw, ad=ad, audience=audience,
+                     saved=request.query_params.get("saved", "")),
+    )
+
+
+@app.post("/servant-ad/save")
+async def servant_ad_save(
+    request: Request, csrf: str = Form(...), text: str = Form(""),
+    media_type: str = Form(""), media_telegram: str = Form(""),
+    media_bale: str = Form(""), enabled: str = Form(""),
+):
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.servant_ad import service as servant_ad_service
+    try:
+        async with session_scope() as session:
+            await servant_ad_service.set_ad(
+                session, text=text, enabled=enabled == "on",
+                media_type=media_type, media_telegram=media_telegram, media_bale=media_bale,
+            )
+            await audit_service.record(session, actor_user_id=admin.id, action="SERVANT_AD_SAVE", details={"enabled": enabled == "on"})
+    except ValueError:
+        return HTMLResponse("محتوای تبلیغ معتبر نیست.", status_code=400)
+    return RedirectResponse("/servant-ad?saved=1", status_code=303)
+
+
+@app.post("/servant-ad/send")
+async def servant_ad_send(request: Request, csrf: str = Form(...)):
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.servant_ad import service as servant_ad_service
+    from khatmsaz.bot.notify_adapter import send_media as _send_media, get_notify_fn as _gnf
+
+    async def _send(platform_value, subject, text, media_type, media_file_id):
+        if media_type and media_file_id:
+            return await _send_media(platform_value, subject, media_type, media_file_id, caption=text or None)
+        try:
+            await _gnf()(platform_value, subject, text)
+            return True
+        except Exception:
+            return False
+
+    try:
+        async with session_scope() as session:
+            delivered = await servant_ad_service.send_now(session, _send)
+            await audit_service.record(session, actor_user_id=admin.id, action="SERVANT_AD_SEND", details={"delivered": delivered})
+    except ValueError:
+        return RedirectResponse("/servant-ad?saved=empty", status_code=303)
+    return RedirectResponse(f"/servant-ad?saved=sent&n={delivered}", status_code=303)
 
 
 @app.get("/admins", response_class=HTMLResponse)

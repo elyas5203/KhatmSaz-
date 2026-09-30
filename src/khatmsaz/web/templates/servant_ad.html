@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}تبلیغ خدمتگزاران | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-6">
+  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">تبلیغات سیستمی</p>
+  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">تبلیغ خدمتگزاران</h1>
+  <p class="text-slate-400 text-sm leading-7">این پیام فقط به مخاطبانِ سازنده‌هایی که در «پلن پایه» هستند ارسال می‌شود (پلن رایگانِ زیر سقف و پلن پرو تبلیغ نمی‌گیرند). ارسال فقط با زدن دکمهٔ «ارسال الان» انجام می‌شود — هیچ ارسال خودکاری وجود ندارد.</p>
+</section>
+
+{% if saved == '1' %}
+<div class="glass-panel border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 mb-5 text-sm">تبلیغ ذخیره شد ✅</div>
+{% elif saved == 'sent' %}
+<div class="glass-panel border border-emerald-500/30 text-emerald-300 rounded-xl px-4 py-3 mb-5 text-sm">ارسال شد ✅ — به {{ request.query_params.get('n','0') }} مخاطب.</div>
+{% elif saved == 'empty' %}
+<div class="glass-panel border border-rose-500/30 text-rose-300 rounded-xl px-4 py-3 mb-5 text-sm">تبلیغ خاموش یا خالی است؛ اول متن را بنویس و «فعال» را روشن کن.</div>
+{% endif %}
+
+<div class="glass-panel p-6 rounded-2xl mb-6">
+  <div class="mb-4">
+    <span class="text-sm text-slate-400">مخاطبانِ فعلیِ پلن پایه: </span>
+    <span class="font-bold text-white" dir="ltr">{{ audience }}</span>
+    <span class="text-sm text-slate-400"> نفر</span>
+  </div>
+  <form method="post" action="/servant-ad/save" class="flex flex-col gap-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">متن تبلیغ</label>
+      <textarea name="text" rows="4" maxlength="1500" class="input-field" placeholder="متن پیام تبلیغاتی…">{{ ad.text }}</textarea>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">نوع رسانه (اختیاری)</label>
+        <select name="media_type" class="input-field">
+          <option value="" {% if not ad.media_type %}selected{% endif %}>بدون رسانه (فقط متن)</option>
+          {% for mt in ['photo','video','voice','document'] %}
+          <option value="{{ mt }}" {% if ad.media_type == mt %}selected{% endif %}>{{ mt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">file_id تلگرام (اختیاری)</label>
+        <input name="media_telegram" value="{{ ad.media_telegram }}" class="input-field font-mono text-left" dir="ltr" placeholder="AgAC…">
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-400">file_id بله (اختیاری)</label>
+        <input name="media_bale" value="{{ ad.media_bale }}" class="input-field font-mono text-left" dir="ltr" placeholder="…">
+      </div>
+    </div>
+    <label class="flex items-center gap-2 cursor-pointer group">
+      <input name="enabled" type="checkbox" class="w-4 h-4 text-amber-500 rounded border-slate-600 bg-slate-700/50 focus:ring-amber-500" {% if ad.enabled %}checked{% endif %}>
+      <span class="text-sm text-slate-300 group-hover:text-white transition-colors">این تبلیغ فعال باشد</span>
+    </label>
+    <button type="submit" class="btn">ذخیرهٔ تبلیغ</button>
+  </form>
+</div>
+
+<div class="glass-panel p-6 rounded-2xl border border-amber-500/20">
+  <h2 class="font-bold text-white mb-2">ارسال الان</h2>
+  <p class="text-xs text-slate-400 leading-6 mb-4">با زدن این دکمه، تبلیغِ فعلی همین حالا یک‌بار برای همهٔ مخاطبانِ پلن پایه ارسال می‌شود.</p>
+  <form method="post" action="/servant-ad/send" onsubmit="return confirm('تبلیغ برای {{ audience }} مخاطب ارسال شود؟');">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button type="submit" class="btn btn-danger">📣 ارسال به {{ audience }} مخاطب</button>
+  </form>
+</div>
+{% endblock %}
