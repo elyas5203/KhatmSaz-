@@ -1722,10 +1722,15 @@ async def decide_broadcast(
                 item.invoice_id = invoice.id
                 item.paid_at = datetime.now(tz=ZoneInfo("UTC"))
             destinations = await broadcast_service.audience_destinations(session, item)
+            # L8 (owner 2026-09-30): recipients should see who the message is from.
+            _sender = await identity_service.find_by_id(session, item.creator_user_id)
+            _sender_name = (_sender.display_name if _sender and _sender.display_name else "سازندهٔ ختم")
+            _prefix = f"📢 از طرف {_sender_name}:\n\n"
+            body_with_sender = f"{_prefix}{item.body}" if item.body else _prefix.strip()
             if item.channel == "SMS":
                 provider = build_sms_provider()
                 for phone in destinations:
-                    await provider.send(phone=phone, text=item.body)
+                    await provider.send(phone=phone, text=body_with_sender)
             else:
                 media_file_id = (
                     item.media_file_id_telegram if item.channel == "TELEGRAM"
@@ -1734,11 +1739,11 @@ async def decide_broadcast(
                 if item.media_type and media_file_id:
                     from khatmsaz.bot.notify_adapter import send_media
                     for subject in destinations:
-                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=item.body or None)
+                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=body_with_sender)
                 else:
                     notify = get_notify_fn()
                     for subject in destinations:
-                        await notify(item.channel, subject, item.body)
+                        await notify(item.channel, subject, body_with_sender)
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
         f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303

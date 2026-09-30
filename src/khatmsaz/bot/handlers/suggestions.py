@@ -258,7 +258,20 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
                 creator_pid = result.scalar_one_or_none()
                 
                 if creator_pid:
-                    admin_text = f"📩 پیام جدید از طرف عضو ختم‌های شما ({display_name}):\n\n{text}"
+                    # L7 (owner 2026-09-30): include the member's name + contact so
+                    # the creator knows who wrote and can reach them.
+                    _ms = await settings_service.get_or_create(session, user.id)
+                    _contact_bits = []
+                    if getattr(_ms, "contact_phone", None):
+                        _contact_bits.append(f"📞 {_ms.contact_phone}")
+                    _member_ident = await session.execute(
+                        select(PlatformIdentity.subject).where(PlatformIdentity.user_id == user.id).limit(1)
+                    )
+                    _subj = _member_ident.scalar_one_or_none()
+                    if _subj:
+                        _contact_bits.append(f"🆔 {_subj}")
+                    _contact_line = ("\n" + " · ".join(_contact_bits)) if _contact_bits else ""
+                    admin_text = f"📩 پیام جدید از طرف عضو ختم‌های شما:\n👤 {display_name}{_contact_line}\n\n{text}"
                     
                     # Inline button to reply
                     markup = InlineKeyboardMarkup(

@@ -117,11 +117,17 @@ async def test_early_regular_share_waits_for_done_before_consuming_schedule(monk
     monkeypatch.setattr(report.khatm_service, "get_khatm", fake_khatm)
     monkeypatch.setattr(report.khatm_service, "has_started", lambda _k: True)
     monkeypatch.setattr(report.settings_service, "get_or_create", fake_settings)
+    # L5 (owner 2026-09-30): the zekr content is delivered before the done button;
+    # stub it so this unit test stays DB-free.
+    import khatmsaz.bot.handlers.portions as _portions
+    async def _no_content(*a, **k):
+        return None
+    monkeypatch.setattr(_portions, "_send_recitation_content", _no_content)
     callback = FakeCallback("p1")
     await report.deliver_today_early(callback)
 
-    assert len(callback.message.answers) == 1
-    markup = callback.message.answers[0][1]["reply_markup"]
+    # The «انجام سهم» button must be on the LAST message (after any content).
+    markup = callback.message.answers[-1][1]["reply_markup"]
     assert markup.inline_keyboard[0][0].callback_data == "regular_early_done:p1"
 
 

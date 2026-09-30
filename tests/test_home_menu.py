@@ -22,10 +22,12 @@ def test_creator_home_menu_leads_with_create_not_today():
     assert labels == [
         t("menu.create", "fa"),
         t("menu.creator.management", "fa"),
+        "📢 ارسال پیام گروهی",
         t("menu.creator.finance", "fa"),
         t("menu.settings", "fa"),
         t("menu.creator.support", "fa"),
     ]
+    assert labels[0] == t("menu.create", "fa")
     assert t("menu.today", "fa") not in labels
 
 

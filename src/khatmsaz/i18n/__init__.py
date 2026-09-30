@@ -3084,6 +3084,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "🌱 حصة اليوم من «{title}» جاهزة؛ بعد إنجازها سجّل الكمية.",
         "en": "🌱 Today's share in “{title}” is ready; log the amount after completing it.",
     },
+    "report.today_do_share": {
+        "fa": "پس از قرائت، دکمهٔ زیر را بزنید 🌱",
+        "ar": "بعد القراءة، اضغط الزر أدناه 🌱",
+        "en": "After reading, tap the button below 🌱",
+    },
     "web.creator.plan_purchase_success": {"fa": "پلن پرو با موفقیت فعال شد ✅ این پلن فعلاً دائمی است.", "ar": "تم تفعيل باقة برو بنجاح ✅ هذه الباقة دائمة حالياً.", "en": "Pro was activated successfully ✅ This plan is currently permanent."},
     "web.creator.plan_already_pro": {"fa": "پلن شما از قبل پرو است و دوباره هزینه‌ای کم نشد.", "ar": "باقتك برو بالفعل ولم تُخصم أي تكلفة مرة أخرى.", "en": "You're already on Pro, so you weren't charged again."},
     "web.creator.plan_purchase_insufficient": {"fa": "موجودی برای خرید پرو کافی نیست.", "ar": "الرصيد غير كافٍ لشراء برو.", "en": "Your balance isn't enough to buy Pro."},

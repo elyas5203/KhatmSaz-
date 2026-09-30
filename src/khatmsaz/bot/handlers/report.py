@@ -139,23 +139,28 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                 await safe_answer_callback(callback, t("report.today_already_delivered", lang), show_alert=True)
                 return
             count = participation.commitment_per_occurrence or 1
+            # L5 (owner 2026-09-30): deliver the actual zekr/dua/ziyarat/salawat
+            # content first, then the «انجام سهم» button as the LAST message.
+            from khatmsaz.bot.handlers.portions import _send_recitation_content
+            await callback.message.answer(t("reminder.regular_commitment", lang, title=khatm.title, count=count))
+            await _send_recitation_content(session, callback.message, khatm)
             early_done_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(
                     text=t("commit.regular.done_button", lang),
                     callback_data=f"regular_early_done:{participation.id}",
                 )
             ]])
-            await callback.message.answer(
-                t("reminder.regular_commitment", lang, title=khatm.title, count=count),
-                reply_markup=early_done_keyboard,
-            )
+            await callback.message.answer(t("report.today_do_share", lang), reply_markup=early_done_keyboard)
             await safe_answer_callback(callback)
             return
 
         # Count commitments are not clock-triggered; expose their logging action.
         if participation.commitment_mode == CommitmentMode.COUNT.value:
+            from khatmsaz.bot.handlers.portions import _send_recitation_content
+            await callback.message.answer(f"🌱 {khatm.title}")
+            await _send_recitation_content(session, callback.message, khatm)
             await callback.message.answer(
-                f"🌱 {khatm.title}",
+                t("report.today_do_share", lang),
                 reply_markup=commitment_count_log_keyboard(str(participation.id), lang),
             )
             await safe_answer_callback(callback)

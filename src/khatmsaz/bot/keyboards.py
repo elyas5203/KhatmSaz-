@@ -136,6 +136,9 @@ def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         keyboard=[
             [KeyboardButton(text=t("menu.create", lang))],
             [KeyboardButton(text=t("menu.creator.management", lang))],
+            # Owner (2026-09-30, L9): broadcast (text/photo/video/voice) one tap
+            # from the main menu instead of buried in a sub-menu.
+            [KeyboardButton(text="📢 ارسال پیام گروهی")],
             [KeyboardButton(text=t("menu.creator.finance", lang))],
             [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.creator.support", lang))],
         ],
