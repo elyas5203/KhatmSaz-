@@ -10,6 +10,12 @@ delete a completed phase.
 - [x] Keep Salawat open/commitment preview and consent consistent.
 - [x] Handle private approve/reject actions in the creator bot and identify applicants.
 
+## 2026-10-01 — Same-member-bot delivery routing (DONE)
+- [x] Return private join approval/rejection messages through the originating member bot.
+- [x] Persist the member-bot instance when a private request is approved.
+- [x] Deliver moderated text/media broadcasts through each member's joined bot.
+- [x] Re-upload creator-bot media when a bot-scoped file ID cannot be used directly.
+
 ## 2026-10-01 — Family-aware member share copy (DONE)
 - [x] Tailor reminder and completion wording for Quran, Salawat, Dua, Ziyarat and La'an.
 - [x] Show the concrete share, deadline, title and intention.

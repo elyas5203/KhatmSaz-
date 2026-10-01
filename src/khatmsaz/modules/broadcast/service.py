@@ -1,5 +1,7 @@
 """Business rules for creator messages requiring mandatory moderation."""
 
+from dataclasses import dataclass
+
 from sqlalchemy import select, func
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +19,12 @@ from khatmsaz.modules.plan.models import PlanTier
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 CHANNELS = ("TELEGRAM", "BALE", "SMS")
+
+
+@dataclass(frozen=True)
+class DigitalDestination:
+    subject: str
+    bot_instance_id: object | None
 
 
 async def audience_user_ids(
@@ -118,10 +126,24 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
         ))
         return list(dict.fromkeys(phone for phone in result.scalars() if phone))
     platform = Platform(item.channel)
-    result = await session.execute(select(PlatformIdentity.subject).where(
-        PlatformIdentity.user_id.in_(user_ids), PlatformIdentity.platform == platform
-    ))
-    return list(dict.fromkeys(result.scalars()))
+    stmt = (
+        select(PlatformIdentity.subject, Participation.joined_via_bot_instance_id)
+        .join(Participation, Participation.user_id == PlatformIdentity.user_id)
+        .join(Khatm, Khatm.id == Participation.khatm_id)
+        .where(
+            PlatformIdentity.user_id.in_(user_ids),
+            PlatformIdentity.platform == platform,
+            Participation.status == ParticipationStatus.ACTIVE,
+            Khatm.creator_user_id == item.creator_user_id,
+        )
+    )
+    if item.khatm_id is not None:
+        stmt = stmt.where(Participation.khatm_id == item.khatm_id)
+    result = await session.execute(stmt)
+    return [
+        DigitalDestination(subject=subject, bot_instance_id=bot_instance_id)
+        for subject, bot_instance_id in dict.fromkeys(result.all())
+    ]
 
 
 async def sender_display_name(session: AsyncSession, item: KhatmBroadcast) -> str:

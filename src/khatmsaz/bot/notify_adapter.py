@@ -21,9 +21,10 @@ touch every existing call site for one feature's sake.
 """
 
 import logging
+from io import BytesIO
 
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import BufferedInputFile, InlineKeyboardMarkup
 
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.identity.models import Platform
@@ -180,20 +181,38 @@ async def send_media(
         bot = registry.get_creator_bot(Platform(platform_value))
     if bot is None:
         return False
-    try:
+    async def _send(media) -> None:
         cid = int(chat_id)
         if media_type == "photo":
-            await bot.send_photo(chat_id=cid, photo=file_id, caption=caption or None)
+            await bot.send_photo(chat_id=cid, photo=media, caption=caption or None)
         elif media_type == "video":
-            await bot.send_video(chat_id=cid, video=file_id, caption=caption or None)
+            await bot.send_video(chat_id=cid, video=media, caption=caption or None)
         elif media_type == "voice":
-            await bot.send_voice(chat_id=cid, voice=file_id, caption=caption or None)
+            await bot.send_voice(chat_id=cid, voice=media, caption=caption or None)
         elif media_type == "document":
-            await bot.send_document(chat_id=cid, document=file_id, caption=caption or None)
+            await bot.send_document(chat_id=cid, document=media, caption=caption or None)
         else:
             await bot.send_message(chat_id=cid, text=caption or "")
+
+    try:
+        await _send(file_id)
         return True
     except Exception:
+        # Telegram/Bale file_ids belong to the bot that received the upload.
+        # Broadcast media is uploaded to the creator bot, while recipients must
+        # see it inside their member bot. Download once from the creator bot and
+        # re-upload to the selected member bot when the direct file_id fails.
+        source_bot = registry.get_creator_bot(Platform(platform_value))
+        if bot_instance_id and source_bot is not None and source_bot is not bot:
+            try:
+                buffer = BytesIO()
+                await source_bot.download(file_id, destination=buffer)
+                extension = {"photo": "jpg", "video": "mp4", "voice": "ogg", "document": "bin"}.get(media_type, "bin")
+                upload = BufferedInputFile(buffer.getvalue(), filename=f"broadcast.{extension}")
+                await _send(upload)
+                return True
+            except Exception:
+                pass
         logger.warning("Failed to deliver media to %s:%s", platform_value, chat_id, exc_info=True)
         return False
 

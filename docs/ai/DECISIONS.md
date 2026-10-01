@@ -5,6 +5,22 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0111 — Member-facing follow-ups stay inside the member bot
+
+**Date:** 2026-10-01
+**Decision:** A private join decision and an approved creator broadcast are
+delivered through the same category/language member bot in which that member
+joined or requested access, never through the creator KhatmSaz bot. Private
+approval records that bot instance on the new participation. A broadcast to
+several khatms is deduplicated per `(recipient, member bot)`, so one person may
+receive it once in each genuinely different member bot where they participate.
+
+**Why:** Mixing creator operations with member conversations is confusing and
+breaks the multi-bot boundary visible to users. Bot-scoped media file IDs are
+re-uploaded through the member bot when necessary to preserve this boundary.
+
+---
+
 ### DEC-PY-0110 — Private approvals work in the creator bot and identify the requester
 
 **Date:** 2026-10-01

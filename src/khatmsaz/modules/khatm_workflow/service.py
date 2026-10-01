@@ -324,14 +324,17 @@ async def join_via_token(
 
 
 async def approve_join_request(
-    session: AsyncSession, khatm_id, user_id, *, creator_user_id
+    session: AsyncSession, khatm_id, user_id, *, creator_user_id, joined_via_bot_instance_id=None
 ) -> tuple[Khatm | None, Participation, KhatmPortion | None, bool]:
     """The creator approved a PRIVATE khatm's join request — actually create
     the participation now. Same return shape as `join_via_token`."""
     khatm = await khatm_service.get_khatm(session, khatm_id)
     if khatm is None or khatm.creator_user_id != creator_user_id:
         raise PermissionError("only the khatm creator may approve join requests")
-    return await _complete_join(session, khatm, user_id)
+    return await _complete_join(
+        session, khatm, user_id,
+        joined_via_bot_instance_id=joined_via_bot_instance_id,
+    )
 
 
 async def _complete_join(

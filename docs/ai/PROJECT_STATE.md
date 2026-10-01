@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Same-member-bot private approvals and broadcasts [Codex]
+- Private join callbacks now carry a compact platform/category/language route within Telegram's 64-byte callback limit. Approval persists the originating member-bot instance on the participation, and both approval and rejection responses return through that member bot. Pre-deployment pending buttons use a best-effort category/platform fallback.
+- Digital creator broadcasts now resolve each recipient as `(platform identity, joined member bot)` instead of a bare chat ID. Text and media are sent through that participation's member bot in both bot-command and web-panel moderation paths.
+- Because uploaded Telegram/Bale media file IDs belong to the uploader bot, member-bot broadcast delivery retries by downloading from the creator bot and re-uploading through the member bot.
+- No schema migration was required. Full suite: **285 passed, 85 skipped**; Alembic has one head (`devsalawat2026100102`) and import smoke checks pass.
+
 ## Current state — 2026-10-01 — Live QA cleanup, consistent Salawat mode and working private approvals [Codex]
 - Creator profile guidance and validation errors are now tracked as transient messages: the guidance disappears after profile completion, invalid typed input/error disappears after correction, and creator-wizard validation behaves the same way.
 - Reminder-tone examples use the selected family («صلوات‌های امروز», Quran pages, Dua, Ziyarat or La'an) instead of Quran-centric generic copy. The member introduction no longer displays «پیش‌نمایش ختم».

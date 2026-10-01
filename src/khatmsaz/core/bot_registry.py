@@ -15,7 +15,7 @@ class BotRegistry:
     def __init__(self, bots: list[Bot]) -> None:
         self._bots_by_id: dict[UUID, Bot] = {}
         self._creator_bots: dict[Platform, Bot] = {}
-        self._member_bots: dict[tuple[Platform, BotCategory, str], Bot] = {}
+        self._member_bots: dict[tuple[Platform, str, str], Bot] = {}
         self._all: list[Bot] = list(bots)
 
         for bot in bots:
@@ -38,9 +38,10 @@ class BotRegistry:
         return self._creator_bots.get(platform)
 
     def get_member_bot(
-        self, platform: Platform, category: BotCategory, language: str,
+        self, platform: Platform, category: BotCategory | str, language: str,
     ) -> Bot | None:
-        return self._member_bots.get((platform, category, language))
+        category_value = category.value if isinstance(category, BotCategory) else category
+        return self._member_bots.get((platform, category_value, language))
 
     def get_by_instance_id(self, instance_id: UUID) -> Bot | None:
         return self._bots_by_id.get(instance_id)

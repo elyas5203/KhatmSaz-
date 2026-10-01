@@ -637,8 +637,8 @@ async def _request_private_join(message: Message, session, khatm: Khatm, user_id
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="✅ تایید عضویت", callback_data=pack_join_callback_data("approve_join", khatm.id, user_id)),
-                InlineKeyboardButton(text="❌ رد", callback_data=pack_join_callback_data("reject_join", khatm.id, user_id)),
+                InlineKeyboardButton(text="✅ تایید عضویت", callback_data=pack_join_callback_data("approve_join", khatm.id, user_id, member_bot=message.bot)),
+                InlineKeyboardButton(text="❌ رد", callback_data=pack_join_callback_data("reject_join", khatm.id, user_id, member_bot=message.bot)),
             ]
         ]
     )

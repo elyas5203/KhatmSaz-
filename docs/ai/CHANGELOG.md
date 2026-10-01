@@ -1,3 +1,8 @@
+## 2026-10-01 (same-member-bot delivery routing)
+- Routed private-join approval/rejection results back through the exact category/language member bot that received the request, and persisted that bot on approved participations.
+- Routed approved creator broadcasts through each recipient's joined member bot instead of the creator bot.
+- Added cross-bot media re-upload fallback for bot-scoped Telegram/Bale file IDs and backward handling for already-issued private approval buttons.
+
 ## 2026-10-01 (live QA cleanup and private-approval repair)
 - Removed completed profile guidance and corrected validation-error cleanup.
 - Made reminder-tone examples family-aware and removed the member-side preview heading.

@@ -1706,12 +1706,18 @@ async def decide_broadcast(
                 )
                 if item.media_type and media_file_id:
                     from khatmsaz.bot.notify_adapter import send_media
-                    for subject in destinations:
-                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=body_with_sender)
+                    for destination in destinations:
+                        await send_media(
+                            item.channel, destination.subject, item.media_type, media_file_id,
+                            caption=body_with_sender, bot_instance_id=destination.bot_instance_id,
+                        )
                 else:
                     notify = get_notify_fn()
-                    for subject in destinations:
-                        await notify(item.channel, subject, body_with_sender)
+                    for destination in destinations:
+                        await notify(
+                            item.channel, destination.subject, body_with_sender,
+                            bot_instance_id=destination.bot_instance_id,
+                        )
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
         f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303

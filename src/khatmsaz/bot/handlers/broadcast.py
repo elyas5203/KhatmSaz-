@@ -138,12 +138,18 @@ async def _moderate(message: Message, command: CommandObject, *, approve: bool) 
             else:
                 media_file_id = item.media_file_id_telegram if item.channel == "TELEGRAM" else item.media_file_id_bale
                 if item.media_type and media_file_id:
-                    for subject in destinations:
-                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=body_with_sender)
+                    for destination in destinations:
+                        await send_media(
+                            item.channel, destination.subject, item.media_type, media_file_id,
+                            caption=body_with_sender, bot_instance_id=destination.bot_instance_id,
+                        )
                 else:
                     notify = get_notify_fn()
-                    for subject in destinations:
-                        await notify(item.channel, subject, body_with_sender)
+                    for destination in destinations:
+                        await notify(
+                            item.channel, destination.subject, body_with_sender,
+                            bot_instance_id=destination.bot_instance_id,
+                        )
             await broadcast_service.mark_sent(session, item)
     await message.answer("پیام تأیید و برای اعضای فعال ارسال شد ✅" if approve else "پیام رد شد.")
 

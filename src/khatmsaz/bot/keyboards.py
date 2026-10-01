@@ -1037,19 +1037,61 @@ async def safe_answer_callback(callback: CallbackQuery, text: str | None = None,
 import base64
 import uuid
 
-def pack_join_callback_data(prefix: str, khatm_id, user_id) -> str:
-    """Pack two UUIDs into a short base64 string to fit in Telegram's 64-byte limit."""
+_JOIN_ROUTE_PLATFORMS = ("TELEGRAM", "BALE")
+_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN")
+_JOIN_ROUTE_LANGUAGES = ("fa", "ar", "en")
+
+
+def _join_route_byte(bot) -> int | None:
+    raw_platform = getattr(bot, "khatmsaz_platform", None)
+    raw_category = getattr(bot, "khatmsaz_category", None)
+    platform = getattr(raw_platform, "value", raw_platform)
+    category = getattr(raw_category, "value", raw_category)
+    language = getattr(bot, "khatmsaz_language", None)
+    if platform not in _JOIN_ROUTE_PLATFORMS or category not in _JOIN_ROUTE_CATEGORIES or language not in _JOIN_ROUTE_LANGUAGES:
+        return None
+    index = (
+        _JOIN_ROUTE_PLATFORMS.index(platform) * 12
+        + _JOIN_ROUTE_CATEGORIES.index(category) * 3
+        + _JOIN_ROUTE_LANGUAGES.index(language)
+    )
+    return index + 1
+
+
+def pack_join_callback_data(prefix: str, khatm_id, user_id, *, member_bot=None) -> str:
+    """Pack request UUIDs and the compact member-bot route under Telegram's 64-byte limit."""
     if isinstance(khatm_id, str): khatm_id = uuid.UUID(khatm_id)
     if isinstance(user_id, str): user_id = uuid.UUID(user_id)
-    data = base64.urlsafe_b64encode(khatm_id.bytes + user_id.bytes).decode("ascii").rstrip("=")
+    raw = khatm_id.bytes + user_id.bytes
+    route = _join_route_byte(member_bot)
+    if route is not None:
+        raw += bytes((route,))
+    data = base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
     return f"{prefix}:{data}"
 
 def unpack_join_callback_data(data: str) -> tuple[str, str]:
     """Unpack two UUIDs from a short base64 string."""
     b = base64.urlsafe_b64decode(data + "==")
     khatm_id = str(uuid.UUID(bytes=b[:16]))
-    user_id = str(uuid.UUID(bytes=b[16:]))
+    user_id = str(uuid.UUID(bytes=b[16:32]))
     return khatm_id, user_id
+
+
+def unpack_join_callback_route(data: str) -> tuple[str, str, str] | None:
+    """Return the member-bot registry key carried by new private-join callbacks."""
+    raw = base64.urlsafe_b64decode(data + "===")
+    if len(raw) < 33 or raw[32] == 0:
+        return None
+    index = raw[32] - 1
+    if index >= len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES):
+        return None
+    platform_index, remainder = divmod(index, 12)
+    category_index, language_index = divmod(remainder, 3)
+    return (
+        _JOIN_ROUTE_PLATFORMS[platform_index],
+        _JOIN_ROUTE_CATEGORIES[category_index],
+        _JOIN_ROUTE_LANGUAGES[language_index],
+    )
 
 
 async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
