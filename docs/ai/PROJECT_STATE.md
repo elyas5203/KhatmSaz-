@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Correct creator finance navigation and VPN-safe payment guidance [Codex]
+- «گزارش و مالی» now opens its actual submenu, exposing both the creator-khatm report and wallet top-up instead of immediately rendering a report.
+- An empty creator report no longer falls back to the unrelated member participation report; it explicitly says there is no active created khatm and keeps the finance submenu visible.
+- PayPing instructions now explain the Iran/VPN handoff: changing IP does not change wallet ownership, but the user must finish the browser return and see «کیف پول شارژ شد» before closing the page.
+- Validation: focused finance/menu/PayPing suite **16 passed**; full suite **267 passed, 85 skipped**. No schema migration was added.
+
 ## Current state — 2026-10-01 — Explicit join consent, two-message setup and direct sharing [Codex]
 - Opening a member-bot invite now shows fixed creator/title/intention context plus a mode-specific confirmation before registration or membership. Commitment copy states the chosen share/schedule is a religious obligation and remains a debt until completed; open copy tells members to complete the amount they themselves enter.
 - After acceptance, the welcome/context card remains as one separate message. Registration/setup uses a second bot-owned question message that alone is replaced as the member advances through repetition mode, open-Quran setup or delivery time.

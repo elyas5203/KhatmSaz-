@@ -7,6 +7,7 @@
 """
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 from aiogram import Bot, Dispatcher
@@ -65,6 +66,26 @@ async def test_creator_wallet_button_is_wired(monkeypatch):
         await bot.session.close()
 
     assert calls["wallet"] == 3, "«شارژ کیف پول» did not reach the wallet handler in every language"
+
+
+@pytest.mark.asyncio
+async def test_creator_finance_button_opens_finance_submenu(monkeypatch):
+    creator = SimpleNamespace(id="creator-id", role=UserRole.CREATOR)
+
+    async def fake_context(_event):
+        return creator, "fa"
+
+    monkeypatch.setattr(panel, "_get_context", fake_context)
+    message = SimpleNamespace(answer=AsyncMock())
+    await panel.handle_creator_finance(message)
+
+    message.answer.assert_awaited_once()
+    text, = message.answer.await_args.args
+    markup = message.answer.await_args.kwargs["reply_markup"]
+    labels = {button.text for row in markup.keyboard for button in row}
+    assert "گزارش و مالی" in text
+    assert t("menu.report", "fa") in labels
+    assert t("menu.creator.wallet", "fa") in labels
 
 
 def test_new_panel_routes_exist():

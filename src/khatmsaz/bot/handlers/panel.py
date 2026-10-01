@@ -1,6 +1,6 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
-from khatmsaz.bot.keyboards import main_menu_keyboard
+from khatmsaz.bot.keyboards import creator_finance_keyboard, main_menu_keyboard
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t, variants
 from khatmsaz.modules.identity import service as identity_service
@@ -61,16 +61,14 @@ async def handle_creator_management(message: Message) -> None:
 
 @router.message(F.text.in_(variants("menu.creator.finance")))
 async def handle_creator_finance(message: Message) -> None:
-    """The creator reply-menu button «📊 گزارش و مالی» previously had no
-    handler at all (reported by QA 2026-09-27) — tapping it did nothing.
-    Route it to the personal report, which is the closest existing view."""
-    user, _lang = await _get_context(message)
+    """Open the finance submenu instead of confusing it with one report."""
+    user, lang = await _get_context(message)
     if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
         return
-    # Owner (2026-10-01): show the creator's KHATM report (members, read-today,
-    # progress, today-vs-yesterday, remaining) with a Jalali date.
-    from khatmsaz.bot.handlers.report import creator_finance_report_entry
-    await creator_finance_report_entry(message)
+    await message.answer(
+        t("creator.finance.menu_intro", lang),
+        reply_markup=creator_finance_keyboard(lang),
+    )
 
 
 @router.message(F.text.in_(variants("menu.creator.wallet")))

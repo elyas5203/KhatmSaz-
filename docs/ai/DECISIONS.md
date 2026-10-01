@@ -5,6 +5,26 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0106 — Creator finance is a menu; PayPing credit requires the verified return
+
+**Date:** 2026-10-01
+**Decision:** The creator reply button «گزارش و مالی» opens a submenu containing
+the creator-khatm report and wallet top-up. An account with no active created
+khatm receives an explicit empty creator report; it never falls back to the
+member participation report.
+
+Changing or disabling a user's VPN after a payment intent is created does not
+change the wallet owner because ownership is bound server-side. Credit is still
+applied only after the PayPing browser callback reaches KhatmSaz and the server
+successfully verifies it. The payment page therefore tells the user not to close
+the flow before seeing the KhatmSaz success result.
+
+**Why:** The old navigation hid the existing top-up flow and displayed a
+semantically wrong participation report. Iranian users also need an accurate,
+non-alarming instruction for moving from Telegram access to a domestic gateway.
+
+---
+
 ### DEC-PY-0105 — Join requires mode-specific acceptance and uses two bot messages
 
 **Date:** 2026-10-01

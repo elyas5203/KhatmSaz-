@@ -10,7 +10,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Chat, Message, Update, User
 
-from khatmsaz.bot.handlers import panel, report, help as help_handler
+from khatmsaz.bot.handlers import panel, help as help_handler
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity.models import UserRole
 
@@ -36,15 +36,17 @@ async def test_creator_finance_and_support_buttons_are_wired(monkeypatch):
     async def fake_context(_event):
         return creator, "fa"
 
-    async def fake_personal_report(_message):
+    async def fake_answer(_message, text, **kwargs):
+        assert "گزارش و مالی" in text
+        assert kwargs.get("reply_markup") is not None
         calls["finance"] += 1
 
     async def fake_help(_message):
         calls["support"] += 1
 
     monkeypatch.setattr(panel, "_get_context", fake_context)
-    # «گزارش و مالی» now routes to the creator khatm report (owner 2026-10-01).
-    monkeypatch.setattr(report, "creator_finance_report_entry", fake_personal_report)
+    # «گزارش و مالی» opens its own report/wallet submenu (owner 2026-10-01).
+    monkeypatch.setattr(Message, "answer", fake_answer)
     monkeypatch.setattr(help_handler, "help_command", fake_help)
 
     bot = Bot("123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi")

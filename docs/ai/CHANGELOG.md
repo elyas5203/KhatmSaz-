@@ -1,3 +1,8 @@
+## 2026-10-01 (creator finance menu and payment handoff guidance)
+- Changed «گزارش و مالی» into a real submenu with separate report and wallet/top-up actions.
+- Removed the misleading fallback from an empty creator report to the member participation report.
+- Clarified that users may switch off VPN for the Iranian gateway without losing payment ownership, and must wait for the successful KhatmSaz return page.
+
 ## 2026-10-01 (explicit join consent, separate question message, direct bot links)
 - Added a mandatory mode-specific confirmation before membership: religious-obligation/debt copy for committed khatms and self-entered-amount completion copy for open khatms.
 - Split member onboarding into one fixed welcome/context card and one separately updating question message.

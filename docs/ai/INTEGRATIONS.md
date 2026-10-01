@@ -81,6 +81,13 @@ an automatic data/wallet merge.
 - Configuration names are `PAYPING_API_TOKEN` and
   `PAYPING_CALLBACK_URL`; panel credentials must never be stored in the
   project. See `docs/PAYPING-SETUP-FA.md`.
+- A user may create the link while connected to Telegram through a VPN and
+  disable that VPN before opening/completing the domestic gateway. Wallet
+  ownership is server-bound and is not tied to browser IP. However, this
+  integration uses PayPing's browser form return rather than an independent
+  webhook: the return must reach `/payments/payping/callback` and pass server
+  verification before the wallet is credited. The user must wait for the
+  KhatmSaz success page and should retry/check support if that page is not seen.
 
 ## Redis
 

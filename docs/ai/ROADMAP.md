@@ -4,6 +4,11 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Creator finance navigation repair (DONE)
+- [x] Open a report/wallet submenu from «گزارش و مالی».
+- [x] Keep creator reports distinct from member participation reports when no active khatm exists.
+- [x] Explain the VPN-to-Iranian-gateway handoff and successful callback requirement in the payment message.
+
 ## 2026-10-01 — Explicit join acceptance and direct member-bot invitations (DONE)
 - [x] Show creator/intention context and mode-specific responsibility before joining.
 - [x] Require confirmation for both committed and open khatms before registration/membership.

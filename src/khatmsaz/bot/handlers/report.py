@@ -9,7 +9,7 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 from khatmsaz.bot.keyboards import (
     REPORT_BUTTON_TEXTS, TODAY_BUTTON_TEXTS,
     commitment_count_log_keyboard, commitment_quantity_keyboard, contribute_keyboard,
-    home_keyboard_for_bot, portion_done_keyboard,
+    creator_finance_keyboard, home_keyboard_for_bot, portion_done_keyboard,
     safe_answer_callback,
 )
 from khatmsaz.i18n import t
@@ -256,8 +256,8 @@ def _report_date_line(tz_name: str) -> str:
 
 async def creator_finance_report_entry(message: Message) -> None:
     """Khatm report for a creator (owner 2026-10-01): members, read-today vs not,
-    progress %, today-vs-yesterday, remaining — with a Jalali date for Iran. Falls
-    back to the personal report when the user owns no khatm."""
+    progress %, today-vs-yesterday and remaining — with a Jalali date for Iran.
+    An empty creator report must never fall back to the member participation report."""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
     from khatmsaz.modules.open_contribution import service as _oc
@@ -274,7 +274,10 @@ async def creator_finance_report_entry(message: Message) -> None:
             .order_by(Khatm.created_at.desc()).limit(20)
         )).scalars())
         if not khatms:
-            await personal_report(message)
+            await message.answer(
+                t("report.creator_no_active_khatms", lang),
+                reply_markup=creator_finance_keyboard(lang),
+            )
             return
         app_tz = _gs().app_timezone
         lines = [_report_date_line(tz_name), ""]
@@ -305,7 +308,7 @@ async def creator_finance_report_entry(message: Message) -> None:
             lines.append(remaining_line)
             lines.append(f"🔁 امروز {int(today_amt)} / دیروز {int(yest_amt)}")
             lines.append("")
-    await message.answer("\n".join(lines).strip(), reply_markup=home_keyboard_for_bot(message.bot, lang))
+    await message.answer("\n".join(lines).strip(), reply_markup=creator_finance_keyboard(lang))
 
 
 @router.message(F.text.in_(REPORT_BUTTON_TEXTS))
