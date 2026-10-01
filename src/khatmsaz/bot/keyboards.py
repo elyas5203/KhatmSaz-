@@ -201,8 +201,7 @@ def language_choice_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="فارسی", callback_data="first_lang:fa"),
-                InlineKeyboardButton(text="العربية", callback_data="first_lang:ar"),
-                InlineKeyboardButton(text="English", callback_data="first_lang:en"),
+                # Owner (2026-10-01): Arabic/English temporarily disabled — Persian only.
             ]
         ]
     )
@@ -234,9 +233,8 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa", show_creato
         rows.append([InlineKeyboardButton(text=t("settings.button.creator_panel", lang), callback_data="creator:web_login")])
     rows.extend(
         [
-            [
-                InlineKeyboardButton(text=t("settings.button.language", lang), callback_data="settings:language"),
-            ],
+            # Owner (2026-10-01): languages are temporarily Persian-only — hide the
+            # «زبان» button until Arabic/English are re-enabled in a later update.
             [
                 InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
             ],
