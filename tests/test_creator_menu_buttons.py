@@ -43,7 +43,8 @@ async def test_creator_finance_and_support_buttons_are_wired(monkeypatch):
         calls["support"] += 1
 
     monkeypatch.setattr(panel, "_get_context", fake_context)
-    monkeypatch.setattr(report, "personal_report", fake_personal_report)
+    # «گزارش و مالی» now routes to the creator khatm report (owner 2026-10-01).
+    monkeypatch.setattr(report, "creator_finance_report_entry", fake_personal_report)
     monkeypatch.setattr(help_handler, "help_command", fake_help)
 
     bot = Bot("123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi")

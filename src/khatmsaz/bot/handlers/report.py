@@ -216,9 +216,101 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
     await safe_answer_callback(callback)
 
 
+def _to_jalali(gy: int, gm: int, gd: int) -> tuple[int, int, int]:
+    """Gregorian → Jalali (jalaali algorithm). No external dependency."""
+    g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]
+    gy2 = gy - 1600
+    g_day_no = 365 * gy2 + (gy2 + 3) // 4 - (gy2 + 99) // 100 + (gy2 + 399) // 400
+    g_day_no += g_d_m[gm - 1] + (gd - 1)
+    if gm > 2 and ((gy % 4 == 0 and gy % 100 != 0) or gy % 400 == 0):
+        g_day_no += 1
+    j_day_no = g_day_no - 79
+    j_np = j_day_no // 12053
+    j_day_no %= 12053
+    jy = 979 + 33 * j_np + 4 * (j_day_no // 1461)
+    j_day_no %= 1461
+    if j_day_no >= 366:
+        jy += (j_day_no - 1) // 365
+        j_day_no = (j_day_no - 1) % 365
+    if j_day_no < 186:
+        jm = 1 + j_day_no // 31
+        jd = 1 + j_day_no % 31
+    else:
+        jm = 7 + (j_day_no - 186) // 30
+        jd = 1 + (j_day_no - 186) % 30
+    return jy, jm, jd
+
+
+def _report_date_line(tz_name: str) -> str:
+    """Jalali date for Iran/Tehran timezones, Gregorian otherwise (owner 2026-10-01)."""
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("Asia/Tehran")
+    now = datetime.now(tz)
+    if "Tehran" in tz_name or "Iran" in tz_name:
+        jy, jm, jd = _to_jalali(now.year, now.month, now.day)
+        return f"📅 گزارش {jd:02d}/{jm:02d}/{jy} (به وقت {now.strftime('%H:%M')})"
+    return f"📅 Report {now.strftime('%Y-%m-%d %H:%M')}"
+
+
+async def creator_finance_report_entry(message: Message) -> None:
+    """Khatm report for a creator (owner 2026-10-01): members, read-today vs not,
+    progress %, today-vs-yesterday, remaining — with a Jalali date for Iran. Falls
+    back to the personal report when the user owns no khatm."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
+    from khatmsaz.modules.open_contribution import service as _oc
+    from khatmsaz.config import get_settings as _gs
+    from sqlalchemy import select as _select, func as _func
+    from khatmsaz.modules.open_contribution.models import OpenContribution
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        settings = await settings_service.get_or_create(session, user.id)
+        lang = settings.language
+        tz_name = settings.timezone or "Asia/Tehran"
+        khatms = list((await session.execute(
+            _select(Khatm).where(Khatm.creator_user_id == user.id, Khatm.status == KhatmStatus.ACTIVE)
+            .order_by(Khatm.created_at.desc()).limit(20)
+        )).scalars())
+        if not khatms:
+            await personal_report(message)
+            return
+        app_tz = _gs().app_timezone
+        lines = [_report_date_line(tz_name), ""]
+        for khatm in khatms:
+            stats = await reporting_service.get_khatm_stats(session, khatm.id)
+            # read today = distinct active participations with a contribution today
+            read_today = int((await session.execute(
+                _select(_func.count(_func.distinct(OpenContribution.participation_id)))
+                .where(OpenContribution.khatm_id == khatm.id,
+                       OpenContribution.created_at >= datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0))
+            )).scalar_one())
+            not_read = max(0, stats.active_members - read_today)
+            if khatm.template_type.value == "QURAN_PAGE" and stats.total_portions:
+                progress = round(stats.completed_portions * 100 / stats.total_portions, 1)
+                remaining_line = f"⏳ باقی‌مانده: {max(0, stats.total_portions - stats.completed_portions)} سهم"
+            elif khatm.repetition_target:
+                progress = round(min(100.0, stats.contribution_total * 100 / khatm.repetition_target), 1)
+                remaining_line = f"⏳ باقی‌مانده: {max(0, int(khatm.repetition_target - stats.contribution_total))} از {khatm.repetition_target}"
+            else:
+                progress = None
+                remaining_line = f"🔢 تا این لحظه: {int(stats.contribution_total)} مرتبه"
+            today_amt, yest_amt = await _oc.today_vs_yesterday(session, khatm.id, app_tz)
+            lines.append(f"🔸 <b>{khatm.title}</b>")
+            lines.append(f"👥 اعضا: {stats.active_members} نفر")
+            lines.append(f"✅ امروز خوانده‌اند: {read_today} نفر | ⛔ نخوانده: {not_read} نفر")
+            if progress is not None:
+                lines.append(f"📈 پیشرفت: {progress}%")
+            lines.append(remaining_line)
+            lines.append(f"🔁 امروز {int(today_amt)} / دیروز {int(yest_amt)}")
+            lines.append("")
+    await message.answer("\n".join(lines).strip(), reply_markup=home_keyboard_for_bot(message.bot, lang))
+
+
 @router.message(F.text.in_(REPORT_BUTTON_TEXTS))
 async def report_menu_button(message: Message) -> None:
-    await personal_report(message)
+    await creator_finance_report_entry(message)
 
 
 @router.message(Command("report"))

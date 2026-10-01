@@ -67,8 +67,10 @@ async def handle_creator_finance(message: Message) -> None:
     user, _lang = await _get_context(message)
     if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
         return
-    from khatmsaz.bot.handlers.report import personal_report
-    await personal_report(message)
+    # Owner (2026-10-01): show the creator's KHATM report (members, read-today,
+    # progress, today-vs-yesterday, remaining) with a Jalali date.
+    from khatmsaz.bot.handlers.report import creator_finance_report_entry
+    await creator_finance_report_entry(message)
 
 
 @router.message(F.text.in_(variants("menu.creator.wallet")))
