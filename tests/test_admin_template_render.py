@@ -121,6 +121,8 @@ def test_categories_page_renders_library_picker_and_explicit_statuses():
     assert "⛔ غیرفعال (پنهان)" in html
     assert "جایگاه نمایش در ویزارد" in html
     assert "دعاها و زیارت‌ها" in html
+    assert "نام فایل یا لینک تصویر" in html
+    assert "laan-omar.jpg" in html
     assert "کد اتصال صوت/متن آماده" not in html
 
 
@@ -140,6 +142,8 @@ def test_devotionals_page_renders_clear_library_workflow_and_statuses():
     html = _render(
         "devotionals.html", "/devotionals", saved="", items=items,
         grouped_items={"DUA": [items[0]], "ZIYARAT": [items[1]]},
+        salawat_text="اللهم صل علی محمد و آل محمد",
+        salawat_image_url="salawat.jpg", type_labels={"DUA": "دعا", "ZIYARAT": "زیارت"},
     )
 
     assert "شناسهٔ داخلی (انگلیسی)" in html
@@ -147,6 +151,8 @@ def test_devotionals_page_renders_clear_library_workflow_and_statuses():
     assert "✅ فعال (به کاربران نمایش داده می‌شود)" in html
     assert "⛔ غیرفعال (پنهان)" in html
     assert "فرم هر مورد فقط هنگام نیاز باز می‌شود" in html
+    assert "نام فایل یا لینک تصویر صلوات" in html
+    assert 'value="salawat.jpg"' in html
 
 
 def test_creator_detail_renders_manage_stats_members_export_and_settings():

@@ -65,8 +65,8 @@
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری) {{ tooltip("لینک تصویر هدر که به همراه متن دسته در بات ارسال می‌شود.") }}</label>
-          <input name="image_url" placeholder="https://..." class="input-field" dir="ltr">
+          <label class="text-xs font-bold text-slate-400">نام فایل یا لینک تصویر (اختیاری) {{ tooltip("برای تصویر داخل سرور فقط نام فایل را بنویسید؛ مثلاً laan-omar.jpg") }}</label>
+          <input name="image_url" placeholder="laan-omar.jpg یا https://..." class="input-field" dir="ltr">
         </div>
         
         <div class="space-y-1">
@@ -120,8 +120,9 @@
     </div>
     
     <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-400">لینک تصویر (اختیاری) {{ tooltip("لینک تصویر هدر که به همراه متن دسته در بات ارسال می‌شود.") }}</label>
-      <input name="image_url" placeholder="https://example.com/image.jpg" class="input-field" dir="ltr">
+      <label class="text-xs font-bold text-slate-400">نام فایل یا لینک تصویر (اختیاری) {{ tooltip("برای تصویر داخل سرور فقط نام فایل را بنویسید؛ مثلاً laan-omar.jpg") }}</label>
+      <input name="image_url" placeholder="laan-omar.jpg یا https://example.com/image.jpg" class="input-field" dir="ltr">
+      <p class="text-xs text-slate-500">فایل باید در پوشهٔ devotional-images سرور باشد.</p>
     </div>
     
     <div class="space-y-1">
@@ -216,8 +217,8 @@
         </div>
         
         <div class="space-y-1">
-          <label class="text-xs font-bold text-slate-400">لینک تصویر</label>
-          <input name="image_url" value="{{ category.image_url or '' }}" placeholder="https://..." class="input-field bg-slate-900/50" dir="ltr">
+          <label class="text-xs font-bold text-slate-400">نام فایل یا لینک تصویر</label>
+          <input name="image_url" value="{{ category.image_url or '' }}" placeholder="laan-omar.jpg یا https://..." class="input-field bg-slate-900/50" dir="ltr">
         </div>
         
         <div class="space-y-1">

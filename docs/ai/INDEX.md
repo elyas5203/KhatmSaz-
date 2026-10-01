@@ -33,11 +33,13 @@
 
 ## دسته‌بندی محتوا (صلوات/لعن/دعا) — ماژول khatm_category
 
+- DEC-PY-0101 — تصویر کوتاه دسته/صلوات با نام فایل از پوشهٔ ثابت سرور: `DECISIONS.md` (ورودی ۲۰۲۶-۱۰-۰۱)
 - DEC-PY-0096 — صلوات متن ثابت دارد و هیچ زیرگروهی ندارد؛ تصویر اختیاری از پنل: `DECISIONS.md` (ورودی ۲۰۲۶-۰۹-۲۹)
 - کد: `src/khatmsaz/modules/khatm_category/`
 - مایگریشن اولیه: `migrations/versions/a7f8b9c0d1e2_add_khatm_categories.py`
 - مایگریشن جدا کردن خانواده‌ها: `ab8c9d0e1f2a`
 - پنل ادمین: `/categories` در `src/khatmsaz/web/app.py`
+- پوشهٔ تصاویر کوتاه سرور: `src/khatmsaz/web/static/devotional-images/`
 - DEC-PY-0072 (بالا) — تصمیم استقلال خانواده‌ها.
 
 ## قرآن (کانال، صفحه‌بندی، assetها)

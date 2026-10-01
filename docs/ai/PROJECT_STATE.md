@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Server-folder images for short devotional content [Codex]
+- Category and fixed-Salawat image fields now accept either a full public HTTP(S) URL or one local filename such as `laan-omar.jpg`.
+- Local files live under `src/khatmsaz/web/static/devotional-images/`; the panel checks that a named file exists and delivery resolves it through the configured public/admin web origin. Unsafe paths and unsupported extensions are rejected.
+- Runtime media files are Git-ignored. Once this code is deployed/restarted, adding or replacing an image file needs no seed, migration or database reset; saving a new filename in the panel is immediately effective.
+- Validation: focused suite **20 passed**; full suite **249 passed, 86 skipped**; Alembic reports one head (`schedweekdays2026100101`). Live upgrade was attempted but local PostgreSQL refused the connection; `mypy` is not installed. No migration was added.
+
 ## Current state — 2026-10-01 — Hierarchical devotional admin and exact wizard ordering [Codex]
 - `/devotionals` now groups library records under collapsible «دعاها» and «زیارت‌ها» parents; each child stays compact until its edit form is opened. `/categories` mirrors this with «دعاها و زیارت‌ها» and «لعن‌ها» parents and collapsible category children, substantially reducing page length.
 - Category forms expose a real 1-based «جایگاه نمایش در ویزارد». Saving position N moves that category exactly to N within its family and automatically renumbers siblings; new/request-fulfilled categories accept 0 to append at the end.

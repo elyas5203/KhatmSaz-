@@ -5,6 +5,22 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0101 — Short devotional images may be server files identified by filename
+
+**Date:** 2026-10-01
+**Decision:** The category image and the one fixed Salawat image accept either a
+full HTTP(S) URL or a single safe filename. A filename refers only to
+`src/khatmsaz/web/static/devotional-images/`; nested paths and executable/vector
+formats are rejected. It is resolved at delivery time through
+`ADMIN_WEB_BASE_URL`, falling back to `PUBLIC_WEB_BASE_URL`.
+
+**Why:** The owner keeps short, single-image La'an/Salawat assets on the VPS and
+wants to select them from the Mini App without registering media through a bot.
+This extends DEC-PY-0096 without changing chat-registered devotional PDF/image
+media. Runtime image files remain outside Git and require no database seed.
+
+---
+
 ### DEC-PY-0100 — The two free digital broadcasts are one shared lifetime allowance
 
 **Date:** 2026-09-30

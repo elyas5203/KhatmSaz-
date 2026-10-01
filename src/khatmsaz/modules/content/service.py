@@ -1,10 +1,11 @@
 """Quran media registry, reciter whitelist, and user delivery resolution."""
 
 import re
-from urllib.parse import urlparse
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from khatmsaz.core.devotional_images import validate_devotional_image_ref
 
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.content.models import DevotionalAsset, DevotionalMedia, KhatmReciter, QuranAssetKind, QuranPageAsset
@@ -332,13 +333,9 @@ async def set_salawat_image_url(session: AsyncSession, image_url: str) -> Devoti
 
     Salawat is deliberately not a selectable devotional/category row.  Its
     wording is fixed by the owner; this asset only gives the admin panel a
-    durable place to add or remove an HTTPS image without a deployment.
+    durable place to add or remove either a public URL or a server filename.
     """
-    image_url = image_url.strip()
-    if image_url:
-        parsed = urlparse(image_url)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-            raise ValueError("salawat image must be a valid HTTP(S) URL")
+    image_url = validate_devotional_image_ref(image_url)
     row = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == SALAWAT_SLUG))
     if row is None:
         row = DevotionalAsset(

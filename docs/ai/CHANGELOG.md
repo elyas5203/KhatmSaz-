@@ -1,3 +1,8 @@
+## 2026-10-01 (local filenames for short devotional images)
+- Allowed category and fixed-Salawat image fields to store one safe filename as an alternative to a full HTTP(S) URL.
+- Added the Git-ignored `web/static/devotional-images` server folder and runtime URL resolution for Telegram/Bale delivery.
+- Added panel-side existence/extension/path validation and plain-Persian filename guidance. No migration or seed is required.
+
 ## 2026-10-01 (hierarchical devotional pages and reorderable wizard categories)
 - Grouped devotional library records and khatm categories into collapsible parent/child sections with compact closed summaries.
 - Added exact 1-based wizard positioning for each dua/ziyarat or la'an category; moving one item automatically renumbers its siblings.

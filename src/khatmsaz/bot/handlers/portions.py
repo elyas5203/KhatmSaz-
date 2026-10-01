@@ -31,6 +31,7 @@ from khatmsaz.bot.keyboards import (
     snooze_keyboard,
 )
 from khatmsaz.core.db import session_scope
+from khatmsaz.core.devotional_images import resolve_devotional_image_ref
 from khatmsaz.config import get_settings
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation import service as allocation_service
@@ -51,6 +52,14 @@ from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.bot.member_scope import participation_matches_bot
 
 router = Router(name="portions")
+
+
+def _public_devotional_image_url(ref: str | None) -> str | None:
+    settings = get_settings()
+    return resolve_devotional_image_ref(
+        ref,
+        public_base_url=settings.admin_web_base_url or settings.public_web_base_url,
+    )
 
 
 async def _active_participation_for_current_bot(session, khatm_id, user_id, bot):
@@ -193,8 +202,10 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
         asset = await content_service.get_devotional_asset(session, content_service.SALAWAT_SLUG)
         if asset is not None and asset.image_ref:
             try:
-                await message.answer_photo(asset.image_ref, caption=content_service.SALAWAT_TEXT)
-                return
+                image_url = _public_devotional_image_url(asset.image_ref)
+                if image_url:
+                    await message.answer_photo(image_url, caption=content_service.SALAWAT_TEXT)
+                    return
             except Exception:
                 pass
         await message.answer(content_service.SALAWAT_TEXT)
@@ -216,7 +227,9 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
     if category and category.image_url:
         from aiogram.types import URLInputFile
         try:
-            await message.answer_photo(URLInputFile(category.image_url))
+            image_url = _public_devotional_image_url(category.image_url)
+            if image_url:
+                await message.answer_photo(URLInputFile(image_url))
         except Exception:
             pass # fallback if URL is invalid
 

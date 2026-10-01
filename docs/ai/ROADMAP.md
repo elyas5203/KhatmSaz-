@@ -4,6 +4,11 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Server-managed short devotional images (DONE)
+- [x] Category and fixed-Salawat image fields accept safe filenames or public URLs.
+- [x] Local files are served from a fixed Git-ignored folder and validated on save.
+- [x] Telegram/Bale delivery resolves filenames through the configured public web origin.
+
 ## 2026-09-30 — Owner creation/editing UX B6–B10 (DONE)
 - [x] Trust copy explains isolated invite audiences and required contact purpose.
 - [x] Creation and join setup use one updating message with visible progress/back navigation.

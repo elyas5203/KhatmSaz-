@@ -18,6 +18,10 @@ from sqlalchemy.orm import aliased
 
 from khatmsaz.core.db import session_scope
 from khatmsaz.core import runtime_status
+from khatmsaz.core.devotional_images import (
+    DEVOTIONAL_IMAGE_DIRNAME,
+    validate_devotional_image_ref,
+)
 from khatmsaz.modules.bot_registry import service as bot_registry_service
 from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.authorization import service as authorization_service
@@ -129,6 +133,17 @@ templates.env.globals["inline_css"] = _INLINE_CSS
 # overrides this global.
 templates.env.globals["t"] = web_t
 templates.env.globals["lang"] = "fa"
+
+
+def _validate_panel_devotional_image(value: str) -> str:
+    ref = validate_devotional_image_ref(
+        value, local_dir=ROOT / "static" / DEVOTIONAL_IMAGE_DIRNAME,
+    )
+    if ref and "://" not in ref:
+        settings = get_settings()
+        if not (settings.admin_web_base_url or settings.public_web_base_url):
+            raise ValueError("برای نام فایل، ADMIN_WEB_BASE_URL یا PUBLIC_WEB_BASE_URL باید تنظیم باشد")
+    return ref
 
 AUDIT_ACTION_LABELS = {
     "USER_WARN": "اخطار به کاربر",
@@ -2149,7 +2164,7 @@ async def create_category(
         try:
             category = await category_service.create(
                 session, group=group, title=title, body_text=body_text, source_note=source_note,
-                devotional_slug=devotional_slug, image_url=image_url,
+                devotional_slug=devotional_slug, image_url=_validate_panel_devotional_image(image_url),
             )
             category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
@@ -2182,7 +2197,7 @@ async def update_category(
         try:
             category = await category_service.update(
                 session, category_id, title=title, body_text=body_text, source_note=source_note,
-                devotional_slug=devotional_slug, image_url=image_url,
+                devotional_slug=devotional_slug, image_url=_validate_panel_devotional_image(image_url),
             )
             category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
@@ -2254,7 +2269,7 @@ async def fulfill_category_request(
         try:
             req, category = await category_service.fulfill_request(
                 session, request_id, group=group, title=title, body_text=body_text, source_note=source_note,
-                image_url=image_url, devotional_slug=devotional_slug,
+                image_url=_validate_panel_devotional_image(image_url), devotional_slug=devotional_slug,
             )
             category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
@@ -2363,9 +2378,11 @@ async def save_salawat_image(
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     async with session_scope() as session:
         try:
-            asset = await content_service.set_salawat_image_url(session, image_url)
+            asset = await content_service.set_salawat_image_url(
+                session, _validate_panel_devotional_image(image_url),
+            )
         except ValueError as exc:
-            return HTMLResponse(f"لینک تصویر نامعتبر است: {exc}", status_code=400)
+            return HTMLResponse(f"تصویر نامعتبر است: {exc}", status_code=400)
         await audit_service.record(
             session, actor_user_id=admin.id, action="SALAWAT_IMAGE_SAVE",
             details={"has_image": bool(asset.image_ref)},

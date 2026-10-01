@@ -22,15 +22,15 @@
   <div class="mb-5 border-b border-white/5 pb-4">
     <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ثابت</p>
     <h2 class="text-xl font-bold text-white">صلوات</h2>
-    <p class="text-slate-400 text-sm leading-7 mt-2">صلوات زیرگروه ندارد و متن آن ثابت است. اگر لینک تصویر وارد شود، تصویر همراه همین متن برای عضو ارسال می‌شود.</p>
+    <p class="text-slate-400 text-sm leading-7 mt-2">صلوات زیرگروه ندارد و متن آن ثابت است. نام فایل داخل سرور یا لینک کامل تصویر را وارد کنید تا تصویر همراه متن ارسال شود.</p>
   </div>
   <div class="rounded-2xl bg-slate-900/50 border border-slate-700/40 p-4 text-right leading-9 text-slate-100 mb-5" dir="rtl">{{ salawat_text }}</div>
   <form method="post" action="/devotionals/salawat/image" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
     <input type="hidden" name="csrf" value="{{ csrf }}">
     <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-400">لینک تصویر صلوات (اختیاری)</label>
-      <input name="image_url" value="{{ salawat_image_url }}" placeholder="https://example.com/salawat.jpg" class="input-field" dir="ltr">
-      <p class="text-xs text-slate-500">برای حذف تصویر، این کادر را خالی ذخیره کنید.</p>
+      <label class="text-xs font-bold text-slate-400">نام فایل یا لینک تصویر صلوات (اختیاری)</label>
+      <input name="image_url" value="{{ salawat_image_url }}" placeholder="salawat.jpg یا https://example.com/salawat.jpg" class="input-field" dir="ltr">
+      <p class="text-xs text-slate-500">فایل محلی را در پوشهٔ devotional-images بگذارید و فقط نامش را بنویسید. برای حذف تصویر، کادر را خالی ذخیره کنید.</p>
     </div>
     <button type="submit" class="btn px-8">ذخیره تصویر</button>
   </form>
