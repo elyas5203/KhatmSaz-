@@ -5,6 +5,31 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0105 — Join requires mode-specific acceptance and uses two bot messages
+
+**Date:** 2026-10-01
+**Decision:** Before registration or membership, every invite shows the khatm's
+creator, title and intention and requires an explicit confirmation. For a
+COMMITMENT khatm, the copy states that the member's chosen share or schedule is
+a religious obligation and remains a debt until completed. For an OPEN khatm,
+the copy states that the amount the member personally enters should be completed
+so none of that chosen amount remains outstanding.
+
+After acceptance, the welcome/context card is a fixed standalone message. A
+second message owns the current question and is the only message edited as setup
+advances. This supersedes the earlier D5 implementation that repeatedly included
+the welcome summary inside the updating question message.
+
+Public web landing pages are temporarily disabled. Generated and post-completion
+share links go directly to the correct Telegram/Bale member bot; `/join/{token}`
+returns 404 until the owner re-enables the web surface.
+
+**Why:** The owner found the combined message hard to read, requires informed
+acceptance before a religious commitment is created, and wants sharing to open
+the relevant bot directly rather than detouring through a web page.
+
+---
+
 ### DEC-PY-0104 — Daily reminders are mandatory and configured per khatm
 
 **Date:** 2026-10-01

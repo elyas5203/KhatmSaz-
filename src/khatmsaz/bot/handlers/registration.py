@@ -82,14 +82,21 @@ def _gender_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     )
 
 
-async def start_registration(message: Message, state: FSMContext, *, pending_join_token: str | None) -> None:
+async def start_registration(
+    message: Message, state: FSMContext, *, pending_join_token: str | None,
+    consent_accepted: bool = False,
+) -> None:
     """Called by `start.py` when an unregistered participant tries to join."""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
-    await state.update_data(pending_join_token=pending_join_token, language=lang)
+    await state.update_data(
+        pending_join_token=pending_join_token,
+        language=lang,
+        join_consent_accepted=consent_accepted,
+    )
     await state.set_state(Registration.entering_name)
     await _registration_prompt(message, state, t("registration.ask_name", lang))
 
@@ -260,7 +267,10 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
         from khatmsaz.bot.handlers.start import resume_join_after_registration
 
         async with session_scope() as session:
-            await resume_join_after_registration(callback.message, session, user_id, pending_token, state=state)
+            await resume_join_after_registration(
+                callback.message, session, user_id, pending_token, state=state,
+                consent_accepted=bool(data.get("join_consent_accepted")),
+            )
     else:
         # Owner request (2026-09-23): after registration without a pending
         # join, automatically open the khatm creation wizard — this is why

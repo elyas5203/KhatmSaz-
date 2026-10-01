@@ -10,7 +10,7 @@ from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 
-from khatmsaz.bot.keyboards import CUSTOM_KHATM_BUTTON_TEXTS, member_menu_keyboard, join_preview_keyboard, safe_clear_inline_keyboard
+from khatmsaz.bot.keyboards import CUSTOM_KHATM_BUTTON_TEXTS, commitment_consent_keyboard, member_menu_keyboard, safe_clear_inline_keyboard
 from khatmsaz.bot import invite_links
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
@@ -21,7 +21,7 @@ from khatmsaz.modules.invitation.service import InvitationExpiredError, Invitati
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.participation import service as participation_service
-from khatmsaz.bot.handlers.start import build_join_preview_message, build_join_trust_message, JoinWorkflow, _creator_display_name
+from khatmsaz.bot.handlers.start import build_join_consent_message, JoinWorkflow, _creator_display_name
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 router = Router(name="member_start")
@@ -92,11 +92,8 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                 )
                 return
 
-            # Owner (2026-09-28): no khatm preview card — go straight into the
-            # join flow with the fewest possible steps. First-time users go to
-            # registration; returning users resume the join (which still asks
-            # commitment consent + reminder hour). Opening the link never joins
-            # silently — the join is completed only after these explicit steps.
+            # The first message is fixed context + an explicit rules gate. It
+            # stays above the separate, updating question message.
             instance_id = getattr(bot, "khatmsaz_instance_id", None)
             await state.update_data(
                 # RedisStorage serializes FSM data as JSON.  SQLAlchemy UUIDs
@@ -104,18 +101,28 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                 joined_via_bot_instance_id=str(instance_id) if instance_id else None
             )
             creator = await identity_service.find_by_id(session, khatm.creator_user_id)
-            join_intro = build_join_trust_message(
-                khatm, _creator_display_name(khatm, creator), lang,
+            member_count = await participation_service.count_for_khatm(session, khatm.id)
+            category_title = None
+            category_group = None
+            if khatm.template_type == KhatmTemplateType.SALAWAT:
+                if khatm.content_category_id:
+                    from khatmsaz.modules.khatm_category import service as category_service
+                    category = await category_service.get(session, khatm.content_category_id)
+                    if category is not None:
+                        category_title = category.title
+                        category_group = category.group.value
+                else:
+                    category_group = "SALAWAT"
+            await state.update_data(pending_commitment_token=token)
+            await message.answer(
+                build_join_consent_message(
+                    khatm, _creator_display_name(khatm, creator), member_count, lang,
+                    category_title=category_title, category_group=category_group,
+                ),
+                reply_markup=commitment_consent_keyboard(
+                    token, lang, committed=khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+                ),
             )
-            from khatmsaz.bot.handlers.member_registration import start_member_registration
-            from khatmsaz.bot.handlers.start import resume_join_after_registration
-            from khatmsaz.modules.settings import service as settings_service
-            if not await settings_service.is_registered(session, user.id) or not user.display_name:
-                await start_member_registration(
-                    message, state, pending_join_token=token, join_intro=join_intro,
-                )
-            else:
-                await resume_join_after_registration(message, session, user.id, token, state=state)
 
 
 @router.message(Command("cancel"))

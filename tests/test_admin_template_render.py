@@ -11,7 +11,7 @@ from pathlib import Path
 
 from starlette.requests import Request
 
-from khatmsaz.web.app import app, templates
+from khatmsaz.web.app import templates
 from khatmsaz.i18n import t
 
 
@@ -44,23 +44,6 @@ def test_operations_page_renders_panel_logo_setting():
     assert 'action="/operations/panel-logo"' in html
     assert 'name="panel_logo_url"' in html
     assert "نشان پیش‌فرض «خ»" in html
-
-
-def test_public_join_uses_configured_logo_and_inlines_critical_styles():
-    request = Request({"type": "http", "method": "GET", "path": "/join/test", "headers": [], "scheme": "https", "server": ("example.test", 443), "query_string": b"", "root_path": "", "app": app})
-    khatm = SimpleNamespace(
-        title="ختم زیارت عاشورا", khatm_type=SimpleNamespace(value="COMMITMENT"),
-        niyyat="به نیت سلامتی", welcome_text="همراه ما باشید",
-    )
-    html = templates.get_template("join.html").render(
-        request=request, unavailable=False, khatm=khatm, creator_name="الیاس",
-        member_count=3, links=[{"name": "ادامه در تلگرام", "url": "https://t.me/test", "is_telegram": True}],
-        no_bots=False, panel_logo_url="https://cdn.example/logo.png",
-    )
-    assert 'src="https://cdn.example/logo.png"' in html
-    assert ".brand-mark" in html
-    assert "request.url_for('static'" not in html
-    assert "تلگرام · عربی" not in html
 
 
 def test_both_panel_headers_support_configured_logo_and_fallback():

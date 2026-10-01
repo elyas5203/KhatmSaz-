@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Explicit join consent, two-message setup and direct sharing [Codex]
+- Opening a member-bot invite now shows fixed creator/title/intention context plus a mode-specific confirmation before registration or membership. Commitment copy states the chosen share/schedule is a religious obligation and remains a debt until completed; open copy tells members to complete the amount they themselves enter.
+- After acceptance, the welcome/context card remains as one separate message. Registration/setup uses a second bot-owned question message that alone is replaced as the member advances through repetition mode, open-Quran setup or delivery time.
+- Completion/share messages now always use the current member bot's Telegram/Bale deep link. New creation and QR flows no longer emit the public web landing URL; `/join/{token}` returns 404 and its template/CSS were removed while the owner keeps the landing page disabled.
+- Validation: focused consent/two-message/direct-link/disabled-page suite **24 passed**; full suite **266 passed, 85 skipped**; Alembic retains one head (`devsalawat2026100102`). No migration was added. Live member-bot smoke testing remains pending deployment.
+
 ## Current state — 2026-10-01 — Join CSS and fixed-Salawat production repair [Codex]
 - The public join page now embeds its dedicated CSS into the HTML, preventing reverse-proxy scheme/static-link failures from rendering an unstyled page with the configured logo at its intrinsic size.
 - Added migration `devsalawat2026100102`: the existing `devotional_assets.content_type` check now permits the fixed synthetic `SALAWAT` asset alongside `DUA` and `ZIYARAT`. This fixes the production constraint violation after a valid local image filename was found.

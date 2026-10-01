@@ -112,22 +112,18 @@ async def start_commitment_mode_picker(
     message: Message, state: FSMContext, participation_id, lang: str, *, summary: str = "",
     family=None,
 ) -> None:
-    """Keep join summary, explanation and choice in one bot-owned message."""
+    """Create one separate question message; the welcome card stays fixed above."""
     combined = "\n\n".join(part for part in (
-        summary.strip(), t("commit.explain", lang).strip(), _question(t("commit.ask_mode", lang).strip()),
+        t("commit.explain", lang).strip(), _question(t("commit.ask_mode", lang).strip()),
     ) if part)
     markup = member_commitment_mode_keyboard(str(participation_id), lang)
-    try:
-        await message.edit_text(combined, reply_markup=markup)
-        sent = message
-    except Exception:
-        sent = await message.answer(combined, reply_markup=markup)
+    sent = await message.answer(combined, reply_markup=markup)
     family_value = getattr(family, "value", family)
     await state.update_data(
         _cwiz_mid=getattr(sent, "message_id", None),
         commit_pid=str(participation_id),
         commit_family=family_value,
-        commit_summary=summary,
+        commit_summary="",
     )
 
 

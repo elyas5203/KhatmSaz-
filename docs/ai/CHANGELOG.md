@@ -1,3 +1,9 @@
+## 2026-10-01 (explicit join consent, separate question message, direct bot links)
+- Added a mandatory mode-specific confirmation before membership: religious-obligation/debt copy for committed khatms and self-entered-amount completion copy for open khatms.
+- Split member onboarding into one fixed welcome/context card and one separately updating question message.
+- Changed post-completion sharing to direct links for the current Telegram/Bale member bot.
+- Disabled `/join/{token}`, stopped generating landing-page URLs, and removed the public join template/styles.
+
 ## 2026-10-01 (production repair: join styling and Salawat image constraint)
 - Inlined the public invite page's small stylesheet so proxy-generated mixed-content/static URLs cannot leave the page unstyled or the logo unconstrained.
 - Added a reviewed migration expanding `ck_devotional_assets_type` to accept the fixed `SALAWAT` asset used by the Salawat image setting.

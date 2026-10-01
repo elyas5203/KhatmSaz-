@@ -114,18 +114,11 @@ async def start_open_quran_setup(
 ) -> None:
     """Start the member-controlled Quran reading plan immediately after join."""
     await state.set_state(SetupOpenQuranReading.entering_pages_per_day)
+    sent = await message.answer(t("portions.open_quran.setup_ask_pages_per_day", lang))
     await state.update_data(
-        khatm_id=khatm_id, lang=lang, _join_wizard_mid=message.message_id,
-        _join_summary=summary,
+        khatm_id=khatm_id, lang=lang, _join_wizard_mid=sent.message_id,
+        _join_summary="",
     )
-    text = "\n\n".join(part for part in (
-        summary.strip(), t("portions.open_quran.setup_ask_pages_per_day", lang).strip(),
-    ) if part)
-    try:
-        await message.edit_text(text)
-    except Exception:
-        sent = await message.answer(text)
-        await state.update_data(_join_wizard_mid=sent.message_id)
 
 
 async def _open_join_prompt(message: Message, state: FSMContext, text: str, reply_markup=None) -> None:
@@ -281,11 +274,7 @@ async def _invite_friends_line(session, khatm, creator_user_id, platform: Platfo
     if not base_url:
         return ""
     token = await invitation_service.create_invitation(session, khatm.id, creator_user_id)
-    invite_url = (
-        f"{settings.public_web_base_url.rstrip('/')}/join/{token}"
-        if settings.public_web_base_url
-        else f"{base_url}?start=join_{token}"
-    )
+    invite_url = f"{base_url}?start=join_{token}"
     return t("portions.invite_friends_line", lang, invite_url=invite_url)
 
 

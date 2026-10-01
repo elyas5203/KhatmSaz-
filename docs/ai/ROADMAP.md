@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Explicit join acceptance and direct member-bot invitations (DONE)
+- [x] Show creator/intention context and mode-specific responsibility before joining.
+- [x] Require confirmation for both committed and open khatms before registration/membership.
+- [x] Preserve a fixed welcome card above one updating question message.
+- [x] Share direct Telegram/Bale member-bot links and temporarily disable the web landing page.
+
 ## 2026-10-01 — Production repair for invite styling and Salawat image (DONE)
 - [x] Make the public invite layout independent of reverse-proxy static URL generation.
 - [x] Permit the fixed Salawat content asset in the database check constraint.

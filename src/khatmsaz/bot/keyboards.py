@@ -828,10 +828,11 @@ def regular_commitment_done_keyboard(pid: str, lang: str = "fa") -> InlineKeyboa
     )]])
 
 
-def commitment_consent_keyboard(token: str, lang: str = "fa") -> InlineKeyboardMarkup:
+def commitment_consent_keyboard(token: str, lang: str = "fa", *, committed: bool = True) -> InlineKeyboardMarkup:
+    accept_key = "join.button.accept_commitment" if committed else "join.button.accept_open_rules"
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=t("join.button.accept_commitment", lang), callback_data=f"commitment_consent:accept:{token}")],
+            [InlineKeyboardButton(text=t(accept_key, lang), callback_data=f"commitment_consent:accept:{token}")],
             [InlineKeyboardButton(text=t("join.button.cancel", lang), callback_data=f"commitment_consent:cancel:{token}")],
         ]
     )

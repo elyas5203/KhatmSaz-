@@ -752,7 +752,6 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
         await message.answer(t("my_khatms.creator.qr_usage", lang))
         return
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    settings = get_settings()
     async with session_scope() as session:
         user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
         khatm = await khatm_service.get_khatm(session, khatm_id)
@@ -770,17 +769,7 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
     # not just the web landing page).
     by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
     if not by_lang:
-        # No member bot configured for this category yet — fall back to the web
-        # landing page so the creator still has something shareable.
-        if settings.public_web_base_url:
-            invite_url = f"{settings.public_web_base_url.rstrip('/')}/join/{token}"
-            photo = BufferedInputFile(build_qr_png(invite_url), filename="khatm_invite_qr.png")
-            await message.answer_photo(
-                photo=photo,
-                caption=t("my_khatms.creator.qr_caption", lang, title=escape(khatm.title), url=invite_url),
-            )
-        else:
-            await message.answer(t("my_khatms.creator.qr_no_member_bots", lang))
+        await message.answer(t("my_khatms.creator.qr_no_member_bots", lang))
         return
 
     invite_lines = invite_links.format_invite_lines(by_lang)

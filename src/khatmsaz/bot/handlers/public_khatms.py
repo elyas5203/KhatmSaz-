@@ -62,13 +62,7 @@ async def join_public_khatm(callback: CallbackQuery, state: FSMContext) -> None:
             await callback.answer(t("public_khatms.no_longer_available", lang), show_alert=True)
             return
         token = await invitation_service.create_invitation(session, khatm.id, khatm.creator_user_id)
-        if not await settings_service.is_registered(session, user.id) or not user.display_name:
-            from khatmsaz.bot.handlers.registration import start_registration
-
-            await start_registration(callback.message, state, pending_join_token=token)
-            await callback.answer()
-            return
         await resume_join_after_registration(
-            callback.message, session, user.id, token, state=state, consent_accepted=True
+            callback.message, session, user.id, token, state=state, consent_accepted=False
         )
     await callback.answer()

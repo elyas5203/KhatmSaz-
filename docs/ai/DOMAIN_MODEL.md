@@ -154,11 +154,11 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
 - **Cloning**: "duplicate this khatm" — copies all settings from a past
   khatm as a starting point for a new one (creator still edits title/niyyat/
   dates before activating).
-- **Join entry points, all three must work**: from inside Telegram, from
-  inside Bale, and from an external link opened in a browser (which then
-  offers "open in Telegram" / "open in Bale"). A join link shows a landing
-  view first (niyyat, creator display name, member count, progress) with a
-  "join" button — never registers someone silently just for opening a link.
+- **Join entry points (temporary owner override, 2026-10-01):** generated
+  links open the correct Telegram/Bale member bot directly. The external web
+  landing is disabled and `/join/{token}` returns 404 until the owner explicitly
+  re-enables it. Opening a bot link first shows creator/title/intention context
+  and mode-specific acceptance; it never registers or joins silently.
 - **Multiple invite links per khatm** (e.g. "Instagram", "family WhatsApp
   group", "mosque QR code") with per-link labels, so the creator can later
   see which channel brought how many members — this is an *advanced*
@@ -172,9 +172,10 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
   — the creator does not force it after the fact, and the creator cannot
   silently convert one to the other; only the participant can change their
   own mode (if the khatm design allows it).
-- **Before accepting a commitment portion**, participant sees a short fixed
-  consent text ("با پذیرش تعهد، متعهد می‌شوم... و در صورت ناتوانی زودتر اطلاع
-  می‌دهم") and taps "I accept the commitment."
+- **Before joining**, the participant explicitly accepts mode-specific copy.
+  COMMITMENT explains the chosen share/schedule is a religious obligation and
+  debt until performed; OPEN explains that a self-entered amount should be
+  completed. Only then may registration/membership proceed.
 - **Reminder schedule is per-participant, editable anytime** (e.g. "10:00
   for the first half of the month, 14:00 for the second half"); **deadline
   time is set by the khatm** (creator/system), not the participant — a

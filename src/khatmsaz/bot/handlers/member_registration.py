@@ -91,10 +91,15 @@ async def start_member_registration(
     *,
     pending_join_token: str | None,
     join_intro: str | None = None,
+    consent_accepted: bool = False,
 ) -> None:
     bot = message.bot
     lang = getattr(bot, "khatmsaz_language", "fa")
-    await state.update_data(pending_join_token=pending_join_token, _member_reg_intro=join_intro)
+    await state.update_data(
+        pending_join_token=pending_join_token,
+        _member_reg_intro=join_intro,
+        join_consent_accepted=consent_accepted,
+    )
     await state.set_state(MemberRegistration.entering_name)
     prompt = t("registration.ask_name", lang)
     sent = await message.answer(f"{join_intro}\n\n{prompt}" if join_intro else prompt)
@@ -277,6 +282,9 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
     if pending_token:
         from khatmsaz.bot.handlers.start import resume_join_after_registration
         async with session_scope() as session:
-            await resume_join_after_registration(callback.message, session, user_id, pending_token, state=state)
+            await resume_join_after_registration(
+                callback.message, session, user_id, pending_token, state=state,
+                consent_accepted=bool(data.get("join_consent_accepted")),
+            )
     else:
         await callback.message.answer(t("registration.completed", lang), reply_markup=member_menu_keyboard(lang))

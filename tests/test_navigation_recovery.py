@@ -7,7 +7,7 @@ from khatmsaz.bot.handlers import start
 from khatmsaz.bot.keyboards import bail_if_menu_button
 from khatmsaz.bot import navigation
 from khatmsaz.modules.identity.models import Platform, UserRole
-from khatmsaz.modules.khatm.models import KhatmTemplateType
+from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
 
 
 class FakeState:
@@ -138,6 +138,7 @@ async def test_deep_link_clears_old_state_before_storing_new_join_context(monkey
     khatm = SimpleNamespace(
         id="khatm-id", creator_user_id="creator-id",
         template_type=KhatmTemplateType.QURAN_PAGE,
+        khatm_type=KhatmTypeEnum.COMMITMENT,
         cover_status="NONE", cover_platform=None, cover_ref=None,
     )
 
@@ -170,7 +171,7 @@ async def test_deep_link_clears_old_state_before_storing_new_join_context(monkey
     monkeypatch.setattr(start.invitation_service, "resolve_khatm_id", fake_khatm_id)
     monkeypatch.setattr(start.khatm_service, "get_khatm", fake_khatm)
     monkeypatch.setattr(start.participation_service, "count_for_khatm", fake_count)
-    monkeypatch.setattr(start, "build_join_preview_message", lambda *args, **kwargs: "preview")
+    monkeypatch.setattr(start, "build_join_consent_message", lambda *args, **kwargs: "preview")
 
     state = FakeState()
     message = FakeMessage("/start join_fresh-token")

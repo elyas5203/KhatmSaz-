@@ -1680,15 +1680,7 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         khatm = await session.get(Khatm, khatm_id)
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
 
-    settings = get_settings()
-
     landing_line = ""
-    if settings.public_web_base_url:
-        landing_line = t(
-            "create_khatm.landing_line",
-            lang,
-            url=f"{settings.public_web_base_url.rstrip('/')}/join/{token}",
-        )
 
     # Build per-language member bot invite links via the shared helper so this
     # wizard and the "QR دعوت" button in khatm management never drift apart.

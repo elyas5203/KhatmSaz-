@@ -127,10 +127,6 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 templates = Jinja2Templates(directory=ROOT / "templates")
 _INLINE_CSS = (ROOT / "static" / "app.css").read_text(encoding="utf-8") + "\n" + (ROOT / "static" / "finance.css").read_text(encoding="utf-8")
 templates.env.globals["inline_css"] = _INLINE_CSS
-# The public join page sits behind deployments with different proxy-header
-# settings.  Inline its small dedicated stylesheet so an http URL generated
-# behind an https reverse proxy can never leave the trust page unstyled.
-templates.env.globals["join_css"] = (ROOT / "static" / "join.css").read_text(encoding="utf-8")
 # "fa" default so unauthenticated pages (e.g. creator_login.html, hit
 # before any session/user is resolved) still render correctly; any
 # authenticated context that passes its own `lang` (see _creator_ctx)
@@ -504,69 +500,9 @@ async def update_custom_khatm_phone(
 
 @app.get("/join/{token}", response_class=HTMLResponse)
 async def public_join_landing(request: Request, token: str):
-    unavailable = False
-    khatm = creator = None
-    member_count = 0
-    khatm_bot_cat = None
-    try:
-        async with session_scope() as session:
-            khatm_id = await invitation_service.resolve_khatm_id(session, token)
-            khatm = await session.get(Khatm, khatm_id)
-            if khatm is None or khatm.status != KhatmStatus.ACTIVE:
-                unavailable = True
-            else:
-                creator = await identity_service.find_by_id(session, khatm.creator_user_id)
-                member_count = int(
-                    await session.scalar(
-                        select(func.count()).select_from(Participation).where(
-                            Participation.khatm_id == khatm.id,
-                            Participation.status == ParticipationStatus.ACTIVE,
-                        )
-                    )
-                    or 0
-                )
-                khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
-    except (InvitationNotFoundError, InvitationExpiredError):
-        unavailable = True
-
-    # Build one button per configured member bot (category + language), so a
-    # visitor lands directly in the correct member bot. Falls back to the
-    # creator bot only if no member bot is configured for this category.
-    links: list[dict] = []
-    if not unavailable:
-        try:
-            by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
-        except Exception:
-            by_lang = {}
-        for lang_code, urls in by_lang.items():
-            if lang_code != "fa":
-                continue
-            if urls.get("telegram"):
-                links.append({"name": "ادامه در تلگرام", "url": urls["telegram"], "is_telegram": True})
-            if urls.get("bale"):
-                links.append({"name": "ادامه در بله", "url": urls["bale"], "is_telegram": False})
-        if not links:
-            settings = get_settings()
-            if settings.telegram_bot_username:
-                links.append({"name": "ورود با تلگرام", "url": f"https://t.me/{settings.telegram_bot_username}?start=join_{token}", "is_telegram": True})
-            if settings.bale_bot_username:
-                links.append({"name": "ورود با بله", "url": f"https://ble.ir/{settings.bale_bot_username}?start=join_{token}", "is_telegram": False})
-
-    return templates.TemplateResponse(
-        request=request,
-        name="join.html",
-        context={
-            "request": request,
-            "unavailable": unavailable,
-            "khatm": khatm,
-            "creator_name": _public_creator_name(khatm, creator) if khatm else "",
-            "member_count": member_count,
-            "links": links,
-            "no_bots": not links,
-            "panel_logo_url": getattr(request.state, "panel_logo_url", ""),
-        },
-        status_code=404 if unavailable else 200,
-    )
+    # Temporarily disabled by the owner. All newly generated invites are direct
+    # member-bot deep links; old web links deliberately stop here.
+    return HTMLResponse("صفحه معرفی ختم فعلاً غیرفعال است.", status_code=404)
 
 
 @app.post("/payments/payping/callback", response_class=HTMLResponse)

@@ -131,9 +131,9 @@ async def test_early_regular_share_waits_for_done_before_consuming_schedule(monk
     assert markup.inline_keyboard[0][0].callback_data == "regular_early_done:p1"
 
 
-def test_join_paths_no_longer_show_commitment_consent_warning():
-    assert "join.commitment_consent" not in inspect.getsource(start.resume_join_after_registration)
-    assert "commitment_consent_keyboard" not in inspect.getsource(public_khatms.join_public_khatm)
+def test_every_public_join_routes_through_the_explicit_consent_gate():
+    assert "if not consent_accepted" in inspect.getsource(start.resume_join_after_registration)
+    assert "consent_accepted=False" in inspect.getsource(public_khatms.join_public_khatm)
 
 
 def test_family_intro_copy_names_the_destination_bot():

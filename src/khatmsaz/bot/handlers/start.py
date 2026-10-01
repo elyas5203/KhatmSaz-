@@ -21,7 +21,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard, pack_join_callback_data
+from khatmsaz.bot.keyboards import bail_if_menu_button, commitment_consent_keyboard, commitment_quantity_keyboard, contribute_keyboard, delivery_hour_keyboard, join_preview_keyboard, language_choice_keyboard, main_menu_keyboard, portion_done_keyboard, safe_answer_callback, safe_clear_inline_keyboard, pack_join_callback_data
 from khatmsaz.bot.notify_adapter import send_with_keyboard
 from khatmsaz.bot.navigation import home_markup_for_role, resolve_home_navigation
 from khatmsaz.core.db import session_scope
@@ -140,6 +140,28 @@ def build_join_preview_message(
     return text + t("join.preview.cta", lang)
 
 
+def build_join_consent_message(
+    khatm: Khatm,
+    creator_name: str,
+    member_count: int,
+    lang: str = "fa",
+    *,
+    category_title: str | None = None,
+    category_group: str | None = None,
+) -> str:
+    """Fixed first card: identity/intention plus the rule accepted before join."""
+    preview = build_join_preview_message(
+        khatm, creator_name, member_count, lang,
+        category_title=category_title, category_group=category_group,
+    )
+    warning_key = (
+        "join.consent.commitment_rule"
+        if khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        else "join.consent.open_rule"
+    )
+    return f"{preview}\n\n{t(warning_key, lang)}"
+
+
 @router.message(CommandStart(deep_link=True))
 async def handle_start_with_payload(message: Message, command: CommandObject, state: FSMContext) -> None:
     # A deep link starts a new navigation intent. Never let an abandoned
@@ -201,11 +223,13 @@ async def handle_start_with_payload(message: Message, command: CommandObject, st
             if khatm.cover_status == "APPROVED" and khatm.cover_platform == platform.value and khatm.cover_ref:
                 await message.answer_photo(khatm.cover_ref, caption=t("join.cover_caption", lang))
             await message.answer(
-                build_join_preview_message(
+                build_join_consent_message(
                     khatm, _creator_display_name(khatm, creator), member_count, lang,
                     category_title=category_title, category_group=category_group,
                 ),
-                reply_markup=join_preview_keyboard(token, lang),
+                reply_markup=commitment_consent_keyboard(
+                    token, lang, committed=khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+                ),
             )
             return
 
@@ -381,6 +405,42 @@ async def resume_join_after_registration(
         def get_fallback_markup():
             return main_menu_keyboard(_lang)
 
+    if not consent_accepted:
+        try:
+            pending_khatm_id = await invitation_service.resolve_khatm_id(session, token)
+            pending_khatm = await khatm_service.get_khatm(session, pending_khatm_id)
+        except (InvitationNotFoundError, InvitationExpiredError):
+            pending_khatm = None
+        if pending_khatm is None:
+            await message.answer(t("join.error.invalid_link", _lang), reply_markup=get_fallback_markup())
+            return
+        pending_creator = await identity_service.find_by_id(session, pending_khatm.creator_user_id)
+        pending_count = await participation_service.count_for_khatm(session, pending_khatm.id)
+        pending_category_title = None
+        pending_category_group = None
+        if pending_khatm.template_type == KhatmTemplateType.SALAWAT:
+            if pending_khatm.content_category_id:
+                pending_category = await category_service.get(session, pending_khatm.content_category_id)
+                if pending_category is not None:
+                    pending_category_title = pending_category.title
+                    pending_category_group = pending_category.group.value
+            else:
+                pending_category_group = "SALAWAT"
+        if state is not None:
+            await state.update_data(pending_commitment_token=token)
+        await message.answer(
+            build_join_consent_message(
+                pending_khatm, _creator_display_name(pending_khatm, pending_creator),
+                pending_count, _lang, category_title=pending_category_title,
+                category_group=pending_category_group,
+            ),
+            reply_markup=commitment_consent_keyboard(
+                token, _lang,
+                committed=pending_khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+            ),
+        )
+        return
+
     try:
         khatm, participation, first_portion, was_waitlisted = await workflow_service.join_via_token(
             session, token=token, user_id=user_id,
@@ -516,10 +576,11 @@ async def resume_join_after_registration(
             _join_wizard_mid=join_message.message_id,
             _join_summary=text,
         )
-        await join_message.edit_text(
-            f"{text}\n\n{t('join.ask_delivery_hour', lang)}",
+        question_message = await message.answer(
+            t("join.ask_delivery_hour", lang),
             reply_markup=delivery_hour_keyboard("join_hour", lang),
         )
+        await state.update_data(_join_wizard_mid=question_message.message_id, _join_summary="")
     else:
         # Owner report (2026-09-27): after joining via a deep link the bottom
         # menu never appeared — the member had to send /start manually. The

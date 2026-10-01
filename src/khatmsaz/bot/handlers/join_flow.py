@@ -27,6 +27,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.bot_registry.models import BotRole
 from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.settings import service as settings_service
 
@@ -152,9 +153,23 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
         except Exception:
             pass
         await state.clear()
-        await resume_join_after_registration(
-            callback.message, session, user.id, token, state=state, consent_accepted=True
-        )
+        if not await settings_service.is_registered(session, user.id) or not user.display_name:
+            if getattr(callback.message.bot, "khatmsaz_role", None) == BotRole.MEMBER:
+                from khatmsaz.bot.handlers.member_registration import start_member_registration
+                await start_member_registration(
+                    callback.message, state, pending_join_token=token,
+                    consent_accepted=True,
+                )
+            else:
+                from khatmsaz.bot.handlers.registration import start_registration
+                await start_registration(
+                    callback.message, state, pending_join_token=token,
+                    consent_accepted=True,
+                )
+        else:
+            await resume_join_after_registration(
+                callback.message, session, user.id, token, state=state, consent_accepted=True
+            )
 
 
 @router.callback_query(F.data.startswith("commitment_consent:cancel"))
