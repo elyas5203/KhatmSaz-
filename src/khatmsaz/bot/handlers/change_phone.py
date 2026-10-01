@@ -1,5 +1,6 @@
 """Self-service verified phone replacement that keeps all account history."""
 
+import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -40,12 +41,33 @@ def _otp_fallback_keyboard(challenge_id, lang: str) -> InlineKeyboardMarkup:
     ]])
 
 
+async def _reveal_otp_fallback(bot, chat_id, message_id, challenge_id, lang: str) -> None:
+    """Reveal manual review only after the OTP's real five-minute lifetime."""
+    await asyncio.sleep(300)
+    try:
+        await bot.edit_message_reply_markup(
+            chat_id=chat_id,
+            message_id=message_id,
+            reply_markup=_otp_fallback_keyboard(challenge_id, lang),
+        )
+    except Exception:
+        # The prompt may already have been deleted after successful verification.
+        pass
+
+
 async def _remember_otp_prompt(
     message: Message, state: FSMContext, text: str, *, challenge_id=None,
 ) -> None:
-    markup = _otp_fallback_keyboard(challenge_id, (await state.get_data()).get("lang", "fa")) if challenge_id else None
-    sent = await message.answer(text, reply_markup=markup)
+    lang = (await state.get_data()).get("lang", "fa")
+    # Do not show an unusable admin-review action while the SMS code is valid.
+    sent = await message.answer(text)
     await state.update_data(_phone_verify_mid=getattr(sent, "message_id", None))
+    if challenge_id and getattr(sent, "message_id", None):
+        asyncio.create_task(
+            _reveal_otp_fallback(
+                message.bot, message.chat.id, sent.message_id, challenge_id, lang,
+            )
+        )
 
 
 async def _remove_otp_exchange(message: Message, data: dict) -> None:

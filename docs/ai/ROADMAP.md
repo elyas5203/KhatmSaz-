@@ -4,6 +4,15 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Admin alerts and creator-flow copy repair (DONE)
+- [x] Reveal manual phone review only after OTP expiry.
+- [x] Separate creator-wizard context from its current question.
+- [x] Remove abbreviated Imam Mahdi salutations and correct the dedication example.
+- [x] Make PUBLIC visibility explicitly mean listing in public khatms.
+- [x] Push actionable alerts for the main admin moderation queues.
+- [x] Add broadcast-ID search and creator-labelled recipient messages.
+- [x] Repair the production member-start missing import.
+
 ## 2026-10-01 — Creator finance navigation repair (DONE)
 - [x] Open a report/wallet submenu from «گزارش و مالی».
 - [x] Keep creator reports distinct from member participation reports when no active khatm exists.

@@ -96,7 +96,7 @@ def test_niyyat_proxy_strips_repeated_be_niyyat_prefix():
     from khatmsaz.bot.handlers.create_khatm import _compose_niyyat
 
     assert _compose_niyyat("fa", "به نیت تست آخر بات") == (
-        "به نیت ظهور امام زمان علیه السلام — به نیابت از تست آخر بات"
+        "به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف — به نیابت از تست آخر بات"
     )
 
 

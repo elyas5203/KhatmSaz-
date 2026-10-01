@@ -18,7 +18,7 @@ from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
-from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.bot.handlers.start import build_join_consent_message, JoinWorkflow, _creator_display_name

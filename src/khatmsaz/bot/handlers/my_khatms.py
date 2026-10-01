@@ -23,6 +23,7 @@ from khatmsaz.bot.keyboards import (
     safe_clear_inline_keyboard,
 )
 from khatmsaz.bot.qr import build_qr_png
+from khatmsaz.bot.admin_notifications import notify_super_admins
 from khatmsaz.bot import invite_links
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
@@ -844,6 +845,13 @@ async def submit_khatm_cover(message: Message) -> None:
             action="KHATM_COVER_SUBMIT", details={"platform": platform.value},
         )
     await message.answer(t("my_khatms.creator.cover_submitted", lang))
+    await notify_super_admins(
+        "🔔 تصویر معرفی تازه در انتظار بررسی است\n\n"
+        f"سازنده: {user.display_name or 'نامشخص'}\n"
+        f"ختم: {khatm.title}\n"
+        f"کد ختم: {khatm.id}\n\n"
+        "برای تأیید یا رد، وارد پنل ادمین و بخش تصاویر معرفی شوید."
+    )
 
 
 @router.message(Command("khatm_content_mode"))

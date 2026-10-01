@@ -8,6 +8,12 @@
   <p class="text-slate-400 text-sm">هر سازنده می‌تواند برای اعضای فعال ختم خودش پیام بفرستد؛ پیام فقط بعد از تأیید شما برای همه ارسال می‌شود.</p>
 </section>
 
+<form method="get" action="/broadcasts" class="glass-card p-4 rounded-2xl mb-6 flex flex-col sm:flex-row gap-3">
+  <input name="q" value="{{ query }}" dir="ltr" placeholder="کد درخواست پیام گروهی را وارد کنید"
+         class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-white font-mono">
+  <button class="bg-emerald-500 text-slate-950 px-6 py-3 rounded-xl font-bold">پیدا کردن درخواست</button>
+</form>
+
 {% if saved == 'approved' %}
 <div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
@@ -31,6 +37,7 @@
             <span class="text-xs text-slate-400 font-mono bg-slate-800/50 px-2 py-1 rounded" dir="ltr">{{ row.time }}</span>
             <span class="text-[0.65rem] font-bold bg-amber-500/10 text-amber-500 px-2 py-1 rounded">در انتظار</span>
           </div>
+          <p class="text-[0.65rem] text-slate-500 font-mono mt-2" dir="ltr">{{ row.item.id }}</p>
         </div>
       </div>
       

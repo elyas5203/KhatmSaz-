@@ -1,3 +1,10 @@
+## 2026-10-01 (wizard/OTP copy and admin-action notifications)
+- Hid manual phone review until the five-minute OTP window expires and rewrote both requester/admin copy.
+- Split creator-wizard progress from the current question, renamed public visibility clearly, corrected the healing dedication example and removed runtime «(عج)» abbreviations.
+- Added immediate admin alerts for all primary moderation queues and searchable broadcast request IDs in the admin panel.
+- Made approved broadcasts identify the creator using that khatm's configured display name mode.
+- Fixed the missing `KhatmTemplateType` import that crashed member-bot invite starts in production.
+
 ## 2026-10-01 (creator finance menu and payment handoff guidance)
 - Changed «گزارش و مالی» into a real submenu with separate report and wallet/top-up actions.
 - Removed the misleading fallback from an empty creator report to the member participation report.

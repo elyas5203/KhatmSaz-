@@ -109,3 +109,20 @@ async def test_wiz_can_keep_intro_beside_title_until_answered():
     assert bot.deleted == []
     assert bot.edited == [(555, 101, "title question")]
     assert (await state.get_data())["_wiz_extra_mids"] == [102]
+
+
+@pytest.mark.asyncio
+async def test_wiz_separates_progress_card_from_current_question():
+    bot = FakeBot()
+    msg = FakeMessage(bot)
+    state = FakeState({"_wiz_mid": 55, "lang": "fa", "template_type": "QURAN_PAGE"})
+
+    await _wiz(msg, state, "سؤال مرحلهٔ بعد")
+
+    assert bot.deleted == [(555, 55)]
+    assert len(msg.sent) == 2
+    assert "انتخاب‌های شما تا اینجا" in msg.sent[0]
+    assert msg.sent[1] == "سؤال مرحلهٔ بعد"
+    data = await state.get_data()
+    assert data["_wiz_summary_mid"] == 101
+    assert data["_wiz_mid"] == 102

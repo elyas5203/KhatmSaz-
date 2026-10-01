@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.modules.broadcast import repository
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
+from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus
 from khatmsaz.modules.participation.models import Participation, ParticipationStatus
 from khatmsaz.modules.identity.models import PlatformIdentity, Platform
+from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import PlanTier
@@ -121,6 +122,25 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
         PlatformIdentity.user_id.in_(user_ids), PlatformIdentity.platform == platform
     ))
     return list(dict.fromkeys(result.scalars()))
+
+
+async def sender_display_name(session: AsyncSession, item: KhatmBroadcast) -> str:
+    """Respect the creator name mode chosen for the targeted khatm."""
+    creator = await identity_service.find_by_id(session, item.creator_user_id)
+    full_name = creator.display_name if creator and creator.display_name else "سازندهٔ ختم"
+    if item.khatm_id is None:
+        return full_name
+    khatm = await khatm_service.get_khatm(session, item.khatm_id)
+    if khatm is None:
+        return full_name
+    mode = getattr(khatm, "creator_display_mode", CreatorDisplayMode.FULL_NAME.value)
+    if mode == CreatorDisplayMode.PSEUDONYM.value:
+        return khatm.creator_pseudonym or "سازندهٔ ختم"
+    if mode == CreatorDisplayMode.ANONYMOUS.value:
+        return "سازندهٔ ختم"
+    if mode == CreatorDisplayMode.FIRST_NAME.value:
+        return full_name.split()[0]
+    return full_name
 
 
 async def get(session: AsyncSession, broadcast_id) -> KhatmBroadcast | None:

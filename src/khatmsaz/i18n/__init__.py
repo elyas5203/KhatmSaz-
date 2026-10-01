@@ -423,9 +423,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "ختم {name}", "ar": "ختمة {name}", "en": "{name} khatm",
     },
     "create_khatm.fixed_niyyat": {
-        "fa": "به نیت ظهور امام زمان علیه السلام",
+        "fa": "به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف",
         "ar": "بنية ظهور الإمام المهدي عجل الله فرجه",
-        "en": "For the reappearance of Imam Mahdi (AJ)",
+        "en": "For the reappearance of Imam Mahdi, may Allah hasten his reappearance",
     },
     "create_khatm.niyyat_proxy_suffix": {
         "fa": " — به نیابت از {name}",
@@ -433,17 +433,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": " — on behalf of {name}",
     },
     "create_khatm.ask_niyyat": {
-        "fa": "همهٔ ختم‌ها به نیت ظهور امام زمان (عج) هستند.\n\n"
-              "اگر می‌خواهید این ختم را به نیابت یا نیت خاصی هم ثبت کنید، بنویسید (اختیاری). مثلاً:\n"
+        "fa": "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف هستند.\n\n"
+              "اگر می‌خواهید این ختم را به نیابت از شخصی و برای حاجتی هم ثبت کنید، بنویسید (اختیاری). مثلاً:\n"
               "• به نیابت از پدرم مرحوم حاج حسین…\n"
-              "• به نیت شفای برادرم…\n\n"
+              "• به نیابت از برادرم، برای شفای ایشان…\n\n"
               "یا اگر نمی‌خواهید، دکمهٔ رد کردن را بزنید.",
-        "ar": "كل الختمات بنية ظهور الإمام المهدي (عج).\n\n"
+        "ar": "كل الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف.\n\n"
               "إن أردت تسجيلها بنيّة أو نيابة خاصة أيضاً، فاكتبها (اختياري). مثلاً:\n"
               "• نيابةً عن والدي المرحوم الحاج حسين…\n"
               "• بنيّة شفاء أخي…\n\n"
               "وإن لم ترغب، اضغط زر التخطي.",
-        "en": "Every khatm is for the reappearance of Imam Mahdi (AJ).\n\n"
+        "en": "Every khatm is for the reappearance of Imam Mahdi, may Allah hasten his reappearance.\n\n"
               "If you'd also like to register a specific dedication or intention, type it (optional). For example:\n"
               "• On behalf of my late father, Haj Hossein…\n"
               "• For the healing of my brother…\n\n"
@@ -644,23 +644,23 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "How many did you read? Type a number.",
     },
     "intro.image_caption.QURAN": {
-        "fa": "مخاطبان شما وارد بات «ختم قرآن» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
-        "ar": "يدخل جمهورك إلى بوت «ختمة القرآن».\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "fa": "مخاطبان شما وارد بات «ختم قرآن» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱",
+        "ar": "يدخل جمهورك إلى بوت «ختمة القرآن».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Quran Khatm” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "intro.image_caption.SALAWAT": {
-        "fa": "مخاطبان شما وارد بات «ختم صلوات» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
-        "ar": "يدخل جمهورك إلى بوت «ختمة الصلوات».\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "fa": "مخاطبان شما وارد بات «ختم صلوات» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱",
+        "ar": "يدخل جمهورك إلى بوت «ختمة الصلوات».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Salawat Khatm” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "intro.image_caption.DUA_ZIYARAT": {
-        "fa": "مخاطبان شما وارد بات «ختم دعا و زیارت» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
-        "ar": "يدخل جمهورك إلى بوت «ختمة الدعاء والزيارة».\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "fa": "مخاطبان شما وارد بات «ختم دعا و زیارت» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱",
+        "ar": "يدخل جمهورك إلى بوت «ختمة الدعاء والزيارة».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Dua and Ziyarat Khatm” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "intro.image_caption.LAAN": {
-        "fa": "مخاطبان شما وارد بات «ختم لعن» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان (عج) برگزار می‌شوند 🌱",
-        "ar": "يدخل جمهورك إلى بوت «ختمة اللعن».\nجميع الختمات بنية ظهور الإمام المهدي (عج) 🌱",
+        "fa": "مخاطبان شما وارد بات «ختم لعن» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱",
+        "ar": "يدخل جمهورك إلى بوت «ختمة اللعن».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “La'an Khatm” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "reminder.regular_commitment": {
@@ -825,7 +825,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.mode_label.COMMITMENT": {"fa": "تعهدی", "ar": "ملتزمة", "en": "Commitment"},
     "create_khatm.mode_label.OPEN": {"fa": "آزاد", "ar": "مفتوحة", "en": "Open"},
     "create_khatm.visibility_label.PUBLIC": {
-        "fa": "عمومی و قابل کشف", "ar": "عامة وقابلة للاكتشاف", "en": "Public and discoverable",
+        "fa": "لینک عمومی؛ در فهرست ختم‌های عمومی نمایش داده شود", "ar": "رابط عام؛ يظهر في قائمة الختمات العامة", "en": "Public link; show in the public khatm list",
     },
     "create_khatm.visibility_label.UNLISTED": {
         "fa": "با لینک، برای همه باز", "ar": "بالرابط، مفتوحة للجميع", "en": "Link-only, open to anyone",
@@ -1946,7 +1946,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "code was sent; send it here. After verifying, tap the create-khatm button again.",
     },
     "change_phone.request_admin_after_expiry": {
-        "fa": "🧑‍💼 کد نرسید؟ بعد از ۵ دقیقه درخواست تأیید مدیر",
+        "fa": "🧑‍💼 پیامک نرسید؛ درخواست بررسی شماره",
         "ar": "🧑‍💼 لم يصل الرمز؟ اطلب مراجعة الإدارة بعد 5 دقائق",
         "en": "🧑‍💼 No code? Ask an admin after 5 minutes",
     },
@@ -1956,7 +1956,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "The code's 5-minute window has not ended yet. Wait a little and tap again.",
     },
     "change_phone.manual_submitted_after_expiry": {
-        "fa": "درخواست تأیید شماره برای مدیر فرستاده شد ✅ بعد از بررسی، پیام تأیید و دکمهٔ ادامه برایتان می‌آید.",
+        "fa": "درخواست بررسی شماره برای مدیر فرستاده شد ✅ نتیجهٔ بررسی همین‌جا برایتان می‌آید؛ اگر تأیید شود، دکمهٔ ادامه هم نمایش داده می‌شود.",
         "ar": "أُرسل طلب توثيق الرقم إلى الإدارة ✅ بعد المراجعة ستصلك رسالة وزر متابعة.",
         "en": "Your phone verification request was sent to an admin ✅ After review, you'll receive a confirmation and Continue button.",
     },

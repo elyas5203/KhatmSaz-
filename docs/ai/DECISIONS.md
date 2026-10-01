@@ -5,6 +5,31 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0107 — Admin-action queues push alerts; creator wizard uses two messages
+
+**Date:** 2026-10-01
+**Decision:** Creator-wizard context/progress and the current question are two
+separate bot messages. The progress card may be updated as choices accumulate;
+the question card alone owns the current input controls.
+
+Manual review for an Iranian phone is not offered while its OTP remains valid.
+The action is revealed on the existing prompt after five minutes. Requests that
+require admin action push a best-effort Telegram alert containing enough context
+and an identifier, while the persisted moderation queue remains authoritative.
+This applies to phone review, creator broadcasts, cover review, requested khatm
+types and requested dua categories.
+
+Approved creator broadcasts identify themselves using the display mode chosen
+for the targeted khatm. PUBLIC creation copy explicitly states that the khatm is
+listed in the public directory.
+
+**Why:** Premature controls confused users, combined wizard text was hard to
+scan, and admins should not need to repeatedly open the panel to discover new
+work. Persisting first and notifying second preserves requests during temporary
+messaging failures.
+
+---
+
 ### DEC-PY-0106 — Creator finance is a menu; PayPing credit requires the verified return
 
 **Date:** 2026-10-01

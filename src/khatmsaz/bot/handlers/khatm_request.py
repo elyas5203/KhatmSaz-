@@ -21,6 +21,7 @@ from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
 from khatmsaz.bot.notify_adapter import get_notify_fn
+from khatmsaz.bot.admin_notifications import notify_super_admins
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.authorization import service as authorization_service
@@ -53,11 +54,18 @@ async def _submit_request(message: Message, description: str, lang: str, **attac
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        await khatm_request_service.submit(session, user.id, description, **attachment)
+        request = await khatm_request_service.submit(session, user.id, description, **attachment)
     text = t("khatm_request.submitted", lang)
     if attachment.get("attachment_file_id"):
         text += t("khatm_request.attachment_saved", lang)
     await message.answer(text, reply_markup=main_menu_keyboard(lang))
+    await notify_super_admins(
+        "🔔 درخواست تازه برای نوع ختم\n\n"
+        f"درخواست‌دهنده: {user.display_name or 'نامشخص'}\n"
+        f"شرح: {description}\n"
+        f"کد درخواست: {request.id}\n\n"
+        "برای بررسی، وارد پنل ادمین و بخش درخواست‌های ختم شوید."
+    )
 
 
 @router.callback_query(F.data == "request_khatm:start")

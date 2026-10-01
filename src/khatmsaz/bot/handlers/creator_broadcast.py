@@ -4,7 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, safe_clear_inline_keyboard, main_menu_keyboard
-from khatmsaz.bot.notify_adapter import get_notify_fn
+from khatmsaz.bot.admin_notifications import notify_super_admins
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
@@ -20,6 +20,25 @@ class CreatorBroadcastFlow(StatesGroup):
     choosing_target = State()
     entering_message = State()
     confirming = State()
+
+
+async def _notify_admins_of_broadcast_request(
+    *, item, creator_name: str, scope_title: str,
+) -> None:
+    """Push the moderation queue item to admins instead of making them poll."""
+    preview = (item.body or "").strip() or f"[{item.media_type or 'رسانه'} بدون متن]"
+    if len(preview) > 500:
+        preview = preview[:497] + "…"
+    text = (
+        "🔔 درخواست تازهٔ پیام گروهی\n\n"
+        f"سازنده: {creator_name}\n"
+        f"بخش: {scope_title}\n"
+        f"مخاطب: {item.audience_count} نفر\n"
+        f"متن/رسانه: {preview}\n\n"
+        f"کد درخواست: {item.id}\n"
+        "برای بررسی، وارد پنل ادمین و بخش «پیام‌های گروهی» شوید و این کد را جست‌وجو کنید."
+    )
+    await notify_super_admins(text)
 
 
 @router.message(F.text == "📢 ارسال پیام گروهی")
@@ -171,6 +190,13 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
                 media_type=media_type,
                 media_file_id=media_file_id,
             )
+            creator = await identity_service.find_by_id(session, creator_id)
+            target_khatm = (
+                await khatm_service.get_khatm(session, uuid.UUID(_target_raw))
+                if _target_raw else None
+            )
+            creator_name = creator.display_name if creator and creator.display_name else "نامشخص"
+            scope_title = target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده"
     except broadcast_service.plan_service.PlanFeatureUnavailableError:
         await callback.message.answer("دو پیام رایگان شما مصرف شده یا این پیام ۱۰۰۰ مخاطب و بیشتر دارد؛ برای ادامه پلن حرفه‌ای لازم است.")
         await state.clear()
@@ -181,6 +207,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
         await state.clear()
         await safe_answer_callback(callback)
         return
+    await _notify_admins_of_broadcast_request(
+        item=item, creator_name=creator_name, scope_title=scope_title,
+    )
     await state.clear()
     cost_text = "رایگان" if item.cost_toman == 0 else f"{item.cost_toman:,} تومان"
     await callback.message.answer(

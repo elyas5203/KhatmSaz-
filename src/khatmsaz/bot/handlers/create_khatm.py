@@ -43,6 +43,7 @@ from khatmsaz.bot.keyboards import (
     visibility_choice_keyboard,
 )
 from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
+from khatmsaz.bot.admin_notifications import notify_super_admins
 from khatmsaz.bot import invite_links
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
@@ -159,9 +160,10 @@ async def _wiz(
     message: Message, state: FSMContext, text: str, reply_markup=None, *,
     keep_extra: bool = False,
 ):
-    """Render the complete creation flow in one bot-owned, updating message."""
+    """Keep progress/context and the current question in separate messages."""
     data = await state.get_data()
     prev = data.get("_wiz_mid")
+    summary_mid = data.get("_wiz_summary_mid")
     if not keep_extra:
         for extra in data.get("_wiz_extra_mids", []):
             if extra:
@@ -176,14 +178,39 @@ async def _wiz(
             await message.bot.delete_message(message.chat.id, message.message_id)
         except Exception:
             pass
-    rendered = _wizard_progress(data, data.get("lang", "fa"), text)
+    summary = _wizard_summary(data, data.get("lang", "fa"))
+    # When choices first become available, recreate the question below the
+    # new summary so Telegram's chronological order remains summary → question.
+    if summary and not summary_mid and prev:
+        try:
+            await message.bot.delete_message(message.chat.id, prev)
+        except Exception:
+            pass
+        prev = None
+    if summary:
+        if summary_mid:
+            try:
+                await message.bot.edit_message_text(
+                    chat_id=message.chat.id, message_id=summary_mid, text=summary,
+                )
+            except Exception:
+                summary_mid = None
+        if not summary_mid:
+            summary_message = await message.answer(summary)
+            summary_mid = getattr(summary_message, "message_id", None)
+    elif summary_mid:
+        try:
+            await message.bot.delete_message(message.chat.id, summary_mid)
+        except Exception:
+            pass
+        summary_mid = None
     sent = None
     if prev:
         try:
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
                 message_id=prev,
-                text=rendered,
+                text=text,
                 reply_markup=reply_markup,
             )
             sent = type("EditedWizardMessage", (), {"message_id": prev})()
@@ -195,8 +222,11 @@ async def _wiz(
             except Exception:
                 pass
     if sent is None:
-        sent = await message.answer(rendered, reply_markup=reply_markup)
-    update = {"_wiz_mid": getattr(sent, "message_id", None)}
+        sent = await message.answer(text, reply_markup=reply_markup)
+    update = {
+        "_wiz_mid": getattr(sent, "message_id", None),
+        "_wiz_summary_mid": summary_mid,
+    }
     if not keep_extra:
         update["_wiz_extra_mids"] = []
     await state.update_data(**update)
@@ -204,7 +234,13 @@ async def _wiz(
 
 
 def _wizard_progress(data: dict, lang: str, question: str) -> str:
-    """Show non-personal choices above the current question (B7)."""
+    """Compatibility renderer used by older tests/callers."""
+    summary = _wizard_summary(data, lang)
+    return f"{summary}\n\n{question}" if summary else question
+
+
+def _wizard_summary(data: dict, lang: str) -> str | None:
+    """Render the non-personal progress card separately from the question."""
     lines: list[str] = []
     template = data.get("template_type")
     group = data.get("category_group")
@@ -231,8 +267,8 @@ def _wizard_progress(data: dict, lang: str, question: str) -> str:
             value=t(_VISIBILITY_LABEL_KEYS[data["visibility"]], lang),
         ))
     if not lines:
-        return question
-    return f"{t('create_khatm.progress.header', lang)}\n" + "\n".join(lines) + f"\n\n{question}"
+        return None
+    return f"{t('create_khatm.progress.header', lang)}\n" + "\n".join(lines)
 
 
 @router.message(F.text.in_(CREATE_BUTTON_TEXTS))
@@ -378,7 +414,9 @@ async def enter_custom_dua_title(message: Message, state: FSMContext) -> None:
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         try:
-            await category_service.submit_request(session, requested_title=title, requested_by_user_id=user.id)
+            category_request = await category_service.submit_request(
+                session, requested_title=title, requested_by_user_id=user.id,
+            )
         except ValueError:
             await message.answer(t("create_khatm.custom_dua_title_too_long", lang))
             return
@@ -386,6 +424,13 @@ async def enter_custom_dua_title(message: Message, state: FSMContext) -> None:
     await message.answer(
         t("create_khatm.custom_dua_submitted", lang, title=title),
         reply_markup=main_menu_keyboard(lang),
+    )
+    await notify_super_admins(
+        "🔔 درخواست تازه برای دعای جدید\n\n"
+        f"درخواست‌دهنده: {user.display_name or 'نامشخص'}\n"
+        f"عنوان: {title}\n"
+        f"کد درخواست: {category_request.id}\n\n"
+        "برای بررسی، وارد پنل ادمین و بخش دسته‌ها/درخواست‌ها شوید."
     )
 
 

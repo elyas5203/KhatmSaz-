@@ -71,3 +71,25 @@ async def test_broadcast_shows_khatm_picker(monkeypatch):
     assert any("به همه" in l for l in labels), "missing «به همهٔ ختم‌ها» option"
     # only the 2 ACTIVE khatms are offered, not the cancelled one
     assert sum(1 for l in labels if l.startswith("🔹")) == 2
+
+
+@pytest.mark.asyncio
+async def test_new_broadcast_pushes_searchable_code_to_admin(monkeypatch):
+    sent = []
+
+    async def fake_notify(text):
+        sent.append(text)
+
+    monkeypatch.setattr(cb, "notify_super_admins", fake_notify)
+    item = SimpleNamespace(
+        id=uuid4(), body="پیام آزمایشی", media_type="text", audience_count=7,
+    )
+
+    await cb._notify_admins_of_broadcast_request(
+        item=item, creator_name="خانم رضایی", scope_title="ختم صلوات",
+    )
+
+    assert len(sent) == 1
+    assert str(item.id) in sent[0]
+    assert "خانم رضایی" in sent[0] and "ختم صلوات" in sent[0]
+    assert "پنل ادمین" in sent[0] and "جست‌وجو" in sent[0]

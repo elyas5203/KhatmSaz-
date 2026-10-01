@@ -1046,14 +1046,21 @@ async def creator_broadcast_submit(
     try:
         khatm_id = None if target == "all" else UUID(target)
         async with session_scope() as session:
-            await broadcast_service.submit(
+            item = await broadcast_service.submit(
                 session, khatm_id=khatm_id, creator_user_id=creator.id, body=body, channel=channel,
                 province=province, gender=gender,
             )
+            target_khatm = await khatm_service.get_khatm(session, khatm_id) if khatm_id else None
     except plan_service.PlanFeatureUnavailableError:
         return RedirectResponse("/creator/broadcasts?error=plan_required", status_code=303)
     except (ValueError, TypeError):
         return RedirectResponse("/creator/broadcasts?error=invalid", status_code=303)
+    from khatmsaz.bot.handlers.creator_broadcast import _notify_admins_of_broadcast_request
+    await _notify_admins_of_broadcast_request(
+        item=item,
+        creator_name=creator.display_name or "نامشخص",
+        scope_title=target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده",
+    )
     return RedirectResponse("/creator/broadcasts?saved=pending", status_code=303)
 
 
@@ -1613,6 +1620,9 @@ async def broadcasts_page(request: Request):
         return _login_redirect()
     async with session_scope() as session:
         pending = await broadcast_service.list_pending(session)
+        query = request.query_params.get("q", "").strip().lower()
+        if query:
+            pending = [item for item in pending if query in str(item.id).lower()]
         rows = []
         for item in pending:
             khatm = await session.get(Khatm, item.khatm_id)
@@ -1628,7 +1638,10 @@ async def broadcasts_page(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="broadcasts.html",
-        context=_ctx(request, admin, raw, rows=rows, saved=request.query_params.get("saved", "")),
+        context=_ctx(
+            request, admin, raw, rows=rows,
+            saved=request.query_params.get("saved", ""), query=query,
+        ),
     )
 
 
@@ -1679,9 +1692,8 @@ async def decide_broadcast(
                 item.paid_at = datetime.now(tz=ZoneInfo("UTC"))
             destinations = await broadcast_service.audience_destinations(session, item)
             # L8 (owner 2026-09-30): recipients should see who the message is from.
-            _sender = await identity_service.find_by_id(session, item.creator_user_id)
-            _sender_name = (_sender.display_name if _sender and _sender.display_name else "سازندهٔ ختم")
-            _prefix = f"📢 از طرف {_sender_name}:\n\n"
+            _sender_name = await broadcast_service.sender_display_name(session, item)
+            _prefix = f"📢 پیام از طرف سازندهٔ ختم، {_sender_name}:\n\n"
             body_with_sender = f"{_prefix}{item.body}" if item.body else _prefix.strip()
             if item.channel == "SMS":
                 provider = build_sms_provider()

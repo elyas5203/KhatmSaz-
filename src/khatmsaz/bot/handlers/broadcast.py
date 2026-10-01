@@ -128,19 +128,22 @@ async def _moderate(message: Message, command: CommandObject, *, approve: bool) 
                 item.invoice_id = invoice.id
                 item.paid_at = datetime.now(timezone.utc)
             destinations = await broadcast_service.audience_destinations(session, item)
+            sender_name = await broadcast_service.sender_display_name(session, item)
+            prefix = f"📢 پیام از طرف سازندهٔ ختم، {sender_name}:\n\n"
+            body_with_sender = f"{prefix}{item.body}" if item.body else prefix.strip()
             if item.channel == "SMS":
                 provider = build_sms_provider()
                 for phone in destinations:
-                    await provider.send(phone=phone, text=item.body)
+                    await provider.send(phone=phone, text=body_with_sender)
             else:
                 media_file_id = item.media_file_id_telegram if item.channel == "TELEGRAM" else item.media_file_id_bale
                 if item.media_type and media_file_id:
                     for subject in destinations:
-                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=item.body or None)
+                        await send_media(item.channel, subject, item.media_type, media_file_id, caption=body_with_sender)
                 else:
                     notify = get_notify_fn()
                     for subject in destinations:
-                        await notify(item.channel, subject, item.body)
+                        await notify(item.channel, subject, body_with_sender)
             await broadcast_service.mark_sent(session, item)
     await message.answer("پیام تأیید و برای اعضای فعال ارسال شد ✅" if approve else "پیام رد شد.")
 

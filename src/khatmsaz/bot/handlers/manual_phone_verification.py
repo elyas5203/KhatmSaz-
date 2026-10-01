@@ -49,15 +49,17 @@ async def notify_admins_of_manual_request(
     ]
     purpose_label = "تغییر شماره" if purpose == "PHONE_CHANGE" else "فعال‌سازی سازنده"
     request_title = (
-        "⏱ درخواست تأیید دستی پس از نرسیدن/انقضای پیامک"
+        "🔔 بررسی شماره پس از نرسیدن پیامک"
         if sms_otp_expired else "🌍 درخواست تأیید دستی شمارهٔ خارج از کشور"
     )
     text = (
         f"{request_title}\n\n"
         f"نام: {display_name or 'ثبت نشده'}\n"
         f"شماره: {e164}\n"
-        f"هدف: {purpose_label}\n\n"
-        "فقط بعد از بررسی واقعی مالکیت شماره، یکی از دکمه‌ها را بزنید."
+        f"کار: {purpose_label}\n"
+        f"شناسهٔ درخواست: {request_id}\n\n"
+        "کاربر پنج دقیقه برای دریافت پیامک منتظر مانده و سپس درخواست بررسی داده است. "
+        "اگر شماره و هویت او را می‌شناسید تأیید کنید؛ در غیر این صورت درخواست را رد کنید."
     )
     keyboard = _decision_keyboard(request_id)
     for chat_id in admin_ids:

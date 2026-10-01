@@ -1,3 +1,13 @@
+## Current state — 2026-10-01 — Delayed OTP fallback, split creator wizard and actionable admin alerts [Codex]
+- The Iranian OTP prompt initially has no manual-review button. After the real five-minute lifetime, the bot edits that same prompt to reveal «پیامک نرسید؛ درخواست بررسی شماره»; expiry/error recovery still exposes the same action. Admin-side wording now explains why the request exists and includes its ID.
+- Creation wizard progress/context and its current question are two separate bot-owned messages. The progress card updates independently while only the question message owns the current keyboard/input step.
+- Removed parenthetical «(عج)» from runtime copy; Imam Mahdi references now use the full «عجل الله تعالی فرجه الشریف» or an existing full salutation. The optional dedication example now says «به نیابت از برادرم، برای شفای ایشان».
+- PUBLIC visibility is explicitly labelled «لینک عمومی؛ در فهرست ختم‌های عمومی نمایش داده شود».
+- Admins now receive best-effort immediate Telegram alerts for creator broadcasts, cover reviews, requested khatm types, requested dua categories and manual phone verification. Broadcast alerts include a searchable request UUID; the web moderation queue has an ID search box and displays each ID.
+- Approved broadcast recipients see «پیام از طرف سازندهٔ ختم، …» using the khatm's configured full/first/pseudonym/anonymous display mode in both web-approval and bot-command approval paths.
+- Fixed the production `NameError: KhatmTemplateType is not defined` in direct member-bot invite handling.
+- Validation: full suite **270 passed, 85 skipped**; no migration was added.
+
 ## Current state — 2026-10-01 — Correct creator finance navigation and VPN-safe payment guidance [Codex]
 - «گزارش و مالی» now opens its actual submenu, exposing both the creator-khatm report and wallet top-up instead of immediately rendering a report.
 - An empty creator report no longer falls back to the unrelated member participation report; it explicitly says there is no active created khatm and keeps the finance submenu visible.
