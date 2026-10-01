@@ -4,7 +4,7 @@ new one, and remembers its id — and a failed delete never blocks the new promp
 """
 import pytest
 
-from khatmsaz.bot.handlers.create_khatm import _wiz
+from khatmsaz.bot.handlers.create_khatm import _wiz, _wizard_error
 
 
 class FakeBot:
@@ -146,3 +146,17 @@ async def test_wiz_does_not_recreate_unchanged_summary():
     assert msg.sent == []
     assert bot.edited == [(555, 102, "پرسش بعدی")]
     assert (await state.get_data())["_wiz_summary_mid"] == 101
+
+
+@pytest.mark.asyncio
+async def test_valid_step_removes_transient_validation_error():
+    bot = FakeBot()
+    msg = FakeMessage(bot)
+    state = FakeState({"_wiz_mid": 55})
+
+    await _wizard_error(msg, state, "عدد نامعتبر است")
+    assert (await state.get_data())["_wiz_error_mid"] == 101
+
+    await _wiz(msg, state, "سؤال بعدی")
+    assert (555, 101) in bot.deleted
+    assert (await state.get_data())["_wiz_error_mid"] is None

@@ -5,6 +5,26 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0110 — Private approvals work in the creator bot and identify the requester
+
+**Date:** 2026-10-01
+**Decision:** Private-khatm approve/reject callbacks are shared by creator and
+member dispatchers because the notification may reach any linked creator
+identity. The creator-facing request includes the requester's display name,
+profile phone and platform numeric identity. Profile/wizard validation notices
+are transient and are deleted after a corrected answer.
+
+Salawat commitment creation stores the creator-selected total target in the
+live repetition target. Preview mode and consent mode must both derive from the
+same enum-safe commitment check; a missing legacy target cannot make a
+commitment khatm appear open.
+
+**Why:** Production updates were unhandled on the creator bot, creators could
+not recognize private applicants, and inconsistent target persistence caused
+the preview and responsibility warning to contradict each other.
+
+---
+
 ### DEC-PY-0109 — Member share copy is family-aware and links back to the same khatm
 
 **Date:** 2026-10-01

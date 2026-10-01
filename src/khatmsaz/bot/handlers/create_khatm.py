@@ -166,6 +166,12 @@ async def _wiz(
     summary_mid = data.get("_wiz_summary_mid")
     previous_summary = data.get("_wiz_summary_text")
     previous_question = data.get("_wiz_question_text")
+    error_mid = data.get("_wiz_error_mid")
+    if error_mid:
+        try:
+            await message.bot.delete_message(message.chat.id, error_mid)
+        except Exception:
+            pass
     if not keep_extra:
         for extra in data.get("_wiz_extra_mids", []):
             if extra:
@@ -232,11 +238,25 @@ async def _wiz(
         "_wiz_summary_mid": summary_mid,
         "_wiz_summary_text": summary,
         "_wiz_question_text": text,
+        "_wiz_error_mid": None,
     }
     if not keep_extra:
         update["_wiz_extra_mids"] = []
     await state.update_data(**update)
     return sent
+
+
+async def _wizard_error(message: Message, state: FSMContext, text: str) -> None:
+    """Show one transient validation error; the next valid step removes it."""
+    data = await state.get_data()
+    for mid in (getattr(message, "message_id", None), data.get("_wiz_error_mid")):
+        if mid:
+            try:
+                await message.bot.delete_message(message.chat.id, mid)
+            except Exception:
+                pass
+    sent = await message.answer(text)
+    await state.update_data(_wiz_error_mid=sent.message_id)
 
 
 async def _delete_wizard_messages(message: Message, state: FSMContext, *, include_summary: bool = True) -> None:
@@ -919,7 +939,7 @@ async def enter_commitment_total_custom(message: Message, state: FSMContext) -> 
     lang = await _lang(state)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await message.answer(t("create_khatm.positive_number_required", lang))
+        await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     await _after_commitment_total(message, state, int(raw))
 
@@ -955,10 +975,10 @@ async def enter_start_at(message: Message, state: FSMContext) -> None:
             tzinfo=ZoneInfo(get_settings().app_timezone)
         )
     except ValueError:
-        await message.answer(t("create_khatm.start_at_format_invalid", lang))
+        await _wizard_error(message, state, t("create_khatm.start_at_format_invalid", lang))
         return
     if start_at <= datetime.now(start_at.tzinfo):
-        await message.answer(t("create_khatm.start_at_must_be_future", lang))
+        await _wizard_error(message, state, t("create_khatm.start_at_must_be_future", lang))
         return
     # Redis FSM storage is JSON-backed; keep datetimes portable across
     # process restarts and reconstruct them at the two consumption points.
@@ -973,7 +993,7 @@ async def enter_open_target(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await message.answer(t("create_khatm.positive_number_required", lang))
+        await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     await state.update_data(salawat_open_target=int(raw))
     await _ask_visibility(message, state)
@@ -986,7 +1006,7 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
     lang = await _lang(state)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await message.answer(t("create_khatm.positive_number_required", lang))
+        await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     # Owner (2026-09-28): drop the capacity question entirely — it's an
     # unnecessary extra step; khatms are unlimited by default.
@@ -1045,7 +1065,7 @@ async def enter_deadline_hour(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     raw = (message.text or "").strip()
     if not raw.isdigit() or not (0 <= int(raw) <= 23):
-        await message.answer(t("create_khatm.hour_required", lang))
+        await _wizard_error(message, state, t("create_khatm.hour_required", lang))
         return
     # Owner (2026-09-28): capacity question removed (unnecessary step).
     await state.update_data(daily_deadline_hour=int(raw), capacity=None)
@@ -1079,7 +1099,7 @@ async def enter_capacity_number(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await message.answer(t("create_khatm.positive_number_required", lang))
+        await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     await state.update_data(capacity=int(raw))
     await _ask_visibility(message, state)
@@ -1087,10 +1107,20 @@ async def enter_capacity_number(message: Message, state: FSMContext) -> None:
 
 async def _ask_visibility(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
+    data = await state.get_data()
+    group = data.get("category_group")
+    if data.get("template_type") == KhatmTemplateType.QURAN_PAGE.value:
+        share = "صفحات امروز"
+    elif group == KhatmCategoryGroup.SALAWAT.value:
+        share = "صلوات‌های امروز"
+    elif group == KhatmCategoryGroup.LAAN.value:
+        share = "ذکر لعن امروز"
+    else:
+        share = "زیارت امروز" if "زیارت" in (data.get("content_category_title") or "") else "دعای امروز"
     await state.set_state(CreateKhatm.choosing_reminder_tone)
     await _wiz(
         message, state,
-        t("create_khatm.ask_reminder_tone", lang),
+        t("create_khatm.ask_reminder_tone", lang, share=share),
         reply_markup=reminder_tone_keyboard(lang),
     )
 

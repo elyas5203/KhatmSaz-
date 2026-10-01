@@ -1,3 +1,10 @@
+## Current state — 2026-10-01 — Live QA cleanup, consistent Salawat mode and working private approvals [Codex]
+- Creator profile guidance and validation errors are now tracked as transient messages: the guidance disappears after profile completion, invalid typed input/error disappears after correction, and creator-wizard validation behaves the same way.
+- Reminder-tone examples use the selected family («صلوات‌های امروز», Quran pages, Dua, Ziyarat or La'an) instead of Quran-centric generic copy. The member introduction no longer displays «پیش‌نمایش ختم».
+- Fixed Salawat commitment target persistence and preview classification. A commitment without a legacy target still renders as commitment; open and commitment consent/button logic share the same enum-safe check.
+- Private join approval handlers now run on both creator and member dispatchers. Creator notices include the requester's display name, profile phone and Telegram/Bale numeric identity so the requester can be recognized.
+- Validation: full suite **282 passed, 85 skipped**; compile/Alembic head checks pass; no migration added.
+
 ## Current state — 2026-10-01 — Family-aware share reminders and confirmations [Codex]
 - Member share reminders now use a warm formal Persian structure with the exact Quran pages or devotional count, the khatm title, its daily deadline in Iran time, a clear completion action and a considerate suggestion to seek help when needed.
 - Quran, Salawat, Dua, Ziyarat and La'an are distinguished in a shared copy renderer. Completion messages name the performed act, khatm and custom intention, then append the direct member-bot join link for that same khatm.

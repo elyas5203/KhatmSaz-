@@ -114,8 +114,8 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
             ):
                 from khatmsaz.bot.handlers.profile import begin_profile
 
-                await message.answer(t("change_phone.complete_profile_first", lang))
-                await begin_profile(message, state)
+                notice = await message.answer(t("change_phone.complete_profile_first", lang))
+                await begin_profile(message, state, cleanup_message_ids=[notice.message_id])
                 return False
             claim = await phone_repository.verified_claim_for_user(session, user.id)
             if claim is not None:

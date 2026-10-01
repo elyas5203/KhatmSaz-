@@ -225,7 +225,9 @@ async def create_and_launch_khatm(
         else:
             # Reused field for the other meaning: the fixed amount every
             # committed participant is assigned, not a shared pool target.
-            extra["repetition_target"] = salawat_commitment_quantity
+            extra["repetition_target"] = (
+                salawat_open_target if salawat_open_target is not None else salawat_commitment_quantity
+            )
             # Capacity + waiting list also applies to SALAWAT+COMMITMENT
             # (owner decision, 2026-09-20): a waitlisted participant reads
             # along freely via the open contribution pool, same as

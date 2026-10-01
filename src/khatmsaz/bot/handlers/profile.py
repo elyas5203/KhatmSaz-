@@ -33,6 +33,7 @@ async def _profile_prompt(message: Message, state: FSMContext, text: str, reply_
     """Replace the completed profile question and remove the typed answer."""
     data = await state.get_data()
     previous = data.get("_profile_mid")
+    error_mid = data.get("_profile_error_mid")
     if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
         try:
             await message.bot.delete_message(message.chat.id, message.message_id)
@@ -43,18 +44,38 @@ async def _profile_prompt(message: Message, state: FSMContext, text: str, reply_
             await message.bot.delete_message(message.chat.id, previous)
         except Exception:
             pass
+    if error_mid:
+        try:
+            await message.bot.delete_message(message.chat.id, error_mid)
+        except Exception:
+            pass
     sent = await message.answer(text, reply_markup=reply_markup)
-    await state.update_data(_profile_mid=sent.message_id)
+    await state.update_data(_profile_mid=sent.message_id, _profile_error_mid=None)
     return sent
 
 
 async def _delete_profile_prompt(message: Message, state: FSMContext) -> None:
-    mid = (await state.get_data()).get("_profile_mid")
-    if mid:
+    data = await state.get_data()
+    mids = [data.get("_profile_mid"), data.get("_profile_error_mid"), *data.get("_profile_cleanup_mids", [])]
+    for mid in mids:
+        if not mid:
+            continue
         try:
             await message.bot.delete_message(message.chat.id, mid)
         except Exception:
             pass
+
+
+async def _profile_error(message: Message, state: FSMContext, text: str) -> None:
+    data = await state.get_data()
+    for mid in (getattr(message, "message_id", None), data.get("_profile_error_mid")):
+        if mid:
+            try:
+                await message.bot.delete_message(message.chat.id, mid)
+            except Exception:
+                pass
+    sent = await message.answer(text)
+    await state.update_data(_profile_error_mid=sent.message_id)
 
 
 def _province_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
@@ -75,14 +96,14 @@ def _gender_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     ]])
 
 
-async def begin_profile(message: Message, state: FSMContext) -> None:
+async def begin_profile(message: Message, state: FSMContext, *, cleanup_message_ids: list[int] | None = None) -> None:
     await state.clear()
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
-    await state.update_data(language=lang)
+    await state.update_data(language=lang, _profile_cleanup_mids=cleanup_message_ids or [])
     await state.set_state(ProfileEdit.entering_name)
     await _profile_prompt(message, state, t("profile.ask_name", lang))
 
@@ -99,7 +120,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
     value = (message.text or "").strip()
     lang = (await state.get_data()).get("language", "fa")
     if not value:
-        await message.answer(t("registration.name_required", lang))
+        await _profile_error(message, state, t("registration.name_required", lang))
         return
     await state.update_data(full_name=value)
     await state.set_state(ProfileEdit.entering_phone)
@@ -118,7 +139,7 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
     try:
         phone = phone_service.normalize_e164(phone)
     except phone_service.OtpError:
-        await message.answer(t("registration.phone_invalid", lang))
+        await _profile_error(message, state, t("registration.phone_invalid", lang))
         return
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -164,7 +185,7 @@ async def enter_city(message: Message, state: FSMContext) -> None:
     value = (message.text or "").strip()
     lang = (await state.get_data()).get("language", "fa")
     if not value:
-        await message.answer(t("registration.city_required", lang))
+        await _profile_error(message, state, t("registration.city_required", lang))
         return
     await state.update_data(city=value)
     await state.set_state(ProfileEdit.choosing_gender)

@@ -1,3 +1,9 @@
+## 2026-10-01 (live QA cleanup and private-approval repair)
+- Removed completed profile guidance and corrected validation-error cleanup.
+- Made reminder-tone examples family-aware and removed the member-side preview heading.
+- Fixed Salawat commitment target/mode consistency and enum-safe consent buttons.
+- Registered private join approval handlers on the creator bot and added requester name, phone and platform ID to creator notices.
+
 ## 2026-10-01 (family-aware member share messages)
 - Added polished Persian reminder and completion copy tailored to Quran, Salawat, Dua, Ziyarat and La'an.
 - Included the exact share, deadline, khatm title, intention and direct same-khatm member-bot invitation where applicable.

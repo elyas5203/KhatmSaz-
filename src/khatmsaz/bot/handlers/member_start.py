@@ -18,10 +18,10 @@ from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
-from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus, KhatmTemplateType
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.participation import service as participation_service
-from khatmsaz.bot.handlers.start import build_join_consent_message, JoinWorkflow, _creator_display_name
+from khatmsaz.bot.handlers.start import build_join_consent_message, JoinWorkflow, _creator_display_name, _is_commitment
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 router = Router(name="member_start")
@@ -120,7 +120,7 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                     category_title=category_title, category_group=category_group,
                 ),
                 reply_markup=commitment_consent_keyboard(
-                    token, lang, committed=khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+                    token, lang, committed=_is_commitment(khatm),
                 ),
             )
 

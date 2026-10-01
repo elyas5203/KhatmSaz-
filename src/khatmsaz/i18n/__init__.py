@@ -798,20 +798,20 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.ask_reminder_tone": {
         "fa": (
             "پیام‌های یادآوری با چه لحنی فرستاده بشه؟ (فقط حس‌وحال متن، محتوای ختم عوض نمی‌شه)\n\n"
-            "🌱 <b>صمیمی</b>: «سلام رفیق! وقتِ سهم امروزته، بزن بریم 🌿»\n"
-            "📜 <b>رسمی</b>: «با سلام، یادآوری می‌شود سهم امروز شما آمادهٔ قرائت است.»\n"
-            "🤍 <b>معنوی</b>: «یاد خدا دل را آرام می‌کند؛ سهم امروزت منتظر توست.»\n"
-            "⚡ <b>کوتاه</b>: «سهم امروزت آماده‌ست.»"
+            "🌱 <b>صمیمی</b>: «سلام رفیق! وقت {share} رسیده، بزن بریم 🌿»\n"
+            "📜 <b>رسمی</b>: «با سلام، یادآوری می‌شود {share} آمادهٔ انجام است.»\n"
+            "🤍 <b>معنوی</b>: «یاد خدا دل را آرام می‌کند؛ {share} منتظر شماست.»\n"
+            "⚡ <b>کوتاه</b>: «{share} آماده است.»"
         ),
         "ar": (
             "بأي أسلوب تُرسل رسائل التذكير؟ (يؤثر على الأسلوب فقط، لا يغيّر المحتوى)\n\n"
-            "🌱 <b>ودّي</b>: «مرحباً يا صديقي! حان وقت حصتك اليوم 🌿»\n"
-            "📜 <b>رسمي</b>: «تحية طيبة، نذكّرك بأن حصتك اليوم جاهزة للقراءة.»\n"
-            "🤍 <b>روحاني</b>: «بذكر الله تطمئنّ القلوب؛ حصتك اليوم بانتظارك.»\n"
-            "⚡ <b>مختصر</b>: «حصتك اليوم جاهزة.»"
+            "🌱 <b>ودّي</b>: «مرحباً يا صديقي! حان وقت {share} 🌿»\n"
+            "📜 <b>رسمي</b>: «تحية طيبة، نذكّرك بأن {share} جاهزة.»\n"
+            "🤍 <b>روحاني</b>: «بذكر الله تطمئنّ القلوب؛ {share} بانتظارك.»\n"
+            "⚡ <b>مختصر</b>: «{share} جاهزة.»"
         ),
         "en": (
-            "In what tone should reminders be sent? (Only the wording, not the content)\n\n"
+            "In what tone should reminders be sent for {share}? (Only the wording, not the content)\n\n"
             "🌱 <b>Friendly</b>: “Hey friend! Time for today's share, let's go 🌿”\n"
             "📜 <b>Formal</b>: “Greetings. A reminder that your share for today is ready to read.”\n"
             "🤍 <b>Spiritual</b>: “Remembrance of God calms the heart; your share awaits you today.”\n"
@@ -2420,8 +2420,8 @@ _STRINGS: dict[str, dict[str, str]] = {
     # --- start.py: join-invite preview message (2026-09-20, owner
     # complaint: the invite text was unappealing and didn't explain what
     # the khatm actually is or what committing to it means) ---
-    "join.preview.header": {"fa": "📖 پیش‌نمایش ختم", "ar": "📖 معاينة الختمة", "en": "📖 Khatm preview"},
-    "join.preview.title": {"fa": "\n\nعنوان: {title}", "ar": "\n\nالعنوان: {title}", "en": "\n\nTitle: {title}"},
+    "join.preview.header": {"fa": "معرفی ختم", "ar": "تعريف الختمة", "en": "Khatm introduction"},
+    "join.preview.title": {"fa": "عنوان: {title}", "ar": "العنوان: {title}", "en": "Title: {title}"},
     "join.preview.creator": {"fa": "\nسازنده: {creator}", "ar": "\nالمنشئ: {creator}", "en": "\nCreator: {creator}"},
     "join.preview.niyyat": {"fa": "\nنیت: {niyyat}", "ar": "\nالنية: {niyyat}", "en": "\nIntention: {niyyat}"},
     "join.preview.type_quran": {
@@ -2460,6 +2460,16 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "\n🌿 حالت: آزاد — هیچ تعهدی نیست؛ هرکس هرچقدر خواست مشارکت می‌کنه.",
         "ar": "\n🌿 الحالة: مفتوحة — لا يوجد التزام؛ كل شخص يشارك بقدر ما يريد.",
         "en": "\n🌿 Mode: Open — there's no pledge; everyone contributes as much as they want.",
+    },
+    "join.preview.mode_commitment_generic": {
+        "fa": "\n🔐 حالت: تعهدی — مقدار یا برنامهٔ انتخاب‌شده تا زمان انجام برای شما ثبت می‌ماند.",
+        "ar": "\n🔐 الوضع: التزام — يبقى المقدار أو البرنامج المختار مسجلاً حتى إنجازه.",
+        "en": "\n🔐 Mode: commitment — your selected amount or schedule remains recorded until completion.",
+    },
+    "join.private_request_creator_notice": {
+        "fa": "درخواست عضویت در ختم خصوصی «{title}»\n\nنام: {name}\nشماره تماس: {phone}\nشناسه پیام‌رسان: {identities}",
+        "ar": "طلب انضمام إلى الختمة الخاصة «{title}»\n\nالاسم: {name}\nرقم الاتصال: {phone}\nمعرّف المنصة: {identities}",
+        "en": "Private khatm join request for “{title}”\n\nName: {name}\nPhone: {phone}\nPlatform ID: {identities}",
     },
     "join.preview.member_count": {
         "fa": "\nتعداد اعضای فعلی: {count}", "ar": "\nعدد الأعضاء الحاليين: {count}", "en": "\nCurrent member count: {count}",

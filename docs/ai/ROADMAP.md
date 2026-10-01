@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Live QA cleanup and private approval repair (DONE)
+- [x] Delete profile guidance and corrected validation errors.
+- [x] Customize tone examples for the chosen content family and remove the preview heading.
+- [x] Keep Salawat open/commitment preview and consent consistent.
+- [x] Handle private approve/reject actions in the creator bot and identify applicants.
+
 ## 2026-10-01 — Family-aware member share copy (DONE)
 - [x] Tailor reminder and completion wording for Quran, Salawat, Dua, Ziyarat and La'an.
 - [x] Show the concrete share, deadline, title and intention.

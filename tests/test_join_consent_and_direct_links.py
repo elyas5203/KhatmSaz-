@@ -58,6 +58,15 @@ def test_consent_copy_is_custom_for_commitment_and_open_khatms():
     assert "احترام به جمع" in open_join
 
 
+def test_commitment_without_target_never_looks_open_and_preview_heading_is_hidden():
+    khatm = _khatm(KhatmTypeEnum.COMMITMENT)
+    khatm.repetition_target = None
+    text = build_join_consent_message(khatm, "سازنده", 0)
+    assert "پیش‌نمایش ختم" not in text
+    assert "حالت: تعهدی" in text
+    assert "حالت: آزاد" not in text
+
+
 @pytest.mark.asyncio
 async def test_repetition_questions_are_a_separate_updating_message():
     message, state = Message(), State()

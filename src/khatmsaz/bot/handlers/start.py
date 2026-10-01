@@ -113,7 +113,7 @@ def build_join_preview_message(
     the information someone needs before tapping join. `category_title`/
     `category_group` (for SALAWAT-family khatms) must be resolved by the
     caller from `content_category_id`, since this function stays sync."""
-    text = t("join.preview.header", lang)
+    text = ""
     text += t("join.preview.title", lang, title=escape(khatm.title))
     text += "\n\n" + build_join_trust_message(khatm, creator_name, lang)
 
@@ -133,9 +133,12 @@ def build_join_preview_message(
             text += t("join.preview.type_line_with_category", lang, icon="📿", type=type_label, category=escape(category_title))
         else:
             text += t("join.preview.type_line", lang, icon="📿", type=type_label)
-        if _is_commitment(khatm) and khatm.repetition_target:
-            unit = t("create_khatm.unit.salawat", lang) if (category_group or "SALAWAT") == "SALAWAT" else t("create_khatm.unit.time", lang)
-            text += t("join.preview.mode_commitment_quantified", lang, count=khatm.repetition_target, unit=unit)
+        if _is_commitment(khatm):
+            if khatm.repetition_target:
+                unit = t("create_khatm.unit.salawat", lang) if (category_group or "SALAWAT") == "SALAWAT" else t("create_khatm.unit.time", lang)
+                text += t("join.preview.mode_commitment_quantified", lang, count=khatm.repetition_target, unit=unit)
+            else:
+                text += t("join.preview.mode_commitment_generic", lang)
         else:
             text += t("join.preview.mode_open_generic", lang)
 
@@ -233,7 +236,7 @@ async def handle_start_with_payload(message: Message, command: CommandObject, st
                     category_title=category_title, category_group=category_group,
                 ),
                 reply_markup=commitment_consent_keyboard(
-                    token, lang, committed=khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+                    token, lang, committed=_is_commitment(khatm),
                 ),
             )
             return
@@ -441,7 +444,7 @@ async def resume_join_after_registration(
             ),
             reply_markup=commitment_consent_keyboard(
                 token, _lang,
-                committed=pending_khatm.khatm_type == KhatmTypeEnum.COMMITMENT,
+                committed=_is_commitment(pending_khatm),
             ),
         )
         return
@@ -611,14 +614,26 @@ def _get_fallback_markup_for_bot(bot, lang):
 async def _request_private_join(message: Message, session, khatm: Khatm, user_id, lang: str = "fa") -> None:
     requester = await identity_service.find_by_id(session, user_id)
     requester_name = requester.display_name if requester and requester.display_name else t("join.default_display_name", lang)
+    requester_settings = await settings_service.get_or_create(session, user_id)
+    requester_identities = await identity_service.list_identities_for_user(session, user_id)
     creator_identities = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
+    creator_settings = await settings_service.get_or_create(session, khatm.creator_user_id)
 
     await message.answer(
         t("join.private_request_sent", lang, title=khatm.title),
         reply_markup=_get_fallback_markup_for_bot(message.bot, lang),
     )
 
-    text = f"{requester_name} می‌خواد به ختم خصوصی «{khatm.title}» بپیونده."
+    identity_text = "، ".join(
+        f"{identity.platform.value}: {identity.subject}" for identity in requester_identities
+    ) or "ثبت نشده"
+    text = t(
+        "join.private_request_creator_notice", creator_settings.language,
+        title=escape(khatm.title),
+        name=escape(requester_name),
+        phone=escape(requester_settings.contact_phone or "ثبت نشده"),
+        identities=escape(identity_text),
+    )
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
