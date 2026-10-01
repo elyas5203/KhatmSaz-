@@ -596,7 +596,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "✅ انجام سهم", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
     },
     "commit.regular.done_confirmed": {
-        "fa": "✅ انجام سهمتان ثبت شد: {count} مرتبه. قبول باشد 🌱",
+        "fa": "✅ قرائت شما ({count} مرتبه) در سیستم ثبت شد و شما در ثواب این ختم شریک شدید.\n\nبا تشکر 🌱",
         "ar": "✅ تم تسجيل إنجاز حصتك: {count} مرة. تقبل الله 🌱",
         "en": "✅ Your share was recorded: {count} time(s).",
     },
