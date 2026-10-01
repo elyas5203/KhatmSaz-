@@ -231,14 +231,16 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
             await message.answer(escape(category.body_text))
         return
 
-    if asset.text_body:
+    from khatmsaz.bot.handlers.devotional import deliver_devotional_media
+    has_reading_media = await deliver_devotional_media(
+        session, message, slug=slug, asset=asset, platform=platform, lang=lang,
+    )
+
+    if asset.text_body and not has_reading_media:
         for chunk in asset.text_body.split("\x1e"):
             await message.answer(chunk)
-    elif category and category.body_text:
+    elif not has_reading_media and category and category.body_text:
         await message.answer(escape(category.body_text))
-
-    from khatmsaz.bot.handlers.devotional import deliver_devotional_media
-    await deliver_devotional_media(session, message, slug=slug, asset=asset, platform=platform, lang=lang)
 
 
 async def _invite_friends_line(session, khatm, creator_user_id, platform: Platform, lang: str, *, bot=None) -> str:

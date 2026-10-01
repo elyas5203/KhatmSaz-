@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Portable devotional media and visual-first delivery [Codex]
+- Fixed production `wrong file identifier` failures when devotional PDF/image/audio was registered through the Telegram creator bot but delivered through a separate member bot. Delivery now retries by downloading with the owning creator bot and uploading the bytes through the member bot.
+- Devotional reading content is visual-first: ordered image pages are sent before PDF; audio follows. Long text is used only when neither an image nor PDF is available, avoiding duplicate/cluttered delivery.
+- The behavior applies to both `/devotional <slug>` and khatm participation/today delivery. No schema migration was needed.
+- Validation: focused media/member suite **10 passed, 1 skipped**; full suite **238 passed, 86 skipped**.
+
 ## Current state — 2026-09-30 — Owner spec Section D complete [Codex]
 - **D6 trust context:** direct member-bot joins now show the creator identity, invited khatm title, fixed intention and optional proxy/dedication before a first-time member enters profile data. The same compact context remains attached to the single registration prompt.
 - Join previews use the same trust copy, and join-success cards describe the creator as the person the khatm is from. Display-mode privacy (full/first/pseudonym/anonymous) remains authoritative.

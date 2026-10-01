@@ -1,3 +1,8 @@
+## 2026-10-01 (visual-first devotional media across separate bots)
+- Fixed Telegram devotional media registered by the creator bot failing in member bots because file IDs are bot-scoped; member delivery now downloads through the creator bot and re-uploads through the destination bot.
+- Prioritized ordered images, then PDF, then audio; full text is now the fallback when no image/PDF exists.
+- Applied the same behavior to direct `/devotional` lookup and khatm recitation delivery, with regression coverage. No migration.
+
 ## 2026-09-30 (owner spec D6 trust-first join message; Section D complete)
 - Added creator-name and khatm-title invitation context before first-time member registration.
 - Displayed who the khatm is from, plus its fixed intention and optional proxy/dedication, while preserving creator display-mode privacy.
