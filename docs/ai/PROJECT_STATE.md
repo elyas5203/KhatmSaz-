@@ -1,3 +1,8 @@
+## Current state — 2026-10-01 — Join CSS and fixed-Salawat production repair [Codex]
+- The public join page now embeds its dedicated CSS into the HTML, preventing reverse-proxy scheme/static-link failures from rendering an unstyled page with the configured logo at its intrinsic size.
+- Added migration `devsalawat2026100102`: the existing `devotional_assets.content_type` check now permits the fixed synthetic `SALAWAT` asset alongside `DUA` and `ZIYARAT`. This fixes the production constraint violation after a valid local image filename was found.
+- Focused template/content/migration suite **15 passed**; full suite **262 passed, 86 skipped**. Alembic reports the new single head and both upgrade/downgrade SQL for the new migration render successfully. Production still needs pull, migration apply and service restart.
+
 ## Current state — 2026-10-01 — Per-khatm reminders and redesigned Persian invite page [Codex]
 - Account settings now list every active khatm in the current member bot with its current reminder time. A member selects one khatm, chooses a preset or minute-precise custom time, and only that participation is updated; reminder disabling was removed as requested.
 - Settings surfaces now show current values before edits for reminder times, timezone, Quran audio, font size and reciter (content/digest/SMS already exposed current state).

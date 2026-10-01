@@ -37,4 +37,7 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     weekdays = script.get_revision("schedweekdays2026100101")
     assert weekdays is not None
     assert weekdays.down_revision == "broadcastfilters2026093001"
-    assert script.get_heads() == ["schedweekdays2026100101"]
+    salawat_asset = script.get_revision("devsalawat2026100102")
+    assert salawat_asset is not None
+    assert salawat_asset.down_revision == "schedweekdays2026100101"
+    assert script.get_heads() == ["devsalawat2026100102"]

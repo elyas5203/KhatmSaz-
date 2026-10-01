@@ -17,7 +17,15 @@ indexes don't fragment the way random UUIDs do. `new_id()` returns a
 `Mapped[uuid.UUID]` column**; see PROJECT_STATE.md's Phase 0 entry for the
 bug this caused once already.
 
-## Latest migration — `broadcast2026092901`
+## Latest migration — `devsalawat2026100102`
+
+The fixed Salawat text/image uses the same `devotional_assets` table as dua
+and ziyarat. Migration `devsalawat2026100102` expands
+`ck_devotional_assets_type` from `DUA/ZIYARAT` to
+`DUA/ZIYARAT/SALAWAT`; without it, saving a valid Salawat image reaches
+PostgreSQL and fails at flush with `CheckViolationError`.
+
+## Broadcast migration — `broadcast2026092901`
 
 The moderated `khatm_broadcasts` queue now supports one-khatm or all-khatm
 targeting and Telegram/Bale/SMS delivery. `khatm_id` is nullable only when

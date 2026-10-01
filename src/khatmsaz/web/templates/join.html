@@ -7,7 +7,7 @@
   <title>{% if unavailable %}لینک نامعتبر{% else %}{{ khatm.title }} | ختم‌ساز{% endif %}</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://cdn.jsdelivr.net/gh/rastikerdar/estedad@v7.3/Estedad-font-face.css" rel="stylesheet">
-  <link href="{{ request.url_for('static', path='join.css') }}" rel="stylesheet">
+  <style>{{ join_css | safe }}</style>
 </head>
 <body>
   <div class="ambient" aria-hidden="true"></div>

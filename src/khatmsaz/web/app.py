@@ -127,6 +127,10 @@ app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
 templates = Jinja2Templates(directory=ROOT / "templates")
 _INLINE_CSS = (ROOT / "static" / "app.css").read_text(encoding="utf-8") + "\n" + (ROOT / "static" / "finance.css").read_text(encoding="utf-8")
 templates.env.globals["inline_css"] = _INLINE_CSS
+# The public join page sits behind deployments with different proxy-header
+# settings.  Inline its small dedicated stylesheet so an http URL generated
+# behind an https reverse proxy can never leave the trust page unstyled.
+templates.env.globals["join_css"] = (ROOT / "static" / "join.css").read_text(encoding="utf-8")
 # "fa" default so unauthenticated pages (e.g. creator_login.html, hit
 # before any session/user is resolved) still render correctly; any
 # authenticated context that passes its own `lang` (see _creator_ctx)

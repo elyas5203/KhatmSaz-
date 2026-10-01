@@ -4,6 +4,11 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Production repair for invite styling and Salawat image (DONE)
+- [x] Make the public invite layout independent of reverse-proxy static URL generation.
+- [x] Permit the fixed Salawat content asset in the database check constraint.
+- [x] Add migration-head and rendered-page regression coverage.
+
 ## 2026-10-01 — Per-khatm reminder settings and public invite refresh (DONE)
 - [x] List the member's active khatms with each current reminder time.
 - [x] Change one khatm at a time with presets or a custom HH:MM value.

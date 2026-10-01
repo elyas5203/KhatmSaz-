@@ -1,3 +1,8 @@
+## 2026-10-01 (production repair: join styling and Salawat image constraint)
+- Inlined the public invite page's small stylesheet so proxy-generated mixed-content/static URLs cannot leave the page unstyled or the logo unconstrained.
+- Added a reviewed migration expanding `ck_devotional_assets_type` to accept the fixed `SALAWAT` asset used by the Salawat image setting.
+- Added render and migration-graph regression coverage.
+
 ## 2026-10-01 (per-khatm reminders, Persian invite redesign, Redis JSON safety)
 - Changed account reminder settings from one bulk hour to a khatm picker showing each current time; added custom HH:MM entry and removed reminder-off controls.
 - Displayed current values before editing the main personal settings.
