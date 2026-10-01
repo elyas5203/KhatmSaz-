@@ -313,12 +313,30 @@ def settings_content_keyboard(*, translation_enabled: bool, tafsir_enabled: bool
 _REMINDER_HOURS = [7, 8, 9, 10, 12, 14, 16, 18, 20, 22]
 
 
-def settings_reminder_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
-    hour_buttons = [InlineKeyboardButton(text=f"{h}:۰۰", callback_data=f"set_reminder:{h}") for h in _REMINDER_HOURS]
-    rows = [hour_buttons[i : i + 5] for i in range(0, len(hour_buttons), 5)]
-    rows.append([InlineKeyboardButton(text=t("settings.button.reminder_off", lang), callback_data="set_reminder:off")])
+def settings_reminder_khatms_keyboard(items: list[tuple[str, str, str]], lang: str = "fa") -> InlineKeyboardMarkup:
+    rows = [
+        [InlineKeyboardButton(text=f"{title[:28]} — {current}", callback_data=f"reminder_khatm:{participation_id}")]
+        for participation_id, title, current in items
+    ]
     rows.append(settings_back_row(lang))
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def settings_reminder_keyboard(participation_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    hour_buttons = [
+        InlineKeyboardButton(text=f"{h:02d}:۰۰", callback_data=f"set_reminder:{participation_id}:{h}:0")
+        for h in _REMINDER_HOURS
+    ]
+    rows = [hour_buttons[i : i + 5] for i in range(0, len(hour_buttons), 5)]
+    rows.append([InlineKeyboardButton(text="🕰 ساعت دلخواه", callback_data=f"custom_reminder:{participation_id}")])
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به فهرست ختم‌ها", callback_data="settings:reminder")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def settings_reminder_custom_keyboard(participation_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🔙 بازگشت به ساعت‌ها", callback_data=f"reminder_khatm:{participation_id}")
+    ]])
 
 
 def settings_on_off_keyboard(*, prefix: str, enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:

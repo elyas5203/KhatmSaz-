@@ -530,17 +530,17 @@ async def public_join_landing(request: Request, token: str):
     # creator bot only if no member bot is configured for this category.
     links: list[dict] = []
     if not unavailable:
-        lang_names = {"fa": "فارسی", "ar": "عربی", "en": "English"}
         try:
             by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
         except Exception:
             by_lang = {}
         for lang_code, urls in by_lang.items():
-            label = lang_names.get(lang_code, lang_code)
+            if lang_code != "fa":
+                continue
             if urls.get("telegram"):
-                links.append({"name": f"تلگرام · {label}", "url": urls["telegram"], "is_telegram": True})
+                links.append({"name": "ادامه در تلگرام", "url": urls["telegram"], "is_telegram": True})
             if urls.get("bale"):
-                links.append({"name": f"بله · {label}", "url": urls["bale"], "is_telegram": False})
+                links.append({"name": "ادامه در بله", "url": urls["bale"], "is_telegram": False})
         if not links:
             settings = get_settings()
             if settings.telegram_bot_username:
@@ -559,6 +559,7 @@ async def public_join_landing(request: Request, token: str):
             "member_count": member_count,
             "links": links,
             "no_bots": not links,
+            "panel_logo_url": getattr(request.state, "panel_logo_url", ""),
         },
         status_code=404 if unavailable else 200,
     )

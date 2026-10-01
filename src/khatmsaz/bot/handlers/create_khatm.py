@@ -885,7 +885,9 @@ async def enter_start_at(message: Message, state: FSMContext) -> None:
     if start_at <= datetime.now(start_at.tzinfo):
         await message.answer(t("create_khatm.start_at_must_be_future", lang))
         return
-    await state.update_data(start_at=start_at)
+    # Redis FSM storage is JSON-backed; keep datetimes portable across
+    # process restarts and reconstruct them at the two consumption points.
+    await state.update_data(start_at=start_at.isoformat())
     await _after_start_schedule(message, state)
 
 
@@ -1148,7 +1150,8 @@ async def _show_confirmation(
     tone_key = _TONE_LABEL_KEYS.get(data.get("reminder_tone", ReminderTone.FRIENDLY.value), _TONE_LABEL_KEYS["FRIENDLY"])
     lines.append(t("create_khatm.confirm.tone", lang, value=t(tone_key, lang)))
     if data.get("start_at"):
-        lines.append(t("create_khatm.confirm.start_at", lang, value=data["start_at"].strftime("%Y-%m-%d %H:%M")))
+        start_at = datetime.fromisoformat(data["start_at"]) if isinstance(data["start_at"], str) else data["start_at"]
+        lines.append(t("create_khatm.confirm.start_at", lang, value=start_at.strftime("%Y-%m-%d %H:%M")))
     else:
         lines.append(t("create_khatm.confirm.start_now", lang))
 
@@ -1444,7 +1447,11 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
                 ),
                 creator_display_mode=data.get("creator_display_mode", CreatorDisplayMode.FULL_NAME.value),
                 creator_pseudonym=data.get("creator_pseudonym"),
-                start_at=data.get("start_at"),
+                start_at=(
+                    datetime.fromisoformat(data["start_at"])
+                    if isinstance(data.get("start_at"), str)
+                    else data.get("start_at")
+                ),
                 salawat_open_target=data.get("salawat_open_target"),
                 salawat_commitment_quantity=data.get("salawat_commitment_quantity"),
                 quran_edition_id=data.get("quran_edition_id"),

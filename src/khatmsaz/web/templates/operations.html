@@ -16,7 +16,7 @@
 
 <section class="glass-panel p-6 rounded-3xl mb-8">
   <div class="mb-5 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">لوگوی پنل</h2>
+    <h2 class="text-xl font-bold text-white">لوگوی ختم‌ساز</h2>
     <p class="mt-2 text-sm text-slate-400">لینک مستقیم تصویر را وارد کنید. با خالی گذاشتن آن، نشان پیش‌فرض «خ» نمایش داده می‌شود.</p>
   </div>
   <form action="/operations/panel-logo" method="post" class="flex flex-col sm:flex-row gap-3 items-end">
@@ -24,6 +24,7 @@
     <label class="flex-1 w-full text-sm text-slate-300">
       آدرس تصویر
       <input class="input-field mt-2" dir="ltr" type="url" name="panel_logo_url" maxlength="500" placeholder="https://example.com/logo.png" value="{{ panel_logo_url }}">
+      <p class="mt-2 text-xs text-slate-400">این لوگو در پنل مدیریت، پنل سازنده و صفحه معرفی عمومی ختم نمایش داده می‌شود.</p>
     </label>
     <button class="btn whitespace-nowrap" type="submit">ذخیره لوگو</button>
   </form>

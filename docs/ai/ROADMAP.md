@@ -4,6 +4,13 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Per-khatm reminder settings and public invite refresh (DONE)
+- [x] List the member's active khatms with each current reminder time.
+- [x] Change one khatm at a time with presets or a custom HH:MM value.
+- [x] Keep core reminders mandatory by removing reminder-off actions.
+- [x] Show the configured logo and only Persian bot entries on the redesigned responsive join page.
+- [x] Make Redis-backed member join and scheduled-start FSM data JSON-safe.
+
 ## 2026-10-01 — Restart-safe conversation and OTP fallback (DONE)
 - [x] Creator/member FSM state persists in Redis and is isolated per bot.
 - [x] Five-minute OTP expiry is represented accurately in user copy.

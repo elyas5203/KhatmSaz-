@@ -5,6 +5,26 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0104 — Daily reminders are mandatory and configured per khatm
+
+**Date:** 2026-10-01
+**Decision:** A participant's reminder time belongs to one active participation,
+not to their whole account. Settings first list the active khatms reachable
+through the current member bot and show each saved time; the participant then
+changes exactly one khatm using a preset or any valid HH:MM time. There is no
+reminder-off action in either the button flow or the legacy typed command.
+
+The public invitation page exposes only Persian member bots until Arabic and
+English experiences are complete. It uses the shared admin-configured KhatmSaz
+logo rather than maintaining a separate public-page logo.
+
+**Why:** The owner may participate in several khatms in one bot and explicitly
+requires different reminder times for them. The owner also stated that reminders
+are a core part of the system, not an optional notification, and temporarily
+disabled non-Persian public entry points.
+
+---
+
 ### DEC-PY-0103 — Conversation state is Redis-persistent; expired OTP may escalate to an admin
 
 **Date:** 2026-10-01

@@ -12,6 +12,7 @@ not remove them, it only stops presenting them as the only way in.
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.keyboards import (
@@ -27,6 +28,8 @@ from khatmsaz.bot.keyboards import (
     settings_on_off_keyboard,
     settings_reciter_keyboard,
     settings_reminder_keyboard,
+    settings_reminder_custom_keyboard,
+    settings_reminder_khatms_keyboard,
     settings_timezone_keyboard,
     sms_subscription_keyboard,
 )
@@ -40,6 +43,7 @@ from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.participation import service as participation_service
+from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.bot.member_scope import member_instance_id
 from khatmsaz.modules.settings.models import FontSize
@@ -47,6 +51,10 @@ from khatmsaz.modules.sms_subscription import service as sms_subscription_servic
 from khatmsaz.modules.wallet.service import InsufficientFundsError
 
 router = Router(name="settings_menu")
+
+
+class ReminderSettings(StatesGroup):
+    entering_custom_time = State()
 
 
 async def _current_platform_user(message: Message):
@@ -82,7 +90,8 @@ async def settings_overview(message: Message) -> None:
     user, settings = await _current_platform_user(message)
     lang = settings.language
     await message.answer(
-        t("settings.home_text", lang),
+        t("settings.home_text", lang)
+        + f"\n\nوضعیت فعلی:\n🕒 منطقه زمانی: {settings.timezone}\n🔊 صوت قرآن: {'روشن' if settings.quran_audio_enabled else 'خاموش'}",
         reply_markup=settings_home_keyboard(
             audio_enabled=settings.quran_audio_enabled, lang=lang,
             show_creator_panel=_can_open_creator_panel(message.bot, user),
@@ -98,7 +107,8 @@ async def settings_home(callback: CallbackQuery) -> None:
         settings = await settings_service.get_or_create(session, user.id)
     lang = settings.language
     await callback.message.edit_text(
-        t("settings.home_text", lang),
+        t("settings.home_text", lang)
+        + f"\n\nوضعیت فعلی:\n🕒 منطقه زمانی: {settings.timezone}\n🔊 صوت قرآن: {'روشن' if settings.quran_audio_enabled else 'خاموش'}",
         reply_markup=settings_home_keyboard(
             audio_enabled=settings.quran_audio_enabled, lang=lang,
             show_creator_panel=_can_open_creator_panel(callback.bot, user),
@@ -141,8 +151,10 @@ async def set_language(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "settings:font")
 async def settings_font_menu(callback: CallbackQuery) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
-    await callback.message.edit_text(t("settings.choose_font", lang), reply_markup=settings_font_keyboard(lang))
+    _, settings = await _current_platform_user(callback.message)
+    lang = settings.language
+    current = "درشت" if settings.font_size == FontSize.LARGE else "معمولی"
+    await callback.message.edit_text(f"اندازه فعلی متن: {current}\n\n{t('settings.choose_font', lang)}", reply_markup=settings_font_keyboard(lang))
     await callback.answer()
 
 
@@ -160,10 +172,13 @@ async def set_font(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "settings:reciter")
 async def settings_reciter_menu(callback: CallbackQuery) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    _, settings = await _current_platform_user(callback.message)
+    lang = settings.language
     reciters = content_service.list_reciters()
+    names = dict(reciters)
+    current = names.get(settings.preferred_reciter or "", "انتخاب نشده")
     await callback.message.edit_text(
-        t("settings.choose_reciter", lang), reply_markup=settings_reciter_keyboard(reciters, lang)
+        f"قاری فعلی: {current}\n\n{t('settings.choose_reciter', lang)}", reply_markup=settings_reciter_keyboard(reciters, lang)
     )
     await callback.answer()
 
@@ -217,17 +232,8 @@ async def set_content_option(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data == "settings:reminder")
-async def settings_reminder_menu(callback: CallbackQuery) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
-    await callback.message.edit_text(
-        t("settings.choose_reminder_hour", lang), reply_markup=settings_reminder_keyboard(lang)
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data.startswith("set_reminder:"))
-async def set_reminder(callback: CallbackQuery) -> None:
-    value = callback.data.split(":", 1)[1]
+async def settings_reminder_menu(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
@@ -235,20 +241,125 @@ async def set_reminder(callback: CallbackQuery) -> None:
         participations = await participation_service.list_my_active(
             session, user.id, joined_via_bot_instance_id=member_instance_id(callback.bot)
         )
-        committed = [p for p in participations if p.is_committed]
-        if value == "off":
-            for participation in committed:
-                await notification_service.set_reminder_preference(
-                    session, participation.id, reminder_hour=9, enabled=False
-                )
-        else:
-            hour = int(value)
-            for participation in committed:
-                await notification_service.set_reminder_preference(
-                    session, participation.id, reminder_hour=hour, enabled=True
-                )
+        items = []
+        for participation in participations:
+            khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+            if khatm is None:
+                continue
+            preference = await notification_service.get_preference(session, participation.id)
+            hour = preference.reminder_hour if preference else settings.reminder_hour
+            minute = preference.reminder_minute if preference else settings.reminder_minute
+            items.append((str(participation.id), khatm.title, f"{hour:02d}:{minute:02d}"))
+    text = "⏰ یادآوری هر ختم جدا تنظیم می‌شود.\n\nختم موردنظرت را انتخاب کن؛ ساعت فعلی روبه‌روی نامش نوشته شده است:"
+    if not items:
+        text = "فعلاً در این بات ختم فعالی نداری."
+    await callback.message.edit_text(text, reply_markup=settings_reminder_khatms_keyboard(items, settings.language))
+    await callback.answer()
+
+
+async def _owned_reminder_context(session, callback: CallbackQuery, participation_id: str):
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
+    settings = await settings_service.get_or_create(session, user.id)
+    participations = await participation_service.list_my_active(
+        session, user.id, joined_via_bot_instance_id=member_instance_id(callback.bot)
+    )
+    participation = next((item for item in participations if str(item.id) == participation_id), None)
+    if participation is None:
+        return settings, None, None
+    return settings, participation, await khatm_service.get_khatm(session, participation.khatm_id)
+
+
+@router.callback_query(F.data.startswith("reminder_khatm:"))
+async def choose_reminder_khatm(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    participation_id = callback.data.split(":", 1)[1]
+    async with session_scope() as session:
+        settings, participation, khatm = await _owned_reminder_context(session, callback, participation_id)
+        if participation is None or khatm is None:
+            await callback.answer("این ختم دیگر در فهرست فعال شما نیست.", show_alert=True)
+            return
+        preference = await notification_service.get_preference(session, participation.id)
+        hour = preference.reminder_hour if preference else settings.reminder_hour
+        minute = preference.reminder_minute if preference else settings.reminder_minute
+    await callback.message.edit_text(
+        f"⏰ ختم «{khatm.title}»\n\nساعت فعلی یادآوری: {hour:02d}:{minute:02d}\n\nساعت تازه را انتخاب کن:",
+        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("set_reminder:"))
+async def set_reminder(callback: CallbackQuery) -> None:
+    _, participation_id, raw_hour, raw_minute = callback.data.split(":", 3)
+    hour, minute = int(raw_hour), int(raw_minute)
+    async with session_scope() as session:
+        settings, participation, khatm = await _owned_reminder_context(session, callback, participation_id)
+        if participation is None or khatm is None:
+            await callback.answer("این ختم دیگر در فهرست فعال شما نیست.", show_alert=True)
+            return
+        await notification_service.set_reminder_preference(
+            session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
+        )
     await callback.answer(t("settings.reminder_saved", settings.language))
-    await settings_home(callback)
+    await callback.message.edit_text(
+        f"✅ یادآوری ختم «{khatm.title}» روی ساعت {hour:02d}:{minute:02d} تنظیم شد.",
+        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+    )
+
+
+@router.callback_query(F.data.startswith("custom_reminder:"))
+async def ask_custom_reminder(callback: CallbackQuery, state: FSMContext) -> None:
+    participation_id = callback.data.split(":", 1)[1]
+    async with session_scope() as session:
+        settings, participation, khatm = await _owned_reminder_context(session, callback, participation_id)
+    if participation is None or khatm is None:
+        await callback.answer("این ختم دیگر در فهرست فعال شما نیست.", show_alert=True)
+        return
+    await state.set_state(ReminderSettings.entering_custom_time)
+    await state.update_data(reminder_participation_id=participation_id)
+    await callback.message.edit_text(
+        f"🕰 ساعت دلخواه برای ختم «{khatm.title}»\n\nساعت را مثل ۰۶:۳۰ یا 21:45 بفرست.",
+        reply_markup=settings_reminder_custom_keyboard(participation_id),
+    )
+    await callback.answer()
+
+
+@router.message(ReminderSettings.entering_custom_time)
+async def save_custom_reminder(message: Message, state: FSMContext) -> None:
+    digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
+    raw = (message.text or "").strip().translate(digits).replace(".", ":")
+    try:
+        hour_text, minute_text = raw.split(":", 1)
+        hour, minute = int(hour_text), int(minute_text)
+        if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+            raise ValueError
+    except ValueError:
+        await message.answer("ساعت درست نیست. لطفاً مثل ۰۶:۳۰ یا 21:45 بفرست.")
+        return
+    data = await state.get_data()
+    participation_id = str(data.get("reminder_participation_id", ""))
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        settings = await settings_service.get_or_create(session, user.id)
+        participations = await participation_service.list_my_active(
+            session, user.id, joined_via_bot_instance_id=member_instance_id(message.bot)
+        )
+        participation = next((item for item in participations if str(item.id) == participation_id), None)
+        if participation is None:
+            await state.clear()
+            await message.answer("این ختم دیگر در فهرست فعال شما نیست.")
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        await notification_service.set_reminder_preference(
+            session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
+        )
+    await state.clear()
+    await message.answer(
+        f"✅ یادآوری ختم «{khatm.title}» روی ساعت {hour:02d}:{minute:02d} تنظیم شد.",
+        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+    )
 
 
 @router.callback_query(F.data == "settings:digest")
@@ -344,8 +455,9 @@ async def buy_sms_plan(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "settings:timezone")
 async def settings_timezone_menu(callback: CallbackQuery) -> None:
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
-    await callback.message.edit_text(t("settings.choose_timezone", lang), reply_markup=settings_timezone_keyboard(lang))
+    _, settings = await _current_platform_user(callback.message)
+    lang = settings.language
+    await callback.message.edit_text(f"منطقه زمانی فعلی: {settings.timezone}\n\n{t('settings.choose_timezone', lang)}", reply_markup=settings_timezone_keyboard(lang))
     await callback.answer()
 
 

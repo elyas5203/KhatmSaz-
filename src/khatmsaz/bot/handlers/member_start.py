@@ -97,8 +97,11 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
             # registration; returning users resume the join (which still asks
             # commitment consent + reminder hour). Opening the link never joins
             # silently — the join is completed only after these explicit steps.
+            instance_id = getattr(bot, "khatmsaz_instance_id", None)
             await state.update_data(
-                joined_via_bot_instance_id=getattr(bot, "khatmsaz_instance_id", None)
+                # RedisStorage serializes FSM data as JSON.  SQLAlchemy UUIDs
+                # therefore must cross this boundary as strings.
+                joined_via_bot_instance_id=str(instance_id) if instance_id else None
             )
             creator = await identity_service.find_by_id(session, khatm.creator_user_id)
             join_intro = build_join_trust_message(

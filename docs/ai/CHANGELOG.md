@@ -1,3 +1,10 @@
+## 2026-10-01 (per-khatm reminders, Persian invite redesign, Redis JSON safety)
+- Changed account reminder settings from one bulk hour to a khatm picker showing each current time; added custom HH:MM entry and removed reminder-off controls.
+- Displayed current values before editing the main personal settings.
+- Rebuilt the public invite page as a responsive Persian-only entry experience and connected its logo to the operations setting.
+- Made UUID and scheduled-start FSM values safe for Redis JSON serialization.
+- Added reminder keyboard/FSM and join-template regressions; no migration was required.
+
 ## 2026-10-01 (restart-safe FSM and OTP admin fallback)
 - Replaced process-memory FSM storage with Redis, namespaced by dispatcher and bot ID, so unanswered conversations survive restarts.
 - Corrected creator/change-phone OTP wording from 10 minutes to the real 5-minute lifetime.

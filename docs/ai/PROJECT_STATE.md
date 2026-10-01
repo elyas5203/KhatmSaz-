@@ -1,3 +1,10 @@
+## Current state — 2026-10-01 — Per-khatm reminders and redesigned Persian invite page [Codex]
+- Account settings now list every active khatm in the current member bot with its current reminder time. A member selects one khatm, chooses a preset or minute-precise custom time, and only that participation is updated; reminder disabling was removed as requested.
+- Settings surfaces now show current values before edits for reminder times, timezone, Quran audio, font size and reciter (content/digest/SMS already exposed current state).
+- The public join page is a responsive two-column spiritual invitation instead of a narrow phone card, uses Estedad typography, displays the configured KhatmSaz logo, and temporarily exposes Persian member-bot links only.
+- Fixed Redis FSM serialization crashes by storing member-bot UUIDs and future creation datetimes as JSON-safe strings, reconstructing datetimes only when consumed.
+- Validation: focused UI/FSM suite **12 passed**; full suite **262 passed, 86 skipped**; Alembic has one head (`schedweekdays2026100101`). No migration was added. Live VPS/browser smoke testing remains pending deployment.
+
 ## Current state — 2026-10-01 — Restart-safe conversations and expired-OTP admin fallback [Codex]
 - Both creator and member dispatchers now use Redis FSM storage with bot-scoped keys. Wizard/profile/OTP state survives service restarts, fixing the visible-but-unanswerable old prompt caused by `MemoryStorage` being wiped.
 - Phone OTP copy now matches the real five-minute TTL. The OTP prompt exposes an admin-review button; it refuses early use and creates an audited manual request only after the stored challenge has actually expired.
