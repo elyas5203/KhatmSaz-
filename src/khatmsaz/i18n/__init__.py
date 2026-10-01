@@ -266,6 +266,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "help.button.admin_panel": {"fa": "🛠 بازکردن پنل ادمین", "ar": "🛠 فتح لوحة الإدارة", "en": "🛠 Open Admin Panel"},
 
     # --- create_khatm.py wizard (2026-09-20) ---
+    "create_khatm.intro_continue": {"fa": "➡️ ادامه", "ar": "➡️ متابعة", "en": "➡️ Continue"},
     "create_khatm.ask_template": {
         "fa": "چه نوع ختمی می‌خواید بسازید؟", "ar": "ما نوع الختمة التي تريد إنشاءها؟",
         "en": "What kind of khatm do you want to create?",

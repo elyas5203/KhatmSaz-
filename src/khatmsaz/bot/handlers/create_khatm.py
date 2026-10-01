@@ -130,7 +130,12 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     data = await state.get_data()
     category = _bot_category_for(data.get("template_type"), data.get("category_group"))
-    caption = t(f"intro.image_caption.{category}", lang)
+    # Caption carries the family note PLUS the 🔒 privacy note (creator-facing:
+    # «مخاطبان این ختم برای خودتان هستند»). A «ادامه» button gates the next step.
+    caption = t(f"intro.image_caption.{category}", lang) + "\n\n" + t("join.trust_privacy_caption", lang)
+    continue_kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text=t("create_khatm.intro_continue", lang), callback_data="ck:introok")
+    ]])
     from khatmsaz.modules.bot_registry import service as bot_registry_service
     image = None
     try:
@@ -138,15 +143,13 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
             image = await bot_registry_service.get_intro_image_for_category(session, category)
     except Exception:
         image = None
-    sent = None
     if image:
         try:
-            sent = await message.answer_photo(image, caption=caption)
+            await message.answer_photo(image, caption=caption, reply_markup=continue_kb)
+            return
         except Exception:
             pass
-    if sent is None:
-        sent = await message.answer(caption)
-    await state.update_data(_wiz_extra_mids=[getattr(sent, "message_id", None)])
+    await message.answer(caption, reply_markup=continue_kb)
 
 
 async def _wiz(
@@ -446,8 +449,16 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
     mode = callback.data.split(":")[2]
     await state.update_data(khatm_type=mode)
     await safe_clear_inline_keyboard(callback.message)
-    # R2: show the intro image + fixed niyyat caption right after the mode choice.
+    # Owner (2026-10-01): the intro image is its own step at the TOP with a
+    # «ادامه» button; only after it is tapped do we ask the next question.
     await _show_intro_image(callback.message, state)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data == "ck:introok", StateFilter(CreateKhatm.choosing_mode))
+async def intro_continue(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await safe_clear_inline_keyboard(callback.message)
     data = await state.get_data()
     title = _default_khatm_title(data, lang)
     await state.update_data(title=title)
@@ -455,7 +466,6 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
     await _wiz(
         callback.message, state, t("create_khatm.ask_niyyat", lang),
         reply_markup=skip_niyyat_keyboard(lang),
-        keep_extra=True,
     )
     await safe_answer_callback(callback)
 
@@ -1680,16 +1690,10 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     # Need original message or callback's message for answer
     target_msg = message if isinstance(message, Message) else message.message
     
-    # R9: offer the Arabic/English links on request (only when this default
-    # Farsi-only call ran, and other member-bot languages actually exist).
+    # Owner (2026-10-01): Arabic/English are temporarily DISABLED — only Persian
+    # member bots are offered for now. Hide the «لینک عربی و انگلیسی» button until
+    # the other languages are re-enabled in a later update.
     other_langs_btn = None
-    if selected_langs == ["fa"]:
-        other = invite_links.build_member_invite_links(khatm_bot_cat, token, plat_choice="ALL")
-        if any(l != "fa" for l in other.keys()):
-            other_langs_btn = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text=t("create_khatm.want_other_lang_links", lang),
-                                     callback_data=f"ck:invlangs:{token}")
-            ]])
 
     await target_msg.answer(
         t(
