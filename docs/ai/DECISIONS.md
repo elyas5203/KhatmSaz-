@@ -5,6 +5,21 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0109 — Member share copy is family-aware and links back to the same khatm
+
+**Date:** 2026-10-01
+**Decision:** Share reminders and completion acknowledgements identify the
+actual content family (Quran, Salawat, Dua, Ziyarat or La'an), the concrete
+share, khatm title and intention. Commitment reminders state the khatm's daily
+deadline and use the action «قرائت بخش فوق انجام شد». A completion message
+includes a direct invitation to the same khatm through the current member bot
+while that flow can issue an invitation.
+
+**Why:** Short generic acknowledgements felt mechanical and did not give the
+member enough context or an easy way to invite others into the same reward.
+
+---
+
 ### DEC-PY-0108 — Wizard prompts are ephemeral; every commitment has a daily deadline
 
 **Date:** 2026-10-01

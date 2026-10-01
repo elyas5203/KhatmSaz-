@@ -1,3 +1,8 @@
+## 2026-10-01 (family-aware member share messages)
+- Added polished Persian reminder and completion copy tailored to Quran, Salawat, Dua, Ziyarat and La'an.
+- Included the exact share, deadline, khatm title, intention and direct same-khatm member-bot invitation where applicable.
+- Renamed share completion actions to «قرائت بخش فوق انجام شد» and unified scheduled/manual completion paths.
+
 ## 2026-10-01 (wizard/OTP copy and admin-action notifications)
 - Hid manual phone review until the five-minute OTP window expires and rewrote both requester/admin copy.
 - Split creator-wizard progress from the current question, renamed public visibility clearly, corrected the healing dedication example and removed runtime «(عج)» abbreviations.

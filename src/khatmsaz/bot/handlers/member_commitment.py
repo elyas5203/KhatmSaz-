@@ -496,13 +496,17 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
         await open_contribution_service.log_contribution(
             session, khatm.id, participation.id, amount, khatm.repetition_target
         )
-        # Owner (2026-10-01): thank + invite others into THIS khatm with its link.
+        # Thank + invite others into THIS khatm with its direct member-bot link.
         from khatmsaz.bot.handlers.portions import _invite_friends_line
+        from khatmsaz.bot.member_copy import completion_text, content_family, share_label
         invite_line = await _invite_friends_line(
             session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
         )
+        family = await content_family(session, khatm)
+        confirmed_text = completion_text(
+            khatm, family, share_label(family, count=amount, lang=lang),
+            invite_line=invite_line, lang=lang,
+        )
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(
-        t("commit.regular.done_confirmed", lang, count=amount) + (invite_line or "")
-    )
+    await callback.message.answer(confirmed_text)
     await safe_answer_callback(callback)

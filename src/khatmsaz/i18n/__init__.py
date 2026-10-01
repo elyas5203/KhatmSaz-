@@ -603,7 +603,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "🏠 منوی اصلی", "ar": "🏠 القائمة الرئيسية", "en": "🏠 Main menu",
     },
     "commit.regular.done_button": {
-        "fa": "✅ انجام سهم", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
+        "fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
     },
     "commit.regular.done_confirmed": {
         "fa": "✅ قرائت شما ({count} مرتبه) در سیستم ثبت شد و شما در ثواب این ختم شریک شدید.\n\nبا تشکر 🌱",
@@ -1170,7 +1170,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "portions.button.show_content": {
         "fa": "📖 نمایش محتوای سهم", "ar": "📖 عرض محتوى الحصة", "en": "📖 Show portion content",
     },
-    "portions.button.done": {"fa": "✅ انجام دادم", "ar": "✅ أنجزت", "en": "✅ I did it"},
+    "portions.button.done": {"fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت", "en": "✅ I did it"},
     "portions.button.snooze": {"fa": "⏰ تعویق یادآوری", "ar": "⏰ تأجيل التذكير", "en": "⏰ Snooze reminder"},
     "portions.button.undo": {
         "fa": "↩️ لغو آخرین ثبت (تا ۵ دقیقه)", "ar": "↩️ تراجع عن آخر تسجيل (خلال ۵ دقائق)",

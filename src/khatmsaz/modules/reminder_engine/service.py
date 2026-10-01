@@ -221,14 +221,11 @@ async def deliver_due_next_portions(
             continue
         delivered += 1
         await _push_portion_content(session, send_quran_pages, participation, khatm, next_portion)
-        text = await _render_or_default(
-            session, _tone_key(khatm, "reminder.next_portion"), locale=user_settings.language,
-            title=khatm.title, start=next_portion.unit_start, end=next_portion.unit_end,
-            default=(
-                f"🌱 سهم امروزتان در «{khatm.title}» آماده شد: صفحات "
-                f"{next_portion.unit_start} تا {next_portion.unit_end}.\n"
-                "هر وقت خواندید، دکمهٔ «✅ انجام دادم» را بزنید."
-            ),
+        from khatmsaz.bot.member_copy import reminder_text, share_label
+        text = reminder_text(
+            khatm, "quran",
+            share_label("quran", start=next_portion.unit_start, end=next_portion.unit_end, lang=user_settings.language),
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
         )
         # Committed Quran is completed as one whole assigned portion. Keep the
         # single-tap «done» action on its scheduled delivery; numeric logging is
@@ -377,11 +374,11 @@ async def deliver_due_regular_commitments(
             continue
 
         count = participation.commitment_per_occurrence or 1
-        from khatmsaz.i18n import t as _t
-        text = await _render_or_default(
-            session, "reminder.regular_commitment", locale=user_settings.language,
-            title=khatm.title, count=count,
-            default=_t("reminder.regular_commitment", user_settings.language, title=khatm.title, count=count),
+        from khatmsaz.bot.member_copy import content_family, reminder_text, share_label
+        family = await content_family(session, khatm)
+        text = reminder_text(
+            khatm, family, share_label(family, count=count, lang=user_settings.language),
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
         )
         # The reading content belongs immediately ABOVE the action reminder.
         # Send registered images/PDF first; use text only when no readable media
@@ -501,12 +498,11 @@ async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_p
     from khatmsaz.bot.keyboards import portion_done_keyboard
     for participation, khatm, portion, locale, _digest_enabled in candidates:
         await _push_portion_content(session, send_quran_pages, participation, khatm, portion)
-        text = await _render_or_default(
-            session, _tone_key(khatm, "reminder.first"), locale=locale, title=khatm.title,
-            start=portion.unit_start, end=portion.unit_end,
-            deadline=getattr(khatm, "daily_deadline_hour", None),
-            default=(f"🌱 سهم امروزتان در «{khatm.title}»: صفحات {portion.unit_start} تا "
-                     f"{portion.unit_end}. پس از قرائت، «✅ انجام دادم» را بزنید."),
+        from khatmsaz.bot.member_copy import reminder_text, share_label
+        text = reminder_text(
+            khatm, "quran",
+            share_label("quran", start=portion.unit_start, end=portion.unit_end, lang=locale),
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=locale,
         )
         delivered = await _notify_user_with_keyboard(
             session, participation.user_id, text,
@@ -536,16 +532,11 @@ async def _maybe_send_staged_reminder(
 ) -> None:
     if await notification_service.already_sent_today(session, participation.id, kind):
         return
-    key = _tone_key(
-        khatm, "reminder.second" if kind == NotificationKind.SECOND_REMINDER else "reminder.final"
-    )
-    text = await _render_or_default(
-        session, key, locale=locale, title=khatm.title, start=portion.unit_start,
-        end=portion.unit_end, deadline=khatm.daily_deadline_hour,
-        default=(
-            f"{heading}\nسهم امروزتان در «{khatm.title}»: صفحات {portion.unit_start} تا {portion.unit_end}\n"
-            f"مهلت انجام تا ساعت {khatm.daily_deadline_hour}:00 است."
-        ),
+    from khatmsaz.bot.member_copy import reminder_text, share_label
+    text = heading + "\n\n" + reminder_text(
+        khatm, "quran",
+        share_label("quran", start=portion.unit_start, end=portion.unit_end, lang=locale),
+        deadline=getattr(khatm, "daily_deadline_hour", None), lang=locale,
     )
     from khatmsaz.bot.keyboards import portion_done_keyboard
     delivered = await _notify_user_with_keyboard(

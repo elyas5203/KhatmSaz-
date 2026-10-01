@@ -46,7 +46,7 @@ async def test_daily_digest_sends_each_khatm_with_its_own_done_button(monkeypatc
 
     assert len(sent) == 2
     assert [(row[2], row[3]) for row in sent] == [
-        ("قرآن صبح: 1-2", "done:k1"),
-        ("قرآن شب: 3-4", "done:k2"),
+        ("🌱 Your share in “قرآن صبح” is ready: pages 1 to 2.", "done:k1"),
+        ("🌱 Your share in “قرآن شب” is ready: pages 3 to 4.", "done:k2"),
     ]
     assert logged == [("p1", NotificationKind.DAILY_REMINDER), ("p2", NotificationKind.DAILY_REMINDER)]

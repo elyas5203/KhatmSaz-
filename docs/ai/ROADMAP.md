@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Family-aware member share copy (DONE)
+- [x] Tailor reminder and completion wording for Quran, Salawat, Dua, Ziyarat and La'an.
+- [x] Show the concrete share, deadline, title and intention.
+- [x] Attach the direct invitation for the same khatm to completion acknowledgements.
+- [x] Use «قرائت بخش فوق انجام شد» as the completion action.
+
 ## 2026-10-01 — Ephemeral prompts and commitment-flow QA repair (DONE)
 - [x] Keep one creator summary and one current question without duplicate resends.
 - [x] Delete completed profile prompts and typed answers.

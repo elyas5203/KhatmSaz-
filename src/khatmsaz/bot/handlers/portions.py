@@ -502,16 +502,24 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
                 )
         invite_line = ""
         if completed is not None and not plan_completed and khatm is not None:
-            invite_line = await _invite_friends_line(session, khatm, khatm.creator_user_id, platform, lang)
+            invite_line = await _invite_friends_line(
+                session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
+            )
 
     if completed is None:
         await safe_answer_callback(callback, t("portions.no_portion_to_complete", lang), show_alert=True)
         return
 
     await safe_clear_inline_keyboard(callback.message)
+    from khatmsaz.bot.member_copy import completion_text, share_label
+    confirmation = completion_text(
+        khatm, "quran",
+        share_label("quran", start=completed.unit_start, end=completed.unit_end, lang=lang),
+        invite_line=invite_line, lang=lang,
+    )
     if plan_completed:
         await callback.message.answer(
-            t("portions.plan_completed", lang),
+            confirmation + "\n\n" + t("portions.plan_completed", lang),
             reply_markup=post_completion_keyboard(
                 khatm_id, undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
             ),
@@ -519,7 +527,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     elif stacked_portion is not None:
         allow_snooze = bool(khatm and khatm.allow_snooze)
         await callback.message.answer(
-            f"✅ سهم شما ({completed.unit_start} تا {completed.unit_end}) با موفقیت ثبت شد.\n\nشما هنوز سهم‌های عقب‌افتاده دارید (سهم بعدی: {stacked_portion.unit_start} تا {stacked_portion.unit_end}). هر زمان آماده بودید، دکمه «انجام قرائت امروز» را از منو انتخاب کنید.{invite_line}",
+            confirmation + f"\n\nشما هنوز سهم‌های عقب‌افتاده دارید؛ سهم بعدی صفحات {stacked_portion.unit_start} تا {stacked_portion.unit_end} است.",
             reply_markup=post_completion_keyboard(
                 khatm_id, allow_snooze=allow_snooze,
                 undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
@@ -528,11 +536,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     elif has_more_ahead:
         allow_snooze = bool(khatm and khatm.allow_snooze)
         await callback.message.answer(
-            t(
-                "portions.page_done_next_tomorrow", lang,
-                start=completed.unit_start, end=completed.unit_end,
-                invite_line=invite_line,
-            ),
+            confirmation + "\n\nسهم بعدی در ساعت یادآوری شما ارسال می‌شود.",
             reply_markup=post_completion_keyboard(
                 khatm_id, allow_snooze=allow_snooze,
                 undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
@@ -541,7 +545,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     else:
         allow_snooze = bool(khatm and khatm.allow_snooze)
         await callback.message.answer(
-            t("portions.personal_portion_done", lang, invite_line=invite_line),
+            confirmation + "\n\n" + t("portions.personal_portion_done", lang, invite_line=""),
             reply_markup=post_completion_keyboard(
                 khatm_id, allow_snooze=allow_snooze, undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
             ),
@@ -772,8 +776,16 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
                 session, khatm_id, get_settings().app_timezone
             )
             unit = _unit_label(khatm.template_type, lang)
+            from khatmsaz.bot.member_copy import completion_text, content_family, share_label
+            family = await content_family(session, khatm)
+            invite_line = await _invite_friends_line(
+                session, khatm, khatm.creator_user_id, platform, lang, bot=message.bot
+            )
             lines = [
-                t("portions.commitment_recorded", lang, counted=int(counted)),
+                completion_text(
+                    khatm, family, share_label(family, count=int(counted), lang=lang),
+                    invite_line=invite_line, lang=lang,
+                ),
                 t("portions.commitment_progress", lang, completed=completed, target=target),
             ]
             if surplus:
@@ -785,8 +797,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             if done:
                 await advertising_service.accrue_first_completed_action(session, participation.id)
                 lines.append(t("portions.personal_commitment_done", lang))
-            else:
-                lines.append(await _invite_friends_line(session, khatm, khatm.creator_user_id, platform, lang))
             await state.clear()
             await message.answer(
                 "\n".join(lines),
@@ -820,7 +830,15 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
                     page_start=reserved[0], page_end=reserved[1], platform=platform,
                 )
 
-        invite_line = "" if reached else await _invite_friends_line(session, khatm, khatm.creator_user_id, platform, lang)
+        invite_line = await _invite_friends_line(
+            session, khatm, khatm.creator_user_id, platform, lang, bot=message.bot
+        )
+        from khatmsaz.bot.member_copy import completion_text, content_family, share_label
+        family = await content_family(session, khatm)
+        recorded_text = completion_text(
+            khatm, family, share_label(family, count=amount, lang=lang),
+            invite_line=invite_line, lang=lang,
+        )
         today_total, yesterday_total = await contribution_service.today_vs_yesterday(
             session, khatm_id, get_settings().app_timezone
         )
@@ -828,7 +846,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
     await state.clear()
     unit = _unit_label(khatm.template_type, lang)
 
-    lines = [t("portions.open_recorded", lang, amount=amount, unit=unit)]
+    lines = [recorded_text]
     if quran_pages_sent is not None:
         lines.append(t("portions.open_quran.pages_sent", lang, start=quran_pages_sent[0], end=quran_pages_sent[1]))
     if surplus > 0:
@@ -850,7 +868,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         lines.append(
             t("portions.today_vs_yesterday", lang, unit=unit, today=int(today_total), yesterday=int(yesterday_total))
         )
-        lines.append(invite_line)
 
     if reached:
         lines.append(t("portions.goal_reached", lang))

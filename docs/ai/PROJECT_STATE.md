@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Family-aware share reminders and confirmations [Codex]
+- Member share reminders now use a warm formal Persian structure with the exact Quran pages or devotional count, the khatm title, its daily deadline in Iran time, a clear completion action and a considerate suggestion to seek help when needed.
+- Quran, Salawat, Dua, Ziyarat and La'an are distinguished in a shared copy renderer. Completion messages name the performed act, khatm and custom intention, then append the direct member-bot join link for that same khatm.
+- Quran and regular devotional action buttons now read «قرائت بخش فوق انجام شد». Quran scheduled delivery, staged reminders, one-tap completion, regular devotional completion and numeric contribution logging use the new family-aware copy.
+- Validation: full suite **277 passed, 85 skipped**; Alembic unchanged and no migration added.
+
 ## Current state — 2026-10-01 — Delayed OTP fallback, split creator wizard and actionable admin alerts [Codex]
 - The Iranian OTP prompt initially has no manual-review button. After the real five-minute lifetime, the bot edits that same prompt to reveal «پیامک نرسید؛ درخواست بررسی شماره»; expiry/error recovery still exposes the same action. Admin-side wording now explains why the request exists and includes its ID.
 - Creation wizard progress/context and its current question are two separate bot-owned messages. The progress card updates independently while only the question message owns the current keyboard/input step.
