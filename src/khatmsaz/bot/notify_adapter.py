@@ -196,3 +196,98 @@ async def send_media(
     except Exception:
         logger.warning("Failed to deliver media to %s:%s", platform_value, chat_id, exc_info=True)
         return False
+
+
+async def send_devotional_content(
+    session, platform_value: str, chat_id: str, *, khatm, lang: str,
+    bot_instance_id=None,
+) -> bool:
+    """Send the configured image/PDF/text immediately before a reminder."""
+    from khatmsaz.core.bot_registry import get_registry
+    from khatmsaz.bot.handlers.devotional import deliver_devotional_media
+    from khatmsaz.core.devotional_images import resolve_devotional_image_ref
+    from khatmsaz.config import get_settings
+    from khatmsaz.modules.khatm_category import service as category_service
+
+    registry = get_registry()
+    platform = Platform(platform_value)
+    bot = registry.get_by_instance_id(bot_instance_id) if bot_instance_id else registry.get_creator_bot(platform)
+    if bot is None or getattr(bot, "khatmsaz_platform", platform) != platform:
+        return False
+
+    class _TargetMessage:
+        def __init__(self):
+            self.bot = bot
+
+        async def answer(self, text, **kwargs):
+            return await bot.send_message(chat_id=int(chat_id), text=text, **kwargs)
+
+        async def answer_photo(self, photo, **kwargs):
+            return await bot.send_photo(chat_id=int(chat_id), photo=photo, **kwargs)
+
+        async def answer_document(self, document, **kwargs):
+            return await bot.send_document(chat_id=int(chat_id), document=document, **kwargs)
+
+        async def answer_audio(self, audio, **kwargs):
+            return await bot.send_audio(chat_id=int(chat_id), audio=audio, **kwargs)
+
+    target = _TargetMessage()
+    try:
+        if getattr(khatm, "description", None):
+            await target.answer(khatm.description)
+            return True
+
+        category = None
+        slug = content_service.SALAWAT_SLUG
+        if khatm.content_category_id:
+            category = await category_service.get(session, khatm.content_category_id)
+            slug = category.devotional_slug if category else None
+
+        sent = False
+        if category and category.image_url:
+            settings = get_settings()
+            image_url = resolve_devotional_image_ref(
+                category.image_url,
+                public_base_url=settings.admin_web_base_url or settings.public_web_base_url,
+            )
+            if image_url:
+                await target.answer_photo(image_url)
+                sent = True
+
+        if slug is None:
+            if not sent and category and category.body_text:
+                await target.answer(category.body_text)
+                sent = True
+            return sent
+
+        asset = await content_service.get_devotional_asset(session, slug)
+        if asset is None:
+            if not sent and category and category.body_text:
+                await target.answer(category.body_text)
+                return True
+            return sent
+
+        if slug == content_service.SALAWAT_SLUG and asset.image_ref and asset.image_platform is None:
+            settings = get_settings()
+            image_url = resolve_devotional_image_ref(
+                asset.image_ref,
+                public_base_url=settings.admin_web_base_url or settings.public_web_base_url,
+            )
+            if image_url:
+                await target.answer_photo(image_url, caption=content_service.SALAWAT_TEXT)
+                return True
+
+        has_media = await deliver_devotional_media(
+            session, target, slug=slug, asset=asset, platform=platform, lang=lang,
+        )
+        if not has_media and not sent and asset.text_body:
+            for chunk in asset.text_body.split("\x1e"):
+                await target.answer(chunk)
+            sent = True
+        return sent or has_media
+    except Exception:
+        logger.warning(
+            "Failed to deliver devotional content to %s:%s", platform_value, chat_id,
+            exc_info=True,
+        )
+        return False

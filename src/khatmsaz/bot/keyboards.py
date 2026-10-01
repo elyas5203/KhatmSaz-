@@ -73,10 +73,9 @@ def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=t("menu.today", lang))],
-            [KeyboardButton(text=t("menu.my_khatms", lang))],
-            [KeyboardButton(text=t("menu.public_khatms", lang))],
-            [KeyboardButton(text=t("menu.custom_khatm", lang))],
-            [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.contact_creator", lang))],
+            [KeyboardButton(text=t("menu.my_khatms", lang)), KeyboardButton(text=t("menu.public_khatms", lang))],
+            [KeyboardButton(text=t("menu.custom_khatm", lang)), KeyboardButton(text=t("menu.settings", lang))],
+            [KeyboardButton(text=t("menu.contact_creator", lang))],
         ],
         resize_keyboard=True,
     )

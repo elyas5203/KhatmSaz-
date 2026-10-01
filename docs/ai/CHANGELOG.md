@@ -1,3 +1,10 @@
+## 2026-10-01 (clean onboarding and complete scheduled devotional delivery)
+- Converted creator registration and creator OTP verification to self-cleaning prompts; member registration already uses the same one-current-question model.
+- Added clear numbered/question headings, retained questions after invalid input, clarified weekly per-selected-day counts, and compacted the member menu to four rows.
+- Deleted the creator-family intro image after Continue.
+- Changed regular reminders to send registered image/PDF/text immediately before the share reminder and completion action.
+- Confirmed the admin-preserving development reset does not remove devotional library rows or registered devotional media.
+
 ## 2026-10-01 (local filenames for short devotional images)
 - Allowed category and fixed-Salawat image fields to store one safe filename as an alternative to a full HTTP(S) URL.
 - Added the Git-ignored `web/static/devotional-images` server folder and runtime URL resolution for Telegram/Bale delivery.

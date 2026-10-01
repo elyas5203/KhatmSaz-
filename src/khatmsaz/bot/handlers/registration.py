@@ -91,7 +91,35 @@ async def start_registration(message: Message, state: FSMContext, *, pending_joi
         lang = settings.language
     await state.update_data(pending_join_token=pending_join_token, language=lang)
     await state.set_state(Registration.entering_name)
-    await message.answer(t("registration.ask_name", lang))
+    await _registration_prompt(message, state, t("registration.ask_name", lang))
+
+
+async def _registration_prompt(message: Message, state: FSMContext, text: str, reply_markup=None):
+    """Keep only the current question and remove the answer that led to it."""
+    data = await state.get_data()
+    prompt_id = data.get("_registration_mid")
+    if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
+        try:
+            await message.delete()
+        except Exception:
+            pass
+    if prompt_id:
+        try:
+            await message.bot.delete_message(message.chat.id, prompt_id)
+        except Exception:
+            pass
+    sent = await message.answer(text, reply_markup=reply_markup)
+    if sent is not None:
+        await state.update_data(_registration_mid=getattr(sent, "message_id", None))
+    return sent
+
+
+async def _remove_phone_keyboard(message: Message) -> None:
+    try:
+        transient = await message.answer("⌨️", reply_markup=ReplyKeyboardRemove())
+        await transient.delete()
+    except Exception:
+        pass
 
 
 @router.message(Registration.entering_name)
@@ -101,13 +129,14 @@ async def enter_name(message: Message, state: FSMContext) -> None:
     name = (message.text or "").strip()
     lang = (await state.get_data()).get("language", "fa")
     if not name or name.startswith("/"):
-        await message.answer(t("registration.name_required", lang))
+        await _registration_prompt(message, state, t("registration.name_required", lang))
         return
     await state.update_data(full_name=name)
     await state.set_state(Registration.entering_phone)
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     ask_key = "registration.ask_phone_share_only" if platform == Platform.TELEGRAM else "registration.ask_phone"
-    await message.answer(
+    await _registration_prompt(
+        message, state,
         t(ask_key, lang, share_button=t("registration.share_phone", lang)),
         reply_markup=_phone_keyboard(lang),
     )
@@ -119,17 +148,14 @@ async def receive_shared_contact(message: Message, state: FSMContext) -> None:
     try:
         phone = phone_service.normalize_e164(message.contact.phone_number)
     except phone_service.OtpError:
-        await message.answer(t("registration.shared_phone_invalid", lang))
+        await _registration_prompt(message, state, t("registration.shared_phone_invalid", lang), reply_markup=_phone_keyboard(lang))
         return
     await state.update_data(phone=phone)
     if not phone.startswith("+98"):
         await state.update_data(foreign_verified_phone=True)
     await state.set_state(Registration.choosing_province)
-    # Two messages are unavoidable here: Telegram can't attach both a
-    # ReplyKeyboardRemove (clears the "share my number" button) and an
-    # InlineKeyboardMarkup to the same message.
-    await message.answer(t("registration.phone_saved", lang), reply_markup=ReplyKeyboardRemove())
-    await message.answer(t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
+    await _remove_phone_keyboard(message)
+    await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
 
 
 @router.message(Registration.entering_phone)
@@ -145,7 +171,8 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         # error-prone (typos, wrong format) than Telegram's own verified
         # contact-share. Bale has no `request_contact` equivalent (see
         # `_phone_keyboard`'s docstring), so Bale users still must type.
-        await message.answer(
+        await _registration_prompt(
+            message, state,
             t("registration.use_share_button_only", lang, share_button=t("registration.share_phone", lang)),
             reply_markup=_phone_keyboard(lang),
         )
@@ -153,12 +180,12 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
     try:
         phone = phone_service.normalize_e164((message.text or "").strip())
     except phone_service.OtpError:
-        await message.answer(t("registration.phone_invalid", lang))
+        await _registration_prompt(message, state, t("registration.phone_invalid", lang), reply_markup=_phone_keyboard(lang))
         return
     await state.update_data(phone=phone)
     await state.set_state(Registration.choosing_province)
-    await message.answer(t("registration.phone_saved", lang), reply_markup=ReplyKeyboardRemove())
-    await message.answer(t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
+    await _remove_phone_keyboard(message)
+    await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
 
 
 @router.callback_query(F.data.startswith("reg:province:"), Registration.choosing_province)
@@ -167,12 +194,8 @@ async def choose_province(callback: CallbackQuery, state: FSMContext) -> None:
     province = OUTSIDE_IRAN if value == "outside" else IRAN_PROVINCES[int(value)]
     await state.update_data(province=province)
     await state.set_state(Registration.entering_city)
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
     lang = (await state.get_data()).get("language", "fa")
-    await callback.message.answer(t("registration.ask_city", lang))
+    await _registration_prompt(callback.message, state, t("registration.ask_city", lang))
     await callback.answer()
 
 
@@ -183,11 +206,12 @@ async def enter_city(message: Message, state: FSMContext) -> None:
     city = (message.text or "").strip()
     lang = (await state.get_data()).get("language", "fa")
     if not city:
-        await message.answer(t("registration.city_required", lang))
+        await _registration_prompt(message, state, t("registration.city_required", lang))
         return
     await state.update_data(city=city)
     await state.set_state(Registration.choosing_gender)
-    await message.answer(
+    await _registration_prompt(
+        message, state,
         t("registration.ask_gender", lang),
         reply_markup=_gender_keyboard(lang),
     )
@@ -221,11 +245,13 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
         pending_token = data.get("pending_join_token")
         user_id = user.id
 
+    prompt_id = data.get("_registration_mid")
     await state.clear()
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
+    if prompt_id:
+        try:
+            await callback.message.bot.delete_message(callback.message.chat.id, prompt_id)
+        except Exception:
+            pass
     await callback.answer()
 
     if pending_token:

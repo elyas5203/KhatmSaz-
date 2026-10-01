@@ -29,6 +29,25 @@ class ChangePhone(StatesGroup):
     entering_code = State()
 
 
+async def _remember_otp_prompt(message: Message, state: FSMContext, text: str) -> None:
+    sent = await message.answer(text)
+    await state.update_data(_phone_verify_mid=getattr(sent, "message_id", None))
+
+
+async def _remove_otp_exchange(message: Message, data: dict) -> None:
+    """Remove the OTP question and typed code after verification completes."""
+    try:
+        await message.delete()
+    except Exception:
+        pass
+    prompt_id = data.get("_phone_verify_mid")
+    if prompt_id:
+        try:
+            await message.bot.delete_message(message.chat.id, prompt_id)
+        except Exception:
+            pass
+
+
 async def _lang_for(chat_id, bot) -> str:
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -131,7 +150,7 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
     text = t("change_phone.ask_creator_otp", lang)
     if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
-    await message.answer(text)
+    await _remember_otp_prompt(message, state, text)
     return False
 
 
@@ -236,7 +255,7 @@ async def receive_new_phone(message: Message, state: FSMContext) -> None:
     text = t("change_phone.ask_change_otp", lang)
     if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
-    await message.answer(text)
+    await _remember_otp_prompt(message, state, text)
 
 
 @router.message(ChangePhone.entering_code)
@@ -247,7 +266,19 @@ async def receive_change_code(message: Message, state: FSMContext) -> None:
     lang = data.get("lang", "fa")
     code = (message.text or "").strip()
     if len(code) != 6 or not code.isdigit():
-        await message.answer(t("change_phone.code_must_be_six_digits", lang))
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        prompt_id = data.get("_phone_verify_mid")
+        retry = f"⚠️ {t('change_phone.code_must_be_six_digits', lang)}\n\n{t('change_phone.ask_creator_otp' if data.get('verification_context') == 'creator' else 'change_phone.ask_change_otp', lang)}"
+        if prompt_id:
+            try:
+                await message.bot.edit_message_text(chat_id=message.chat.id, message_id=prompt_id, text=retry)
+                return
+            except Exception:
+                pass
+        await _remember_otp_prompt(message, state, retry)
         return
     try:
         async with session_scope() as session:
@@ -267,6 +298,8 @@ async def receive_change_code(message: Message, state: FSMContext) -> None:
         await state.clear()
         await message.answer(t("change_phone.request_data_lost", lang))
         return
+
+    await _remove_otp_exchange(message, data)
 
     # Owner-reported bug (2026-09-21/22): if this OTP verification was
     # itself triggered mid-way through creating a khatm, don't just say

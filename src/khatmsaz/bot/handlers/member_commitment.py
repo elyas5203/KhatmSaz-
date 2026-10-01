@@ -100,13 +100,21 @@ async def _mwiz(message: Message, state: FSMContext, text: str, reply_markup=Non
     return sent
 
 
+def _question(text: str) -> str:
+    return f"❓ <b>سؤال این مرحله</b>\n{text}"
+
+
+def _retry_question(error: str, question: str) -> str:
+    return f"⚠️ {error}\n\n{_question(question)}"
+
+
 async def start_commitment_mode_picker(
     message: Message, state: FSMContext, participation_id, lang: str, *, summary: str = "",
     family=None,
 ) -> None:
     """Keep join summary, explanation and choice in one bot-owned message."""
     combined = "\n\n".join(part for part in (
-        summary.strip(), t("commit.explain", lang).strip(), t("commit.ask_mode", lang).strip(),
+        summary.strip(), t("commit.explain", lang).strip(), _question(t("commit.ask_mode", lang).strip()),
     ) if part)
     markup = member_commitment_mode_keyboard(str(participation_id), lang)
     try:
@@ -141,7 +149,7 @@ async def previous_commitment_step(callback: CallbackQuery, state: FSMContext) -
     family = data.get("commit_family")
     if target == "mode":
         await state.set_state(None)
-        text = "\n\n".join((t("commit.explain", lang), t("commit.ask_mode", lang)))
+        text = "\n\n".join((t("commit.explain", lang), _question(t("commit.ask_mode", lang))))
         await _mwiz(
             callback.message, state, text,
             reply_markup=member_commitment_mode_keyboard(pid, lang),
@@ -149,7 +157,7 @@ async def previous_commitment_step(callback: CallbackQuery, state: FSMContext) -
     elif target == "freq":
         await state.set_state(None)
         await _mwiz(
-            callback.message, state, t("commit.ask_freq", lang),
+            callback.message, state, _question(t("commit.ask_freq", lang)),
             reply_markup=commitment_freq_keyboard(pid, lang),
         )
     elif target == "times":
@@ -157,13 +165,13 @@ async def previous_commitment_step(callback: CallbackQuery, state: FSMContext) -
         period = t(_PERIOD_KEY.get(data.get("commit_freq"), "commit.period.day"), lang)
         await _mwiz(
             callback.message, state,
-            t(_family_prompt("commit.ask_times_per_period", family), lang, period=period),
+            _question(t(_family_prompt("commit.ask_times_per_period", family), lang, period=period)),
             reply_markup=member_commitment_back_keyboard("freq", lang),
         )
     elif target == "hour":
         await state.set_state(None)
         await _mwiz(
-            callback.message, state, t("commit.ask_hour", lang),
+            callback.message, state, _question(t("commit.ask_hour", lang)),
             reply_markup=commitment_hour_keyboard(lang),
         )
     await safe_answer_callback(callback)
@@ -177,7 +185,7 @@ async def choose_regular(callback: CallbackQuery, state: FSMContext) -> None:
     lang = _lang_of(callback.message)
     await safe_clear_inline_keyboard(callback.message)
     await state.update_data(commit_pid=pid, _cwiz_mid=callback.message.message_id)
-    await _mwiz(callback.message, state, t("commit.ask_freq", lang), reply_markup=commitment_freq_keyboard(pid, lang))
+    await _mwiz(callback.message, state, _question(t("commit.ask_freq", lang)), reply_markup=commitment_freq_keyboard(pid, lang))
     await safe_answer_callback(callback)
 
 
@@ -191,7 +199,7 @@ async def choose_count(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     await _mwiz(
         callback.message, state,
-        t(_family_prompt("commit.ask_count", data.get("commit_family")), lang),
+        _question(t(_family_prompt("commit.ask_count", data.get("commit_family")), lang)),
         reply_markup=member_commitment_back_keyboard("mode", lang),
     )
     await safe_answer_callback(callback)
@@ -204,7 +212,10 @@ async def enter_count(message: Message, state: FSMContext) -> None:
     lang = _lang_of(message)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await _mwiz(message, state, t("commit.ask_count_invalid", lang))
+        data = await state.get_data()
+        question = t(_family_prompt("commit.ask_count", data.get("commit_family")), lang)
+        await _mwiz(message, state, _retry_question(t("commit.ask_count_invalid", lang), question),
+                    reply_markup=member_commitment_back_keyboard("mode", lang))
         return
     target = int(raw)
     data = await state.get_data()
@@ -291,7 +302,7 @@ async def _ask_times_per_period(message: Message, state: FSMContext) -> None:
         period = t("commit.period.these_days", lang)
     await _mwiz(
         message, state,
-        t(_family_prompt("commit.ask_times_per_period", data.get("commit_family")), lang, period=period),
+        _question(t(_family_prompt("commit.ask_times_per_period", data.get("commit_family")), lang, period=period)),
         reply_markup=member_commitment_back_keyboard("freq", lang),
     )
 
@@ -307,7 +318,7 @@ async def choose_freq(callback: CallbackQuery, state: FSMContext) -> None:
         await state.set_state(CommitFlow.choosing_weekdays)
         await state.update_data(commit_weekdays=[])
         await _mwiz(
-            callback.message, state, t("commit.ask_weekdays", lang),
+            callback.message, state, _question(t("commit.ask_weekdays", lang)),
             reply_markup=commitment_weekday_keyboard(pid, set(), lang),
         )
         await safe_answer_callback(callback)
@@ -355,11 +366,15 @@ async def enter_times_per_period(message: Message, state: FSMContext) -> None:
     lang = _lang_of(message)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
-        await _mwiz(message, state, t("commit.ask_count_invalid", lang))
+        data = await state.get_data()
+        period = t("commit.period.these_days", lang) if data.get("commit_freq") == ScheduleFreq.WEEKLY.value else t(_PERIOD_KEY.get(data.get("commit_freq"), "commit.period.day"), lang)
+        question = t(_family_prompt("commit.ask_times_per_period", data.get("commit_family")), lang, period=period)
+        await _mwiz(message, state, _retry_question(t("commit.ask_count_invalid", lang), question),
+                    reply_markup=member_commitment_back_keyboard("freq", lang))
         return
     await state.update_data(commit_times=int(raw))
     await state.set_state(None)
-    await _mwiz(message, state, t("commit.ask_hour", lang), reply_markup=commitment_hour_keyboard(lang))
+    await _mwiz(message, state, _question(t("commit.ask_hour", lang)), reply_markup=commitment_hour_keyboard(lang))
 
 
 @router.callback_query(F.data.startswith("chour:"))
@@ -370,7 +385,7 @@ async def choose_hour(callback: CallbackQuery, state: FSMContext) -> None:
         await safe_clear_inline_keyboard(callback.message)
         await state.set_state(CommitFlow.entering_custom_time)
         await _mwiz(
-            callback.message, state, t("commit.ask_custom_time", lang),
+            callback.message, state, _question(t("commit.ask_custom_time", lang)),
             reply_markup=member_commitment_back_keyboard("hour", lang),
         )
         await safe_answer_callback(callback)
@@ -385,7 +400,9 @@ async def enter_custom_time(message: Message, state: FSMContext) -> None:
     lang = _lang_of(message)
     parsed = parse_hhmm(message.text or "")
     if parsed is None:
-        await _mwiz(message, state, t("commit.ask_custom_time_invalid", lang))
+        await _mwiz(message, state, _retry_question(
+            t("commit.ask_custom_time_invalid", lang), t("commit.ask_custom_time", lang),
+        ), reply_markup=member_commitment_back_keyboard("hour", lang))
         return
     hour, minute = parsed
     await state.set_state(None)

@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Member onboarding/reminder UX QA batch (DONE)
+- [x] Registration and successful OTP exchanges clean up their own prompts and answers.
+- [x] Questions are distinct; invalid answers retain context; weekly counts are unambiguous.
+- [x] Creator intro image disappears on Continue and member menu fits in four rows.
+- [x] Scheduled devotional reminders include image/PDF or fallback text before the action.
+
 ## 2026-10-01 — Server-managed short devotional images (DONE)
 - [x] Category and fixed-Salawat image fields accept safe filenames or public URLs.
 - [x] Local files are served from a fixed Git-ignored folder and validated on save.

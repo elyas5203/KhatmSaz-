@@ -1,3 +1,11 @@
+## Current state — 2026-10-01 — Clean member onboarding and scheduled devotional media [Codex]
+- Creator and member registration now keep one current question, delete each typed answer, and remove the final question when the profile is complete. Creator OTP verification also removes its prompt and submitted code after success.
+- Registration explains why the five fields are needed; Persian questions have numbered/visual headings. Member commitment questions use a distinct question heading, invalid numeric/time input retains the original question, and the weekly dua wording explains that the number applies to every selected day.
+- The creator-family intro photo is deleted when «ادامه» is tapped. The member reply menu is four compact logical rows so every action is visible without the previous five-row scroll.
+- Regular scheduled Salawat/Dua/Ziyarat/La'an delivery now sends configured image/PDF first (text only as fallback), immediately above the «وقت خواندن سهم» message and completion button. This matches on-demand `/devotional` and Today behavior.
+- `reset_dev_data_keep_admin.sql` was verified to preserve `devotional_assets` and `devotional_media`: they do not depend on `users`; the reported PDF-only discrepancy came from the old text-only scheduler, not the reset.
+- Validation: dedicated UX/media regressions **6 passed**; full suite **255 passed, 86 skipped**. No migration was added; live bot/VPS verification remains pending deployment.
+
 ## Current state — 2026-10-01 — Server-folder images for short devotional content [Codex]
 - Category and fixed-Salawat image fields now accept either a full public HTTP(S) URL or one local filename such as `laan-omar.jpg`.
 - Local files live under `src/khatmsaz/web/static/devotional-images/`; the panel checks that a named file exists and delivery resolves it through the configured public/admin web origin. Unsafe paths and unsupported extensions are rejected.

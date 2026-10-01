@@ -109,7 +109,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Language set to English ✅",
     },
     "registration.ask_name": {
-        "fa": "قبل از عضویت، چندتا سؤال کوتاه ازتون می‌پرسیم (فقط یک بار) 🌱\n\nنام و نام خانوادگیتون رو بنویسید:",
+        "fa": "برای اینکه بتوانید در این ختم شرکت کنید، لازم است چند اطلاعات کوتاه را فقط یک‌بار وارد کنید. این اطلاعات برای ثبت سهم شما و گزارش درست ختم استفاده می‌شود 🌱\n\n❓ <b>سؤال ۱ از ۵</b>\nنام و نام خانوادگی‌تان را بنویسید:",
         "ar": "قبل الانضمام سنطرح عليك بعض الأسئلة القصيرة (مرة واحدة فقط) 🌱\n\nاكتب اسمك الكامل:",
         "en": "Before you join, we'll ask a few short questions (only once) 🌱\n\nPlease enter your full name:",
     },
@@ -119,12 +119,12 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Please enter your full name.",
     },
     "registration.ask_phone": {
-        "fa": "شماره موبایلتون رو با دکمه پایین به اشتراک بذارید، یا خودتون تایپ کنید (مثلاً 09121234567):",
+        "fa": "❓ <b>سؤال ۲ از ۵</b>\nشماره موبایلتان را با دکمه پایین به اشتراک بگذارید، یا بنویسید (مثلاً 09121234567):",
         "ar": "شارك رقم هاتفك بالزر أدناه، أو اكتبه مع رمز الدولة (مثلاً +989121234567):",
         "en": "Share your mobile number with the button below, or type it with the country code (for example +989121234567):",
     },
     "registration.ask_phone_share_only": {
-        "fa": "برای ثبت شماره موبایلتون، فقط دکمهٔ «{share_button}» زیر همین پیام رو بزنید.",
+        "fa": "❓ <b>سؤال ۲ از ۵</b>\nبرای ثبت شماره موبایلتان، دکمهٔ «{share_button}» زیر همین پیام را بزنید.",
         "ar": "لتسجيل رقم هاتفك، اضغط فقط زر «{share_button}» أسفل هذه الرسالة.",
         "en": "To register your mobile number, just tap the “{share_button}” button below this message.",
     },
@@ -154,7 +154,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "✅ Phone number saved.",
     },
     "registration.ask_province": {
-        "fa": "استان محل زندگیتون رو از لیست زیر انتخاب کنید:",
+        "fa": "❓ <b>سؤال ۳ از ۵</b>\nاستان محل زندگی‌تان را از فهرست زیر انتخاب کنید:",
         "ar": "اختر محافظة إقامتك من القائمة أدناه:",
         "en": "Choose the province where you live from the list below:",
     },
@@ -164,7 +164,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Outside Iran",
     },
     "registration.ask_city": {
-        "fa": "اسم شهرتون رو بنویسید (مثلاً «مشهد» یا «اصفهان»):",
+        "fa": "❓ <b>سؤال ۴ از ۵</b>\nنام شهرتان را بنویسید (مثلاً «مشهد» یا «اصفهان»):",
         "ar": "اكتب اسم مدينتك:",
         "en": "Enter the name of your city:",
     },
@@ -174,7 +174,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Please enter your city name.",
     },
     "registration.ask_gender": {
-        "fa": "جنسیتتون رو انتخاب کنید (فقط برای گزارش‌های آماری ختم استفاده می‌شود):",
+        "fa": "❓ <b>سؤال ۵ از ۵</b>\nجنسیتتان را انتخاب کنید (فقط برای گزارش‌های آماری ختم استفاده می‌شود):",
         "ar": "اختر الجنس (يُستخدم فقط في الإحصاءات العامة للختمة):",
         "en": "Select your gender (used only for aggregate khatm statistics):",
     },
@@ -513,7 +513,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "commit.period.day": {"fa": "روز", "ar": "يوم", "en": "day"},
     "commit.period.week": {"fa": "هفته", "ar": "أسبوع", "en": "week"},
     "commit.period.month": {"fa": "ماه", "ar": "شهر", "en": "month"},
-    "commit.period.these_days": {"fa": "هر یک از این روزها", "ar": "كل يوم من هذه الأيام", "en": "each of these days"},
+    "commit.period.these_days": {"fa": "روز انتخاب‌شده", "ar": "يوم محدد", "en": "selected day"},
     "commit.ask_weekdays": {
         "fa": "کدام روزهای هفته؟ روزهای موردنظر را بزنید (می‌توانید چند روز انتخاب کنید) و بعد «تأیید روزها» را بزنید.",
         "ar": "أي أيام الأسبوع؟ اختر الأيام (يمكن اختيار عدة أيام) ثم اضغط «تأكيد الأيام».",
@@ -532,7 +532,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "How many Salawat will you send per {period}? Type a number.",
     },
     "commit.ask_times_per_period.dua": {
-        "fa": "در هر {period} چند بار می‌خواهید این دعا یا زیارت را بخوانید؟",
+        "fa": "در هر {period} چند بار می‌خواهید این دعا یا زیارت را بخوانید؟ عدد را بنویسید (مثلاً ۲). اگر چند روز انتخاب کرده‌اید، این عدد برای تک‌تک آن روزهاست.",
         "ar": "كم مرة ستقرأ هذا الدعاء أو الزيارة في كل {period}؟",
         "en": "How many times per {period} will you read this dua or ziyarat?",
     },

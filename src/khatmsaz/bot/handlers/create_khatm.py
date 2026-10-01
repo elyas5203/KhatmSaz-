@@ -461,8 +461,14 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
 @router.callback_query(F.data == "ck:introok", StateFilter(CreateKhatm.choosing_mode))
 async def intro_continue(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
-    await safe_clear_inline_keyboard(callback.message)
     data = await state.get_data()
+    intro_mid = data.get("_intro_mid")
+    if intro_mid:
+        try:
+            await callback.message.bot.delete_message(callback.message.chat.id, intro_mid)
+        except Exception:
+            await safe_clear_inline_keyboard(callback.message)
+    await state.update_data(_intro_mid=None)
     title = _default_khatm_title(data, lang)
     await state.update_data(title=title)
     await state.set_state(CreateKhatm.entering_niyyat)

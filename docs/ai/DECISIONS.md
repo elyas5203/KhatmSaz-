@@ -5,6 +5,27 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0102 — Member setup is self-cleaning and scheduled reminders include reading content
+
+**Date:** 2026-10-01
+**Decision:** First-time profile collection and creator phone verification keep
+only their current prompt and remove their own typed answers; after successful
+completion no registration/OTP exchange remains. Questions are visually marked,
+and validation errors must retain the question being answered. The member home
+keyboard uses four compact rows.
+
+For regular Salawat/Dua/Ziyarat/La'an commitments, the configured readable
+content is sent immediately before the reminder/action message: image pages and
+PDF take priority, then text is the fallback. This supersedes the temporary
+text-only scheduled-delivery limitation while leaving on-demand delivery intact.
+
+**Why:** The owner observed first-time members being confused by accumulated
+questions, a hidden/scrolled menu, and reminders that named a share without
+delivering its registered PDF. The conversation should leave only the current
+actionable item and the reading material it refers to.
+
+---
+
 ### DEC-PY-0101 — Short devotional images may be server files identified by filename
 
 **Date:** 2026-10-01
