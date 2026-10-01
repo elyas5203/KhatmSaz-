@@ -415,9 +415,17 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         except Exception:
             pass
     await state.update_data(_cwiz_mid=None)
-    period = t(_PERIOD_KEY.get(freq, "commit.period.day"), lang)
+    # Owner (2026-10-01): for WEEKLY the TOTAL = (chosen days) × (times per day).
+    # e.g. 4 days × 1 = «۴ مرتبه در هفته»، 4 days × 2 = «۸ مرتبه در هفته».
+    if freq == ScheduleFreq.WEEKLY.value:
+        days = len([d for d in (data.get("commit_weekdays") or [])])
+        display_times = (days or 1) * times
+        period = t("commit.period.week", lang)
+    else:
+        display_times = times
+        period = t("commit.period.day", lang)
     await message.answer(
-        t("commit.regular_saved", lang, times=times, period=period, hour=f"{hour:02d}:{minute:02d}"),
+        t("commit.regular_saved", lang, times=display_times, period=period, hour=f"{hour:02d}:{minute:02d}"),
         reply_markup=_home_markup(message),
     )
 

@@ -283,7 +283,10 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
                     await send_with_keyboard(creator_pid.platform.value, creator_pid.subject, admin_text, markup)
 
     await state.clear()
-    await message.answer(t("suggestions.submitted", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
+    # Owner (2026-10-01): a member messaging a creator should be told it went to
+    # the KHATM CREATOR (not «مدیریت»).
+    _submitted_key = "suggestions.submitted" if target_creator_id == "SUPER_ADMIN" else "suggestions.submitted_to_creator"
+    await message.answer(t(_submitted_key, lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 
 @router.callback_query(F.data.startswith("reply_user:"))

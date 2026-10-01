@@ -143,13 +143,16 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
             image = await bot_registry_service.get_intro_image_for_category(session, category)
     except Exception:
         image = None
+    sent = None
     if image:
         try:
-            await message.answer_photo(image, caption=caption, reply_markup=continue_kb)
-            return
+            sent = await message.answer_photo(image, caption=caption, reply_markup=continue_kb)
         except Exception:
-            pass
-    await message.answer(caption, reply_markup=continue_kb)
+            sent = None
+    if sent is None:
+        sent = await message.answer(caption, reply_markup=continue_kb)
+    # Track so «رد کردن» (cancel) can delete this image message (owner 2026-10-01).
+    await state.update_data(_intro_mid=getattr(sent, "message_id", None))
 
 
 async def _wiz(
@@ -1389,8 +1392,16 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
 @router.callback_query(F.data == "ck:cancel")
 async def cancel_wizard(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
+    data = await state.get_data()
+    intro_mid = data.get("_intro_mid")
     await state.clear()
     await safe_clear_inline_keyboard(callback.message)
+    # Delete the intro image message on cancel (owner 2026-10-01).
+    if intro_mid:
+        try:
+            await callback.message.bot.delete_message(callback.message.chat.id, intro_mid)
+        except Exception:
+            pass
     await callback.message.answer(t("create_khatm.cancelled", lang), reply_markup=main_menu_keyboard(lang))
     await safe_answer_callback(callback)
 

@@ -82,11 +82,9 @@ async def test_plain_start_clears_an_abandoned_state(monkeypatch):
 
     assert state.events == ["clear"]
     assert message.answers[-1][1]["reply_markup"] == navigation.home_markup_for_role("fa", UserRole.USER)
-    # Owner (2026-09-29): plain /start now shows ONLY the welcome + menu — it no
-    # longer auto-starts the create-khatm wizard (that fired the OTP/phone
-    # messages and cluttered the chat). Creating happens on «➕ ساخت ختم جدید».
-    assert wizard_started == []
-    assert len(message.answers) == 1
+    # Owner (2026-10-01): /start shows the welcome then goes STRAIGHT into the
+    # create-khatm wizard again (new members get registration first via start_wizard).
+    assert wizard_started == [(message, state)]
 
 
 @pytest.mark.asyncio

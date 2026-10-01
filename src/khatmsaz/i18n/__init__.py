@@ -60,8 +60,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "سلام! به <b>ختم‌ساز</b> خوش اومدی 🌱\n\n"
             "این بات مخصوص <b>ساختن ختم</b> است — همین‌جا می‌تونی ختم قرآن، صلوات، دعا یا زیارت گروهی بسازی "
-            "و لینکش رو با دیگران به اشتراک بذاری.\n"
-            "برای <i>شرکت</i> در یک ختم، باید از طریق لینک همون ختم وارد بات مربوطه بشی (نه این‌جا).\n\n"
+            "و لینکش رو با دیگران به اشتراک بذاری.\n\n"
             "بیا همین حالا اولین ختمت رو بسازیم 👇"
         ),
         "ar": (
@@ -586,7 +585,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "What time should we remind you?",
     },
     "commit.regular_saved": {
-        "fa": "✅ تنظیم شد! {times} بار در {period}، ساعت {hour} سهم روزانه‌تون خودکار براتون فرستاده می‌شه. 🌱",
+        "fa": "✅ تنظیم شد! مجموعاً {times} مرتبه در {period}، ساعت {hour} یادآوری و سهم‌تون خودکار فرستاده می‌شه. 🌱",
         "ar": "✅ تم الضبط! {times} مرة في ال{period}، الساعة {hour} تُرسل لك حصتك تلقائياً. 🌱",
         "en": "✅ Set! {times} time(s) per {period}, at {hour} your share will be sent automatically. 🌱",
     },
@@ -3227,6 +3226,11 @@ _STRINGS: dict[str, dict[str, str]] = {
     "suggestions.text_too_long": {
         "fa": "لطفاً حداکثر ۱۰۰۰ کاراکتر بنویسید.", "ar": "يرجى كتابة حتى ۱۰۰۰ حرف كحد أقصى.",
         "en": "Please keep it to 1000 characters or fewer.",
+    },
+    "suggestions.submitted_to_creator": {
+        "fa": "پیام شما به سازندهٔ ختم ارسال شد ✅ به‌زودی پاسخ می‌دهند.",
+        "ar": "تم إرسال رسالتك إلى منشئ الختمة ✅ سيردّون قريباً.",
+        "en": "Your message was sent to the khatm creator ✅ They'll reply soon.",
     },
     "suggestions.submitted": {
         "fa": "پیشنهادتون ثبت و برای مدیریت ارسال شد ✅ ممنون که وقت گذاشتید.",

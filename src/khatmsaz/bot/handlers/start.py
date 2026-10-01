@@ -250,23 +250,17 @@ async def handle_start(message: Message, state: FSMContext) -> None:
         already_prompted = settings.language_prompted
         lang = settings.language
 
-    if already_prompted:
-        # Owner (2026-09-29): `/start` shows ONLY the welcome message + menu —
-        # nothing else. Previously it also auto-started the create-khatm wizard,
-        # which fired the phone-verification/OTP messages and cluttered the chat
-        # («فقط همین [خوش‌آمد] بمونه، بقیه پاک بشن»). Creating a khatm now happens
-        # only when the user taps «➕ ساخت ختم جدید».
-        await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
-        return
-
-    # First-ever /start (owner request, 2026-09-20): show the welcome
-    # message, then ask the language right after it — every button/menu
-    # from here on uses whatever they pick. Marked prompted immediately so
-    # a user who ignores the prompt isn't asked again on every later /start.
-    await message.answer(WELCOME_TEXT)
-    async with session_scope() as session:
-        await settings_service.mark_language_prompted(session, user.id)
-    await message.answer(t("language.prompt", lang), reply_markup=language_choice_keyboard())
+    # Owner (2026-10-01): on the creator bot, `/start` shows the welcome message
+    # and then goes STRAIGHT into the create-khatm wizard — if the user is new and
+    # unregistered, start_wizard collects their profile/phone first; otherwise it
+    # continues to building the khatm. Languages are Persian-only now, so the old
+    # first-run language prompt is skipped.
+    if not already_prompted:
+        async with session_scope() as session:
+            await settings_service.mark_language_prompted(session, user.id)
+    await message.answer(t("welcome.text", lang), reply_markup=home_markup_for_role(lang, user.role))
+    from khatmsaz.bot.handlers.create_khatm import start_wizard
+    await start_wizard(message, state)
 
 
 @router.message(Command("cancel"))
