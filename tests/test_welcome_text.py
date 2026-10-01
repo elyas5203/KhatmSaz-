@@ -41,8 +41,8 @@ def test_join_preview_is_informational_and_escaped():
     )
     text = build_join_preview_message(khatm, "سازنده <ناشناس>", 7)
     assert "عنوان: ختم &lt;معرفی&gt;" in text
-    assert "سازنده &lt;ناشناس&gt; شما را به ختم «ختم &lt;معرفی&gt;» دعوت کرده است" in text
-    assert "این ختم از طرف سازنده &lt;ناشناس&gt; است" in text
+    assert "دعوت به ختم «ختم &lt;معرفی&gt;»" in text
+    assert "سازندهٔ ختم: سازنده &lt;ناشناس&gt;" in text
     assert "تعداد اعضای فعلی: 7" in text
     assert "هنوز عضو نشده‌اید" in text
 
@@ -57,8 +57,8 @@ def test_join_trust_message_names_creator_proxy_and_never_duplicates_niyyat_labe
 
     text = build_join_trust_message(khatm, "آقای <رضایی>")
 
-    assert "آقای &lt;رضایی&gt; شما را به ختم «ختم &lt;اعتماد&gt;» دعوت کرده است" in text
-    assert "این ختم از طرف آقای &lt;رضایی&gt; است" in text
+    assert "دعوت به ختم «ختم &lt;اعتماد&gt;»" in text
+    assert "سازندهٔ ختم: آقای &lt;رضایی&gt;" in text
     assert "به نیابت از مادر مرحومم" in text
     assert "به نیت: به نیت" not in text
 

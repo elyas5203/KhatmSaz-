@@ -2859,3 +2859,9 @@ the entries above.
 ## Current state — 2026-09-30 — Owner spec D4 custom-khatm member entry [Codex]
 - Added «ساخت ختم اختصاصی» to every member-bot menu. It displays an admin-managed phone number with clear Telegram/Bale contact instructions and a safe unavailable state when not configured.
 - Operations admins can save/clear the number at `/operations`; input is normalized/validated, CSRF-protected and audited without storing the phone in audit details. Focused D1–D4/settings/template/i18n suite: **30 passed**. No migration (system-settings KV).
+## Current state — 2026-10-01 — Ephemeral creator/profile prompts and complete commitment deadlines [Codex]
+- Fixed creator-wizard progress duplication: unchanged summaries/questions are no longer treated as failed edits and resent. Selecting open/commitment removes the old question and summary before the intro image, and cancel cleans all tracked wizard prompts.
+- Profile completion now replaces each numbered question and deletes typed answers; the final gender question is removed after save. The creator home keyboard is three compact two-column rows.
+- Every commitment khatm family (Quran, Salawat, Dua, Ziyarat and La'an) now asks and persists a daily deadline hour. Open khatms do not receive the commitment warning, including when an ORM enum arrives as a string.
+- Member trust copy now identifies «سازندهٔ ختم» without the awkward «اکانت» wording. Open/commitment responsibility copy and commitment-mode guidance were softened and clarified.
+- Validation: full suite **271 passed, 85 skipped** after the i18n placeholder repair; no migration was added.

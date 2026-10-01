@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Ephemeral prompts and commitment-flow QA repair (DONE)
+- [x] Keep one creator summary and one current question without duplicate resends.
+- [x] Delete completed profile prompts and typed answers.
+- [x] Ask/persist a daily deadline for all commitment khatm families.
+- [x] Compact the creator menu and correct member creator/open/commitment copy.
+
 ## 2026-10-01 — Admin alerts and creator-flow copy repair (DONE)
 - [x] Reveal manual phone review only after OTP expiry.
 - [x] Separate creator-wizard context from its current question.

@@ -93,6 +93,11 @@ def build_join_trust_message(khatm: Khatm, creator_name: str, lang: str = "fa") 
     return text
 
 
+def _is_commitment(khatm: Khatm) -> bool:
+    value = getattr(khatm.khatm_type, "value", khatm.khatm_type)
+    return value == KhatmTypeEnum.COMMITMENT.value
+
+
 def build_join_preview_message(
     khatm: Khatm,
     creator_name: str,
@@ -114,7 +119,7 @@ def build_join_preview_message(
 
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.preview.type_line", lang, icon="📖", type=t("join.preview.type_quran", lang))
-        if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+        if _is_commitment(khatm):
             text += t("join.preview.mode_commitment_quran", lang)
         else:
             text += t("join.preview.mode_open_quran", lang)
@@ -128,7 +133,7 @@ def build_join_preview_message(
             text += t("join.preview.type_line_with_category", lang, icon="📿", type=type_label, category=escape(category_title))
         else:
             text += t("join.preview.type_line", lang, icon="📿", type=type_label)
-        if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.repetition_target:
+        if _is_commitment(khatm) and khatm.repetition_target:
             unit = t("create_khatm.unit.salawat", lang) if (category_group or "SALAWAT") == "SALAWAT" else t("create_khatm.unit.time", lang)
             text += t("join.preview.mode_commitment_quantified", lang, count=khatm.repetition_target, unit=unit)
         else:
@@ -156,7 +161,7 @@ def build_join_consent_message(
     )
     warning_key = (
         "join.consent.commitment_rule"
-        if khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        if _is_commitment(khatm)
         else "join.consent.open_rule"
     )
     return f"{preview}\n\n{t(warning_key, lang)}"

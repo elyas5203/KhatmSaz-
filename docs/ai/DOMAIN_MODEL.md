@@ -23,7 +23,7 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
 | سازنده / مشتری (Creator/Customer) | Person who pays to create a Khatm | `User` with role in that khatm = creator |
 | شرکت‌کننده (Participant) | Person who joins a Khatm | `Participation` |
 | سهم (Portion/Share) | A unit of content assigned to a participant | `Assignment` / `KhatmPortion` |
-| تعهدی (Commitment) | Participant is assigned a fixed portion + deadline | `khatm_type = COMMITMENT` |
+| تعهدی (Commitment) | Participant accepts a portion/schedule; every content family has a daily deadline hour | `khatm_type = COMMITMENT` |
 | آزاد (Open/Free) | Participant contributes at their own pace/amount | `khatm_type = OPEN` |
 | نیت (Niyyat) | The stated intention/purpose of the khatm | `Khatm.niyyat` |
 | یار ذخیره (Backup Reader) | Volunteer who covers missed portions | `Participation.backup_reader_opt_in` |

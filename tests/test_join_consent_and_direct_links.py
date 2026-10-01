@@ -54,7 +54,8 @@ def test_consent_copy_is_custom_for_commitment_and_open_khatms():
     assert "تعهد شرعی" in committed
     assert "دِین" in committed
     assert "این ختم آزاد است" in open_join
-    assert "مقداری که خودت" in open_join
+    assert "تعهد شرعی یا دِینی" in open_join
+    assert "احترام به جمع" in open_join
 
 
 @pytest.mark.asyncio

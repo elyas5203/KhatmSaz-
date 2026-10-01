@@ -149,7 +149,7 @@ def test_d6_join_trust_copy_has_creator_invitation_and_clean_proxy_niyyat():
         niyyat="به نیت ظهور امام زمان علیه السلام — به نیابت از حاج احمد",
     )
     text = build_join_trust_message(khatm, "آقای رضایی")
-    assert "آقای رضایی شما را به ختم «ختم ظهور» دعوت کرده است" in text
-    assert "این ختم از طرف آقای رضایی است" in text
+    assert "دعوت به ختم «ختم ظهور»" in text
+    assert "سازندهٔ ختم: آقای رضایی" in text
     assert "به نیابت از حاج احمد" in text
     assert "به نیت: به نیت" not in text

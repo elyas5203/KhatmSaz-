@@ -3,7 +3,7 @@
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyKeyboardRemove
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from khatmsaz.bot.handlers.registration import _phone_keyboard
 from khatmsaz.bot.iran_provinces import IRAN_PROVINCES, OUTSIDE_IRAN, province_labels
@@ -27,6 +27,34 @@ class ProfileEdit(StatesGroup):
     choosing_province = State()
     entering_city = State()
     choosing_gender = State()
+
+
+async def _profile_prompt(message: Message, state: FSMContext, text: str, reply_markup=None) -> Message:
+    """Replace the completed profile question and remove the typed answer."""
+    data = await state.get_data()
+    previous = data.get("_profile_mid")
+    if getattr(getattr(message, "from_user", None), "is_bot", True) is False:
+        try:
+            await message.bot.delete_message(message.chat.id, message.message_id)
+        except Exception:
+            pass
+    if previous:
+        try:
+            await message.bot.delete_message(message.chat.id, previous)
+        except Exception:
+            pass
+    sent = await message.answer(text, reply_markup=reply_markup)
+    await state.update_data(_profile_mid=sent.message_id)
+    return sent
+
+
+async def _delete_profile_prompt(message: Message, state: FSMContext) -> None:
+    mid = (await state.get_data()).get("_profile_mid")
+    if mid:
+        try:
+            await message.bot.delete_message(message.chat.id, mid)
+        except Exception:
+            pass
 
 
 def _province_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
@@ -56,7 +84,7 @@ async def begin_profile(message: Message, state: FSMContext) -> None:
         lang = settings.language
     await state.update_data(language=lang)
     await state.set_state(ProfileEdit.entering_name)
-    await message.answer(t("profile.ask_name", lang))
+    await _profile_prompt(message, state, t("profile.ask_name", lang))
 
 
 @router.message(F.text == "/profile")
@@ -75,7 +103,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(full_name=value)
     await state.set_state(ProfileEdit.entering_phone)
-    await message.answer(t("profile.ask_phone", lang), reply_markup=_phone_keyboard(lang))
+    await _profile_prompt(message, state, t("profile.ask_phone", lang), reply_markup=_phone_keyboard(lang))
 
 
 @router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
@@ -112,8 +140,10 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(phone=phone)
     await state.set_state(ProfileEdit.choosing_province)
-    await message.answer(t("registration.phone_saved", lang), reply_markup=ReplyKeyboardRemove())
-    await message.answer(t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
+    await _profile_prompt(
+        message, state, t("registration.ask_province", lang),
+        reply_markup=_province_keyboard(lang),
+    )
 
 
 @router.callback_query(F.data.startswith("profile:province:"), ProfileEdit.choosing_province)
@@ -122,12 +152,8 @@ async def choose_province(callback: CallbackQuery, state: FSMContext) -> None:
     province = OUTSIDE_IRAN if value == "outside" else IRAN_PROVINCES[int(value)]
     await state.update_data(province=province)
     await state.set_state(ProfileEdit.entering_city)
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
     lang = (await state.get_data()).get("language", "fa")
-    await callback.message.answer(t("registration.ask_city", lang))
+    await _profile_prompt(callback.message, state, t("registration.ask_city", lang))
     await callback.answer()
 
 
@@ -142,7 +168,8 @@ async def enter_city(message: Message, state: FSMContext) -> None:
         return
     await state.update_data(city=value)
     await state.set_state(ProfileEdit.choosing_gender)
-    await message.answer(
+    await _profile_prompt(
+        message, state,
         t("registration.ask_gender", lang),
         reply_markup=_gender_keyboard(lang),
     )
@@ -160,10 +187,7 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             return
         await identity_service.set_display_name(session, user.id, data["full_name"])
         await settings_service.save_profile(session, user.id, contact_phone=data["phone"], province=data["province"], city=data["city"], gender=Gender(callback.data.split(":", 2)[2]))
-    try:
-        await callback.message.edit_reply_markup(reply_markup=None)
-    except Exception:
-        pass
+    await _delete_profile_prompt(callback.message, state)
     await callback.answer()
 
     # Owner-reported bug (2026-09-21/22): if this profile completion was

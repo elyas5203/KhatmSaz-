@@ -164,6 +164,8 @@ async def _wiz(
     data = await state.get_data()
     prev = data.get("_wiz_mid")
     summary_mid = data.get("_wiz_summary_mid")
+    previous_summary = data.get("_wiz_summary_text")
+    previous_question = data.get("_wiz_question_text")
     if not keep_extra:
         for extra in data.get("_wiz_extra_mids", []):
             if extra:
@@ -188,7 +190,7 @@ async def _wiz(
             pass
         prev = None
     if summary:
-        if summary_mid:
+        if summary_mid and summary != previous_summary:
             try:
                 await message.bot.edit_message_text(
                     chat_id=message.chat.id, message_id=summary_mid, text=summary,
@@ -205,7 +207,9 @@ async def _wiz(
             pass
         summary_mid = None
     sent = None
-    if prev:
+    if prev and text == previous_question:
+        sent = type("UnchangedWizardMessage", (), {"message_id": prev})()
+    elif prev:
         try:
             await message.bot.edit_message_text(
                 chat_id=message.chat.id,
@@ -226,11 +230,32 @@ async def _wiz(
     update = {
         "_wiz_mid": getattr(sent, "message_id", None),
         "_wiz_summary_mid": summary_mid,
+        "_wiz_summary_text": summary,
+        "_wiz_question_text": text,
     }
     if not keep_extra:
         update["_wiz_extra_mids"] = []
     await state.update_data(**update)
     return sent
+
+
+async def _delete_wizard_messages(message: Message, state: FSMContext, *, include_summary: bool = True) -> None:
+    """Remove prompts owned by this wizard before a gated/intermediate screen."""
+    data = await state.get_data()
+    keys = ["_wiz_mid"]
+    if include_summary:
+        keys.append("_wiz_summary_mid")
+    for key in keys:
+        mid = data.get(key)
+        if mid:
+            try:
+                await message.bot.delete_message(message.chat.id, mid)
+            except Exception:
+                pass
+    update = {"_wiz_mid": None, "_wiz_question_text": None}
+    if include_summary:
+        update.update(_wiz_summary_mid=None, _wiz_summary_text=None)
+    await state.update_data(**update)
 
 
 def _wizard_progress(data: dict, lang: str, question: str) -> str:
@@ -496,7 +521,7 @@ async def choose_mode(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
     mode = callback.data.split(":")[2]
     await state.update_data(khatm_type=mode)
-    await safe_clear_inline_keyboard(callback.message)
+    await _delete_wizard_messages(callback.message, state)
     # Owner (2026-10-01): the intro image is its own step at the TOP with a
     # «ادامه» button; only after it is tapped do we ask the next question.
     await _show_intro_image(callback.message, state)
@@ -861,7 +886,12 @@ def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
 async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
     # Store the khatm TOTAL goal; per-person share is chosen by each member.
     await state.update_data(salawat_open_target=total, salawat_commitment_quantity=None, capacity=None)
-    await _ask_visibility(message, state)
+    await state.set_state(CreateKhatm.entering_deadline_hour)
+    lang = await _lang(state)
+    await _wiz(
+        message, state, t("create_khatm.ask_deadline_hour", lang),
+        reply_markup=create_wizard_back_keyboard(lang),
+    )
 
 
 @router.callback_query(F.data.startswith("ck:total:"), StateFilter(CreateKhatm.choosing_commitment_total))
@@ -1448,8 +1478,8 @@ async def cancel_wizard(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
     data = await state.get_data()
     intro_mid = data.get("_intro_mid")
+    await _delete_wizard_messages(callback.message, state)
     await state.clear()
-    await safe_clear_inline_keyboard(callback.message)
     # Delete the intro image message on cancel (owner 2026-10-01).
     if intro_mid:
         try:
@@ -1737,6 +1767,7 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         # No member bots have active tokens configured yet.
         invite_lines_str = "⚠️ هیچ ربات عضوی با توکن فعال تنظیم نشده.\nبعد از تنظیم توکن ربات‌ها در پنل مدیریت، لینک را از «🔗 QR دعوت» در مدیریت این ختم دریافت کنید."
 
+    await _delete_wizard_messages(message, state)
     await safe_clear_inline_keyboard(message)
     await state.clear()
     

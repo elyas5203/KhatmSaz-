@@ -126,3 +126,23 @@ async def test_wiz_separates_progress_card_from_current_question():
     data = await state.get_data()
     assert data["_wiz_summary_mid"] == 101
     assert data["_wiz_mid"] == 102
+
+
+@pytest.mark.asyncio
+async def test_wiz_does_not_recreate_unchanged_summary():
+    bot = FakeBot()
+    msg = FakeMessage(bot)
+    state = FakeState({
+        "_wiz_mid": 102,
+        "_wiz_summary_mid": 101,
+        "_wiz_summary_text": "📋 انتخاب‌های شما تا اینجا:\n• نوع ختم: قرآن",
+        "_wiz_question_text": "پرسش قبلی",
+        "lang": "fa",
+        "template_type": "QURAN_PAGE",
+    })
+
+    await _wiz(msg, state, "پرسش بعدی")
+
+    assert msg.sent == []
+    assert bot.edited == [(555, 102, "پرسش بعدی")]
+    assert (await state.get_data())["_wiz_summary_mid"] == 101

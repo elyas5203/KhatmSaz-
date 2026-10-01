@@ -216,6 +216,8 @@ async def create_and_launch_khatm(
     extra["reminder_tone"] = ReminderTone(
         reminder_tone.upper() if isinstance(reminder_tone, str) else reminder_tone
     ).value
+    if khatm_type == KhatmTypeEnum.COMMITMENT:
+        extra["daily_deadline_hour"] = daily_deadline_hour
 
     if template_type == KhatmTemplateType.SALAWAT:
         if khatm_type == KhatmTypeEnum.OPEN:
@@ -238,8 +240,7 @@ async def create_and_launch_khatm(
         if khatm_type == KhatmTypeEnum.OPEN:
             extra["repetition_target"] = QURAN_EDITIONS[quran_edition_id]["total_pages"]
         else:
-            # Only QURAN_PAGE + COMMITMENT has these concepts today (DEC-PY-0008/0010).
-            extra["daily_deadline_hour"] = daily_deadline_hour
+            # Capacity and automatic page assignment remain Quran-specific.
             extra["capacity"] = capacity
             extra["allow_skip_today"] = False
 

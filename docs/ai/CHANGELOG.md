@@ -1656,3 +1656,8 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 ## 2026-09-30 (owner spec D4 custom khatm contact)
 - Added a custom-khatm request button to member bots and an admin-managed contact number in Operations.
 - Added phone validation, CSRF protection, privacy-safe audit metadata and localized empty-state copy. No migration.
+## 2026-10-01 (ephemeral wizard/profile prompts and commitment deadline repair)
+- Prevented unchanged wizard summaries from spawning duplicate messages and removed completed creator/profile prompts and typed answers.
+- Compressed the creator main menu into three rows.
+- Added the daily deadline question/storage to every commitment devotional family, not only Quran.
+- Reworded creator identity, open-khatm responsibility and member commitment guidance; hardened open/commitment enum detection.

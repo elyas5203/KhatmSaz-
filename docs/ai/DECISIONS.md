@@ -5,6 +5,21 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0108 — Wizard prompts are ephemeral; every commitment has a daily deadline
+
+**Date:** 2026-10-01
+**Decision:** Creator/profile questions and their typed answers are transient and
+are removed as each step completes. The creator wizard keeps at most one progress
+card and one current question; an unchanged Telegram message is not recreated.
+Every commitment khatm, including Dua/Ziyarat/Salawat/La'an, asks for and stores a
+daily deadline hour. Open khatms explicitly create no religious debt for a chosen
+amount, while encouraging the member to complete it out of respect for the group.
+
+**Why:** Accumulating and duplicated questions made the flow unreadable, and
+non-Quran commitment khatms were missing a deadline required by the owner.
+
+---
+
 ### DEC-PY-0107 — Admin-action queues push alerts; creator wizard uses two messages
 
 **Date:** 2026-10-01
