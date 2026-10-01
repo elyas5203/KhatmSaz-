@@ -1,3 +1,9 @@
+## 2026-10-01 (hierarchical devotional pages and reorderable wizard categories)
+- Grouped devotional library records and khatm categories into collapsible parent/child sections with compact closed summaries.
+- Added exact 1-based wizard positioning for each dua/ziyarat or la'an category; moving one item automatically renumbers its siblings.
+- Reused the existing `sort_order` column and authoritative wizard query, so no migration was required.
+- Added service and rendered-template regressions; full suite passes.
+
 ## 2026-10-01 (visual-first devotional media across separate bots)
 - Fixed Telegram devotional media registered by the creator bot failing in member bots because file IDs are bot-scoped; member delivery now downloads through the creator bot and re-uploads through the destination bot.
 - Prioritized ordered images, then PDF, then audio; full text is now the fallback when no image/PDF exists.

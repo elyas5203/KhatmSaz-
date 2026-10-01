@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Hierarchical devotional admin and exact wizard ordering [Codex]
+- `/devotionals` now groups library records under collapsible «دعاها» and «زیارت‌ها» parents; each child stays compact until its edit form is opened. `/categories` mirrors this with «دعاها و زیارت‌ها» and «لعن‌ها» parents and collapsible category children, substantially reducing page length.
+- Category forms expose a real 1-based «جایگاه نمایش در ویزارد». Saving position N moves that category exactly to N within its family and automatically renumbers siblings; new/request-fulfilled categories accept 0 to append at the end.
+- The creation wizard already consumed `sort_order`; the new service normalizes it to dense unique ranks, so no schema migration was needed.
+- Validation: focused category/template suite **20 passed, 1 skipped** during iteration; full suite **241 passed, 86 skipped**. Graphify refreshed to **4,153 nodes / 14,701 edges / 286 communities**.
+
 ## Current state — 2026-10-01 — Portable devotional media and visual-first delivery [Codex]
 - Fixed production `wrong file identifier` failures when devotional PDF/image/audio was registered through the Telegram creator bot but delivered through a separate member bot. Delivery now retries by downloading with the owning creator bot and uploading the bytes through the member bot.
 - Devotional reading content is visual-first: ordered image pages are sent before PDF; audio follows. Long text is used only when neither an image nor PDF is available, avoiding duplicate/cluttered delivery.

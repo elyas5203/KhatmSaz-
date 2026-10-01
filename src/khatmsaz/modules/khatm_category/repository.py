@@ -34,11 +34,11 @@ async def get_by_id(session: AsyncSession, category_id) -> KhatmCategory | None:
 
 async def create(
     session: AsyncSession, *, group: KhatmCategoryGroup, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None, image_url: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None, sort_order: int = 0,
 ) -> KhatmCategory:
     category = KhatmCategory(
         id=new_id(), group=group, title=title.strip(), body_text=body_text, source_note=source_note,
-        devotional_slug=devotional_slug, image_url=image_url,
+        devotional_slug=devotional_slug, image_url=image_url, sort_order=sort_order,
     )
     session.add(category)
     await session.flush()
@@ -47,13 +47,14 @@ async def create(
 
 async def update(
     session: AsyncSession, category: KhatmCategory, *, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None, image_url: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None, sort_order: int = 0,
 ) -> KhatmCategory:
     category.title = title.strip()
     category.body_text = body_text
     category.source_note = source_note
     category.devotional_slug = devotional_slug
     category.image_url = image_url
+    category.sort_order = sort_order
     await session.flush()
     return category
 
@@ -62,6 +63,15 @@ async def set_active(session: AsyncSession, category: KhatmCategory, active: boo
     category.is_active = active
     await session.flush()
     return category
+
+
+async def set_sort_orders(
+    session: AsyncSession, ordered_categories: list[KhatmCategory]
+) -> None:
+    """Persist a dense wizard order; gaps/duplicates never leak to the UI."""
+    for index, category in enumerate(ordered_categories, start=1):
+        category.sort_order = index
+    await session.flush()
 
 
 async def list_pending_requests(session: AsyncSession) -> list[KhatmCategoryRequest]:

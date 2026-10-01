@@ -30,7 +30,7 @@ async def get(session: AsyncSession, category_id) -> KhatmCategory | None:
 
 async def create(
     session: AsyncSession, *, group: str, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None, image_url: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None, sort_order: int = 0,
 ) -> KhatmCategory:
     title = title.strip()
     if not title:
@@ -39,17 +39,19 @@ async def create(
         group_enum = KhatmCategoryGroup(group)
     except ValueError:
         raise ValueError("unsupported category group") from None
+    if sort_order < 0:
+        raise ValueError("sort order must be zero or greater")
     return await repository.create(
         session, group=group_enum, title=title, body_text=(body_text or "").strip() or None,
         source_note=(source_note or "").strip() or None,
         devotional_slug=(devotional_slug or "").strip().lower() or None,
-        image_url=(image_url or "").strip() or None,
+        image_url=(image_url or "").strip() or None, sort_order=sort_order,
     )
 
 
 async def update(
     session: AsyncSession, category_id, *, title: str, body_text: str | None, source_note: str | None,
-    devotional_slug: str | None = None, image_url: str | None = None,
+    devotional_slug: str | None = None, image_url: str | None = None, sort_order: int = 0,
 ) -> KhatmCategory:
     category = await repository.get_by_id(session, category_id)
     if category is None:
@@ -57,11 +59,13 @@ async def update(
     title = title.strip()
     if not title:
         raise ValueError("category title is required")
+    if sort_order < 0:
+        raise ValueError("sort order must be zero or greater")
     return await repository.update(
         session, category, title=title, body_text=(body_text or "").strip() or None,
         source_note=(source_note or "").strip() or None,
         devotional_slug=(devotional_slug or "").strip().lower() or None,
-        image_url=(image_url or "").strip() or None,
+        image_url=(image_url or "").strip() or None, sort_order=sort_order,
     )
 
 
@@ -70,6 +74,23 @@ async def set_active(session: AsyncSession, category_id, active: bool) -> KhatmC
     if category is None:
         raise ValueError("category not found")
     return await repository.set_active(session, category, active)
+
+
+async def reposition(session: AsyncSession, category_id, position: int) -> KhatmCategory:
+    """Move a category to an exact 1-based position inside its wizard group."""
+    category = await repository.get_by_id(session, category_id)
+    if category is None:
+        raise ValueError("category not found")
+    siblings = [
+        item for item in await repository.list_all(session)
+        if item.group == category.group and item.id != category.id
+    ]
+    # Zero means "last" for newly-created rows; otherwise clamp to the
+    # available 1-based range so an admin cannot create gaps accidentally.
+    target_index = len(siblings) if position <= 0 else min(position - 1, len(siblings))
+    siblings.insert(target_index, category)
+    await repository.set_sort_orders(session, siblings)
+    return category
 
 
 async def submit_request(session: AsyncSession, *, requested_title: str, requested_by_user_id) -> KhatmCategoryRequest:
@@ -87,7 +108,7 @@ async def list_pending_requests(session: AsyncSession) -> list[KhatmCategoryRequ
 
 async def fulfill_request(
     session: AsyncSession, request_id, *, group: str, title: str, body_text: str | None, source_note: str | None,
-    image_url: str | None = None, devotional_slug: str | None = None,
+    image_url: str | None = None, devotional_slug: str | None = None, sort_order: int = 0,
 ) -> tuple[KhatmCategoryRequest, KhatmCategory]:
     request = await repository.get_request_by_id(session, request_id)
     if request is None:
@@ -96,7 +117,7 @@ async def fulfill_request(
         raise ValueError("request is not pending")
     category = await create(
         session, group=group, title=title, body_text=body_text, source_note=source_note,
-        image_url=image_url, devotional_slug=devotional_slug,
+        image_url=image_url, devotional_slug=devotional_slug, sort_order=sort_order,
     )
     request = await repository.mark_request_fulfilled(session, request, category)
     return request, category

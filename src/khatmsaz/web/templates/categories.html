@@ -48,6 +48,11 @@
             <option value="LAAN">لعن</option>
           </select>
         </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">جایگاه در ویزارد</label>
+          <input type="number" name="display_position" value="0" min="0" class="input-field" dir="ltr">
+        </div>
         
         <div class="space-y-1">
           <label class="text-xs font-bold text-slate-400">عنوان نهایی</label>
@@ -131,6 +136,12 @@
       <label class="text-xs font-bold text-slate-400">منبع (اختیاری)</label>
       <input name="source_note" placeholder="khedmatgozaran.com" class="input-field" dir="ltr">
     </div>
+
+    <div class="space-y-1">
+      <label class="text-xs font-bold text-slate-400">جایگاه نمایش در ویزارد {{ tooltip("عدد کمتر بالاتر می‌آید؛ مثلاً 10 قبل از 20 نمایش داده می‌شود.") }}</label>
+      <input type="number" name="display_position" value="0" min="0" class="input-field" dir="ltr">
+      <p class="text-xs text-slate-500">۰ یعنی انتهای فهرست.</p>
+    </div>
     
     <div class="md:col-span-2 lg:col-span-3 flex justify-end">
       <button type="submit" class="btn px-8">افزودن</button>
@@ -143,14 +154,24 @@
     <h2 class="text-xl font-bold text-white">دسته‌های موجود</h2>
   </div>
   
-  <div class="flex flex-col gap-6">
-    {% for category in items %}
-    <div class="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-5 overflow-hidden">
-      <div class="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-4">
+  <div class="flex flex-col gap-4">
+    {% for group_key, group_items in grouped_items.items() %}
+    <details class="group rounded-2xl border border-slate-700/50 bg-slate-900/35" {% if loop.first %}open{% endif %}>
+      <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl">
         <div>
-          <h3 class="text-lg font-bold text-white">{{ category.title }}</h3>
-          <div class="flex items-center gap-2 mt-1">
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-slate-700/50 text-slate-300">{{ group_labels.get(category.group.value, category.group.value) }}</span>
+          <h3 class="text-lg font-extrabold text-white">{% if group_key == 'DUA' %}دعاها و زیارت‌ها{% else %}لعن‌ها{% endif %}</h3>
+          <p class="text-xs text-slate-400 mt-1">{{ group_items|length }} فرزند — برای بازکردن فهرست کلیک کنید</p>
+        </div>
+        <span class="text-emerald-300 text-xl transition-transform group-open:rotate-180">⌄</span>
+      </summary>
+      <div class="px-4 pb-4 flex flex-col gap-3">
+      {% for category in group_items %}
+      <details class="group/item bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+        <summary class="cursor-pointer list-none p-4 flex items-start justify-between gap-3 hover:bg-slate-800/60 transition-colors">
+          <div class="min-w-0">
+            <h4 class="font-bold text-white truncate">{{ category.title }}</h4>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300">جایگاه {{ category.display_position }}</span>
             {% if category.body_text %}
             <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">متن ثبت شده</span>
             {% else %}
@@ -162,8 +183,10 @@
             <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300">⛔ غیرفعال (پنهان)</span>
             {% endif %}
           </div>
-        </div>
-        
+          </div>
+          <span class="text-slate-400 group-open/item:rotate-180 transition-transform">⌄</span>
+        </summary>
+        <div class="p-4 border-t border-slate-700/40">
         <form method="post" action="/categories/{{ category.id }}/toggle">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           {% if category.is_active %}
@@ -172,14 +195,19 @@
           <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit">فعال کردن</button>
           {% endif %}
         </form>
-      </div>
       
       <form method="post" action="/categories/{{ category.id }}/update" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         
-        <div class="space-y-1 lg:col-span-3">
+        <div class="space-y-1 lg:col-span-2">
           <label class="text-xs font-bold text-slate-400">عنوان</label>
           <input name="title" value="{{ category.title }}" required maxlength="200" class="input-field bg-slate-900/50">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-400">جایگاه نمایش در ویزارد</label>
+          <input type="number" name="display_position" value="{{ category.display_position }}" min="1" class="input-field bg-slate-900/50" dir="ltr">
+          <p class="text-[0.7rem] text-slate-500">مثلاً ۱ یعنی اولین گزینه؛ بقیه خودکار جابه‌جا می‌شوند.</p>
         </div>
         
         <div class="space-y-1 lg:col-span-3">
@@ -209,12 +237,19 @@
           <button type="submit" class="text-sm font-bold text-slate-300 hover:text-emerald-400 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">ذخیره ویرایش</button>
         </div>
       </form>
-    </div>
-    {% else %}
+        </div>
+      </details>
+      {% else %}
+      <div class="p-6 text-center text-slate-500">هنوز فرزندی در این گروه نیست.</div>
+      {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+    {% if not items %}
     <div class="p-8 text-center text-slate-500">
       <p>هنوز دسته‌ای ثبت نشده است.</p>
     </div>
-    {% endfor %}
+    {% endif %}
   </div>
 </section>
 {% endblock %}

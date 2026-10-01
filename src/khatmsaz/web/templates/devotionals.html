@@ -91,10 +91,20 @@
     <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-slate-700/50 text-slate-300">{{ items|length }} مورد</span>
   </div>
 
-  <div class="flex flex-col gap-6">
-    {% for item in items %}
-    <div class="bg-slate-800/20 border border-slate-700/30 rounded-2xl p-5">
-      <div class="flex justify-between items-start mb-4 border-b border-slate-700/50 pb-4 gap-3">
+  <div class="flex flex-col gap-4">
+    {% for type_key, type_items in grouped_items.items() %}
+    <details class="group rounded-2xl border border-slate-700/50 bg-slate-900/35" {% if loop.first %}open{% endif %}>
+      <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl">
+        <div>
+          <h3 class="text-lg font-extrabold text-white">{% if type_key == 'DUA' %}دعاها{% else %}زیارت‌ها{% endif %}</h3>
+          <p class="text-xs text-slate-400 mt-1">{{ type_items|length }} فرزند — فرم هر مورد فقط هنگام نیاز باز می‌شود</p>
+        </div>
+        <span class="text-emerald-300 text-xl transition-transform group-open:rotate-180">⌄</span>
+      </summary>
+      <div class="px-4 pb-4 flex flex-col gap-3">
+      {% for item in type_items %}
+      <details class="group/item bg-slate-800/30 border border-slate-700/40 rounded-xl overflow-hidden">
+      <summary class="cursor-pointer list-none p-4 flex justify-between items-start gap-3 hover:bg-slate-800/60 transition-colors">
         <div class="min-w-0">
           <h3 class="text-lg font-bold text-white truncate">{{ item.title }}</h3>
           <div class="flex flex-wrap items-center gap-2 mt-2">
@@ -112,7 +122,10 @@
           </div>
         </div>
 
-        <form method="post" action="/devotionals/{{ item.slug }}/toggle" class="flex-none">
+        <span class="text-slate-400 group-open/item:rotate-180 transition-transform">⌄</span>
+      </summary>
+      <div class="p-4 border-t border-slate-700/40">
+        <form method="post" action="/devotionals/{{ item.slug }}/toggle" class="flex justify-end mb-4">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           {% if item.enabled %}
           <button class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit" title="این دعا را از دید کاربران پنهان کن">غیرفعال کردن</button>
@@ -120,8 +133,6 @@
           <button class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors" type="submit" title="این دعا را برای کاربران فعال کن">فعال کردن</button>
           {% endif %}
         </form>
-      </div>
-
       <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <input type="hidden" name="slug" value="{{ item.slug }}">
@@ -157,12 +168,19 @@
           <button type="submit" class="text-sm font-bold text-slate-300 hover:text-emerald-400 px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors">ذخیره ویرایش</button>
         </div>
       </form>
-    </div>
-    {% else %}
+      </div>
+      </details>
+      {% else %}
+      <div class="p-6 text-center text-slate-500">هنوز موردی در این گروه ثبت نشده است.</div>
+      {% endfor %}
+      </div>
+    </details>
+    {% endfor %}
+    {% if not items %}
     <div class="p-8 text-center text-slate-500">
       <p>هنوز متنی ثبت نشده است. از فرم بالا اولین دعا را اضافه کنید.</p>
     </div>
-    {% endfor %}
+    {% endif %}
   </div>
 </section>
 

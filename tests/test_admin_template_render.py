@@ -101,23 +101,26 @@ def test_categories_page_renders_library_picker_and_explicit_statuses():
     active = SimpleNamespace(
         id=uuid4(), title="دعای عهد", group=SimpleNamespace(value="DUA"),
         body_text=None, devotional_slug="dua-ahd", image_url=None,
-        source_note=None, is_active=True,
+        source_note=None, is_active=True, sort_order=10,
     )
     inactive = SimpleNamespace(
-        id=uuid4(), title="ذکر آزمایشی", group=SimpleNamespace(value="SALAWAT"),
+        id=uuid4(), title="ذکر آزمایشی", group=SimpleNamespace(value="LAAN"),
         body_text="متن کوتاه", devotional_slug=None, image_url=None,
-        source_note=None, is_active=False,
+        source_note=None, is_active=False, sort_order=20,
     )
     html = _render(
         "categories.html", "/categories", saved="", requests=[],
         items=[active, inactive], devotional_assets=assets,
-        group_labels={"DUA": "دعا / زیارت", "SALAWAT": "صلوات"},
+        grouped_items={"DUA": [active], "LAAN": [inactive]},
+        group_labels={"DUA": "دعا / زیارت", "LAAN": "لعن"},
     )
 
     assert "متن آماده از کتابخانه" in html
     assert '<option value="dua-ahd" selected>دعای عهد</option>' in html
     assert "✅ فعال (در ویزارد دیده می‌شود)" in html
     assert "⛔ غیرفعال (پنهان)" in html
+    assert "جایگاه نمایش در ویزارد" in html
+    assert "دعاها و زیارت‌ها" in html
     assert "کد اتصال صوت/متن آماده" not in html
 
 
@@ -134,12 +137,16 @@ def test_devotionals_page_renders_clear_library_workflow_and_statuses():
             "char_count": 10, "has_image": False, "has_audio": False,
         },
     ]
-    html = _render("devotionals.html", "/devotionals", saved="", items=items)
+    html = _render(
+        "devotionals.html", "/devotionals", saved="", items=items,
+        grouped_items={"DUA": [items[0]], "ZIYARAT": [items[1]]},
+    )
 
     assert "شناسهٔ داخلی (انگلیسی)" in html
     assert "نیازی به کپی‌کردن شناسه نیست" in html
     assert "✅ فعال (به کاربران نمایش داده می‌شود)" in html
     assert "⛔ غیرفعال (پنهان)" in html
+    assert "فرم هر مورد فقط هنگام نیاز باز می‌شود" in html
 
 
 def test_creator_detail_renders_manage_stats_members_export_and_settings():

@@ -2109,12 +2109,19 @@ async def categories_page(request: Request):
         for item in requests:
             requester = await identity_service.find_by_id(session, item.requested_by_user_id)
             request_rows.append({"item": item, "requester": requester})
+    grouped_items = {
+        "DUA": [item for item in items if item.group == KhatmCategoryGroup.DUA],
+        "LAAN": [item for item in items if item.group == KhatmCategoryGroup.LAAN],
+    }
+    for group_items in grouped_items.values():
+        for position, item in enumerate(group_items, start=1):
+            item.display_position = position
     return templates.TemplateResponse(
         request=request,
         name="categories.html",
         context=_ctx(
             request, admin, raw, items=items, requests=request_rows,
-            devotional_assets=devotional_assets,
+            devotional_assets=devotional_assets, grouped_items=grouped_items,
             group_labels=CATEGORY_GROUP_LABELS,
             saved=request.query_params.get("saved", ""),
         ),
@@ -2130,6 +2137,7 @@ async def create_category(
     source_note: str = Form(""),
     devotional_slug: str = Form(""),
     image_url: str = Form(""),
+    display_position: int = Form(0),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2143,11 +2151,12 @@ async def create_category(
                 session, group=group, title=title, body_text=body_text, source_note=source_note,
                 devotional_slug=devotional_slug, image_url=image_url,
             )
+            category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
             return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)
         await audit_service.record(
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_CREATE",
-            details={"category_id": str(category.id), "group": category.group.value, "title": category.title},
+            details={"category_id": str(category.id), "group": category.group.value, "title": category.title, "sort_order": category.sort_order},
         )
     return RedirectResponse("/categories?saved=created", status_code=303)
 
@@ -2161,6 +2170,7 @@ async def update_category(
     source_note: str = Form(""),
     devotional_slug: str = Form(""),
     image_url: str = Form(""),
+    display_position: int = Form(0),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2174,11 +2184,12 @@ async def update_category(
                 session, category_id, title=title, body_text=body_text, source_note=source_note,
                 devotional_slug=devotional_slug, image_url=image_url,
             )
+            category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
             return HTMLResponse(f"ورودی نامعتبر: {exc}", status_code=400)
         await audit_service.record(
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_UPDATE",
-            details={"category_id": str(category.id), "title": category.title},
+            details={"category_id": str(category.id), "title": category.title, "sort_order": category.sort_order},
         )
     return RedirectResponse("/categories?saved=updated", status_code=303)
 
@@ -2231,6 +2242,7 @@ async def fulfill_category_request(
     source_note: str = Form(""),
     image_url: str = Form(""),
     devotional_slug: str = Form(""),
+    display_position: int = Form(0),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2244,6 +2256,7 @@ async def fulfill_category_request(
                 session, request_id, group=group, title=title, body_text=body_text, source_note=source_note,
                 image_url=image_url, devotional_slug=devotional_slug,
             )
+            category = await category_service.reposition(session, category.id, display_position)
         except ValueError as exc:
             return HTMLResponse(f"درخواست قابل پردازش نیست: {exc}", status_code=409)
         await audit_service.record(
@@ -2320,11 +2333,15 @@ async def devotionals_page(request: Request):
             "image_ref": a.image_ref or "",
             "audio_ref": a.audio_ref or "",
         })
+    grouped_rows = {
+        "DUA": [item for item in rows if item["content_type"] == "DUA"],
+        "ZIYARAT": [item for item in rows if item["content_type"] == "ZIYARAT"],
+    }
     return templates.TemplateResponse(
         request=request,
         name="devotionals.html",
         context=_ctx(
-            request, admin, raw, items=rows,
+            request, admin, raw, items=rows, grouped_items=grouped_rows,
             salawat_text=content_service.SALAWAT_TEXT,
             salawat_image_url=(salawat_asset.image_ref if salawat_asset else ""),
             type_labels=_DEVOTIONAL_TYPE_LABELS,
