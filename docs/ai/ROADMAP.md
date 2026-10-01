@@ -4,6 +4,12 @@ Phased so each phase produces something runnable/demoable, not a pile of
 unintegrated code. Mark items `[x]` when done, add a dated note — never
 delete a completed phase.
 
+## 2026-10-01 — Restart-safe conversation and OTP fallback (DONE)
+- [x] Creator/member FSM state persists in Redis and is isolated per bot.
+- [x] Five-minute OTP expiry is represented accurately in user copy.
+- [x] Expired undelivered OTP can be escalated to audited admin review.
+- [x] Approval notifies the requester and resumes pending khatm creation.
+
 ## 2026-10-01 — Member onboarding/reminder UX QA batch (DONE)
 - [x] Registration and successful OTP exchanges clean up their own prompts and answers.
 - [x] Questions are distinct; invalid answers retain context; weekly counts are unambiguous.

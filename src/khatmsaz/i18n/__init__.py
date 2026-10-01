@@ -1884,7 +1884,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "change_phone.manual_review_creator": {
         "fa": "چون شمارهٔ شما خارج از ایران است، پیامک کاوه‌نگار ارسال نمی‌شود. "
         "درخواست تأیید دستی برای مدیریت ثبت شد ✅\n\n"
-        "فقط یک بار نیاز به تأیید دارید. بعد از پیام تأیید مدیریت، دوباره دکمهٔ «ساخت ختم جدید» را بزنید.",
+        "فقط یک بار نیاز به تأیید دارید. بعد از تأیید مدیریت، پیام و دکمهٔ ادامه برایتان فرستاده می‌شود.",
         "ar": "بما أن رقمك خارج إيران، لن تُرسل رسالة كافينيجار. تم تسجيل طلب التوثيق اليدوي للإدارة ✅\n\n"
         "تحتاج للتوثيق مرة واحدة فقط. بعد رسالة تأكيد الإدارة، اضغط زر «إنشاء ختمة جديدة» مرة أخرى.",
         "en": "Since your number is outside Iran, no Kavenegar SMS is sent. A manual-review request was "
@@ -1901,9 +1901,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "panel is enabled.",
     },
     "change_phone.otp_sms_text": {
-        "fa": "رمز تأیید سازنده ختم‌ساز: {code}\nاعتبار: ۱۰ دقیقه",
-        "ar": "رمز توثيق منشئ ختم‌ساز: {code}\nصالح لمدة ۱۰ دقائق",
-        "en": "KhatmSaz creator verification code: {code}\nValid for 10 minutes",
+        "fa": "رمز تأیید سازنده ختم‌ساز: {code}\nاعتبار: ۵ دقیقه",
+        "ar": "رمز توثيق منشئ ختم‌ساز: {code}\nصالح لمدة ۵ دقائق",
+        "en": "KhatmSaz creator verification code: {code}\nValid for 5 minutes",
     },
     "change_phone.ask_creator_otp": {
         "fa": "برای اینکه بتوانید ختم بسازید، شمارهٔ ثبت‌شده باید یک بار تأیید شود. "
@@ -1912,6 +1912,31 @@ _STRINGS: dict[str, dict[str, str]] = {
         "أرسله هنا. بعد التوثيق اضغط زر إنشاء الختمة مرة أخرى.",
         "en": "To be able to create a khatm, your registered number needs to be verified once. A 6-digit "
         "code was sent; send it here. After verifying, tap the create-khatm button again.",
+    },
+    "change_phone.request_admin_after_expiry": {
+        "fa": "🧑‍💼 کد نرسید؟ بعد از ۵ دقیقه درخواست تأیید مدیر",
+        "ar": "🧑‍💼 لم يصل الرمز؟ اطلب مراجعة الإدارة بعد 5 دقائق",
+        "en": "🧑‍💼 No code? Ask an admin after 5 minutes",
+    },
+    "change_phone.manual_wait_five_minutes": {
+        "fa": "هنوز ۵ دقیقهٔ اعتبار کد تمام نشده است. کمی صبر کنید و بعد دوباره همین دکمه را بزنید.",
+        "ar": "لم تنتهِ صلاحية الرمز لمدة 5 دقائق بعد. انتظر قليلاً ثم اضغط الزر مرة أخرى.",
+        "en": "The code's 5-minute window has not ended yet. Wait a little and tap again.",
+    },
+    "change_phone.manual_submitted_after_expiry": {
+        "fa": "درخواست تأیید شماره برای مدیر فرستاده شد ✅ بعد از بررسی، پیام تأیید و دکمهٔ ادامه برایتان می‌آید.",
+        "ar": "أُرسل طلب توثيق الرقم إلى الإدارة ✅ بعد المراجعة ستصلك رسالة وزر متابعة.",
+        "en": "Your phone verification request was sent to an admin ✅ After review, you'll receive a confirmation and Continue button.",
+    },
+    "change_phone.otp_expired_admin_available": {
+        "fa": "مهلت ۵ دقیقه‌ای این کد تمام شد. اگر پیامک به دستتان نرسیده، با دکمهٔ زیر از مدیر درخواست تأیید شماره کنید.",
+        "ar": "انتهت مهلة الرمز البالغة 5 دقائق. إذا لم تصلك الرسالة، اطلب من الإدارة توثيق الرقم بالزر أدناه.",
+        "en": "This code's 5-minute window has ended. If the SMS never arrived, use the button below to request admin verification.",
+    },
+    "change_phone.manual_invalid": {
+        "fa": "این درخواست دیگر معتبر نیست. دوباره فرایند تأیید شماره را شروع کنید.",
+        "ar": "هذا الطلب لم يعد صالحًا. ابدأ توثيق الرقم من جديد.",
+        "en": "This request is no longer valid. Start phone verification again.",
     },
     "change_phone.dev_otp_hint": {
         "fa": "\n\nحالت توسعه فعال است؛ رمز آزمایشی: {code}", "ar": "\n\nوضع التطوير مفعّل؛ الرمز التجريبي: {code}",
@@ -1969,9 +1994,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "review ✅\nUntil approved, your current number and all your records stay unchanged.",
     },
     "change_phone.otp_sms_text_change": {
-        "fa": "رمز تغییر شماره ختم‌ساز: {code}\nاعتبار: ۱۰ دقیقه",
-        "ar": "رمز تغيير رقم ختم‌ساز: {code}\nصالح لمدة ۱۰ دقائق",
-        "en": "KhatmSaz phone-change code: {code}\nValid for 10 minutes",
+        "fa": "رمز تغییر شماره ختم‌ساز: {code}\nاعتبار: ۵ دقیقه",
+        "ar": "رمز تغيير رقم ختم‌ساز: {code}\nصالح لمدة ۵ دقائق",
+        "en": "KhatmSaz phone-change code: {code}\nValid for 5 minutes",
     },
     "change_phone.sms_gateway_down_change": {
         "fa": "ارسال پیامک فعلاً روی سرور فعال نیست؛ شماره و هیچ سابقه‌ای تغییر نکرد. "
@@ -1982,9 +2007,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "unchanged. Send /change_phone again once the SMS panel is enabled.",
     },
     "change_phone.ask_change_otp": {
-        "fa": "رمز شش‌رقمی به شمارهٔ جدید ارسال شد. رمز را همین‌جا بفرستید؛ ۱۰ دقیقه اعتبار دارد.",
-        "ar": "أُرسل رمز من ستة أرقام إلى الرقم الجديد. أرسل الرمز هنا؛ صالح لمدة ۱۰ دقائق.",
-        "en": "A 6-digit code was sent to the new number. Send it here; it's valid for 10 minutes.",
+        "fa": "رمز شش‌رقمی به شمارهٔ جدید ارسال شد. رمز را همین‌جا بفرستید؛ ۵ دقیقه اعتبار دارد.",
+        "ar": "أُرسل رمز من ستة أرقام إلى الرقم الجديد. أرسل الرمز هنا؛ صالح لمدة ۵ دقائق.",
+        "en": "A 6-digit code was sent to the new number. Send it here; it's valid for 5 minutes.",
     },
     "change_phone.code_must_be_six_digits": {
         "fa": "رمز باید دقیقاً شش رقم باشد. لطفاً دوباره بفرستید.",
@@ -2223,6 +2248,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "شمارهٔ خارج از کشور شما توسط مدیریت تأیید شد ✅\nاین تأیید دائمی است و حالا می‌توانید ختم بسازید.",
         "ar": "تم توثيق رقمك من خارج البلاد من الإدارة ✅\nهذا التوثيق دائم ويمكنك الآن إنشاء ختمة.",
         "en": "Your foreign phone number was verified by an admin ✅\nThis verification is permanent and you can now create a khatm.",
+    },
+    "manual_phone_verification.continue_button": {
+        "fa": "✅ ادامهٔ فرایند",
+        "ar": "✅ متابعة العملية",
+        "en": "✅ Continue",
     },
     "manual_phone_verification.rejected_notice": {
         "fa": "درخواست تأیید شمارهٔ شما رد شد. لطفاً شماره و مشخصات پروفایل را بررسی و دوباره درخواست دهید.",

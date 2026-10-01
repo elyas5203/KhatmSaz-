@@ -15,7 +15,8 @@ import logging
 import sys
 
 from aiogram import Bot, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import DefaultKeyBuilder
+from aiogram.fsm.storage.redis import RedisStorage
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import uvicorn
 
@@ -176,13 +177,25 @@ async def main() -> None:
         len(creator_bots), len(member_bots),
     )
 
+    # FSM state must survive service restarts. MemoryStorage left an old
+    # question visible while forgetting which answer the bot was waiting for,
+    # making a conversation appear frozen after a deploy/restart.
+    creator_storage = RedisStorage.from_url(
+        settings.redis_url,
+        key_builder=DefaultKeyBuilder(prefix="khatmsaz_fsm_creator", with_bot_id=True),
+    )
+    member_storage = RedisStorage.from_url(
+        settings.redis_url,
+        key_builder=DefaultKeyBuilder(prefix="khatmsaz_fsm_member", with_bot_id=True),
+    )
+
     # --- Creator Dispatcher ---
-    dp_creator = Dispatcher(storage=MemoryStorage())
+    dp_creator = Dispatcher(storage=creator_storage)
     dp_creator.message.outer_middleware(ModerationMiddleware())
     dp_creator.callback_query.outer_middleware(ModerationMiddleware())
 
     # --- Member Dispatcher ---
-    dp_member = Dispatcher(storage=MemoryStorage())
+    dp_member = Dispatcher(storage=member_storage)
     dp_member.message.outer_middleware(ModerationMiddleware())
     dp_member.callback_query.outer_middleware(ModerationMiddleware())
 

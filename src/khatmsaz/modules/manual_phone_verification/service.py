@@ -19,10 +19,11 @@ def requires_manual_review(e164: str) -> bool:
 
 
 async def submit(
-    session: AsyncSession, *, user_id, e164: str, purpose: str = "CREATOR_VERIFY"
+    session: AsyncSession, *, user_id, e164: str, purpose: str = "CREATOR_VERIFY",
+    allow_iranian_after_otp_expiry: bool = False,
 ):
     phone = normalize_e164(e164)
-    if not requires_manual_review(phone):
+    if not requires_manual_review(phone) and not allow_iranian_after_otp_expiry:
         raise ManualVerificationError("Iranian numbers must use SMS OTP")
     user = await session.get(User, user_id, with_for_update=True)
     if (

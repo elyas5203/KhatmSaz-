@@ -39,7 +39,8 @@ def _decision_keyboard(request_id) -> InlineKeyboardMarkup:
 
 
 async def notify_admins_of_manual_request(
-    *, request_id, display_name: str | None, e164: str, purpose: str
+    *, request_id, display_name: str | None, e164: str, purpose: str,
+    sms_otp_expired: bool = False,
 ) -> None:
     admin_ids = [
         item.strip()
@@ -47,8 +48,12 @@ async def notify_admins_of_manual_request(
         if item.strip()
     ]
     purpose_label = "تغییر شماره" if purpose == "PHONE_CHANGE" else "فعال‌سازی سازنده"
+    request_title = (
+        "⏱ درخواست تأیید دستی پس از نرسیدن/انقضای پیامک"
+        if sms_otp_expired else "🌍 درخواست تأیید دستی شمارهٔ خارج از کشور"
+    )
     text = (
-        "🌍 درخواست تأیید دستی شمارهٔ خارج از کشور\n\n"
+        f"{request_title}\n\n"
         f"نام: {display_name or 'ثبت نشده'}\n"
         f"شماره: {e164}\n"
         f"هدف: {purpose_label}\n\n"
@@ -149,4 +154,15 @@ async def decide_manual_phone_request(callback: CallbackQuery) -> None:
     )
     notify = get_notify_fn()
     for identity in identities:
-        await notify(identity.platform.value, identity.subject, text)
+        if approved and request.purpose == "CREATOR_VERIFY":
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(
+                    text=t("manual_phone_verification.continue_button", requester_lang),
+                    callback_data="phone_verify_continue",
+                )
+            ]])
+            await send_with_keyboard(
+                identity.platform.value, identity.subject, text, keyboard,
+            )
+        else:
+            await notify(identity.platform.value, identity.subject, text)

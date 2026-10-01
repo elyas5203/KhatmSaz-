@@ -1,12 +1,13 @@
 """Self-service verified phone replacement that keeps all account history."""
 
+from datetime import datetime, timezone
 from uuid import UUID
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, main_menu_keyboard
 from khatmsaz.bot.handlers.manual_phone_verification import notify_admins_of_manual_request
@@ -27,10 +28,23 @@ router = Router(name="change_phone")
 class ChangePhone(StatesGroup):
     entering_phone = State()
     entering_code = State()
+    waiting_manual_review = State()
 
 
-async def _remember_otp_prompt(message: Message, state: FSMContext, text: str) -> None:
-    sent = await message.answer(text)
+def _otp_fallback_keyboard(challenge_id, lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(
+            text=t("change_phone.request_admin_after_expiry", lang),
+            callback_data=f"otp_manual:{challenge_id}",
+        )
+    ]])
+
+
+async def _remember_otp_prompt(
+    message: Message, state: FSMContext, text: str, *, challenge_id=None,
+) -> None:
+    markup = _otp_fallback_keyboard(challenge_id, (await state.get_data()).get("lang", "fa")) if challenge_id else None
+    sent = await message.answer(text, reply_markup=markup)
     await state.update_data(_phone_verify_mid=getattr(sent, "message_id", None))
 
 
@@ -111,7 +125,7 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
 
     if manual_request is not None:
         request_id, display_name, phone, created = manual_request
-        await state.clear()
+        await state.set_state(ChangePhone.waiting_manual_review)
         if created:
             await notify_admins_of_manual_request(
                 request_id=request_id,
@@ -150,7 +164,7 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
     text = t("change_phone.ask_creator_otp", lang)
     if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
-    await _remember_otp_prompt(message, state, text)
+    await _remember_otp_prompt(message, state, text, challenge_id=challenge_id)
     return False
 
 
@@ -255,7 +269,83 @@ async def receive_new_phone(message: Message, state: FSMContext) -> None:
     text = t("change_phone.ask_change_otp", lang)
     if settings.dev_otp and code is not None:
         text += t("change_phone.dev_otp_hint", lang, code=code)
-    await _remember_otp_prompt(message, state, text)
+    await _remember_otp_prompt(message, state, text, challenge_id=challenge_id)
+
+
+@router.callback_query(F.data.startswith("otp_manual:"), ChangePhone.entering_code)
+async def request_manual_after_expired_otp(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = (await state.get_data()).get("lang", "fa")
+    try:
+        callback_challenge_id = UUID(callback.data.split(":", 1)[1])
+    except (AttributeError, ValueError):
+        await callback.answer(t("change_phone.manual_invalid", lang), show_alert=True)
+        return
+    data = await state.get_data()
+    if str(callback_challenge_id) != str(data.get("challenge_id")):
+        await callback.answer(t("change_phone.manual_invalid", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    try:
+        async with session_scope() as session:
+            user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+            challenge = await phone_repository.get_challenge(session, callback_challenge_id)
+            if user is None or challenge is None or challenge.user_id != user.id:
+                await callback.answer(t("change_phone.manual_invalid", lang), show_alert=True)
+                return
+            if challenge.expires_at > datetime.now(timezone.utc):
+                await callback.answer(t("change_phone.manual_wait_five_minutes", lang), show_alert=True)
+                return
+            purpose = data.get("verification_context", "creator")
+            request, created = await manual_phone_service.submit(
+                session,
+                user_id=user.id,
+                e164=challenge.e164,
+                purpose="PHONE_CHANGE" if purpose == "change" else "CREATOR_VERIFY",
+                allow_iranian_after_otp_expiry=True,
+            )
+            display_name = user.display_name
+    except manual_phone_service.ManualVerificationError:
+        await callback.answer(t("change_phone.manual_invalid", lang), show_alert=True)
+        return
+
+    if created:
+        await notify_admins_of_manual_request(
+            request_id=request.id,
+            display_name=display_name,
+            e164=request.e164,
+            purpose=request.purpose,
+            sms_otp_expired=True,
+        )
+    await state.set_state(ChangePhone.waiting_manual_review)
+    try:
+        await callback.message.edit_text(t("change_phone.manual_submitted_after_expiry", lang))
+    except Exception:
+        await callback.message.answer(t("change_phone.manual_submitted_after_expiry", lang))
+    await callback.answer()
+
+
+@router.callback_query(F.data == "phone_verify_continue")
+async def continue_after_manual_phone_approval(callback: CallbackQuery, state: FSMContext) -> None:
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        claim = await phone_repository.verified_claim_for_user(session, user.id) if user else None
+    if claim is None:
+        await callback.answer("شماره هنوز تأیید نشده است.", show_alert=True)
+        return
+    try:
+        await callback.message.edit_reply_markup(reply_markup=None)
+    except Exception:
+        pass
+    from khatmsaz.bot.handlers.create_khatm import resume_khatm_creation_if_pending
+    if not await resume_khatm_creation_if_pending(callback.message, state):
+        await state.clear()
+        await callback.message.answer(
+            t("change_phone.creator_verified_success", "fa", phone=claim.e164),
+            reply_markup=main_menu_keyboard("fa"),
+        )
+    await callback.answer()
 
 
 @router.message(ChangePhone.entering_code)
@@ -290,7 +380,28 @@ async def receive_change_code(message: Message, state: FSMContext) -> None:
             )
             phone = claim.e164
     except phone_service.OtpError as exc:
-        if str(exc) != "invalid code":
+        reason = str(exc)
+        if reason == "challenge expired":
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            prompt_id = data.get("_phone_verify_mid")
+            expired_text = t("change_phone.otp_expired_admin_available", lang)
+            markup = _otp_fallback_keyboard(data.get("challenge_id"), lang)
+            if prompt_id:
+                try:
+                    await message.bot.edit_message_text(
+                        chat_id=message.chat.id, message_id=prompt_id,
+                        text=expired_text, reply_markup=markup,
+                    )
+                    return
+                except Exception:
+                    pass
+            sent = await message.answer(expired_text, reply_markup=markup)
+            await state.update_data(_phone_verify_mid=getattr(sent, "message_id", None))
+            return
+        if reason != "invalid code":
             await state.clear()
         await message.answer(t("change_phone.otp_invalid_or_expired", lang))
         return

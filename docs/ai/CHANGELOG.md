@@ -1,3 +1,9 @@
+## 2026-10-01 (restart-safe FSM and OTP admin fallback)
+- Replaced process-memory FSM storage with Redis, namespaced by dispatcher and bot ID, so unanswered conversations survive restarts.
+- Corrected creator/change-phone OTP wording from 10 minutes to the real 5-minute lifetime.
+- Added an expiry-gated admin-verification request for undelivered SMS codes, including admin approve/reject notification and a requester Continue button that resumes pending khatm creation.
+- Reused the existing manual-verification table and audit trail; no migration was required.
+
 ## 2026-10-01 (clean onboarding and complete scheduled devotional delivery)
 - Converted creator registration and creator OTP verification to self-cleaning prompts; member registration already uses the same one-current-question model.
 - Added clear numbered/question headings, retained questions after invalid input, clarified weekly per-selected-day counts, and compacted the member menu to four rows.

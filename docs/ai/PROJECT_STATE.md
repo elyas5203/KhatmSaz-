@@ -1,3 +1,9 @@
+## Current state — 2026-10-01 — Restart-safe conversations and expired-OTP admin fallback [Codex]
+- Both creator and member dispatchers now use Redis FSM storage with bot-scoped keys. Wizard/profile/OTP state survives service restarts, fixing the visible-but-unanswerable old prompt caused by `MemoryStorage` being wiped.
+- Phone OTP copy now matches the real five-minute TTL. The OTP prompt exposes an admin-review button; it refuses early use and creates an audited manual request only after the stored challenge has actually expired.
+- Manual verification now supports Iranian numbers specifically through that expired-OTP path. Admins receive the existing approve/reject controls; approval verifies the phone and notifies the requester with «ادامهٔ فرایند», which resumes the preserved khatm creation state automatically.
+- Validation: fallback/manual/FSM-focused suite **10 passed, 4 skipped**; full suite **259 passed, 86 skipped**; Alembic has one head (`schedweekdays2026100101`). No migration was needed. Production Redis and live approval flow remain to be smoke-tested after deployment.
+
 ## Current state — 2026-10-01 — Clean member onboarding and scheduled devotional media [Codex]
 - Creator and member registration now keep one current question, delete each typed answer, and remove the final question when the profile is complete. Creator OTP verification also removes its prompt and submitted code after success.
 - Registration explains why the five fields are needed; Persian questions have numbered/visual headings. Member commitment questions use a distinct question heading, invalid numeric/time input retains the original question, and the weekly dua wording explains that the number applies to every selected day.

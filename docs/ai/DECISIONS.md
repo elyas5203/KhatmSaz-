@@ -5,6 +5,28 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0103 — Conversation state is Redis-persistent; expired OTP may escalate to an admin
+
+**Date:** 2026-10-01
+**Decision:** Creator and member FSM data is stored in Redis with keys scoped by
+dispatcher and bot ID, without a short idle TTL. A visible conversation must
+remain answerable across a service restart until the user completes, cancels or
+starts a new flow.
+
+An Iranian SMS OTP remains the first verification method and is valid for the
+actual service TTL of five minutes. Manual verification cannot be requested
+before the persisted challenge expires. After expiry, the user may create one
+normal audited manual-phone request. Admin approval verifies the same number,
+notifies the user with a Continue action, and resumes any preserved khatm
+creation state; rejection keeps the number unverified.
+
+**Why:** `MemoryStorage` lost state on deploy/restart while leaving the old bot
+question visible, which looked like a frozen bot. SMS delivery can also fail;
+the owner explicitly requested a secure human fallback after the code window,
+not an immediate bypass of OTP.
+
+---
+
 ### DEC-PY-0102 — Member setup is self-cleaning and scheduled reminders include reading content
 
 **Date:** 2026-10-01
