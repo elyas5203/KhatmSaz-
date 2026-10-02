@@ -1,4 +1,8 @@
 ### 2026-10-02
+- **Fixed**: NameError: name 'KhatmTypeEnum' is not defined crash in portions.py when tapping contribute.
+- **Added**: Audio toggle and Reciter selection buttons in the member settings menu to allow users to configure and receive Quran audio.
+
+### 2026-10-02
 - **Fixed**: Leave notifications (approval, rejection, and waitlist promotion) are now routed through the correct member bot instead of defaulting to the Creator bot.
 
 ### 2026-10-02

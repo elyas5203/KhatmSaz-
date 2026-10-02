@@ -1,3 +1,7 @@
+### 2026-10-02 - Bug Fixes: KhatmTypeEnum & Reciter Settings
+- Fixed NameError: name 'KhatmTypeEnum' is not defined crash in portions.py when tapping contribute.
+- Added Audio Toggle and Reciter selection buttons back into the member settings menu so users can receive Quran audio.
+
 ### 2026-10-02 - Bug Fixes: Leave Notifications Routing
 - Fixed leave notifications (approve_leave, reject_leave, _do_leave promotion) sending from the creator bot (KhatmSaz_bot) instead of the member bot. Added bot_instance_id=participation.joined_via_bot_instance_id to get_notify_fn() calls in leave.py.
 
