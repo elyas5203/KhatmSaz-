@@ -1,4 +1,7 @@
 ### 2026-10-02
+- **Fixed**: Leave notifications (approval, rejection, and waitlist promotion) are now routed through the correct member bot instead of defaulting to the Creator bot.
+
+### 2026-10-02
 - **Fixed**: 'Approve' or 'Reject' leave from a commitment Khatm now works correctly for Creators (leave_router added to shared routers).
 - **Fixed**: Joining a 'Targeted/Commitment' Dua/Ziyarat Khatm no longer automatically forces the total Khatm goal as the user's portion.
 - **Changed**: The 'Commitment Mode Picker' (Regular vs Count) is no longer forced immediately upon joining; instead, the member gets the '??? ??????' button first, which opens the picker.

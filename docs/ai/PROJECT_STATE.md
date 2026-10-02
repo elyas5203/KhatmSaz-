@@ -1,3 +1,6 @@
+### 2026-10-02 - Bug Fixes: Leave Notifications Routing
+- Fixed leave notifications (approve_leave, reject_leave, _do_leave promotion) sending from the creator bot (KhatmSaz_bot) instead of the member bot. Added bot_instance_id=participation.joined_via_bot_instance_id to get_notify_fn() calls in leave.py.
+
 ### 2026-10-02 - Bug Fixes: Join Flow & Multi-bot Leave Actions
 - Made leave_router shared in bootstrap.py so KhatmSaz_bot (Creator bot) can handle approve_leave and reject_leave callbacks.
 - Fixed commitment Salawat khatm logic: removed legacy repetition_target auto-allocation on join/leave (fixes users incorrectly getting the entire Khatm's total target as their personal share).

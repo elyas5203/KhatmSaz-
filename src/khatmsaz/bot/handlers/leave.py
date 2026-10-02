@@ -127,7 +127,12 @@ async def approve_leave(callback: CallbackQuery) -> None:
 
     notify = get_notify_fn()
     for identity in requester_identities:
-        await notify(identity.platform.value, identity.subject, t("leave.approved_requester_side", requester_lang))
+        await notify(
+            identity.platform.value,
+            identity.subject,
+            t("leave.approved_requester_side", requester_lang),
+            bot_instance_id=participation.joined_via_bot_instance_id
+        )
 
 
 @router.callback_query(F.data.startswith("reject_leave:"))
@@ -148,7 +153,12 @@ async def reject_leave(callback: CallbackQuery) -> None:
 
     notify = get_notify_fn()
     for identity in requester_identities:
-        await notify(identity.platform.value, identity.subject, t("leave.rejected_requester_side", requester_lang))
+        await notify(
+            identity.platform.value,
+            identity.subject,
+            t("leave.rejected_requester_side", requester_lang),
+            bot_instance_id=participation.joined_via_bot_instance_id
+        )
 
 
 async def _do_leave(
@@ -184,4 +194,9 @@ async def _do_leave(
         if promoted_portion is not None:
             text += t("leave.promoted_portion_line", promoted_lang, start=promoted_portion.unit_start, end=promoted_portion.unit_end)
         for identity in promoted_identities:
-            await notify(identity.platform.value, identity.subject, text)
+            await notify(
+                identity.platform.value,
+                identity.subject,
+                text,
+                bot_instance_id=promoted_participation.joined_via_bot_instance_id
+            )
