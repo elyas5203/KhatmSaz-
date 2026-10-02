@@ -117,6 +117,17 @@ async def settings_home(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
+@router.callback_query(F.data == "settings:audio_toggle")
+async def toggle_audio(callback: CallbackQuery) -> None:
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
+        settings = await settings_service.get_or_create(session, user.id)
+        new_val = not settings.quran_audio_enabled
+        await settings_service.set_quran_audio_enabled(session, user.id, new_val)
+    await settings_home(callback)
+
+
 @router.callback_query(F.data == "settings:language")
 async def settings_language_menu(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)

@@ -233,6 +233,15 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa", show_creato
             # Owner (2026-10-01): languages are temporarily Persian-only — hide the
             # «زبان» button until Arabic/English are re-enabled in a later update.
             [
+                InlineKeyboardButton(
+                    text=t("settings.button.audio_off" if audio_enabled else "settings.button.audio_on", lang),
+                    callback_data="settings:audio_toggle"
+                ),
+            ],
+            [
+                InlineKeyboardButton(text=t("settings.button.reciter", lang), callback_data="settings:reciter"),
+            ],
+            [
                 InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
             ],
             [

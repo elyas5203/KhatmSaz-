@@ -38,7 +38,7 @@ from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmTemplateType
+from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_workflow import service as workflow_service
 from khatmsaz.modules.invitation import service as invitation_service
