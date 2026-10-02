@@ -384,11 +384,6 @@ def build_join_success_message(
     # Ziyarat/La'an) the member-commitment MODE PICKER is shown right after this
     # message, so the join-success card must NOT carry a «ثبت مشارکت» button —
     # tapping it fresh-join was confusing («یهو خیلی شلوغ شد»). No action keyboard.
-    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type not in (
-        KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH
-    ):
-        return text, None
-
     return text, contribute_keyboard(str(khatm.id), lang)
 
 
@@ -561,17 +556,6 @@ async def resume_join_after_registration(
         from khatmsaz.bot.handlers.portions import start_open_quran_setup
         await start_open_quran_setup(
             join_message, state, khatm_id=str(khatm.id), lang=lang, summary=text,
-        )
-    elif state is not None and not was_waitlisted and is_repetition_commitment:
-        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
-        commitment_family = "SALAWAT"
-        if khatm.content_category_id:
-            commitment_category = await category_service.get(session, khatm.content_category_id)
-            if commitment_category is not None:
-                commitment_family = commitment_category.group.value
-        await start_commitment_mode_picker(
-            join_message, state, participation.id, lang, summary=text,
-            family=commitment_family,
         )
     elif (
         state is not None and is_fresh_join

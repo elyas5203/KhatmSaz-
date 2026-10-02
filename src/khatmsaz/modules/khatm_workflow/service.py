@@ -364,15 +364,11 @@ async def _complete_join(
 
     first_portion: KhatmPortion | None = None
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
-        if khatm.template_type == KhatmTemplateType.SALAWAT and khatm.repetition_target:
-            # Legacy per-person model: creator fixed a per-member quantity.
-            first_portion = await allocation_service.assign_quantity_commitment(
-                session, khatm_id, participation.id, khatm.repetition_target
-            )
-        # else (R5, owner 2026-09-28): the creator set only a TOTAL goal —
+        # (R5, owner 2026-09-28): the creator set only a TOTAL goal —
         # each member logs their own contributions toward it (like OPEN), so
         # no fixed portion is assigned here; the success message offers the
-        # contribute button.
+        # contribute button, and then the member commitment picker takes over.
+        pass
 
     return khatm, participation, first_portion, False
 
@@ -416,10 +412,8 @@ async def leave_khatm(
         new_portion = await allocation_service.allocate_next_portion_to(
             session, khatm.id, promoted_participation.id
         )
-    elif khatm.template_type == KhatmTemplateType.SALAWAT:
-        new_portion = await allocation_service.assign_quantity_commitment(
-            session, khatm.id, promoted_participation.id, khatm.repetition_target
-        )
+    # For Salawat/Dua/Ziyarat/La'an, the member picks their own mode
+    # so no portion is auto-allocated.
 
     return promoted_participation, new_portion
 

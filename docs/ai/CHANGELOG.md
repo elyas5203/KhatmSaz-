@@ -1,3 +1,8 @@
+### 2026-10-02
+- **Fixed**: 'Approve' or 'Reject' leave from a commitment Khatm now works correctly for Creators (leave_router added to shared routers).
+- **Fixed**: Joining a 'Targeted/Commitment' Dua/Ziyarat Khatm no longer automatically forces the total Khatm goal as the user's portion.
+- **Changed**: The 'Commitment Mode Picker' (Regular vs Count) is no longer forced immediately upon joining; instead, the member gets the '??? ??????' button first, which opens the picker.
+
 ## 2026-10-02 (today-share delivery integrity)
 - Fixed open devotional Today actions that showed a generic share prompt without sending the Dua/Ziyarat content.
 - Unified «لیست ختم‌های من» Today buttons with the canonical delivery flow and repaired legacy member-bot ownership metadata when it can be derived safely.

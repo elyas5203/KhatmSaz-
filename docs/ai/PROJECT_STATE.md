@@ -1,3 +1,8 @@
+### 2026-10-02 - Bug Fixes: Join Flow & Multi-bot Leave Actions
+- Made leave_router shared in bootstrap.py so KhatmSaz_bot (Creator bot) can handle approve_leave and reject_leave callbacks.
+- Fixed commitment Salawat khatm logic: removed legacy repetition_target auto-allocation on join/leave (fixes users incorrectly getting the entire Khatm's total target as their personal share).
+- Restored 'contribute' button to join success card for Salawat commitment khatms. Mode picker now appears upon clicking 'contribute' if no mode is picked, fulfilling the user's request to not show it immediately upon join.
+
 ## Current state — 2026-10-02 — Reliable today-share content delivery [Codex]
 - «انجام قرائت امروز» and the per-khatm Today action now use one canonical delivery path. Open Dua/Ziyarat/Salawat/La'an shares send their actual registered text/media before the completion action.
 - Scheduled regular and open devotional reminders no longer expose a completion/logging action when the reading content could not be delivered. Manual Quran delivery likewise consumes the daily share only after content delivery succeeds.

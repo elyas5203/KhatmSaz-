@@ -597,6 +597,24 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         await safe_answer_callback(callback)
         return
 
+    if (
+        khatm is not None and khatm.khatm_type == KhatmTypeEnum.COMMITMENT 
+        and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH)
+        and participation is not None
+        and getattr(participation, "commitment_mode", None) is None
+    ):
+        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        commitment_family = "SALAWAT"
+        if khatm.content_category_id:
+            commitment_category = await category_service.get(session, khatm.content_category_id)
+            if commitment_category is not None:
+                commitment_family = commitment_category.group.value
+        await start_commitment_mode_picker(
+            callback.message, state, participation.id, lang, family=commitment_family
+        )
+        await safe_answer_callback(callback)
+        return
+
     unit = _unit_label(khatm.template_type, lang) if khatm is not None else t("portions.unit.time", lang)
 
     await state.set_state(LogContribution.entering_amount)

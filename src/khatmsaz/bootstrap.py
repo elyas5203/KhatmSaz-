@@ -33,7 +33,6 @@ from khatmsaz.bot.handlers.language_settings import router as language_settings_
 from khatmsaz.bot.handlers.manual_phone_verification import router as manual_phone_verification_router
 from khatmsaz.bot.handlers.creator_request import router as creator_request_router
 from khatmsaz.bot.handlers.khatm_request import router as khatm_request_router
-from khatmsaz.bot.handlers.leave import router as leave_router
 from khatmsaz.bot.handlers.manage_content import router as manage_content_router
 from khatmsaz.bot.handlers.my_khatms import router as my_khatms_router
 from khatmsaz.bot.handlers.portions import router as portions_router
@@ -208,7 +207,6 @@ async def main() -> None:
     dp_member.include_router(member_my_khatms_router)
     dp_member.include_router(portions_router)
     dp_member.include_router(devotional_router)
-    dp_member.include_router(leave_router)
     # public_khatms moved to the shared list below so /public_khatms works on
     # the creator bot too (owner live QA 2026-09-28: it produced no output
     # there because it was member-only).
@@ -249,6 +247,7 @@ async def main() -> None:
 
     _shared_module_paths = [
         "khatmsaz.bot.handlers.public_khatms",
+        "khatmsaz.bot.handlers.leave",
         "khatmsaz.bot.handlers.join_flow",
         "khatmsaz.bot.handlers.join_requests",
         "khatmsaz.bot.handlers.member_commitment",
