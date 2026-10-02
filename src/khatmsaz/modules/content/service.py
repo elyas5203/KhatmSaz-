@@ -37,6 +37,30 @@ SALAWAT_TITLE = "صلوات"
 SALAWAT_TEXT = "الّلهُمَّ صَلِّ عَلَی مُحَمَّدٍ وَآلِ مُحَمَّدٍ وَعَجِّلْ فَرَجَهُمْ وَالْعَنْ أعْداءَهُم أجْمَعِینَ"
 
 
+async def resolve_khatm_devotional_source(session: AsyncSession, khatm):
+    """Resolve the category and library slug for every non-Quran khatm.
+
+    Older production categories may predate the explicit ``devotional_slug``
+    link. Keep the documented Ziyarat Ashura title fallback here so manual
+    and scheduled delivery cannot drift into different behavior.
+    """
+    from khatmsaz.modules.khatm.models import KhatmTemplateType
+    from khatmsaz.modules.khatm_category import service as category_service
+
+    template_type = getattr(khatm, "template_type", KhatmTemplateType.SALAWAT)
+    if template_type != KhatmTemplateType.SALAWAT:
+        return None, None
+    if not khatm.content_category_id:
+        return None, SALAWAT_SLUG
+    category = await category_service.get(session, khatm.content_category_id)
+    if category is None:
+        return None, None
+    slug = category.devotional_slug
+    if not slug and "عاشورا" in category.title:
+        slug = "ziyarat-ashura"
+    return category, slug
+
+
 def get_quran_total_pages(khatm: Khatm) -> int:
     """Total page count for a Quran khatm's edition. OPEN QURAN_PAGE khatms
     already store this in `repetition_target` at creation time

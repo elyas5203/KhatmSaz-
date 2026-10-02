@@ -384,12 +384,16 @@ async def deliver_due_regular_commitments(
         # Send registered images/PDF first; use text only when no readable media
         # exists. This is the scheduled equivalent of «انجام قرائت امروز».
         from khatmsaz.bot.notify_adapter import send_devotional_content
+        content_delivered = False
         for identity in await identity_service.list_identities_for_user(session, participation.user_id):
-            await send_devotional_content(
+            content_delivered = await send_devotional_content(
                 session, identity.platform.value, identity.subject,
                 khatm=khatm, lang=user_settings.language,
                 bot_instance_id=participation.joined_via_bot_instance_id,
-            )
+            ) or content_delivered
+        if not content_delivered:
+            logger.warning("Skipping reminder action because khatm content was unavailable: %s", khatm.id)
+            continue
         from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
@@ -483,6 +487,18 @@ async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
                 title=khatm.title,
                 default=f"یادآوری همراهی 🌱\nامروز می‌توانید در «{khatm.title}» مشارکت کنید.",
             )
+            if khatm.template_type == KhatmTemplateType.SALAWAT:
+                from khatmsaz.bot.notify_adapter import send_devotional_content
+                content_delivered = False
+                for identity in await identity_service.list_identities_for_user(session, participation.user_id):
+                    content_delivered = await send_devotional_content(
+                        session, identity.platform.value, identity.subject,
+                        khatm=khatm, lang=user_settings.language,
+                        bot_instance_id=participation.joined_via_bot_instance_id,
+                    ) or content_delivered
+                if not content_delivered:
+                    logger.warning("Skipping open reminder action because khatm content was unavailable: %s", khatm.id)
+                    continue
             from khatmsaz.bot.keyboards import contribute_keyboard
             delivered = await _notify_user_with_keyboard(
                 session, participation.user_id, text,

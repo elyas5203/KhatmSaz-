@@ -1,3 +1,10 @@
+## Current state — 2026-10-02 — Reliable today-share content delivery [Codex]
+- «انجام قرائت امروز» and the per-khatm Today action now use one canonical delivery path. Open Dua/Ziyarat/Salawat/La'an shares send their actual registered text/media before the completion action.
+- Scheduled regular and open devotional reminders no longer expose a completion/logging action when the reading content could not be delivered. Manual Quran delivery likewise consumes the daily share only after content delivery succeeds.
+- Legacy active memberships with a missing member-bot instance are safely matched by platform/category and repaired, preventing a visible khatm from incorrectly producing «سهم فعالی ندارید».
+- Completion logging no longer re-sends the devotional text after the user has already read and recorded it.
+- Validation: full suite **286 passed, 85 skipped**; no migration was required.
+
 ## Current state — 2026-10-01 — Same-member-bot private approvals and broadcasts [Codex]
 - Private join callbacks now carry a compact platform/category/language route within Telegram's 64-byte callback limit. Approval persists the originating member-bot instance on the participation, and both approval and rejection responses return through that member bot. Pre-deployment pending buttons use a best-effort category/platform fallback.
 - Digital creator broadcasts now resolve each recipient as `(platform identity, joined member bot)` instead of a bare chat ID. Text and media are sent through that participation's member bot in both bot-command and web-panel moderation paths.

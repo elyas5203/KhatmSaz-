@@ -175,19 +175,15 @@ async def _lang_for(chat_id, bot) -> str:
 # link (BACKLOG.md §14), replacing the old fragile name-matching hint
 # dict (kept only as a fallback for categories an admin hasn't linked
 # yet, so nothing silently stops working after this change).
-_CATEGORY_DEVOTIONAL_SLUG_HINTS = {"عاشورا": "ziyarat-ashura"}
-
-
-async def _send_recitation_content(session, message: Message, khatm) -> None:
+async def _send_recitation_content(session, message: Message, khatm) -> bool:
     if khatm.template_type != KhatmTemplateType.SALAWAT:
-        return
+        return False
     if khatm.description:
         # Creator-authored free text (La'an only) — escape it since the
         # bot's default parse mode is HTML and this is untrusted creator
         # input, unlike the curated devotional-library text below.
         await message.answer(escape(khatm.description))
-        return
-    category = None
+        return True
     if not khatm.content_category_id:
         # Plain Salawat has one owner-defined wording and no category.  When
         # the admin later adds its public image URL, send one photo with this
@@ -198,22 +194,12 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
                 image_url = _public_devotional_image_url(asset.image_ref)
                 if image_url:
                     await message.answer_photo(image_url, caption=content_service.SALAWAT_TEXT)
-                    return
+                    return True
             except Exception:
                 pass
         await message.answer(content_service.SALAWAT_TEXT)
-        return
-    slug = "salawat"
-    if khatm.content_category_id:
-        category = await category_service.get(session, khatm.content_category_id)
-        slug = None
-        if category:
-            slug = category.devotional_slug
-            if slug is None:
-                for hint, hint_slug in _CATEGORY_DEVOTIONAL_SLUG_HINTS.items():
-                    if hint in category.title:
-                        slug = hint_slug
-                        break
+        return True
+    category, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     lang = await _lang_for(message.chat.id, message.bot)
 
@@ -229,13 +215,15 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
     if slug is None:
         if category and category.body_text:
             await message.answer(escape(category.body_text))
-        return
+            return True
+        return False
 
     asset = await content_service.get_devotional_asset(session, slug)
     if asset is None:
         if category and category.body_text:
             await message.answer(escape(category.body_text))
-        return
+            return True
+        return False
 
     from khatmsaz.bot.handlers.devotional import deliver_devotional_media
     has_reading_media = await deliver_devotional_media(
@@ -245,8 +233,11 @@ async def _send_recitation_content(session, message: Message, khatm) -> None:
     if asset.text_body and not has_reading_media:
         for chunk in asset.text_body.split("\x1e"):
             await message.answer(chunk)
+        return True
     elif not has_reading_media and category and category.body_text:
         await message.answer(escape(category.body_text))
+        return True
+    return has_reading_media
 
 
 async def _invite_friends_line(session, khatm, creator_user_id, platform: Platform, lang: str, *, bot=None) -> str:
@@ -802,7 +793,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
                 "\n".join(lines),
                 reply_markup=home_keyboard_for_bot(message.bot, lang) if done else commitment_quantity_keyboard(khatm_id, lang),
             )
-            await _send_recitation_content(session, message, khatm)
             return
         counted, surplus, new_total = await contribution_service.log_contribution(
             session, khatm_id, participation.id, amount, khatm.repetition_target
@@ -876,10 +866,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         await message.answer("\n".join(lines), reply_markup=home_keyboard_for_bot(message.bot, lang))
     else:
         await message.answer("\n".join(lines), reply_markup=contribute_keyboard(khatm_id, lang))
-
-    async with session_scope() as session:
-        await _send_recitation_content(session, message, khatm)
-
 
 @router.callback_query(F.data.startswith("pause_ask:"))
 async def ask_pause_duration(callback: CallbackQuery) -> None:

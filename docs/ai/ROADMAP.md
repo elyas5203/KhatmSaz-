@@ -10,6 +10,12 @@ delete a completed phase.
 - [x] Keep Salawat open/commitment preview and consent consistent.
 - [x] Handle private approve/reject actions in the creator bot and identify applicants.
 
+## 2026-10-02 — Today-share delivery integrity (DONE)
+- [x] Send registered devotional content before every manual/scheduled completion action.
+- [x] Route per-khatm Today actions through the same delivery implementation.
+- [x] Recover safely attributable legacy memberships with no member-bot instance.
+- [x] Consume a daily share only after its content was delivered.
+
 ## 2026-10-01 — Same-member-bot delivery routing (DONE)
 - [x] Return private join approval/rejection messages through the originating member bot.
 - [x] Persist the member-bot instance when a private request is approved.

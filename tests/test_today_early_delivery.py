@@ -9,6 +9,7 @@ from khatmsaz.i18n import t
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.participation.commitment import CommitmentMode
 from khatmsaz.modules.bot_registry.models import BotRole
+from khatmsaz.modules.khatm.models import KhatmTemplateType
 
 
 class FakeMessage:
@@ -121,7 +122,7 @@ async def test_early_regular_share_waits_for_done_before_consuming_schedule(monk
     # stub it so this unit test stays DB-free.
     import khatmsaz.bot.handlers.portions as _portions
     async def _no_content(*a, **k):
-        return None
+        return True
     monkeypatch.setattr(_portions, "_send_recitation_content", _no_content)
     callback = FakeCallback("p1")
     await report.deliver_today_early(callback)
@@ -129,6 +130,49 @@ async def test_early_regular_share_waits_for_done_before_consuming_schedule(monk
     # The «انجام سهم» button must be on the LAST message (after any content).
     markup = callback.message.answers[-1][1]["reply_markup"]
     assert markup.inline_keyboard[0][0].callback_data == "regular_early_done:p1"
+
+
+@pytest.mark.asyncio
+async def test_open_devotional_today_sends_content_before_action(monkeypatch):
+    participation = SimpleNamespace(
+        id="p1", user_id="u1", khatm_id="k1", joined_via_bot_instance_id="bot-1",
+        commitment_mode=None, open_reading_pages_per_day=None,
+    )
+    khatm = SimpleNamespace(id="k1", title="زیارت عاشورا", template_type=KhatmTemplateType.SALAWAT)
+
+    @asynccontextmanager
+    async def fake_scope():
+        yield object()
+
+    async def fake_user(*args, **kwargs): return SimpleNamespace(id="u1")
+    async def fake_participation(*args, **kwargs): return participation
+    async def fake_khatm(*args, **kwargs): return khatm
+    async def fake_settings(*args, **kwargs): return SimpleNamespace(timezone="Asia/Tehran")
+    async def fake_none(*args, **kwargs): return None
+    async def fake_false(*args, **kwargs): return False
+    async def fake_record(*args, **kwargs): return None
+
+    monkeypatch.setattr(report, "session_scope", fake_scope)
+    monkeypatch.setattr(report.identity_service, "resolve_or_provision_user", fake_user)
+    monkeypatch.setattr(report.participation_service, "get_by_id", fake_participation)
+    monkeypatch.setattr(report.khatm_service, "get_khatm", fake_khatm)
+    monkeypatch.setattr(report.khatm_service, "has_started", lambda _k: True)
+    monkeypatch.setattr(report.settings_service, "get_or_create", fake_settings)
+    monkeypatch.setattr(report.allocation_service, "get_current_portion", fake_none)
+    monkeypatch.setattr(report.notification_service, "already_sent_today", fake_false)
+    monkeypatch.setattr(report.notification_service, "record_sent", fake_record)
+
+    import khatmsaz.bot.handlers.portions as _portions
+    async def fake_content(_session, message, _khatm):
+        await message.answer("متن کامل زیارت")
+        return True
+    monkeypatch.setattr(_portions, "_send_recitation_content", fake_content)
+
+    callback = FakeCallback("p1")
+    await report.deliver_today_early(callback)
+
+    assert callback.message.answers[0][0] == "متن کامل زیارت"
+    assert callback.message.answers[-1][1]["reply_markup"].inline_keyboard[0][0].callback_data == "contribute:k1"
 
 
 def test_every_public_join_routes_through_the_explicit_consent_gate():

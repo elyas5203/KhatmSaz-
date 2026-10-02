@@ -6,6 +6,19 @@ gone (e.g. the library was replaced).
 
 ---
 
+### A visible devotional khatm says there is no share, or sends no text
+**Symptom:** The khatm appears under «لیست ختم‌های من», but «انجام قرائت امروز»
+reports no active share, or only sends a generic completion prompt.
+
+**Cause observed on 2026-10-02:** The open devotional branch omitted the shared
+content sender, per-khatm buttons used an allocation-only legacy path, and old
+participations with a null member-bot instance were excluded by a strict filter.
+
+**Fix:** Route both buttons through `today_pick`, send content before exposing
+the action, and repair a null instance only after category/platform validation.
+
+---
+
 ### Docker container is running but port 55433 is not published on Windows
 **Symptom:** `docker exec ... pg_isready` succeeds, `HostConfig.PortBindings`
 still contains `55433:5432`, but `docker ps` shows only `5432/tcp`,

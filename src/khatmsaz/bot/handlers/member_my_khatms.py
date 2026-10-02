@@ -24,7 +24,7 @@ from khatmsaz.bot.keyboards import (
     safe_answer_callback,
 )
 from khatmsaz.modules.notification import service as notification_service
-from khatmsaz.bot.member_scope import participation_matches_bot, khatm_matches_bot
+from khatmsaz.bot.member_scope import ensure_participation_matches_bot
 
 router = Router(name="member_my_khatms")
 
@@ -47,11 +47,12 @@ async def list_member_khatms(message: Message) -> None:
             .where(Participation.user_id == user.id)
             .where(Participation.status == ParticipationStatus.ACTIVE)
         )
-        if instance_id is not None:
-            stmt = stmt.where(Participation.joined_via_bot_instance_id == instance_id)
-
         result = await session.execute(stmt)
-        participations = result.scalars().all()
+        participations = []
+        for participation in result.scalars().all():
+            candidate = await session.get(Khatm, participation.khatm_id)
+            if candidate is not None and await ensure_participation_matches_bot(session, participation, candidate, bot):
+                participations.append(participation)
 
         if not participations:
             await message.answer(t("my_khatms.empty", lang), reply_markup=home_keyboard_for_bot(bot, lang))
@@ -65,7 +66,7 @@ async def list_member_khatms(message: Message) -> None:
             buttons = [
                 [InlineKeyboardButton(
                     text="📅 " + t("menu.today", lang),
-                    callback_data=f"mk_portion:{khatm.id}",
+                    callback_data=f"today_pick:{p.id}",
                 )],
                 # Per-khatm reminder time: someone in several khatms can set a
                 # different delivery hour for each (owner request 2026-09-27).
@@ -122,38 +123,10 @@ async def show_member_portion(callback: CallbackQuery) -> None:
         if (
             participation is None
             or khatm is None
-            or not participation_matches_bot(participation, bot)
-            or not await khatm_matches_bot(session, khatm, bot)
+            or not await ensure_participation_matches_bot(session, participation, khatm, bot)
         ):
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
-        portion = await allocation_service.get_current_portion(session, khatm.id, participation.id)
-
-    if portion is None:
-        await callback.message.answer(
-            t("report.no_portion_today", lang),
-            reply_markup=home_keyboard_for_bot(bot, lang),
-        )
-        await safe_answer_callback(callback)
-        return
-
-    if portion.unit_kind == PortionUnitKind.POSITIONAL:
-        await callback.message.answer(
-            t("report.today_page_label", lang, title=khatm.title, start=portion.unit_start, end=portion.unit_end),
-            reply_markup=portion_done_keyboard(
-                str(khatm.id),
-                allow_snooze=bool(khatm.allow_snooze),
-                lang=lang,
-            ),
-        )
-    elif portion.unit_kind == PortionUnitKind.QUANTITY:
-        await callback.message.answer(
-            t("report.today_quantity_label", lang, title=khatm.title, quantity=portion.quantity),
-            reply_markup=commitment_quantity_keyboard(str(khatm.id), lang),
-        )
-    else:
-        await callback.message.answer(
-            f"🔹 {khatm.title}",
-            reply_markup=contribute_keyboard(str(khatm.id), lang),
-        )
-    await safe_answer_callback(callback)
+    callback.data = f"today_pick:{participation.id}"
+    from khatmsaz.bot.handlers.report import deliver_today_early
+    await deliver_today_early(callback)

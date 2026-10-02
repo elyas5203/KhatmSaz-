@@ -23,6 +23,23 @@ def participation_matches_bot(participation, bot) -> bool:
     return participation.joined_via_bot_instance_id == instance_id
 
 
+async def ensure_participation_matches_bot(session, participation, khatm: Khatm, bot) -> bool:
+    """Validate member-bot ownership and repair legacy rows with no instance id."""
+    instance_id = member_instance_id(bot)
+    if instance_id is None:
+        return getattr(bot, "khatmsaz_role", None) not in {BotRole.MEMBER, BotRole.MEMBER.value}
+    joined_instance = getattr(participation, "joined_via_bot_instance_id", instance_id)
+    if joined_instance == instance_id:
+        return True
+    if joined_instance is not None:
+        return False
+    if not await khatm_matches_bot(session, khatm, bot):
+        return False
+    participation.joined_via_bot_instance_id = instance_id
+    await session.flush()
+    return True
+
+
 async def khatm_matches_bot(session, khatm: Khatm, bot) -> bool:
     """Keep Quran/Salawat/Dua-Ziyarat/La'an families in their own member bot."""
     role = getattr(bot, "khatmsaz_role", None)

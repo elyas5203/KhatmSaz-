@@ -5,6 +5,21 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0112 — A share is consumable only after its content is delivered
+
+**Date:** 2026-10-02
+**Decision:** Manual Today actions, per-khatm actions and scheduled reminders use
+the same content-first contract. A completion/logging button and a daily sent
+stamp may appear only after the Quran or devotional content was successfully
+delivered through the member bot. Legacy participations with no stored bot
+instance may be attached only when their khatm family matches the current
+member bot; an explicit different instance is never overridden.
+
+**Why:** A generic prompt without the actual reading content lets users record
+work they could not perform and can permanently consume that day's share.
+
+---
+
 ### DEC-PY-0111 — Member-facing follow-ups stay inside the member bot
 
 **Date:** 2026-10-01

@@ -3159,6 +3159,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "أنجزت حصة هذه الختمة اليوم؛ الحصة التالية لليوم القادم.",
         "en": "You completed today's share; the next share is for the next day.",
     },
+    "report.content_unavailable": {
+        "fa": "محتوای این ختم هنوز در دسترس نیست؛ چیزی به‌عنوان سهم امروز ثبت نشد. لطفاً کمی بعد دوباره امتحان کنید.",
+        "ar": "محتوى هذه الختمة غير متاح الآن؛ لم تُسجّل حصة اليوم. يرجى المحاولة لاحقًا.",
+        "en": "This khatm's content is not available yet; today's share was not recorded. Please try again later.",
+    },
     "report.today_open": {
         "fa": "🌱 سهم امروزتان در «{title}» آماده است؛ بعد از انجام، مقدارش را ثبت کنید.",
         "ar": "🌱 حصة اليوم من «{title}» جاهزة؛ بعد إنجازها سجّل الكمية.",

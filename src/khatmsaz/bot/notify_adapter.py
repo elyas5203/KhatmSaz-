@@ -226,7 +226,6 @@ async def send_devotional_content(
     from khatmsaz.bot.handlers.devotional import deliver_devotional_media
     from khatmsaz.core.devotional_images import resolve_devotional_image_ref
     from khatmsaz.config import get_settings
-    from khatmsaz.modules.khatm_category import service as category_service
 
     registry = get_registry()
     platform = Platform(platform_value)
@@ -256,11 +255,7 @@ async def send_devotional_content(
             await target.answer(khatm.description)
             return True
 
-        category = None
-        slug = content_service.SALAWAT_SLUG
-        if khatm.content_category_id:
-            category = await category_service.get(session, khatm.content_category_id)
-            slug = category.devotional_slug if category else None
+        category, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
 
         sent = False
         if category and category.image_url:

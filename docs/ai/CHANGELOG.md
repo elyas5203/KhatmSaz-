@@ -1,3 +1,8 @@
+## 2026-10-02 (today-share delivery integrity)
+- Fixed open devotional Today actions that showed a generic share prompt without sending the Dua/Ziyarat content.
+- Unified «لیست ختم‌های من» Today buttons with the canonical delivery flow and repaired legacy member-bot ownership metadata when it can be derived safely.
+- Prevented manual/scheduled completion actions and daily-consumption stamps when content delivery fails, and stopped devotional content from being repeated after completion.
+
 ## 2026-10-01 (same-member-bot delivery routing)
 - Routed private-join approval/rejection results back through the exact category/language member bot that received the request, and persisted that bot on approved participations.
 - Routed approved creator broadcasts through each recipient's joined member bot instead of the creator bot.
