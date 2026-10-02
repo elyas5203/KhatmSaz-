@@ -1,3 +1,6 @@
+### 2026-10-02 - Bug Fixes: Open Quran Logging
+- Fixed an issue where manually logging a number of completed Quran pages in an open reading Khatm would automatically advance the cursor and immediately send the next batch of pages. Now it correctly just logs the reading, letting the daily reminder handle sending the next pages.
+
 ### 2026-10-02 - Bug Fixes: KhatmTypeEnum & Reciter Settings
 - Fixed NameError: name 'KhatmTypeEnum' is not defined crash in portions.py when tapping contribute.
 - Added Audio Toggle and Reciter selection buttons back into the member settings menu so users can receive Quran audio.

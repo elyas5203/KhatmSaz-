@@ -818,25 +818,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         await advertising_service.accrue_first_completed_action(session, participation.id)
         reached = khatm.repetition_target is not None and new_total >= khatm.repetition_target
 
-        # Owner request (2026-09-21): an open/waitlisted Quran reader who
-        # self-reports reading N pages should actually be sent those N
-        # pages' real content (image/audio/text) — not just have a bare
-        # number logged with nothing delivered. Advances the same cursor
-        # the daily auto-send uses, capped to what's left in the edition,
-        # and marks "sent today" so the auto-send doesn't duplicate it.
-        quran_pages_sent = None
-        if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-            total_pages = content_service.get_quran_total_pages(khatm)
-            remaining = max(0, total_pages - participation.open_reading_next_page + 1)
-            to_send = min(amount, remaining)
-            if to_send > 0:
-                reserved = await participation_service.advance_open_reading(session, participation.id, to_send)
-                quran_pages_sent = reserved
-                await participation_service.mark_open_reading_sent_now(session, participation.id)
-                await _deliver_quran_pages(
-                    session, message, khatm=khatm, user_id=user.id,
-                    page_start=reserved[0], page_end=reserved[1], platform=platform,
-                )
 
         invite_line = await _invite_friends_line(
             session, khatm, khatm.creator_user_id, platform, lang, bot=message.bot
@@ -855,8 +836,6 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
     unit = _unit_label(khatm.template_type, lang)
 
     lines = [recorded_text]
-    if quran_pages_sent is not None:
-        lines.append(t("portions.open_quran.pages_sent", lang, start=quran_pages_sent[0], end=quran_pages_sent[1]))
     if surplus > 0:
         lines.append(t("portions.open_surplus_split", lang, counted=int(counted), surplus=int(surplus), unit=unit))
 
