@@ -1,3 +1,11 @@
+## Current state — 2026-10-03 — Repeated La'an delivery hotfix [Codex]
+- Restored missing Persian return values in `bot/member_copy.py::reminder_text` and `completion_text`. A missing reminder return produced None after content delivery, so the action send failed and the schedule remained due on every scan. Restored the Quran audio settings hint.
+- Member home keyboard now requests persistent display and explicitly disables one-time hiding. Client users can still manually collapse their keyboard.
+- Regression exercises real daily due logic across two scans, checks nonempty La'an reminder and completion callback, and verifies one content/action delivery.
+- Validation: related tests 12 PASS; full suite before 294 passed/14 failed/94 skipped, after 297 passed/11 failed/94 skipped. Remaining failures predate this hotfix (i18n key, join fixtures, next-portion fixture, migration graph, consent tests). Import smoke and diff check PASS. Reviewed pending migration files; `alembic upgrade head` against our disposable PostgreSQL failed because existing history has multiple heads. No schema changes, push, production restart or live verification.
+- Owner rules remain DEC-PY-0116: creator-fixed amount immutable to members; outage delivers current day only and preserves previously sent obligations. No new product decision.
+- Next: review/apply this hotfix on VPS through the owner's deployment process; resolve existing migration graph separately before any schema upgrade.
+
 ﻿- **2026-10-03:** Fixed Phase 4 UX bugs and button placements.
   - Ensured the commitment warning message is deleted upon acceptance/cancellation.
   - Removed erroneous ✅ انجام سهم buttons from welcome cards and success messages, which caused Fixed Commitment readers to be incorrectly asked "how many pages did you read?".

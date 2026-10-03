@@ -1,3 +1,9 @@
+## 2026-10-03 — Repeated La'an reminder hotfix
+- Missing Persian return values: `src/khatmsaz/bot/member_copy.py`.
+- Persistent member keyboard: `src/khatmsaz/bot/keyboards.py::member_menu_keyboard`.
+- Repeated-scan regression: `tests/test_member_ux_regressions.py::test_regular_reminder_sends_content_before_action_message`.
+- Validation and deployment limits: latest Codex entry in `PROJECT_STATE.md` and `REDESIGN_V2_MASTER.md`.
+
 ## 2026-10-03 — بازطراحی یادآوری، رزرو عددی و تعهد روزانه
 - **مرجع ادامهٔ کار:** `docs/ai/REMINDER_REDESIGN_MASTER.md` — خواسته‌های R01–R21، شواهد F01–F15، پرسش‌ها، مراحل، migration و VPS؛ اجرا منتظر تأیید مالک.
 - DEC-PY-0113 — دروازهٔ تأیید پیش از اجرای بازطراحی؛ DONEهای مستر قبلی اثبات این درخواست نیستند.

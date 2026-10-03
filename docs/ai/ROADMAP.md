@@ -1,3 +1,8 @@
+## 2026-10-03 — La'an hotfix [Codex]
+- [x] Restore Persian reminder/completion return values, audio hint and persistent member keyboard.
+- [x] Verify content/action delivered once over repeated daily scans (12 related tests pass).
+- [ ] Owner deployment and live Telegram/Bale verification; existing test failures and multiple migration heads remain outside this hotfix.
+
 ## 2026-10-03 — Owner reminder redesign (approval pending)
 - [x] P0: inspect current delivery/join/settings paths and graph; publish `REMINDER_REDESIGN_MASTER.md`.
 - [ ] P1: owner approval and unresolved domain decisions.

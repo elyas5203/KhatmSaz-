@@ -1,3 +1,8 @@
+## 2026-10-03 — Codex — La'an reminder hotfix
+- Return Persian reminder/completion text so delivery can send the Done button and record today's delivery instead of resending content every minute.
+- Restore Quran audio hint and request persistent member keyboard.
+- Related tests 12 passed; full suite 297 passed, 11 pre-existing failures, 94 skipped. PostgreSQL upgrade blocked by pre-existing multiple Alembic heads. Not deployed.
+
 ﻿- **2026-10-03:** Fixed Phase 4 UX bugs. Removed erroneous ✅ انجام سهم buttons from welcome cards and success messages. Deleted commitment warning upon acceptance. Added audio settings hint to daily reminders.
 ## [Unreleased] - 2026-10-03
 ### Fixed

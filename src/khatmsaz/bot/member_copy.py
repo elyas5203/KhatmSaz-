@@ -69,6 +69,9 @@ def reminder_text(
         "تا برنامهٔ امروز ختم کامل بماند.\n\n"
         "در پناه حضرت صاحب‌الزمان علیه السلام"
     )
+    if family == "quran" and audio_enabled:
+        res += "\n\n💡 برای خاموش کردن دریافت صوت قرآن، به تنظیمات ربات بروید."
+    return res
 
 
 def completion_text(
@@ -87,3 +90,4 @@ def completion_text(
         "خداوند از شما قبول فرماید. با تشکر."
         f"{invite_line}"
     )
+    return res

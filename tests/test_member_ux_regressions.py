@@ -109,15 +109,16 @@ async def test_creator_intro_image_is_deleted_when_continue_is_tapped():
 
 @pytest.mark.asyncio
 async def test_regular_reminder_sends_content_before_action_message(monkeypatch):
+    from datetime import datetime, timezone
     events = []
     participation = SimpleNamespace(
-        id="pid", khatm_id="kid", user_id="uid", schedule_freq="WEEKLY", commitment_mode="REGULAR",
-        schedule_hour=13, schedule_anchor=36, schedule_last_sent_at=None,
+        id="pid", khatm_id="kid", user_id="uid", schedule_freq="DAILY", commitment_mode="REGULAR",
+        schedule_hour=0, schedule_anchor=0, schedule_last_sent_at=None,
         schedule_weekdays="3", commitment_per_occurrence=2,
         joined_via_bot_instance_id="bot-id",
     )
-    khatm = SimpleNamespace(id="kid", title="زیارت عاشورا")
-    settings = SimpleNamespace(timezone="Asia/Tehran", language="fa")
+    khatm = SimpleNamespace(id="kid", title="ختم لعن")
+    settings = SimpleNamespace(timezone="Asia/Tehran", language="fa", quran_audio_enabled=False)
     identity = SimpleNamespace(platform=SimpleNamespace(value="TELEGRAM"), subject="123")
 
     async def _list(*args, **kwargs): return [participation]
@@ -125,8 +126,15 @@ async def test_regular_reminder_sends_content_before_action_message(monkeypatch)
     async def _settings(*args, **kwargs): return settings
     async def _identities(*args, **kwargs): return [identity]
     async def _content(*args, **kwargs): events.append("content"); return True
-    async def _keyboard(*args, **kwargs): events.append("reminder"); return True
-    async def _mark(*args, **kwargs): events.append("marked")
+    async def _keyboard(session, user_id, text, keyboard, **kwargs):
+        assert isinstance(text, str) and text.strip()
+        assert "لعن" in text
+        assert keyboard.inline_keyboard[0][0].callback_data == "regular_done:pid"
+        events.append("reminder")
+        return True
+    async def _mark(*args, **kwargs):
+        participation.schedule_last_sent_at = datetime.now(timezone.utc)
+        events.append("marked")
 
     monkeypatch.setattr(reminder_service.participation_service, "list_active_with_regular_schedule", _list)
     monkeypatch.setattr(reminder_service.khatm_service, "get_khatm", _khatm)
@@ -137,11 +145,11 @@ async def test_regular_reminder_sends_content_before_action_message(monkeypatch)
     monkeypatch.setattr(reminder_service, "_notify_user_with_keyboard", _keyboard)
     monkeypatch.setattr(reminder_service.participation_service, "mark_schedule_sent_now", _mark)
     monkeypatch.setattr("khatmsaz.bot.notify_adapter.send_devotional_content", _content)
-    monkeypatch.setattr("khatmsaz.modules.participation.commitment.is_regular_due", lambda *a, **k: True)
 
     delivered = await reminder_service.deliver_due_regular_commitments(object(), lambda *a, **k: None)
 
     assert delivered == 1
+    assert await reminder_service.deliver_due_regular_commitments(object(), lambda *a, **k: None) == 0
     assert events == ["content", "reminder", "marked"]
 
 

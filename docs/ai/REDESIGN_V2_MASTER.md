@@ -1,3 +1,9 @@
+## 2026-10-03 — Urgent reminder regression [Codex]
+- [x] Diagnose repeated La'an content / missing Done action: `reminder_text` returned None for Persian; `completion_text` also missed its return.
+- [x] Restore returns and Quran audio hint; request persistent member menu.
+- [x] Regression: two daily scans, one nonempty action with regular_done callback, one content send.
+- [ ] Live deployment/verification (not performed). Full suite: 297 passed, 11 pre-existing failures, 94 skipped. Existing migration history has multiple heads; no new migration in this fix.
+
 # KhatmSaz Redesign Master Document
 
 This document tracks the ongoing rewrite and UX fixes for the KhatmSaz V2 Redesign.

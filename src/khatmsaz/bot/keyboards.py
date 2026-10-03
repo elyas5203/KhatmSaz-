@@ -78,6 +78,8 @@ def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.contact_creator", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def is_member_bot(bot) -> bool:
