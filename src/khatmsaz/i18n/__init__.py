@@ -1496,6 +1496,26 @@ _STRINGS: dict[str, dict[str, str]] = {
     "join.button.accept_open_rules": {
         "fa": "✅ متوجه شدم؛ ادامه می‌دهم", "ar": "✅ فهمت؛ أتابع", "en": "✅ I understand; continue",
     },
+    "join.consent.fixed_daily_rule": {
+        "fa": (
+            "⏳ <b>توجه: این ختم تعهدی است.</b>\n"
+            "سازنده این ختم، مقدار {amount} {unit} را به صورت ثابت و روزانه برای هر عضو در نظر گرفته است.\n"
+            "با ورود به این ختم، شما متعهد می‌شوید که این مقدار را به صورت منظم قرائت کنید.\n\n"
+            "اگر مایلید در این ختم شرکت کنید، دکمه تأیید را بزنید."
+        ),
+        "ar": (
+            "⏳ <b>انتباه: هذا ختم إلزامي.</b>\n"
+            "حدد المنشئ كمية يومية ثابتة وهي {amount} {unit} لكل عضو.\n"
+            "بانضمامك، أنت تلتزم بقراءة هذا المقدار بانتظام.\n\n"
+            "إذا كنت ترغب في المشاركة، اضغط على زر التأكيد."
+        ),
+        "en": (
+            "⏳ <b>Note: This is a commitment khatm.</b>\n"
+            "The creator has set a fixed daily amount of {amount} {unit} for each member.\n"
+            "By joining, you commit to reciting this amount regularly.\n\n"
+            "If you wish to participate, please tap the confirm button."
+        ),
+    },
     "join.consent.commitment_rule": {
         "fa": (
             "⚠️ <b>توجه: این ختم تعهدی است.</b>\n"
@@ -3526,6 +3546,36 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "✅ تأیید و ساخت لینک",
         "ar": "✅ تأكيد وإنشاء الرابط",
         "en": "✅ Confirm & create link",
+    },
+    "create_khatm.ask_fixed_daily_amount": {
+        "fa": "سهم روزانه هر عضو را به صورت یک عدد وارد کنید (مثلاً 100):",
+        "ar": "أدخل الحصة اليومية لكل عضو كرقم (مثلاً 100):",
+        "en": "Enter the daily share for each member as a number (e.g., 100):",
+    },
+    "create_khatm.invalid_number": {
+        "fa": "لطفاً یک عدد معتبر بزرگتر از صفر وارد کنید.",
+        "ar": "يرجى إدخال رقم صحيح أكبر من الصفر.",
+        "en": "Please enter a valid number greater than zero.",
+    },
+    "create_khatm.ask_commitment_policy": {
+        "fa": "نحوه مشارکت اعضا را مشخص کنید:\n\nمقدار ثابت روزانه: هر عضو دقیقاً مقداری که شما مشخص می‌کنید را به صورت روزانه قرائت می‌کند.\nانتخاب عضو: هر عضو می‌تواند مدل مشارکت (تعداد آزاد یا برنامه منظم) را خودش انتخاب کند.",
+        "ar": "يرجى تحديد سياسة المشاركة للأعضاء:\n\nكمية ثابتة يومياً: يقرأ كل عضو الكمية التي تحددها يومياً.\nاختيار العضو: يمكن لكل عضو اختيار كميته وتكراره بنفسه.",
+        "en": "Please specify the participation policy for members:\n\nFixed Daily Amount: Each member reads exactly the amount you specify daily.\nMember Choice: Each member can choose their own amount and frequency.",
+    },
+    "create_khatm.unit.page": {
+        "fa": "صفحه",
+        "ar": "صفحة",
+        "en": "page",
+    },
+    "ck.policy.fixed": {
+        "fa": "مقدار ثابت روزانه",
+        "ar": "كمية يومية ثابتة",
+        "en": "Fixed Daily Amount",
+    },
+    "ck.policy.member_choice": {
+        "fa": "انتخاب عضو",
+        "ar": "اختيار العضو",
+        "en": "Member Choice",
     },
 }
 

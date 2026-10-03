@@ -1122,3 +1122,12 @@ async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
         reply_markup=keyboard,
     )
     return True
+
+def commitment_policy_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("ck.policy.fixed", lang), callback_data="ck:policy:FIXED_DAILY")],
+            [InlineKeyboardButton(text=t("ck.policy.member_choice", lang), callback_data="ck:policy:MEMBER_CHOICE")],
+            _ck_back_row(lang),
+        ]
+    )

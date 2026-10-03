@@ -162,6 +162,9 @@ def build_join_consent_message(
         khatm, creator_name, member_count, lang,
         category_title=category_title, category_group=category_group,
     )
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
+        unit = t("create_khatm.unit.salawat", lang) if getattr(khatm, "content_category_id", None) else (t("create_khatm.unit.time", lang) if khatm.template_type == KhatmTemplateType.SALAWAT else t("create_khatm.unit.page", lang))
+        return f"{preview}\n\n" + t("join.consent.fixed_daily_rule", lang, amount=khatm.daily_commitment_amount, unit=unit)
     warning_key = (
         "join.consent.commitment_rule"
         if _is_commitment(khatm)
@@ -556,6 +559,15 @@ async def resume_join_after_registration(
         from khatmsaz.bot.handlers.portions import start_open_quran_setup
         await start_open_quran_setup(
             join_message, state, khatm_id=str(khatm.id), lang=lang, summary=text,
+        )
+    elif (
+        state is not None and is_fresh_join and is_repetition_commitment
+        and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
+    ):
+        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        family = pending_category_group if 'pending_category_group' in locals() else None
+        await start_commitment_mode_picker(
+            message, state, participation.id, lang, summary=text, family=family
         )
     elif (
         state is not None and is_fresh_join

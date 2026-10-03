@@ -61,6 +61,18 @@ async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0)
         await notification_service.set_reminder_preference(
             session, participation_id, reminder_hour=hour, reminder_minute=minute, enabled=True
         )
+        from khatmsaz.modules.participation import service as participation_service
+        from khatmsaz.modules.khatm import service as khatm_service
+        part = await participation_service.get_by_id(session, participation_id)
+        if part is not None:
+            khatm = await khatm_service.get_khatm(session, part.khatm_id)
+            if khatm and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
+                from khatmsaz.modules.participation.commitment import ScheduleFreq
+                await participation_service.set_commitment_schedule(
+                    session, participation_id, freq=ScheduleFreq.DAILY.value,
+                    hour=hour, minute=minute, times_per_period=1
+                )
+                part.commitment_per_occurrence = khatm.daily_commitment_amount
 
 
 def _parse_delivery_time(raw: str) -> tuple[int, int] | None:

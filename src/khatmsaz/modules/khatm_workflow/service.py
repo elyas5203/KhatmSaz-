@@ -166,6 +166,8 @@ async def create_and_launch_khatm(
     miss_notice_window_days: int = 3,
     schedule_kind: str = "NONE",
     schedule_value: str | None = None,
+    commitment_policy: str | None = None,
+    daily_commitment_amount: int | None = None,
     visibility: KhatmVisibility = KhatmVisibility.UNLISTED,
     allowed_platforms: str = "BOTH",
     pages_per_portion: int = allocation_service.DEFAULT_PAGES_PER_PORTION,
@@ -218,6 +220,8 @@ async def create_and_launch_khatm(
     ).value
     if khatm_type == KhatmTypeEnum.COMMITMENT:
         extra["daily_deadline_hour"] = daily_deadline_hour
+        extra["commitment_policy"] = commitment_policy
+        extra["daily_commitment_amount"] = daily_commitment_amount
 
     if template_type == KhatmTemplateType.SALAWAT:
         if khatm_type == KhatmTypeEnum.OPEN:

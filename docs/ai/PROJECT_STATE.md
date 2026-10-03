@@ -1,3 +1,10 @@
+## Current state — 2026-10-03 — Phase 4 Member Join Flow Completed [Antigravity]
+- Phase 4 of `REMINDER_REDESIGN_MASTER.md` is now complete and fully tested.
+- `start.py` updated to bypass `MEMBER_CHOICE` prompts for `FIXED_DAILY` khatms.
+- Fixed an issue where new members of `FIXED_DAILY` khatms were incorrectly missing their scheduled amount setup.
+- Handled i18n variables for different languages (fa, ar, en) and validated with `test_i18n_audit.py` and `test_i18n_coverage.py`.
+- Next Step: Proceed to Phase P5 (Numeric reservation and expiration).
+
 ## Current state — 2026-10-03 — Reminder redesign audit and approval-gated master [Codex]
 - Added `docs/ai/REMINDER_REDESIGN_MASTER.md`: full owner-request matrix, current-code findings, open domain questions, staged implementation, migration/test gates and conditional VPS runbook. Owner explicitly requires approval before implementation; no runtime code, schema, production data, commit or push changed.
 - Found separate preference/schedule clocks, COUNT without seven-day reservation, regular callbacks without occurrence identity, scheduled open-Quran sent markers preceding delivery, creator-bot fallbacks and UTC/local dedupe differences. Production root cause remains unverified without VPS evidence.

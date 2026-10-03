@@ -1,3 +1,8 @@
+# 2026-10-03 — Phase 4 Member Join Flow [Antigravity]
+- **Added**: Implemented Member Join Flow logic for `FIXED_DAILY` khatms. Users joining these khatms are no longer prompted for commitment modes and default directly to schedule delivery hour.
+- **Added**: i18n support for the new Fixed Daily commitment modes.
+- **Fixed**: Proper schedule delivery mapping to user participation models.
+
 # 2026-10-03 — Reminder redesign audit/master [Codex]
 - Added `REMINDER_REDESIGN_MASTER.md` with requirements R01–R21, evidence F01–F15, pending product questions, P0–P9 gates, migration strategy and VPS checklist.
 - Documentation only; implementation awaits the owner's explicit approval. Baseline: 285 passed, 1 failed (existing reciter-button expectation), 85 skipped; imports and Alembic head check passed.

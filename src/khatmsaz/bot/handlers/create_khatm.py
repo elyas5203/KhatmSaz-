@@ -28,6 +28,7 @@ from khatmsaz.bot.keyboards import (
     capacity_choice_keyboard,
     category_choice_keyboard,
     commitment_mode_keyboard,
+    commitment_policy_keyboard,
     confirm_keyboard,
     coupon_entry_keyboard,
     content_delivery_mode_keyboard,
@@ -77,6 +78,8 @@ class CreateKhatm(StatesGroup):
     entering_commitment_quantity = State()
     choosing_commitment_total = State()      # R5: creator picks the khatm TOTAL
     entering_commitment_total_custom = State()
+    choosing_commitment_policy = State()     # R14: fixed or member-choice
+    entering_fixed_daily_amount = State()    # R15: the fixed amount
     choosing_edition = State()
     choosing_content_delivery_mode = State()
     entering_deadline_hour = State()
@@ -896,11 +899,7 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
             content_delivery_mode=ContentDeliveryMode.AUTO.value,
         )
         if mode == KhatmTypeEnum.COMMITMENT.value:
-            await state.set_state(CreateKhatm.entering_deadline_hour)
-            await _wiz(
-                message, state, t("create_khatm.ask_deadline_hour", lang),
-                reply_markup=create_wizard_back_keyboard(lang),
-            )
+            await _ask_commitment_policy(message, state)
         else:
             await _ask_visibility(message, state)
 
@@ -916,15 +915,70 @@ def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
-    # Store the khatm TOTAL goal; per-person share is chosen by each member.
-    await state.update_data(salawat_open_target=total, salawat_commitment_quantity=None, capacity=None)
-    await state.set_state(CreateKhatm.entering_deadline_hour)
+
+async def _ask_commitment_policy(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_commitment_policy)
+    await _wiz(
+        message, state,
+        t("create_khatm.ask_commitment_policy", lang),
+        reply_markup=commitment_policy_keyboard(lang),
+    )
+
+
+@router.callback_query(F.data.startswith("ck:policy:"), StateFilter(CreateKhatm.choosing_commitment_policy))
+async def choose_commitment_policy(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    policy = callback.data.split(":", 2)[2]
+    await state.update_data(commitment_policy=policy)
+    await safe_clear_inline_keyboard(callback.message)
+    if policy == "FIXED_DAILY":
+        await state.set_state(CreateKhatm.entering_fixed_daily_amount)
+        data = await state.get_data()
+        unit = (
+            t("create_khatm.unit.salawat", lang)
+            if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
+            else (t("create_khatm.unit.time", lang) if data.get("template_type") == KhatmTemplateType.SALAWAT.value else t("create_khatm.unit.page", lang))
+        )
+        await _wiz(
+            callback.message, state, t("create_khatm.ask_fixed_daily_amount", lang, unit=unit),
+            reply_markup=create_wizard_back_keyboard(lang),
+        )
+    else:
+        await state.update_data(daily_commitment_amount=None)
+        await _after_commitment_policy(callback.message, state)
+    await safe_answer_callback(callback)
+
+
+@router.message(StateFilter(CreateKhatm.entering_fixed_daily_amount))
+async def enter_fixed_daily_amount(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+    lang = await _lang(state)
+    try:
+        amount = int(message.text.strip())
+        if amount <= 0:
+            raise ValueError()
+    except Exception:
+        await message.answer(t("create_khatm.invalid_number", lang))
+        return
+    await state.update_data(daily_commitment_amount=amount)
+    await _after_commitment_policy(message, state)
+
+
+async def _after_commitment_policy(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.entering_deadline_hour)
     await _wiz(
         message, state, t("create_khatm.ask_deadline_hour", lang),
         reply_markup=create_wizard_back_keyboard(lang),
     )
+
+
+async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
+    # Store the khatm TOTAL goal; per-person share is chosen by each member.
+    await state.update_data(salawat_open_target=total, salawat_commitment_quantity=None, capacity=None)
+    await _ask_commitment_policy(message, state)
 
 
 @router.callback_query(F.data.startswith("ck:total:"), StateFilter(CreateKhatm.choosing_commitment_total))
@@ -1558,6 +1612,8 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
                 creator_user_id=user.id,
                 template_type=KhatmTemplateType(data["template_type"]),
                 khatm_type=KhatmTypeEnum(data["khatm_type"]),
+                commitment_policy=data.get("commitment_policy"),
+                daily_commitment_amount=data.get("daily_commitment_amount"),
                 title=data["title"],
                 niyyat=data.get("niyyat"),
                 welcome_text=_compose_welcome_with_contact(
