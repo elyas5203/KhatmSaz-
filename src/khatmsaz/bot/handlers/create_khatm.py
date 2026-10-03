@@ -935,13 +935,19 @@ async def choose_commitment_policy(callback: CallbackQuery, state: FSMContext) -
     if policy == "FIXED_DAILY":
         await state.set_state(CreateKhatm.entering_fixed_daily_amount)
         data = await state.get_data()
-        unit = (
-            t("create_khatm.unit.salawat", lang)
-            if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
-            else (t("create_khatm.unit.time", lang) if data.get("template_type") == KhatmTemplateType.SALAWAT.value else t("create_khatm.unit.page", lang))
-        )
+        tt = data.get("template_type", "")
+        cg = data.get("category_group", "")
+        if tt == "QURAN":
+            ask_key = "create_khatm.ask_daily_quran"
+        elif tt == "SALAWAT" or cg == "SALAWAT":
+            ask_key = "create_khatm.ask_daily_salawat"
+        elif tt == "LAAN":
+            ask_key = "create_khatm.ask_daily_laan"
+        else:
+            ask_key = "create_khatm.ask_daily_dua"
+            
         await _wiz(
-            callback.message, state, t("create_khatm.ask_fixed_daily_amount", lang, unit=unit),
+            callback.message, state, t(ask_key, lang),
             reply_markup=create_wizard_back_keyboard(lang),
         )
     else:

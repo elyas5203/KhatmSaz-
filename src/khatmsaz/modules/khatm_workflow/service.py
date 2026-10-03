@@ -351,7 +351,7 @@ async def _complete_join(
     # Quran readers choose their own daily page count after joining.  They are
     # deliberately open participations: no automatic 1..N allocation, no
     # done/snooze lifecycle and no capacity/waiting-list slot.
-    is_member_controlled_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
+    is_member_controlled_quran = (khatm.khatm_type == KhatmTypeEnum.OPEN)
     capacity = None
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.SALAWAT:
         capacity = khatm.capacity

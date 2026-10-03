@@ -55,13 +55,13 @@ def share_label(
 
 
 def reminder_text(
-    khatm: Khatm, family: str, share: str, *, deadline: int | None, lang: str = "fa",
+    khatm: Khatm, family: str, share: str, *, deadline: int | None, lang: str = "fa", audio_enabled: bool = False
 ) -> str:
     if lang != "fa":
         return f"🌱 Your share in “{escape(khatm.title)}” is ready: {share}."
     deadline_text = f"ساعت {deadline:02d}:00 امشب (به وقت ایران)" if deadline is not None else "پایان امروز"
     action = "قرائت" if family in {"quran", "dua", "ziyarat"} else "انجام"
-    return (
+    res = (
         "با سلام و احترام 🌱\n\n"
         f"لطفاً {share} از ختم «{escape(khatm.title)}» را حداکثر تا {deadline_text} {action} بفرمایید "
         "و پس از انجام، روی دکمهٔ «✅ قرائت بخش فوق انجام شد» بزنید.\n\n"
@@ -80,7 +80,7 @@ def completion_text(
     if niyyat.startswith("به نیت "):
         niyyat = niyyat[len("به نیت "):].strip()
     verb = "خوانده شد" if family in {"quran", "dua", "ziyarat"} else "انجام شد"
-    return (
+    res = (
         "با سلام 🌱\n\n"
         f"✅ {share} {verb}.\n\n"
         f"اعلام شما در سیستم ثبت شد و در ثواب ختم «{escape(khatm.title)}» به نیت {escape(niyyat)} شریک شدید.\n\n"

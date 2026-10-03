@@ -217,10 +217,44 @@ async def enter_count(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     pid = data.get("commit_pid")
     async with session_scope() as session:
+        # V2 Redesign: COUNT mode is Numeric Reservation mode (7 days)
+        # 1. We record the mode for UX/menus
         await participation_service.set_commitment_count(session, pid, target)
+        
+        # 2. We create the actual 7-day reservation
+        participation = await participation_service.repository.get(session, pid)
+        khatm = await khatm_service.get_khatm(session, str(participation.khatm_id))
+        
+        result = await open_contribution_service.create_reservation(
+            session, str(khatm.id), pid, target, khatm.repetition_target
+        )
+        
+        if result is None:
+            # Capacity exceeded
+            await state.clear()
+            await message.answer(t("portions.no_capacity_left", lang))
+            return
+            
+        reservation, created = result
+        if not created:
+            # They already had one, we can just point them to it
+            pass
+
     await state.update_data(_cwiz_mid=None)
-    await _mwiz(message, state, t("commit.count_saved", lang, target=target),
-                reply_markup=commitment_count_log_keyboard(str(pid), lang))
+    
+    # Render the standard portion_done_keyboard (? ????? ???) for reservations
+    from khatmsaz.bot.keyboards import contribute_keyboard
+    # Let's create a specific complete_reservation button or reuse the existing one from open_reservations
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    markup = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="? ????? ???", callback_data=f"complete_reservation:{reservation.id}")
+    ]])
+    
+    # Inform them of the 7-day rule
+    await _mwiz(message, state, 
+        f"? ??? ??? ({target} ???) ?? ??? ? ??? ???? ??? ???? ??. ?? ???? ?? ????? ????? ???? ??? ?? ?????.",
+        reply_markup=markup
+    )
     await state.set_state(None)
 
 
@@ -428,7 +462,10 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         except Exception:
             pass
     await state.update_data(_cwiz_mid=None)
-    from khatmsaz.bot.handlers.change_delivery_hour import _LOCALIZED_WEEKDAYS
+    _LOCALIZED_WEEKDAYS = {
+        0: "days.monday", 1: "days.tuesday", 2: "days.wednesday",
+        3: "days.thursday", 4: "days.friday", 5: "days.saturday", 6: "days.sunday"
+    }
     family = data.get("commit_family")
     unit = t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
     

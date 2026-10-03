@@ -48,7 +48,7 @@ class UserSettings(Base):
     tafsir_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     # Audio is opt-in: Quran images are always the primary, least surprising
     # delivery and a participant receives recitation only after enabling it.
-    quran_audio_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    quran_audio_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     # YYYY-MM of the last closed calendar month processed by the positive
     # monthly-report worker. A string keeps the dedup key timezone-neutral.
     last_monthly_report_period: Mapped[str | None] = mapped_column(String(7), nullable=True)

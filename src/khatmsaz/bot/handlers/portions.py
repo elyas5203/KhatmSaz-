@@ -506,9 +506,20 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     except Exception:
         await safe_clear_inline_keyboard(callback.message)
     from khatmsaz.bot.member_copy import completion_text, share_label
+    from khatmsaz.bot.member_copy import content_family
+    family = await content_family(session, khatm)
+    
+    # If it's a quantity-based portion, unit_start and unit_end are probably None,
+    # but completed.quantity is set.
+    if completed.unit_kind.name == "QUANTITY":
+        count = completed.quantity
+        label = share_label(family, count=count, lang=lang)
+    else:
+        label = share_label(family, start=completed.unit_start, end=completed.unit_end, lang=lang)
+        
     confirmation = completion_text(
-        khatm, "quran",
-        share_label("quran", start=completed.unit_start, end=completed.unit_end, lang=lang),
+        khatm, family,
+        label,
         invite_line=invite_line, lang=lang,
     )
     if plan_completed:
@@ -591,19 +602,15 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
     # waitlisted) Quran reader wants to log/read, ask their daily page
     # count and delivery hour once, instead of only ever asking for a bare
     # number with nothing actually sent (BACKLOG.md — open Quran reading).
+    # V2 Redesign: Any OPEN khatm, or any MEMBER-CHOICE COMMITMENT khatm, 
+    # goes to the Mode Picker if mode is not set.
+    is_member_choice = (
+        khatm.khatm_type == KhatmTypeEnum.OPEN 
+        or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+    )
     if (
-        khatm is not None and khatm.template_type == KhatmTemplateType.QURAN_PAGE
-        and participation is not None and not participation.is_committed
-        and participation.open_reading_pages_per_day is None
-    ):
-        await start_open_quran_setup(callback.message, state, khatm_id=khatm_id, lang=lang)
-        await safe_answer_callback(callback)
-        return
-
-    if (
-        khatm is not None and khatm.khatm_type == KhatmTypeEnum.COMMITMENT 
-        and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH)
-        and participation is not None
+        khatm is not None and participation is not None 
+        and is_member_choice 
         and getattr(participation, "commitment_mode", None) is None
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
@@ -812,7 +819,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             await state.clear()
             await message.answer(
                 "\n".join(lines),
-                reply_markup=home_keyboard_for_bot(message.bot, lang) if done else commitment_quantity_keyboard(khatm_id, lang),
+                reply_markup=home_keyboard_for_bot(message.bot, lang),
             )
             return
         counted, surplus, new_total = await contribution_service.log_contribution(
@@ -865,7 +872,7 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
             await khatm_service.complete_khatm(session, khatm_id)
         await message.answer("\n".join(lines), reply_markup=home_keyboard_for_bot(message.bot, lang))
     else:
-        await message.answer("\n".join(lines), reply_markup=contribute_keyboard(khatm_id, lang))
+        await message.answer("\n".join(lines), reply_markup=home_keyboard_for_bot(message.bot, lang))
 
 @router.callback_query(F.data.startswith("pause_ask:"))
 async def ask_pause_duration(callback: CallbackQuery) -> None:
@@ -1017,6 +1024,6 @@ async def complete_open_reservation(callback: CallbackQuery, state: FSMContext) 
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         "\n".join(lines),
-        reply_markup=home_keyboard_for_bot(callback.message.bot, lang) if reached else contribute_keyboard(str(khatm.id), lang),
+        reply_markup=home_keyboard_for_bot(callback.message.bot, lang),
     )
     await safe_answer_callback(callback)

@@ -145,15 +145,37 @@ async def approve_join(callback: CallbackQuery) -> None:
     is_member_choice = getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
 
     needs_reminder = False
-    if not was_waitlisted and khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN):
-        if is_repetition_commitment and is_member_choice:
-            pass # Mode picker handles this
+    needs_mode_picker = False
+    
+    is_member_choice = (
+        khatm.khatm_type == KhatmTypeEnum.OPEN 
+        or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+    )
+    
+    if khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN):
+        if is_member_choice:
+            needs_mode_picker = True
         else:
             async with session_scope() as session:
                 pref = await notification_service.get_preference(session, participation.id)
                 if pref is None:
                     needs_reminder = True
+                    
+    if needs_mode_picker:
+        from khatmsaz.bot.keyboards import member_commitment_mode_keyboard
+        prompt_text = "
 
+".join(part for part in (
+            t("commit.explain", requester_lang).strip(), 
+            "? " + t("commit.ask_mode", requester_lang).strip(),
+        ) if part)
+        prompt_keyboard = member_commitment_mode_keyboard(str(participation.id), requester_lang)
+        for identity in requester_identities:
+            await send_with_keyboard(
+                identity.platform.value, identity.subject, prompt_text, prompt_keyboard,
+                bot_instance_id=participation.joined_via_bot_instance_id,
+            )
+            
     if needs_reminder:
         from khatmsaz.bot.keyboards import join_delivery_hour_keyboard
         prompt_text = t("join.ask_delivery_hour", requester_lang)

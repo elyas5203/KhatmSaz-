@@ -161,7 +161,7 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(pending_commitment_token=None)
         await callback.answer()
         try:
-            await callback.message.edit_reply_markup(reply_markup=None)
+            await callback.message.delete()
         except Exception:
             pass
         await state.clear()
@@ -194,7 +194,7 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
 async def cancel_commitment(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     try:
-        await callback.message.edit_reply_markup(reply_markup=None)
+        await callback.message.delete()
     except Exception:
         pass
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)

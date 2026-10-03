@@ -168,12 +168,12 @@ async def run_once(
         if reminders_enabled and not snoozed and current_hour == second_hour:
             await _maybe_send_staged_reminder(
                 session, notify, participation, khatm, portion,
-                NotificationKind.SECOND_REMINDER, "یادآوری دوم 🌱", user_settings.language,
+                NotificationKind.SECOND_REMINDER, "یادآوری دوم 🌱", user_settings.language, audio_enabled=user_settings.quran_audio_enabled
             )
         if reminders_enabled and not snoozed and current_hour == final_hour:
             await _maybe_send_staged_reminder(
                 session, notify, participation, khatm, portion,
-                NotificationKind.FINAL_REMINDER, "هشدار نهایی قبل از مهلت ⏰", user_settings.language,
+                NotificationKind.FINAL_REMINDER, "هشدار نهایی قبل از مهلت ⏰", user_settings.language, audio_enabled=user_settings.quran_audio_enabled
             )
         if current_hour >= khatm.daily_deadline_hour:
             await _maybe_record_miss_and_notify_creator(session, notify, participation, khatm)
@@ -260,7 +260,7 @@ async def deliver_due_next_portions(
                             text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
                                 khatm, "quran",
                                 share_label("quran", start=latest_portion.unit_start, end=latest_portion.unit_end, lang=user_settings.language),
-                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
                             )
                             from khatmsaz.bot.keyboards import portion_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
@@ -281,7 +281,7 @@ async def deliver_due_next_portions(
         text = reminder_text(
             khatm, "quran",
             share_label("quran", start=next_portion.unit_start, end=next_portion.unit_end, lang=user_settings.language),
-            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled
         )
         # Committed Quran is completed as one whole assigned portion. Keep the
         # single-tap «done» action on its scheduled delivery; numeric logging is
@@ -447,7 +447,7 @@ async def deliver_due_regular_commitments(
                             family = await content_family(session, khatm)
                             text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
                                 khatm, family, share_label(family, count=count, lang=user_settings.language),
-                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
                             )
                             from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
@@ -464,7 +464,7 @@ async def deliver_due_regular_commitments(
         family = await content_family(session, khatm)
         text = reminder_text(
             khatm, family, share_label(family, count=count, lang=user_settings.language),
-            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
         )
         # The reading content belongs immediately ABOVE the action reminder.
         # Send registered images/PDF first; use text only when no readable media
@@ -630,7 +630,7 @@ async def _maybe_send_reminder(session, notify: NotifyFn, participation, khatm, 
 
 
 async def _maybe_send_staged_reminder(
-    session, notify, participation, khatm, portion, kind: NotificationKind, heading: str, locale: str
+    session, notify, participation, khatm, portion, kind: NotificationKind, heading: str, locale: str, audio_enabled: bool = False
 ) -> None:
     if await notification_service.already_sent_today(session, participation.id, kind):
         return
@@ -638,7 +638,7 @@ async def _maybe_send_staged_reminder(
     text = heading + "\n\n" + reminder_text(
         khatm, "quran",
         share_label("quran", start=portion.unit_start, end=portion.unit_end, lang=locale),
-        deadline=getattr(khatm, "daily_deadline_hour", None), lang=locale,
+        deadline=getattr(khatm, "daily_deadline_hour", None), lang=locale, audio_enabled=audio_enabled
     )
     from khatmsaz.bot.keyboards import portion_done_keyboard
     delivered = await _notify_user_with_keyboard(

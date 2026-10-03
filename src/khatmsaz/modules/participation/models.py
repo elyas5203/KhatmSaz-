@@ -150,3 +150,31 @@ class Assignment(Base):
         Index("ix_assignments_participation_id", "participation_id"),
         Index("ix_assignments_status", "status"),
     )
+
+
+class CommitmentDelivery(Base):
+    """Tracks individual scheduled deliveries for REGULAR mode commitments,
+    to enable the 2-hour missed reminder deep-linking."""
+    __tablename__ = "commitment_deliveries"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    participation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("khatm_participations.id")
+    )
+    amount: Mapped[int] = mapped_column(Integer)
+    delivered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    
+    # Store the Telegram/Bale message details so the reminder can link to it
+    chat_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    message_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    
+    reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_commitment_deliveries_participation", "participation_id"),
+        Index("ix_commitment_deliveries_pending", "is_completed", "delivered_at"),
+    )
+
