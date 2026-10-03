@@ -1,3 +1,10 @@
+## 2026-10-03 — Owner reminder redesign (approval pending)
+- [x] P0: inspect current delivery/join/settings paths and graph; publish `REMINDER_REDESIGN_MASTER.md`.
+- [ ] P1: owner approval and unresolved domain decisions.
+- [ ] P2–P8: implement and verify image/consent cleanup, unified member schedules, creator daily policy, numeric reservations, occurrence-bound completion and follow-up cleanup.
+- [ ] P9: reviewed migration/backfill, final VPS commands, authorized deployment and live Telegram/Bale verification.
+- Existing baseline failure in `tests/test_help.py:104` remains; audit does not mark runtime changes complete.
+
 # ROADMAP
 
 Phased so each phase produces something runnable/demoable, not a pile of

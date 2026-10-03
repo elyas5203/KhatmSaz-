@@ -101,6 +101,6 @@ def test_settings_home_exposes_account_actions_as_buttons() -> None:
         for button in row
     }
     assert {"settings:profile", "settings:change_phone", "settings:link_account"} <= callbacks
-    assert "settings:reciter" not in callbacks
+    assert {"settings:reciter", "settings:audio_toggle"} <= callbacks
     assert "settings:digest" not in callbacks
     assert not any(value and value.startswith("quran_audio:") for value in callbacks)

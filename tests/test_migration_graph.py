@@ -40,4 +40,10 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     salawat_asset = script.get_revision("devsalawat2026100102")
     assert salawat_asset is not None
     assert salawat_asset.down_revision == "schedweekdays2026100101"
-    assert script.get_heads() == ["devsalawat2026100102"]
+    occurrences = script.get_revision("occ2026100301")
+    assert occurrences is not None
+    assert occurrences.down_revision == "devsalawat2026100102"
+    policy = script.get_revision("policy2026100302")
+    assert policy is not None
+    assert policy.down_revision == "occ2026100301"
+    assert script.get_heads() == ["policy2026100302"]

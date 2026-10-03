@@ -1,3 +1,10 @@
+## Current state — 2026-10-03 — Reminder redesign audit and approval-gated master [Codex]
+- Added `docs/ai/REMINDER_REDESIGN_MASTER.md`: full owner-request matrix, current-code findings, open domain questions, staged implementation, migration/test gates and conditional VPS runbook. Owner explicitly requires approval before implementation; no runtime code, schema, production data, commit or push changed.
+- Found separate preference/schedule clocks, COUNT without seven-day reservation, regular callbacks without occurrence identity, scheduled open-Quran sent markers preceding delivery, creator-bot fallbacks and UTC/local dedupe differences. Production root cause remains unverified without VPS evidence.
+- Intro image comes from `/bots` family settings before per-bot fallback; replacing a same-named local file does not establish the configured production reference changed. Consent handlers clear keyboards but retain the card.
+- Validation: initial pytest collection failed without PYTHONPATH; with `PYTHONPATH=src`, **285 passed, 1 failed, 85 skipped**. Existing `test_help.py:104` conflicts with restored reciter settings. Import smoke and single Alembic head pass. No migration apply/live bot testing. Graph JSON inspected but stale (`a1c4f462` versus current `5e7166b`).
+- Next: owner reviews the master, answers dependent questions and authorizes the next implementation phase. See DEC-PY-0113; prior DONE claims do not satisfy the new specification.
+
 ### 2026-10-02 - Bug Fixes: Open Quran Logging
 - Fixed an issue where manually logging a number of completed Quran pages in an open reading Khatm would automatically advance the cursor and immediately send the next batch of pages. Now it correctly just logs the reading, letting the daily reminder handle sending the next pages.
 

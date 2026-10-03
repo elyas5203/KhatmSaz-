@@ -105,9 +105,26 @@ async def set_commitment_schedule(
     session: AsyncSession, participation_id, *, freq: str, hour: int, minute: int,
     times_per_period: int, weekdays: str | None = None,
 ) -> None:
+    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+        raise ValueError("Invalid reminder time")
     await repository.set_commitment_schedule(
         session, participation_id, freq=freq, hour=hour, minute=minute,
         times_per_period=times_per_period, weekdays=weekdays,
+    )
+    from khatmsaz.modules.notification import service as notification_service
+
+    await notification_service.set_reminder_preference(
+        session, participation_id, reminder_hour=hour, reminder_minute=minute,
+    )
+
+
+async def update_regular_reminder_time(
+    session: AsyncSession, participation_id, *, hour: int, minute: int,
+) -> None:
+    if not 0 <= hour <= 23 or not 0 <= minute <= 59:
+        raise ValueError("Invalid reminder time")
+    await repository.update_regular_reminder_time(
+        session, participation_id, hour=hour, minute=minute,
     )
 
 

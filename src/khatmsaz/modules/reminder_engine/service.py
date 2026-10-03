@@ -363,11 +363,12 @@ async def deliver_due_regular_commitments(
             if participation.schedule_last_sent_at is not None
             else None
         )
+        reminder_hour, reminder_minute = await notification_service.get_reminder_time(session, participation)
         if not is_regular_due(
             now_local,
             participation.schedule_freq,
-            participation.schedule_hour,
-            participation.schedule_anchor or 0,  # minute (exact HH:MM)
+            reminder_hour,
+            reminder_minute,
             last_sent_local_date,
             weekdays=getattr(participation, "schedule_weekdays", None),
         ):

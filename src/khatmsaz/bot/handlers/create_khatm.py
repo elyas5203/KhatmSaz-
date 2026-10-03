@@ -18,7 +18,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, URLInputFile
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -141,13 +141,26 @@ async def _show_intro_image(message: Message, state: FSMContext) -> None:
     image = None
     try:
         async with session_scope() as session:
-            image = await bot_registry_service.get_intro_image_for_category(session, category)
+            image = await bot_registry_service.get_intro_image_for_category(
+                session, category,
+                platform=getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM).value,
+                language=lang,
+            )
     except Exception:
         image = None
     sent = None
     if image:
         try:
-            sent = await message.answer_photo(image, caption=caption, reply_markup=continue_kb)
+            # Upload current bytes instead of letting the messaging API reuse
+            # a cached URL. Keep signed URLs intact; legacy file IDs still work.
+            photo = (
+                URLInputFile(
+                    image, filename="intro.jpg", timeout=15,
+                    headers={"Cache-Control": "no-cache", "Pragma": "no-cache"},
+                )
+                if image.lower().startswith(("https://", "http://")) else image
+            )
+            sent = await message.answer_photo(photo, caption=caption, reply_markup=continue_kb)
         except Exception:
             sent = None
     if sent is None:

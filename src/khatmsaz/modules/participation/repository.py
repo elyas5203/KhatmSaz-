@@ -225,6 +225,17 @@ async def set_commitment_schedule(
     await session.flush()
 
 
+async def update_regular_reminder_time(
+    session: AsyncSession, participation_id, *, hour: int, minute: int,
+) -> None:
+    """Change only the clock of an existing regular plan, never its cadence."""
+    participation = await session.get(Participation, participation_id)
+    if participation is not None and participation.commitment_mode == "REGULAR":
+        participation.schedule_hour = hour
+        participation.schedule_anchor = minute
+        await session.flush()
+
+
 async def mark_schedule_sent_now(session: AsyncSession, participation_id, when) -> None:
     participation = await session.get(Participation, participation_id)
     if participation is None:

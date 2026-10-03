@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.config import get_settings
 from khatmsaz.modules.khatm import repository
+from khatmsaz.modules.khatm.commitment_policy import validate_policy
 from khatmsaz.modules.khatm.models import (
     Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum,
     KhatmVisibility, ReminderTone,
@@ -32,6 +33,10 @@ async def create_draft_khatm(
     commitment-or-free first, then picks the content"). See DECISIONS.md
     DEC-PY-0007 — this used to be hard-wired per template (DEC-PY-0004,
     now superseded)."""
+    validate_policy(
+        khatm_type, template_fields.get("commitment_policy", "MEMBER_CHOICE"),
+        template_fields.get("daily_commitment_amount"),
+    )
     return await repository.create(
         session,
         creator_user_id=creator_user_id,

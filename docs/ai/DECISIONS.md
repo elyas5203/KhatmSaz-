@@ -5,6 +5,37 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0116 — Fixed daily amounts and outage recovery
+
+**Date:** 2026-10-03
+**Owner decisions:** Members cannot override a creator-fixed daily quantity. Amount changes are available for OPEN and member-selected commitment schedules. After a multi-day outage, issue only the current day's occurrence; retain all previously delivered unfinished shares and do not fabricate obligations for unsent outage days.
+
+---
+
+### DEC-PY-0115 — Goal exhaustion, open reservation clock and editable reading settings
+
+**Date:** 2026-10-03
+**Owner decisions:** Stop issuing new shares once the total goal is met, retain previously issued commitments, and record additional completions as surplus. An OPEN numeric reservation lasts exactly 168 hours, with its warning at member-local noon six calendar days after the reservation day. Preserve existing members' amounts/schedules without inventing reservation expiry dates. The owner reports mainly test data, but no destructive cleanup is authorized. Members must be able to adjust Quran page counts and audio from their khatm settings; the interaction with creator-fixed daily quantities still needs clarification. No request to change Quran page order was given.
+
+---
+
+### DEC-PY-0114 — Owner authorizes staged execution and clarifies retained commitments
+
+**Date:** 2026-10-03
+**Owner approval:** Proceed step by step from `REMINDER_REDESIGN_MASTER.md`; mark ownership and in-progress/completed state so another assistant can continue without overlapping edits. This satisfies DEC-PY-0113's implementation gate, not the production deployment gate.
+**Rules:** Seven-day reservation release applies only to OPEN khatms. Committed shares remain owed until performed. Undone scheduled shares remain available while new daily occurrences are delivered. Both creator-fixed and member-selected commitment schedules receive one follow-up two hours after delivery and one reminder an hour before the creator's daily deadline while undone. The owner requests the open reservation's day-six reminder around noon; exact calendar/timezone interpretation remains to be settled before boundary tests. Use plain, warm Persian copy without implying that debt disappears at the deadline.
+
+---
+
+### DEC-PY-0113 — Audit first; owner approval before reminder redesign implementation
+
+**Date:** 2026-10-03
+**Owner instruction:** Inspect the project and graphs, create a new handoff master, report its name, then wait for approval before implementing the redesign step by step.
+**Decision:** `REMINDER_REDESIGN_MASTER.md` is the pending execution reference for this request. Creator-selected OPEN/COMMITMENT and member-selected numeric/regular flows, fixed daily creator commitments, reminder reliability and message cleanup must be assessed together. This records the approval boundary, not authorization to migrate or deploy.
+**Unresolved:** Seven-day expiry versus commitment debt, Quran allocation, goal exhaustion, old membership migration and follow-up scope remain explicit questions in the master. Existing domain rules are not silently superseded by proposed schema or ambiguous examples.
+
+---
+
 ### DEC-PY-0112 — A share is consumable only after its content is delivered
 
 **Date:** 2026-10-02

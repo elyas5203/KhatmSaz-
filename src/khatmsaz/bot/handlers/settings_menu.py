@@ -257,9 +257,7 @@ async def settings_reminder_menu(callback: CallbackQuery, state: FSMContext) -> 
             khatm = await khatm_service.get_khatm(session, participation.khatm_id)
             if khatm is None:
                 continue
-            preference = await notification_service.get_preference(session, participation.id)
-            hour = preference.reminder_hour if preference else settings.reminder_hour
-            minute = preference.reminder_minute if preference else settings.reminder_minute
+            hour, minute = await notification_service.get_reminder_time(session, participation)
             items.append((str(participation.id), khatm.title, f"{hour:02d}:{minute:02d}"))
     text = "⏰ یادآوری هر ختم جدا تنظیم می‌شود.\n\nختم موردنظرت را انتخاب کن؛ ساعت فعلی روبه‌روی نامش نوشته شده است:"
     if not items:
@@ -290,9 +288,7 @@ async def choose_reminder_khatm(callback: CallbackQuery, state: FSMContext) -> N
         if participation is None or khatm is None:
             await callback.answer("این ختم دیگر در فهرست فعال شما نیست.", show_alert=True)
             return
-        preference = await notification_service.get_preference(session, participation.id)
-        hour = preference.reminder_hour if preference else settings.reminder_hour
-        minute = preference.reminder_minute if preference else settings.reminder_minute
+        hour, minute = await notification_service.get_reminder_time(session, participation)
     await callback.message.edit_text(
         f"⏰ ختم «{khatm.title}»\n\nساعت فعلی یادآوری: {hour:02d}:{minute:02d}\n\nساعت تازه را انتخاب کن:",
         reply_markup=settings_reminder_keyboard(participation_id, settings.language),

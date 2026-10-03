@@ -170,6 +170,12 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
             await resume_join_after_registration(
                 callback.message, session, user.id, token, state=state, consent_accepted=True
             )
+    # This is only the accepted invitation card, never the newly sent question,
+    # welcome card or reading media. Cleanup must not undo a successful join.
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
 
 
 @router.callback_query(F.data.startswith("commitment_consent:cancel"))

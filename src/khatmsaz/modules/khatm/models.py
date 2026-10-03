@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, SmallInteger, String, func
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Index, Integer, SmallInteger, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -95,6 +95,8 @@ class Khatm(Base):
     content_delivery_mode: Mapped[str] = mapped_column(String(16), default=ContentDeliveryMode.AUTO.value)
     surah_number: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     repetition_target: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    commitment_policy: Mapped[str] = mapped_column(String(16), default="MEMBER_CHOICE", server_default="MEMBER_CHOICE")
+    daily_commitment_amount: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     public_slug: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     niyyat: Mapped[str | None] = mapped_column(String(500), nullable=True)
@@ -163,6 +165,12 @@ class Khatm(Base):
     )
 
     __table_args__ = (
+        CheckConstraint(
+            "(commitment_policy = 'MEMBER_CHOICE' AND daily_commitment_amount IS NULL) OR "
+            "(commitment_policy = 'FIXED_DAILY' AND khatm_type = 'COMMITMENT' "
+            "AND daily_commitment_amount IS NOT NULL AND daily_commitment_amount > 0)",
+            name="ck_khatm_daily_commitment_policy",
+        ),
         Index("ix_khatms_creator_user_id", "creator_user_id"),
         Index("ix_khatms_status", "status"),
         Index(

@@ -111,7 +111,7 @@ async def test_creator_intro_image_is_deleted_when_continue_is_tapped():
 async def test_regular_reminder_sends_content_before_action_message(monkeypatch):
     events = []
     participation = SimpleNamespace(
-        id="pid", khatm_id="kid", user_id="uid", schedule_freq="WEEKLY",
+        id="pid", khatm_id="kid", user_id="uid", schedule_freq="WEEKLY", commitment_mode="REGULAR",
         schedule_hour=13, schedule_anchor=36, schedule_last_sent_at=None,
         schedule_weekdays="3", commitment_per_occurrence=2,
         joined_via_bot_instance_id="bot-id",

@@ -42,6 +42,21 @@ async def get_preference(session: AsyncSession, participation_id):
     return await repository.get_preference(session, participation_id)
 
 
+async def get_reminder_time(session: AsyncSession, participation) -> tuple[int, int]:
+    """Return the clock actually used for this membership, including old plans."""
+    if (
+        getattr(participation, "commitment_mode", None) == "REGULAR"
+        and getattr(participation, "schedule_hour", None) is not None
+    ):
+        return participation.schedule_hour, participation.schedule_anchor or 0
+    preference = await repository.get_preference(session, participation.id)
+    if preference is not None and preference.enabled:
+        return preference.reminder_hour, preference.reminder_minute or 0
+    from khatmsaz.modules.system_settings import service as system_settings_service
+
+    return await system_settings_service.get_int(session, "default_reminder_hour"), 0
+
+
 async def set_reminder_preference(
     session: AsyncSession, participation_id, *, reminder_hour: int, reminder_minute: int = 0, enabled: bool = True
 ):
@@ -49,10 +64,16 @@ async def set_reminder_preference(
         raise ValueError("reminder_hour must be between 0 and 23")
     if not 0 <= reminder_minute <= 59:
         raise ValueError("reminder_minute must be between 0 and 59")
-    return await repository.upsert_preference(
+    preference = await repository.upsert_preference(
         session, participation_id,
         reminder_hour=reminder_hour, reminder_minute=reminder_minute, enabled=enabled
     )
+    from khatmsaz.modules.participation import service as participation_service
+
+    await participation_service.update_regular_reminder_time(
+        session, participation_id, hour=reminder_hour, minute=reminder_minute,
+    )
+    return preference
 
 
 async def snooze(session: AsyncSession, participation_id, minutes: int):

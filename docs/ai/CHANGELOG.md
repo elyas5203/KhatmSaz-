@@ -1,3 +1,7 @@
+# 2026-10-03 — Reminder redesign audit/master [Codex]
+- Added `REMINDER_REDESIGN_MASTER.md` with requirements R01–R21, evidence F01–F15, pending product questions, P0–P9 gates, migration strategy and VPS checklist.
+- Documentation only; implementation awaits the owner's explicit approval. Baseline: 285 passed, 1 failed (existing reciter-button expectation), 85 skipped; imports and Alembic head check passed.
+
 ### 2026-10-02
 - **Fixed**: Manually logging completed pages in an Open Quran Khatm no longer automatically forwards the next block of pages (which double-advanced the cursor). The daily schedule handles delivering pages.
 
