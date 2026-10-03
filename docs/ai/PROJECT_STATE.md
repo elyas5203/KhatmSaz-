@@ -1,3 +1,16 @@
+## 2026-10-03: Post-Launch Bug Fixes (Reminder Redesign)
+
+**Status:** Completed  
+**Context:** User reported multiple bugs following the massive Reminder Redesign (P1-P9).  
+**Changes made:**
+- **Bug 2 (Private Link Reminder Time):** When a user is approved via private invite link for a commitment Khatm, they are now sent a secondary prompt right after the welcome message asking for their preferred reminder hour. We created join_delivery_hour_keyboard in keyboards.py that hooks directly into set_reminder handler from settings_menu.py.
+- **Bug 3 (Commitment forced to Open):** Fixed a logic bug in khatm_workflow/service.py where all QURAN_PAGE khatms were being forced to is_committed = False. It now correctly checks khatm_type == KhatmTypeEnum.OPEN.
+- **Bug 4 (Audio Default & Hint):** Updated UserSettings default quran_audio_enabled = True and appended a hint to the reminder text (?? ???? ????? ?? ????? ???? ???? ?? ???? ??????? ?????? ????.) if audio is active.
+- **Bug 5 (Stray Done Button):** Removed contribute_keyboard from portions.py success message, replacing it with home_keyboard_for_bot.
+
+**Next Actions:** 
+- The user must pull the latest changes on the VPS and restart the bot.
+
 ## 2026-10-03: Phase 6 (Regular Schedule Delivery)
 - Verified `deliver_due_regular_commitments` delivers schedule content properly with audio/text fallbacks and tracks correctly.
 - Added `commit.regular_saved_detailed` string mapping to ensure exact reporting of chosen days, time, amount per occurrence, and weekly total when saving a member's choice (R09).
@@ -2933,3 +2946,4 @@ the entries above.
 - Every commitment khatm family (Quran, Salawat, Dua, Ziyarat and La'an) now asks and persists a daily deadline hour. Open khatms do not receive the commitment warning, including when an ORM enum arrives as a string.
 - Member trust copy now identifies «سازندهٔ ختم» without the awkward «اکانت» wording. Open/commitment responsibility copy and commitment-mode guidance were softened and clarified.
 - Validation: full suite **271 passed, 85 skipped** after the i18n placeholder repair; no migration was added.
+

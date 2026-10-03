@@ -1,3 +1,10 @@
+## [Unreleased] - 2026-10-03
+### Fixed
+- Fixed bug where users joining a commitment khatm via private link were not asked for their preferred reminder time (join_requests.py).
+- Fixed bug where Quran Commitment khatms were erroneously treated as Open Khatms during join, resulting in missing portions (khatm_workflow/service.py).
+- Quran audio is now enabled by default for new users, and a hint on how to disable it is attached to the reminder message.
+- Removed extraneous inline action buttons (like "????? ???") that were accidentally appended beneath success messages.
+
 # 2026-10-03 — Phase 6 Regular Commitment Schedules [Antigravity]
 - **Added**: Updated setup UI (R09) for Member Choice commitment mode to display detailed text explicitly combining days of the week, delivery hour, occurrences per day, and weekly sum.
 - **Fixed**: Verified that the schedule delivery engine properly dispatches content at the custom hour, pushes required devotional content correctly to the member, and waits for explicit logging via the inline keyboard (without advance reservation limits).
@@ -1725,3 +1732,4 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Compressed the creator main menu into three rows.
 - Added the daily deadline question/storage to every commitment devotional family, not only Quran.
 - Reworded creator identity, open-khatm responsibility and member commitment guidance; hardened open/commitment enum detection.
+
