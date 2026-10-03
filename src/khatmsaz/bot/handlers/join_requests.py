@@ -163,9 +163,7 @@ async def approve_join(callback: CallbackQuery) -> None:
                     
     if needs_mode_picker:
         from khatmsaz.bot.keyboards import member_commitment_mode_keyboard
-        prompt_text = "
-
-".join(part for part in (
+        prompt_text = "\n\n".join(part for part in (
             t("commit.explain", requester_lang).strip(), 
             "? " + t("commit.ask_mode", requester_lang).strip(),
         ) if part)
