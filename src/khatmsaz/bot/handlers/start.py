@@ -364,20 +364,20 @@ def build_join_success_message(
 
     if was_waitlisted:
         text += t("join.waitlisted_line", lang)
-        return text, contribute_keyboard(str(khatm.id), lang)
+        return text, None
 
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.POSITIONAL:
         text += t("join.first_page_portion_line", lang, start=first_portion.unit_start, end=first_portion.unit_end)
-        return text, portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang)
+        return text, None
 
     if first_portion is not None and first_portion.unit_kind == PortionUnitKind.QUANTITY:
         text += t("join.first_quantity_portion_line", lang, quantity=first_portion.quantity)
-        return text, commitment_quantity_keyboard(str(khatm.id), lang)
+        return text, None
 
     # Only OPEN Quran uses numeric self-reporting. A committed Quran portion
     # is completed as one whole share with the single-tap button above.
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
-        return text, (contribute_keyboard(str(khatm.id), lang) if quran_join_button else None)
+        return text, None
 
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.no_open_portion_line", lang)
@@ -387,7 +387,7 @@ def build_join_success_message(
     # Ziyarat/La'an) the member-commitment MODE PICKER is shown right after this
     # message, so the join-success card must NOT carry a «ثبت مشارکت» button —
     # tapping it fresh-join was confusing («یهو خیلی شلوغ شد»). No action keyboard.
-    return text, contribute_keyboard(str(khatm.id), lang)
+    return text, None
 
 
 async def resume_join_after_registration(
