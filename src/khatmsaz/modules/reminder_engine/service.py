@@ -57,6 +57,7 @@ async def process_open_reservations(session: AsyncSession, notify: NotifyFn) -> 
     from sqlalchemy import select
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
+    from khatmsaz.modules.open_contribution.models import OpenReservation, OpenReservationStatus
     
     now = datetime.now(ZoneInfo("UTC"))
     stmt = select(OpenReservation).where(OpenReservation.status == OpenReservationStatus.ACTIVE)
