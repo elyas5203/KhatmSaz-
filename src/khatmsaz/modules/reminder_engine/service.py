@@ -44,11 +44,42 @@ from khatmsaz.modules.notification.models import NotificationKind
 from khatmsaz.modules.participation import repository as participation_repository
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.settings import service as settings_service
+
+
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 NotifyFn = Callable[[str, str, str], Awaitable[None]]
 # (session, platform_value, chat_id, *, khatm, user_id, page_start, page_end) -> None
 SendQuranPagesFn = Callable[..., Awaitable[None]]
+
+
+async def process_open_reservations(session: AsyncSession, notify: NotifyFn) -> None:
+    from sqlalchemy import select
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    
+    now = datetime.now(ZoneInfo("UTC"))
+    stmt = select(OpenReservation).where(OpenReservation.status == OpenReservationStatus.ACTIVE)
+    reservations = (await session.execute(stmt)).scalars().all()
+    
+    for r in reservations:
+        if now >= r.expires_at:
+            r.status = OpenReservationStatus.EXPIRED
+        elif r.reminded_at is None and now >= (r.expires_at - timedelta(days=1)):
+            r.reminded_at = now
+            # Send warning
+            participation = await participation_repository.get_by_id(session, r.participation_id)
+            if participation:
+                khatm = await khatm_service.get_khatm(session, str(r.khatm_id))
+                if khatm:
+                    lang = participation.locale or "fa"
+                    from khatmsaz.i18n import t
+                    await _notify_user(
+                        session, notify, participation.user_id,
+                        t("portions.open_reservation_warning", lang, count=int(r.amount)),
+                        bot_instance_id=khatm.bot_instance_id
+                    )
+
 
 SECOND_REMINDER_HOURS_BEFORE_DEADLINE = 4
 FINAL_REMINDER_HOURS_BEFORE_DEADLINE = 1
@@ -81,6 +112,7 @@ async def run_once(
         session, notify, report_day=monthly_report_day, report_hour=monthly_report_hour
     )
     await delegate_inactive_portions(session, notify)
+    await process_open_reservations(session, notify)
     if send_quran_pages is not None:
         await deliver_due_open_quran_reading(session, notify, send_quran_pages, tz_name)
     portions = await allocation_service.list_assigned_positional_portions(session)
@@ -185,6 +217,7 @@ async def deliver_due_next_portions(
     out the next portion and lets them know. No emergency/backup-reader
     fallback exists anymore — a missed portion is simply read the next
     day the member is ready; nobody else is notified."""
+    from khatmsaz.modules.notification.models import NotificationKind
     delivered = 0
     for latest_portion in await allocation_service.list_latest_portion_per_participation(session):
         participation = await participation_repository.get_by_id(session, latest_portion.participation_id)
@@ -214,6 +247,28 @@ async def deliver_due_next_portions(
         if latest_portion.updated_at is not None:
             updated_local_date = latest_portion.updated_at.astimezone(user_tz).date()
             if now_local.date() <= updated_local_date:
+                # P7: 2-hour followup for undone portions
+                from khatmsaz.modules.allocation.models import PortionStatus
+                from datetime import timedelta
+                
+                if latest_portion.status == PortionStatus.ASSIGNED:
+                    time_since = now_local - latest_portion.updated_at.astimezone(user_tz)
+                    if time_since >= timedelta(hours=2):
+                        if not await notification_service.already_sent_today(session, participation.id, NotificationKind.SECOND_REMINDER):
+                            from khatmsaz.bot.member_copy import reminder_text, share_label
+                            text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
+                                khatm, "quran",
+                                share_label("quran", start=latest_portion.unit_start, end=latest_portion.unit_end, lang=user_settings.language),
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+                            )
+                            from khatmsaz.bot.keyboards import portion_done_keyboard
+                            delivered_now = await _notify_user_with_keyboard(
+                                session, participation.user_id, text,
+                                portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language),
+                                bot_instance_id=participation.joined_via_bot_instance_id,
+                            )
+                            if delivered_now:
+                                await notification_service.record_sent(session, participation.id, NotificationKind.SECOND_REMINDER)
                 continue
 
         next_portion = await allocation_service.allocate_next_portion_to(session, khatm.id, participation.id)
@@ -364,17 +419,46 @@ async def deliver_due_regular_commitments(
             else None
         )
         reminder_hour, reminder_minute = await notification_service.get_reminder_time(session, participation)
-        if not is_regular_due(
+        count = participation.commitment_per_occurrence or 1
+        
+        is_due = is_regular_due(
             now_local,
             participation.schedule_freq,
             reminder_hour,
             reminder_minute,
             last_sent_local_date,
             weekdays=getattr(participation, "schedule_weekdays", None),
-        ):
+        )
+        
+        if not is_due:
+            # P7: 2-hour followup for undone regular commitments
+            if last_sent_local_date == now_local.date():
+                from datetime import timedelta
+                from khatmsaz.modules.notification.models import NotificationKind
+                from khatmsaz.modules.open_contribution import service as open_contribution_service
+                
+                time_since_sent = now_local - participation.schedule_last_sent_at.astimezone(user_tz)
+                if time_since_sent >= timedelta(hours=2):
+                    if not await notification_service.already_sent_today(session, participation.id, NotificationKind.SECOND_REMINDER):
+                        # Check if it was done since sent
+                        if not await open_contribution_service.has_for_participation_since(session, participation.id, participation.schedule_last_sent_at):
+                            from khatmsaz.bot.member_copy import content_family, reminder_text, share_label
+                            family = await content_family(session, khatm)
+                            text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
+                                khatm, family, share_label(family, count=count, lang=user_settings.language),
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language,
+                            )
+                            from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
+                            delivered_now = await _notify_user_with_keyboard(
+                                session, participation.user_id, text,
+                                regular_commitment_done_keyboard(str(participation.id), user_settings.language),
+                                bot_instance_id=participation.joined_via_bot_instance_id,
+                            )
+                            if delivered_now:
+                                await notification_service.record_sent(session, participation.id, NotificationKind.SECOND_REMINDER)
             continue
 
-        count = participation.commitment_per_occurrence or 1
+
         from khatmsaz.bot.member_copy import content_family, reminder_text, share_label
         family = await content_family(session, khatm)
         text = reminder_text(

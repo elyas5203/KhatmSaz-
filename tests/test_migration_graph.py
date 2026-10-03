@@ -46,4 +46,9 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     policy = script.get_revision("policy2026100302")
     assert policy is not None
     assert policy.down_revision == "occ2026100301"
-    assert script.get_heads() == ["policy2026100302"]
+    
+    res = script.get_revision("res20261003120539")
+    assert res is not None
+    assert res.down_revision == "policy2026100302"
+    
+    assert script.get_heads() == ["res20261003120539"]

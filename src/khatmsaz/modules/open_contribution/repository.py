@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.core.ids import new_id
-from khatmsaz.modules.open_contribution.models import OpenContribution
+from khatmsaz.modules.open_contribution.models import OpenContribution, OpenReservation, OpenReservationStatus
 
 
 async def create(
@@ -58,3 +58,42 @@ async def total_for_khatm_between(
     )
     result = await session.execute(stmt)
     return float(result.scalar_one())
+
+
+async def create_reservation(
+    session: AsyncSession, khatm_id, participation_id, amount: float, expires_at: datetime
+) -> OpenReservation:
+    reservation = OpenReservation(
+        id=new_id(), khatm_id=khatm_id, participation_id=participation_id,
+        amount=amount, expires_at=expires_at, status=OpenReservationStatus.ACTIVE
+    )
+    session.add(reservation)
+    await session.flush()
+    return reservation
+
+
+async def get_reservation(session: AsyncSession, reservation_id) -> OpenReservation | None:
+    return await session.get(OpenReservation, reservation_id)
+
+
+async def get_active_reservations_for_khatm(session: AsyncSession, khatm_id) -> list[OpenReservation]:
+    stmt = select(OpenReservation).where(
+        OpenReservation.khatm_id == khatm_id,
+        OpenReservation.status == OpenReservationStatus.ACTIVE
+    )
+    return list((await session.execute(stmt)).scalars().all())
+
+
+async def get_active_reservation_for_participation(session: AsyncSession, participation_id) -> OpenReservation | None:
+    stmt = select(OpenReservation).where(
+        OpenReservation.participation_id == participation_id,
+        OpenReservation.status == OpenReservationStatus.ACTIVE
+    ).limit(1)
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+async def get_active_reserved_amount_for_khatm(session: AsyncSession, khatm_id) -> float:
+    stmt = select(func.coalesce(func.sum(OpenReservation.amount), 0.0)).where(
+        OpenReservation.khatm_id == khatm_id,
+        OpenReservation.status == OpenReservationStatus.ACTIVE
+    )
+    return float((await session.execute(stmt)).scalar_one())

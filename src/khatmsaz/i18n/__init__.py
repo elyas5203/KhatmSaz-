@@ -36,6 +36,52 @@ _DEFAULT_LANGUAGE = "fa"
 
 # key -> {lang: text}. Keep `fa` first and always present.
 _STRINGS: dict[str, dict[str, str]] = {
+
+    "commit.regular_saved_detailed": {
+        "fa": "✅ برنامه شما ذخیره شد:\n\n📅 روزها: {days_text}\n⏰ ساعت یادآوری: {hour}\n📖 مقدار هر نوبت: {times} {unit}\n📊 مجموع در هفته: {weekly_sum} {unit}\n\nسر وقت تعیین‌شده، محتوا برای شما ارسال می‌شود.",
+        "ar": "✅ تم حفظ جدولك:\n\n📅 الأيام: {days_text}\n⏰ وقت التذكير: {hour}\n📖 الكمية لكل مرة: {times} {unit}\n📊 المجموع الأسبوعي: {weekly_sum} {unit}\n\nسيتم إرسال المحتوى لك في الوقت المحدد.",
+        "en": "✅ Your schedule is saved:\n\n📅 Days: {days_text}\n⏰ Reminder Time: {hour}\n📖 Amount per turn: {times} {unit}\n📊 Weekly Total: {weekly_sum} {unit}\n\nContent will be sent at the specified time."
+    },
+    "commit.every_day": {
+        "fa": "هر روز",
+        "ar": "كل يوم",
+        "en": "Every day"
+    },
+    "commit.unit.salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
+    "commit.unit.dua": {"fa": "مرتبه", "ar": "مرة", "en": "times"},
+
+
+    "portions.open_reservation_warning": {
+        "fa": "شما از قبل {count} سهم رزرو شده دارید. مهلت آن رو به اتمام است.",
+        "ar": "لديك {count} مشاركة محجوزة. مهلتها توشك على الانتهاء.",
+        "en": "You have a reserved contribution of {count}. The deadline is approaching."
+    },
+    "portions.open_capacity_full": {
+        "fa": "ظرفیت این ختم تکمیل شده است. از مشارکت شما متشکریم.",
+        "ar": "اكتملت سعة هذه الختمة. شكرًا لمشاركتك.",
+        "en": "This khatm's capacity is full. Thank you for participating."
+    },
+    "portions.open_already_reserved": {
+        "fa": "شما از قبل یک مشارکت در حال انجام دارید. لطفاً ابتدا آن را به پایان برسانید.",
+        "ar": "لديك بالفعل مشاركة قيد الإنجاز. يرجى إكمالها أولاً.",
+        "en": "You already have an active reservation. Please complete it first."
+    },
+    "portions.open_reserved_success": {
+        "fa": "شما {count} {unit} رزرو کردید.",
+        "ar": "لقد قمت بحجز {count} {unit}.",
+        "en": "You have reserved {count} {unit}."
+    },
+    "portions.open_reserved_deadline": {
+        "fa": "لطفاً پس از انجام، با فشردن دکمه زیر آن را ثبت کنید. (مهلت: ۷ روز)",
+        "ar": "يرجى تسجيله بالضغط على الزر أدناه بعد الانتهاء. (المهلة: 7 أيام)",
+        "en": "Please tap the button below once you complete it. (Deadline: 7 days)"
+    },
+    "portions.button.complete_reservation": {
+        "fa": "انجام شد",
+        "ar": "تم الإنجاز",
+        "en": "Completed"
+    },
+
     "menu.today": {
         "fa": "📖 انجام قرائت امروز",
         "ar": "📖 إنجاز قراءة اليوم",

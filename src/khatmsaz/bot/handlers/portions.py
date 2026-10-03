@@ -501,7 +501,10 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
         await safe_answer_callback(callback, t("portions.no_portion_to_complete", lang), show_alert=True)
         return
 
-    await safe_clear_inline_keyboard(callback.message)
+    try:
+        await callback.message.delete()
+    except Exception:
+        await safe_clear_inline_keyboard(callback.message)
     from khatmsaz.bot.member_copy import completion_text, share_label
     confirmation = completion_text(
         khatm, "quran",
@@ -963,4 +966,57 @@ async def resume_commitment(callback: CallbackQuery) -> None:
         await workflow_service.resume_commitment(session, participation_id)
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(t("portions.resumed", lang))
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("complete_reservation:"))
+async def complete_open_reservation(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    reservation_id = callback.data.split(":", 1)[1]
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+
+    async with session_scope() as session:
+        try:
+            from khatmsaz.modules.open_contribution import service as contribution_service
+            reservation = await contribution_service.get_active_reservation_for_participation(session, None) # this is just a dummy to import
+            reservation = await contribution_service.repository.get_reservation(session, reservation_id)
+            if not reservation or reservation.status.name != "ACTIVE":
+                await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
+                return
+            khatm = await khatm_service.get_khatm(session, str(reservation.khatm_id))
+            counted, surplus, new_total = await contribution_service.complete_reservation(
+                session, reservation_id, khatm.repetition_target
+            )
+        except Exception:
+            await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
+            return
+
+        await advertising_service.accrue_first_completed_action(session, reservation.participation_id)
+        reached = khatm.repetition_target is not None and new_total >= khatm.repetition_target
+
+        invite_line = await _invite_friends_line(
+            session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
+        )
+        from khatmsaz.bot.member_copy import completion_text, content_family, share_label
+        family = await content_family(session, khatm)
+        recorded_text = completion_text(
+            khatm, family, share_label(family, count=reservation.amount, lang=lang),
+            invite_line=invite_line, lang=lang,
+        )
+        today_total, yesterday_total = await contribution_service.today_vs_yesterday(
+            session, str(khatm.id), get_settings().app_timezone
+        )
+
+    unit = _unit_label(khatm.template_type, lang)
+
+    lines = [recorded_text]
+    if surplus > 0:
+        lines.append(t("portions.open_surplus_split", lang, counted=int(counted), surplus=int(surplus), unit=unit))
+    lines.append(t("portions.today_vs_yesterday", lang, unit=unit, today=today_total, yesterday=yesterday_total))
+
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(
+        "\n".join(lines),
+        reply_markup=home_keyboard_for_bot(callback.message.bot, lang) if reached else contribute_keyboard(str(khatm.id), lang),
+    )
     await safe_answer_callback(callback)

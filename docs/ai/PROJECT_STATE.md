@@ -1,3 +1,16 @@
+## 2026-10-03: Phase 6 (Regular Schedule Delivery)
+- Verified `deliver_due_regular_commitments` delivers schedule content properly with audio/text fallbacks and tracks correctly.
+- Added `commit.regular_saved_detailed` string mapping to ensure exact reporting of chosen days, time, amount per occurrence, and weekly total when saving a member's choice (R09).
+- Tested `test_member_commitment_logic.py` and `test_wizard_ephemeral.py` ensuring no layout regressions. Verified P6 fully implements owner rules for regular scheduled reminders.
+- Next step: P7 (2-hour followup, view share, and cleanup).
+
+## 2026-10-03: Phase 5 (Numeric Reservations)
+- Added `OpenReservation` model to track 7-day numerical reservations for OPEN Khatms.
+- Migrated open numerical contribution logic to use reservations instead of immediate counting.
+- Bot now warns users at t+6d and expires unused reservations at t+7d automatically.
+- Global progress is incremented only when members press "انجام شد" (Done), and new reservations cannot exceed the remaining capacity (`repetition_target`).
+- Added i18n support in fa/en/ar for all warning and reservation UI texts.
+
 ## Current state — 2026-10-03 — Phase 4 Member Join Flow Completed [Antigravity]
 - Phase 4 of `REMINDER_REDESIGN_MASTER.md` is now complete and fully tested.
 - `start.py` updated to bypass `MEMBER_CHOICE` prompts for `FIXED_DAILY` khatms.

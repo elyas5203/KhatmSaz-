@@ -428,17 +428,24 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         except Exception:
             pass
     await state.update_data(_cwiz_mid=None)
-    # Owner (2026-10-01): for WEEKLY the TOTAL = (chosen days) × (times per day).
-    # e.g. 4 days × 1 = «۴ مرتبه در هفته»، 4 days × 2 = «۸ مرتبه در هفته».
+    from khatmsaz.bot.handlers.change_delivery_hour import _LOCALIZED_WEEKDAYS
+    family = data.get("commit_family")
+    unit = t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
+    
     if freq == ScheduleFreq.WEEKLY.value:
-        days = len([d for d in (data.get("commit_weekdays") or [])])
-        display_times = (days or 1) * times
-        period = t("commit.period.week", lang)
+        sel = sorted(set(data.get("commit_weekdays") or []))
+        days = len(sel)
+        weekly_sum = (days or 1) * times
+        if sel:
+            days_text = "، ".join(t(_LOCALIZED_WEEKDAYS[d], lang) for d in sel)
+        else:
+            days_text = t("commit.every_day", lang)
     else:
-        display_times = times
-        period = t("commit.period.day", lang)
+        weekly_sum = times * 7
+        days_text = t("commit.every_day", lang)
+        
     await message.answer(
-        t("commit.regular_saved", lang, times=display_times, period=period, hour=f"{hour:02d}:{minute:02d}"),
+        t("commit.regular_saved_detailed", lang, days_text=days_text, hour=f"{hour:02d}:{minute:02d}", times=times, weekly_sum=weekly_sum, unit=unit),
         reply_markup=_home_markup(message),
     )
 
@@ -507,6 +514,9 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
             khatm, family, share_label(family, count=amount, lang=lang),
             invite_line=invite_line, lang=lang,
         )
-    await safe_clear_inline_keyboard(callback.message)
+    try:
+        await callback.message.delete()
+    except Exception:
+        await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(confirmed_text)
     await safe_answer_callback(callback)

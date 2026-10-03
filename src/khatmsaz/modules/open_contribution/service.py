@@ -50,3 +50,54 @@ async def today_vs_yesterday(session: AsyncSession, khatm_id, timezone_name: str
     today_total = await repository.total_for_khatm_between(session, khatm_id, today_start, now_local)
     yesterday_total = await repository.total_for_khatm_between(session, khatm_id, yesterday_start, today_start)
     return today_total, yesterday_total
+
+
+from khatmsaz.modules.open_contribution.models import OpenReservationStatus
+from khatmsaz.modules.open_contribution import repository
+
+async def create_reservation(
+    session: AsyncSession, khatm_id, participation_id, amount: float, target: float | None
+):
+    """Create a reservation that expires in 7 days."""
+    # check if user already has an active reservation
+    existing = await repository.get_active_reservation_for_participation(session, participation_id)
+    if existing:
+        return existing, False # return existing and False meaning not created
+        
+    already_done = await repository.total_for_khatm(session, khatm_id)
+    already_reserved = await repository.get_active_reserved_amount_for_khatm(session, khatm_id)
+    
+    if target is not None:
+        available = max(target - already_done - already_reserved, 0.0)
+        # If no capacity left, they cannot reserve. We can return None to indicate this.
+        if available <= 0:
+            return None, False
+        amount = min(amount, available)
+        
+    expires_at = datetime.now(ZoneInfo("UTC")) + timedelta(days=7)
+    reservation = await repository.create_reservation(session, khatm_id, participation_id, amount, expires_at)
+    return reservation, True
+
+async def complete_reservation(
+    session: AsyncSession, reservation_id, target: float | None
+) -> tuple[float, float, float]:
+    """Mark an active reservation as completed, and log the contribution."""
+    reservation = await repository.get_reservation(session, reservation_id)
+    if not reservation or reservation.status != OpenReservationStatus.ACTIVE:
+        raise ValueError("Reservation is not active or does not exist")
+    
+    reservation.status = OpenReservationStatus.COMPLETED
+    
+    # Log it as an actual contribution
+    return await log_contribution(session, reservation.khatm_id, reservation.participation_id, reservation.amount, target)
+
+async def cancel_reservation(session: AsyncSession, reservation_id):
+    reservation = await repository.get_reservation(session, reservation_id)
+    if reservation and reservation.status == OpenReservationStatus.ACTIVE:
+        reservation.status = OpenReservationStatus.EXPIRED
+
+async def get_active_reserved_amount_for_khatm(session: AsyncSession, khatm_id) -> float:
+    return await repository.get_active_reserved_amount_for_khatm(session, khatm_id)
+
+async def get_active_reservation_for_participation(session: AsyncSession, participation_id):
+    return await repository.get_active_reservation_for_participation(session, participation_id)

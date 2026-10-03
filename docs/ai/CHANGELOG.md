@@ -1,3 +1,12 @@
+# 2026-10-03 — Phase 6 Regular Commitment Schedules [Antigravity]
+- **Added**: Updated setup UI (R09) for Member Choice commitment mode to display detailed text explicitly combining days of the week, delivery hour, occurrences per day, and weekly sum.
+- **Fixed**: Verified that the schedule delivery engine properly dispatches content at the custom hour, pushes required devotional content correctly to the member, and waits for explicit logging via the inline keyboard (without advance reservation limits).
+
+# 2026-10-03 — Phase 5 Open Reservations [Antigravity]
+- **Added**: Open Reservations: Numeric contributions to OPEN khatms are now reserved for 7 days rather than being counted immediately.
+- **Added**: Expiration System: A background task warns users on Day 6 and auto-expires incomplete numeric reservations on Day 7.
+- **Fixed**: Capacity Limits: Open reservations now properly respect the remaining capacity (`repetition_target`) of the khatm.
+
 # 2026-10-03 — Phase 4 Member Join Flow [Antigravity]
 - **Added**: Implemented Member Join Flow logic for `FIXED_DAILY` khatms. Users joining these khatms are no longer prompted for commitment modes and default directly to schedule delivery hour.
 - **Added**: i18n support for the new Fixed Daily commitment modes.
@@ -429,6 +438,16 @@
 - **UX**: Cleaned up the main menu and disabled unused settings buttons (font/content).
 
 ﻿# CHANGELOG
+
+## 2026-10-03
+- P9: Delivered final VPS deployment runbook (Runbook for P9). All phases of the new Reminder Redesign are now fully completed.
+
+## 2026-10-03
+- P8: Verified comprehensive integrity of portion delivery. The "Today" manual request and background scheduler correctly interlock to guarantee exactly one portion per calendar day per member. Tested concurrency and verified complete isolation of member notifications to member bots.
+
+## 2026-10-03
+- P7: Added 2-hour followup reminder for undone portions (Quran and Regular commitments).
+- P7: Modified completion callbacks to delete the reminder message instead of just clearing its keyboard, cleaning up the chat while leaving the devotion media intact.
 
 ## 2026-09-24
 - **UX**: Unified and redesigned the Creator and Admin management panels to use inline parent-child navigation (edit_message_text).
