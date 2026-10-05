@@ -242,9 +242,11 @@ def settings_home_keyboard(*, audio_enabled: bool, lang: str = "fa", show_creato
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.reciter", lang), callback_data="settings:reciter"),
+                InlineKeyboardButton(text=t("settings.button.font", lang), callback_data="settings:font"),
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.reminder", lang), callback_data="settings:reminder"),
+                InlineKeyboardButton(text=t("settings.button.content", lang), callback_data="settings:content"),
             ],
             [
                 InlineKeyboardButton(text=t("settings.button.sms_menu", lang), callback_data="settings:sms"),

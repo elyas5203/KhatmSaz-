@@ -1,3 +1,10 @@
+## Current state — 2026-10-05 — Stop Timeout & Persian Button Cleanups [Antigravity]
+- **Stop Timeout & SIGKILL Fix:** Fixed multi-dispatcher signal handler collision in `bootstrap.py` where `dp_member.start_polling` overwrote `dp_creator`'s SIGTERM handler. Handled unified shutdown using `shutdown_event: asyncio.Event` with `handle_signals=False` in aiogram, `install_signal_handlers=False` in uvicorn, and clean explicit stops for scheduler, web server, and dispatchers within 1 second.
+- **Startup Crash Resilience:** Added supervisor loop with exponential backoff around `Dispatcher.start_polling` so transient 60s Telegram/Bale network timeouts do not take down the entire systemd service. Decoupled creator and member polling tasks.
+- **Persian Strings & Keyboards:** Fixed corrupted `???` question marks across `i18n/__init__.py` (days of the week and wizard prompts) and `member_commitment.py`. Added missing `portions.no_capacity_left`. Restored missing `settings:font` and `settings:content` buttons in `settings_home_keyboard`.
+- **Delivery Logic Protection:** Enforced Quran plan isolation in `deliver_due_regular_commitments` (`KhatmTemplateType.QURAN_PAGE` and `QURAN_SURAH` skipped). Protected `quran_audio_enabled` accesses. Delivery logic from `REMINDER_REDESIGN_MASTER.md` strictly verified and preserved.
+- **Validation:** 37 targeted unit tests PASS; 296 non-integration tests PASS.
+
 ## Current state — 2026-10-05 — Unified share redesign in progress [Codex]
 - Final local gate: 564 tests PASS with integration tests enabled against disposable PostgreSQL; no skips or failures. Reviewed migration upgrade/head, compileall and diff check PASS. The implementation is ready to commit/push; VPS migration/restart/live Persian QA remain separate production actions.
 - Verification update: full opt-in PostgreSQL suite now 437 PASS, zero failures/skips. Subsequent focused routing/audio/debt/consent run: 33 PASS. Alembic head/upgrade on disposable PostgreSQL, compileall and diff check PASS. Evidence and outstanding master gates: audit/evidence/REDESIGN-20261005-CODEX-CHECKPOINT.md. Full redesign remains incomplete; not pushed.

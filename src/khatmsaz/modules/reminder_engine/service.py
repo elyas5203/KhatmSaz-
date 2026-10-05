@@ -160,7 +160,6 @@ async def process_reservation_warnings():
         except Exception:
             logger.exception("Reservation warning will retry for %s", rid)
 
-
 async def cleanup_completed_shares():
     """Retry control cleanup independently of membership/goal completion."""
     from khatmsaz.core.db import session_scope
@@ -284,7 +283,7 @@ async def deliver_due_next_portions(
                             text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
                                 khatm, "quran",
                                 share_label("quran", start=latest_portion.unit_start, end=latest_portion.unit_end, lang=user_settings.language),
-                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=getattr(user_settings, "quran_audio_enabled", True),
                             )
                             from khatmsaz.bot.keyboards import portion_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
@@ -305,7 +304,7 @@ async def deliver_due_next_portions(
         text = reminder_text(
             khatm, "quran",
             share_label("quran", start=next_portion.unit_start, end=next_portion.unit_end, lang=user_settings.language),
-            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=getattr(user_settings, "quran_audio_enabled", True)
         )
         # Committed Quran is completed as one whole assigned portion. Keep the
         # single-tap «done» action on its scheduled delivery; numeric logging is
@@ -475,7 +474,7 @@ async def deliver_due_regular_commitments(
                             family = await content_family(session, khatm)
                             text = "یادآوری انجام سهم ⏳\n\n" + reminder_text(
                                 khatm, family, share_label(family, count=count, lang=user_settings.language),
-                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
+                                deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=getattr(user_settings, "quran_audio_enabled", True),
                             )
                             from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
@@ -492,7 +491,7 @@ async def deliver_due_regular_commitments(
         family = await content_family(session, khatm)
         text = reminder_text(
             khatm, family, share_label(family, count=count, lang=user_settings.language),
-            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=user_settings.quran_audio_enabled,
+            deadline=getattr(khatm, "daily_deadline_hour", None), lang=user_settings.language, audio_enabled=getattr(user_settings, "quran_audio_enabled", True),
         )
         # The reading content belongs immediately ABOVE the action reminder.
         # Send registered images/PDF first; use text only when no readable media

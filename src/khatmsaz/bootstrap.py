@@ -12,6 +12,7 @@ Two Dispatchers — dp_creator for management, dp_member for participation.
 
 import asyncio
 import logging
+import signal
 import sys
 
 from aiogram import Bot, Dispatcher
@@ -355,15 +356,66 @@ async def main() -> None:
     runtime_status.mark_scheduler_started()
     logger.info("Reminder scan scheduled every minute (coalesced, single instance).")
 
-    # --- Start polling ---
-    logger.info("Starting polling for %d bot(s) (%d creator, %d member)...",
-                len(all_bots), len(creator_bots), len(member_bots))
-    tasks: list[asyncio.Task] = []
-    
-    tasks.append(asyncio.create_task(dp_creator.start_polling(*creator_bots)))
-    if member_bots:
-        tasks.append(asyncio.create_task(dp_member.start_polling(*member_bots)))
+    # --- Shutdown coordination ---
+    shutdown_event = asyncio.Event()
 
+    def _trigger_shutdown(*_args: object) -> None:
+        if not shutdown_event.is_set():
+            logger.info("Termination signal received — stopping KhatmSaz...")
+            shutdown_event.set()
+
+    loop = asyncio.get_running_loop()
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(sig, _trigger_shutdown)
+        except (NotImplementedError, AttributeError):
+            pass
+
+    for sig in (signal.SIGINT, getattr(signal, "SIGTERM", None), getattr(signal, "SIGBREAK", None)):
+        if sig is not None:
+            try:
+                signal.signal(sig, lambda s, f: _trigger_shutdown())
+            except (ValueError, OSError):
+                pass
+
+    async def _safe_stop_polling(dp: Dispatcher) -> None:
+        try:
+            await dp.stop_polling()
+        except RuntimeError:
+            pass
+        except Exception as exc:
+            logger.warning("Error stopping polling for dispatcher: %s", exc)
+
+    # --- Polling supervisor ---
+    async def _run_polling_supervised(dp: Dispatcher, bots: list[Bot], name: str) -> None:
+        if not bots:
+            return
+        backoff_seconds = 2.0
+        while not shutdown_event.is_set():
+            try:
+                logger.info("Starting polling for %s (%d bot(s))...", name, len(bots))
+                await dp.start_polling(
+                    *bots,
+                    handle_signals=False,
+                    close_bot_session=False,
+                )
+                break
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                if shutdown_event.is_set():
+                    break
+                logger.error(
+                    "Polling error in %s (%s: %s). Reconnecting in %.1fs...",
+                    name, type(exc).__name__, exc, backoff_seconds,
+                )
+                try:
+                    await asyncio.wait_for(shutdown_event.wait(), timeout=backoff_seconds)
+                    break
+                except asyncio.TimeoutError:
+                    backoff_seconds = min(backoff_seconds * 1.5, 30.0)
+
+    web_server: uvicorn.Server | None = None
     if settings.admin_web_enabled:
         web_server = uvicorn.Server(
             uvicorn.Config(
@@ -372,15 +424,66 @@ async def main() -> None:
                 port=settings.admin_web_port,
                 log_level=settings.log_level.lower(),
                 access_log=False,
+                install_signal_handlers=False,
             )
         )
+
+    async def _handle_shutdown() -> None:
+        await shutdown_event.wait()
+        logger.info("Shutdown initiated — stopping scheduler, web server, and bot polling...")
+        try:
+            if scheduler.running:
+                scheduler.shutdown(wait=False)
+                logger.info("Scheduler stopped.")
+        except Exception as exc:
+            logger.warning("Error stopping scheduler: %s", exc)
+
+        if web_server is not None:
+            web_server.should_exit = True
+            logger.info("Admin web server requested to exit.")
+
+        stop_coros = [_safe_stop_polling(dp_creator)]
+        if member_bots:
+            stop_coros.append(_safe_stop_polling(dp_member))
+        await asyncio.gather(*stop_coros, return_exceptions=True)
+        logger.info("Dispatcher stop signals sent.")
+
+    tasks: list[asyncio.Task] = [
+        asyncio.create_task(_run_polling_supervised(dp_creator, creator_bots, "creator")),
+    ]
+    if member_bots:
+        tasks.append(asyncio.create_task(_run_polling_supervised(dp_member, member_bots, "member")))
+
+    if web_server is not None:
         tasks.append(asyncio.create_task(web_server.serve()))
         logger.info(
             "Admin web app listening on %s:%d.",
             settings.admin_web_host,
             settings.admin_web_port,
         )
-    await asyncio.gather(*tasks)
+
+    shutdown_task = asyncio.create_task(_handle_shutdown())
+
+    try:
+        await asyncio.gather(*tasks)
+    except (asyncio.CancelledError, KeyboardInterrupt):
+        _trigger_shutdown()
+        await shutdown_task
+    finally:
+        if not shutdown_event.is_set():
+            _trigger_shutdown()
+        try:
+            await shutdown_task
+        except Exception:
+            pass
+        if scheduler.running:
+            try:
+                scheduler.shutdown(wait=False)
+            except Exception:
+                pass
+        logger.info("Closing bot HTTP sessions...")
+        await asyncio.gather(*(bot.session.close() for bot in all_bots), return_exceptions=True)
+        logger.info("KhatmSaz shutdown complete.")
 
 
 if __name__ == "__main__":

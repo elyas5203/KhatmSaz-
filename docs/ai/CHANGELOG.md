@@ -1,3 +1,10 @@
+## 2026-10-05 — Antigravity — Systemd Stop Timeout, Polling Supervisor & Persian i18n Cleanup
+- **Fixed (Stop Timeout & SIGKILL):** Fixed multi-dispatcher signal handler collision in `bootstrap.py` where `dp_member.start_polling` overwrote `dp_creator`'s SIGTERM handler. Unified process termination with `shutdown_event: asyncio.Event`, `handle_signals=False` on aiogram dispatchers, and explicit clean stop of scheduler, web server, and pollers within 1 second.
+- **Fixed (Startup Crash Resilience):** Added supervisor loop with backoff retry around `Dispatcher.start_polling` so a transient 60s network timeout on startup does not crash the systemd service. Decoupled creator and member polling tasks.
+- **Fixed (Corrupted Strings & Missing Buttons):** Cleaned corrupted `???` question mark strings in `i18n/__init__.py` (days of the week and wizard prompts) and `member_commitment.py`. Restored missing `settings:font` and `settings:content` buttons to `settings_home_keyboard`. Added missing key `portions.no_capacity_left`.
+- **Protected (Delivery Isolation):** Isolated `deliver_due_regular_commitments` to skip Quran templates (`QURAN_PAGE`/`QURAN_SURAH`), preventing devotional reminders from touching Quran schedules. Guarded `quran_audio_enabled` access with safe fallback.
+- **Validation:** 37 targeted unit tests PASS; 296 full non-integration suite tests PASS. Delivery logic from `REMINDER_REDESIGN_MASTER.md` strictly preserved.
+
 ## 2026-10-05 — Share redesign continuation [Codex]
 - Final local suite: 564 PASS with PostgreSQL integration enabled, zero failures/skips. Local migration head is `share2026100501`; production migration and runtime QA were not run.
 - Follow-up validation reached 437 passing PostgreSQL-enabled tests; retained debts are discoverable after leaving, Today supplies exact-share actions with cleanup receipts, and Quran text/audio-only fallbacks and member-bot language were corrected. Final requirement-by-requirement acceptance is still pending.
