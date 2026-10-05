@@ -424,7 +424,6 @@ async def main() -> None:
                 port=settings.admin_web_port,
                 log_level=settings.log_level.lower(),
                 access_log=False,
-                install_signal_handlers=False,
             )
         )
 
