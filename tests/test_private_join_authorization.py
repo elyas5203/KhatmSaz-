@@ -20,7 +20,7 @@ async def test_private_join_approval_rejects_non_creator_before_join(monkeypatch
     async def must_not_join(*_args, **_kwargs):
         raise AssertionError("unauthorized approval reached the join path")
 
-    monkeypatch.setattr(workflow_service.khatm_service, "get_khatm", fake_get_khatm)
+    monkeypatch.setattr(workflow_service.khatm_service, "get_khatm_for_update", fake_get_khatm)
     monkeypatch.setattr(workflow_service, "_complete_join", must_not_join)
 
     with pytest.raises(PermissionError, match="only the khatm creator"):

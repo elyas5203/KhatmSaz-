@@ -104,6 +104,11 @@ async def allocate_next_portion_to(session: AsyncSession, khatm_id, participatio
     return portion
 
 
+async def allocate_page_amount(session, khatm_id, participation_id, amount):
+    """Preserve personal rotation order while honoring an exact page quantity."""
+    return await repository.allocate_page_amount(session, khatm_id, participation_id, amount)
+
+
 async def get_current_portion(session: AsyncSession, khatm_id, participation_id) -> KhatmPortion | None:
     plan = await repository.get_plan_by_khatm(session, khatm_id)
     if plan is None:
@@ -169,7 +174,20 @@ async def progress(session: AsyncSession, khatm_id) -> tuple[int, int]:
     if plan is None:
         return 0, 0
     if plan.allocation_strategy == AllocationStrategy.ROTATING.value:
-        completed = await repository.count_distinct_completed_positional(session, plan.id)
+        # Amount changes can split or span old plan boundaries. Count a plan
+        # segment only when all its pages are covered, never just its start.
+        merged = []
+        for start, end in await repository.completed_positional_ranges(session, plan.id):
+            if start is None or end is None:
+                continue
+            if merged and start <= merged[-1][1] + 1:
+                merged[-1][1] = max(merged[-1][1], end)
+            else:
+                merged.append([start, end])
+        completed = sum(
+            any(start <= a and end >= b for start, end in merged)
+            for a, b in (plan.positional_boundaries or [])
+        )
     else:
         completed = await repository.count_status(session, plan.id, PortionStatus.COMPLETED)
     return completed, plan.total_portions

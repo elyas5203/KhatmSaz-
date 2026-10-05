@@ -29,3 +29,27 @@ async def dispose_sqlalchemy_pool_after_test():
         from khatmsaz.core.db import get_engine
 
         await get_engine().dispose()
+
+
+@pytest.fixture
+def scope_legacy_delivery_scan(monkeypatch):
+    """Run real legacy queries but limit a scenario to its own khatm's rows.
+
+    Integration tests share PostgreSQL, so global scans must not consume other
+    tests' memberships. Transport is mocked separately by each scenario.
+    """
+    from khatmsaz.modules.allocation import service as allocation
+    from khatmsaz.modules.participation import service as participation
+
+    def scope(khatm_id):
+        for module, name in (
+            (allocation, "list_latest_portion_per_participation"),
+            (participation, "list_active_with_open_reading_plan"),
+        ):
+            original = getattr(module, name)
+
+            async def filtered(session, _original=original):
+                return [row for row in await _original(session) if row.khatm_id == khatm_id]
+
+            monkeypatch.setattr(module, name, filtered)
+    return scope

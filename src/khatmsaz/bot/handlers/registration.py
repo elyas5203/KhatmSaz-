@@ -267,10 +267,13 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
         from khatmsaz.bot.handlers.start import resume_join_after_registration
 
         async with session_scope() as session:
-            await resume_join_after_registration(
+            joined = await resume_join_after_registration(
                 callback.message, session, user_id, pending_token, state=state,
                 consent_accepted=bool(data.get("join_consent_accepted")),
             )
+        if joined is True:
+            from khatmsaz.bot.handlers.join_flow import cleanup_registered_consent
+            await cleanup_registered_consent(callback.message.bot, data)
     else:
         # Owner request (2026-09-23): after registration without a pending
         # join, automatically open the khatm creation wizard — this is why

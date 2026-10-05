@@ -137,6 +137,8 @@ async def test_creator_dashboard_is_scoped_and_shows_full_member_details():
         await session.execute(delete(UserSettings).where(UserSettings.user_id.in_([creator_id, member_id, other_id])))
         await session.execute(delete(Session).where(Session.user_id == creator_id))
         await session.execute(delete(Khatm).where(Khatm.id.in_([khatm_id, other_khatm_id])))
+        from khatmsaz.modules.wallet.models import Wallet
+        await session.execute(delete(Wallet).where(Wallet.user_id == creator_id))
         await session.execute(delete(User).where(User.id.in_([creator_id, member_id, other_id])))
 
 

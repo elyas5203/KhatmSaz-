@@ -38,10 +38,11 @@ from khatmsaz.bot.keyboards import (
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.bot_registry.models import BotRole
-from khatmsaz.bot.member_scope import participation_matches_bot
+from khatmsaz.bot.member_scope import participation_matches_bot, member_instance_id
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.khatm import service as khatm_service
+from khatmsaz.modules.khatm.models import KhatmTemplateType
 from khatmsaz.modules.open_contribution import service as open_contribution_service
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.participation.commitment import CommitmentMode, ScheduleFreq, parse_hhmm
@@ -131,7 +132,10 @@ def _family_prompt(base: str, family: str | None) -> str:
     suffix = {
         "SALAWAT": "salawat",
         "DUA": "dua",
+        "ZIYARAT": "dua",
+        "DUA_ZIYARAT": "dua",
         "LAAN": "laan",
+        "QURAN": "quran",
     }.get(family or "")
     return f"{base}.{suffix}" if suffix else base
 
@@ -205,57 +209,45 @@ async def choose_count(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(CommitFlow.entering_count))
 async def enter_count(message: Message, state: FSMContext) -> None:
+    from khatmsaz.modules.share_occurrence import delivery
+    from khatmsaz.bot.member_scope import member_instance_id
     lang = _lang_of(message)
     raw = (message.text or "").strip()
-    if not raw.isdigit() or int(raw) <= 0:
-        data = await state.get_data()
-        question = t(_family_prompt("commit.ask_count", data.get("commit_family")), lang)
-        await _mwiz(message, state, _retry_question(t("commit.ask_count_invalid", lang), question),
-                    reply_markup=member_commitment_back_keyboard("mode", lang))
+    if not raw.isdecimal() or not 0 < int(raw) <= 2147483647:
+        await message.answer(t("commit.ask_count_invalid", lang))
         return
-    target = int(raw)
     data = await state.get_data()
-    pid = data.get("commit_pid")
-    async with session_scope() as session:
-        # V2 Redesign: COUNT mode is Numeric Reservation mode (7 days)
-        # 1. We record the mode for UX/menus
-        await participation_service.set_commitment_count(session, pid, target)
-        
-        # 2. We create the actual 7-day reservation
-        participation = await participation_service.repository.get(session, pid)
-        khatm = await khatm_service.get_khatm(session, str(participation.khatm_id))
-        
-        result = await open_contribution_service.create_reservation(
-            session, str(khatm.id), pid, target, khatm.repetition_target
-        )
-        
-        if result is None:
-            # Capacity exceeded
-            await state.clear()
-            await message.answer(t("portions.no_capacity_left", lang))
-            return
-            
-        reservation, created = result
-        if not created:
-            # They already had one, we can just point them to it
-            pass
-
-    await state.update_data(_cwiz_mid=None)
-    
-    # Render the standard portion_done_keyboard (? ????? ???) for reservations
-    from khatmsaz.bot.keyboards import contribute_keyboard
-    # Let's create a specific complete_reservation button or reuse the existing one from open_reservations
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    markup = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="? ????? ???", callback_data=f"complete_reservation:{reservation.id}")
-    ]])
-    
-    # Inform them of the 7-day rule
-    await _mwiz(message, state, 
-        f"? ??? ??? ({target} ???) ?? ??? ? ??? ???? ??? ???? ??. ?? ???? ?? ????? ????? ???? ??? ?? ?????.",
-        reply_markup=markup
-    )
-    await state.set_state(None)
+    platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    try:
+        async with session_scope() as session:
+            user = await identity_service.resolve_or_provision_user(session, platform, message.from_user.id)
+            occurrence = await delivery.prepare_numeric(session, data.get("commit_pid"), int(raw),
+                user_id=user.id, bot_instance_id=member_instance_id(message.bot))
+            if occurrence is None:
+                await message.answer(t("portions.no_capacity_left", lang))
+                return
+        # Persist allocation first, then deliver; a failed API call retains the
+        # exact pages and is retried by the scheduler without making new debt.
+        async with session_scope() as session:
+            from khatmsaz.modules.share_occurrence import repository
+            occurrence = await repository.get(session, occurrence.id)
+            part = await participation_service.get_by_id(session, occurrence.participation_id)
+            await khatm_service.get_khatm_for_update(session, part.khatm_id)
+            await participation_service.repository.get_by_id_for_update(session, part.id)
+            occurrence = await repository.get(session, occurrence.id, for_update=True)
+            try:
+                delivered = await delivery.deliver(session, occurrence)
+            except Exception:
+                if not session.is_active:
+                    raise
+                delivered = False
+        await state.clear()
+        await message.answer("🌱 سهم شما ثبت شد. " + (
+            "این رزرو ۷ روز اعتبار دارد؛ پس از خواندن، انجام همین سهم را ثبت کنید."
+            if occurrence.reservation_id else "تعهد این سهم تا انجام باقی می‌ماند."
+        ) + ("" if delivered or occurrence.delivered_at else "\nارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم."))
+    except ValueError:
+        await message.answer("این مقدار یا برنامه قابل ثبت نیست. عضویت، مقدار سهم و تنظیمات ختم را بررسی کنید.")
 
 
 @router.callback_query(F.data.startswith("clog:1:"))
@@ -302,6 +294,20 @@ async def _apply_log(obj, pid, amount: int) -> None:
     target_msg = obj.message if isinstance(obj, CallbackQuery) else obj
     lang = _lang_of(target_msg)
     async with session_scope() as session:
+        from khatmsaz.modules.share_occurrence import repository as shares
+        from khatmsaz.modules.participation import repository as memberships
+        part = await participation_service.get_by_id(session, pid)
+        platform = getattr(target_msg.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        user = await identity_service.resolve_or_provision_user(session, platform, target_msg.chat.id)
+        if (part is None or part.user_id != user.id or member_instance_id(target_msg.bot) is None
+                or not participation_matches_bot(part, target_msg.bot) or amount <= 0):
+            await target_msg.answer(t("portions.not_a_member", lang))
+            return
+        await khatm_service.get_khatm_for_update(session, part.khatm_id)
+        part = await memberships.get_by_id_for_update(session, part.id)
+        if await shares.has_any(session, part.id):
+            await target_msg.answer("برای ثبت انجام، دکمهٔ زیر همان سهم را بزنید. سهم‌ها از «سهم امروز من» در دسترس‌اند.")
+            return
         result = await participation_service.log_commitment_count(session, pid, amount)
     if result is None:
         return
@@ -450,6 +456,32 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         sel = sorted(set(data.get("commit_weekdays") or []))
         weekdays = ",".join(str(i) for i in sel) if sel else None
     async with session_scope() as session:
+        participation = await participation_service.get_by_id(session, pid)
+        platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        if (participation is None or participation.user_id != user.id
+                or member_instance_id(message.bot) is None
+                or not participation_matches_bot(participation, message.bot)):
+            await state.clear()
+            await message.answer(t("portions.not_a_member", lang))
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id) if participation else None
+        if khatm is not None and khatm.template_type == KhatmTemplateType.QURAN_PAGE and data.get("commit_family") != "QURAN":
+            # A stale repetition wizard must not save Salawat settings for Quran.
+            from khatmsaz.bot.handlers.portions import start_open_quran_setup
+            await state.clear()
+            await start_open_quran_setup(message, state, khatm_id=str(khatm.id), lang=lang)
+            return
+        if khatm is not None and khatm.commitment_policy == "FIXED_DAILY":
+            await state.clear()
+            await message.answer("مقدار و برنامهٔ روزانهٔ این ختم را سازنده تعیین کرده است؛ فقط ساعت دریافت را از تنظیمات تغییر دهید.")
+            return
+        if khatm is not None and khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+            from khatmsaz.modules.content import service as content
+            if times > content.get_quran_total_pages(khatm):
+                await message.answer("تعداد صفحات نباید بیشتر از کل صفحات قرآن باشد.")
+                return
+            await participation_service.set_open_reading_pages_per_day(session, pid, times)
         await participation_service.set_commitment_schedule(
             session, pid, freq=freq, hour=hour, minute=minute,
             times_per_period=times, weekdays=weekdays,
@@ -463,11 +495,11 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
             pass
     await state.update_data(_cwiz_mid=None)
     _LOCALIZED_WEEKDAYS = {
-        0: "days.monday", 1: "days.tuesday", 2: "days.wednesday",
-        3: "days.thursday", 4: "days.friday", 5: "days.saturday", 6: "days.sunday"
+        0: "days.saturday", 1: "days.sunday", 2: "days.monday",
+        3: "days.tuesday", 4: "days.wednesday", 5: "days.thursday", 6: "days.friday"
     }
     family = data.get("commit_family")
-    unit = t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
+    unit = t("portions.unit.page", lang) if family == "QURAN" else t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
     
     if freq == ScheduleFreq.WEEKLY.value:
         sel = sorted(set(data.get("commit_weekdays") or []))
@@ -509,6 +541,16 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
         ):
             await safe_answer_callback(callback, t("commit.regular.invalid", lang), show_alert=True)
             return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or khatm.template_type in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
+            await safe_answer_callback(callback, t("commit.regular.invalid", lang), show_alert=True)
+            return
+        from khatmsaz.modules.share_occurrence import repository as shares
+        if await shares.has_any(session, participation.id):
+            await safe_answer_callback(callback, "برای ثبت انجام، دکمهٔ زیر همان سهم را بزنید؛ این دکمه مربوط به برنامهٔ قدیمی است.", show_alert=True)
+            return
+        await khatm_service.get_khatm_for_update(session, participation.khatm_id)
+        participation = await participation_service.repository.get_by_id_for_update(session, participation.id)
         if is_early:
             settings = await settings_service.get_or_create(session, user.id)
             try:
@@ -557,3 +599,60 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
         await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(confirmed_text)
     await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("share_done:"))
+async def complete_share(callback: CallbackQuery) -> None:
+    from uuid import UUID
+    from khatmsaz.modules.share_occurrence import service as shares, repository, delivery
+    from khatmsaz.bot.occurrence_adapter import cleanup
+    from khatmsaz.bot.member_scope import member_instance_id
+    try:
+        oid = UUID(callback.data.split(":", 1)[1])
+    except ValueError:
+        await safe_answer_callback(callback)
+        return
+    platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
+        occurrence = await repository.get(session, oid)
+        part = await participation_service.get_by_id(session, occurrence.participation_id) if occurrence else None
+        if part is None or part.user_id != user.id or occurrence.bot_instance_id != member_instance_id(callback.message.bot):
+            await safe_answer_callback(callback, "این سهم متعلق به شما نیست.", show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm_for_update(session, part.khatm_id)
+        try:
+            occurrence, changed = await shares.complete(session, oid, user_id=user.id,
+                bot_instance_id=member_instance_id(callback.message.bot), record_progress=delivery.record_progress)
+        except shares.OccurrenceAccessError:
+            await safe_answer_callback(callback, "این رزرو دیگر معتبر نیست یا ارسال سهم هنوز کامل نشده است.", show_alert=True)
+            return
+    # Completion has committed before best-effort message cleanup.
+    async with session_scope() as session:
+        await cleanup(session, part, occurrence)
+    await safe_answer_callback(callback, "✅ انجام این سهم ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
+    if changed:
+        from khatmsaz.bot.member_copy import completion_text, share_label
+        family = occurrence.content_spec.get("family", "salawat")
+        lang = occurrence.content_spec.get("language", "fa")
+        await callback.message.answer(completion_text(khatm, family,
+            share_label(family, count=occurrence.amount, lang=lang), lang=lang))
+
+
+@router.callback_query(F.data.startswith("legacy_share_done:"))
+async def complete_legacy_share(callback: CallbackQuery):
+    from uuid import UUID
+    from khatmsaz.modules.share_occurrence import service as shares
+    from khatmsaz.bot.member_scope import member_instance_id
+    try:
+        pid = UUID(callback.data.split(":",1)[1])
+        async with session_scope() as session:
+            platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+            user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
+            changed = await shares.complete_legacy_portion(session, pid, user_id=user.id,
+                bot_instance_id=member_instance_id(callback.message.bot))
+    except ValueError:
+        await safe_answer_callback(callback, "این سهم برای این عضویت قابل ثبت نیست.", show_alert=True)
+        return
+    await safe_answer_callback(callback, "✅ انجام سهم قبلی ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
+    await safe_clear_inline_keyboard(callback.message)

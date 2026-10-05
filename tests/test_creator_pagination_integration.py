@@ -19,7 +19,7 @@ from khatmsaz.web.app import CREATOR_COOKIE_NAME, app
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_creator_khatms_and_member_report_paginate_at_25_rows():
+async def test_creator_recent_list_and_member_report_pagination():
     creator_id = new_id()
     khatm_ids = [new_id() for _ in range(26)]
     member_ids = [new_id() for _ in range(26)]
@@ -58,10 +58,9 @@ async def test_creator_khatms_and_member_report_paginate_at_25_rows():
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             client.cookies.set(CREATOR_COOKIE_NAME, token)
             first = await client.get("/creator")
-            second = await client.get("/creator", params={"page": 2})
-            assert len(re.findall(r"ختم سازنده صفحه‌بندی \d{2}", first.text)) == 25
-            assert len(re.findall(r"ختم سازنده صفحه‌بندی \d{2}", second.text)) == 1
-            assert "صفحه بعد" in first.text and "صفحه قبل" in second.text
+            listing = await client.get("/creator/khatms")
+            assert len(re.findall(r"ختم سازنده صفحه‌بندی \d{2}", first.text)) == 6
+            assert len(re.findall(r"ختم سازنده صفحه‌بندی \d{2}", listing.text)) == 26
 
             detail_first = await client.get(
                 f"/creator/khatms/{report_khatm_id}", params={"q": "عضو گزارش صفحه‌بندی"}
@@ -83,4 +82,6 @@ async def test_creator_khatms_and_member_report_paginate_at_25_rows():
             # row for the creator as a side effect of hitting `/creator`.
             await session.execute(delete(UserSettings).where(UserSettings.user_id == creator_id))
             await session.execute(delete(Khatm).where(Khatm.id.in_(khatm_ids)))
+            from khatmsaz.modules.wallet.models import Wallet
+            await session.execute(delete(Wallet).where(Wallet.user_id == creator_id))
             await session.execute(delete(User).where(User.id.in_([creator_id, *member_ids])))

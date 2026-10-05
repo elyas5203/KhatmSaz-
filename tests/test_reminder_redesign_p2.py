@@ -49,6 +49,7 @@ async def test_accept_removes_only_consent_after_join_or_registration(monkeypatc
     async def next_step(*args, **kwargs):
         assert kwargs["consent_accepted"] is True
         events.append("next")
+        return True
 
     async def delete():
         events.append("delete-consent")
@@ -64,13 +65,20 @@ async def test_accept_removes_only_consent_after_join_or_registration(monkeypatc
     message = SimpleNamespace(
         bot=SimpleNamespace(khatmsaz_platform=Platform.TELEGRAM, khatmsaz_role=role),
         edit_reply_markup=AsyncMock(), delete=delete,
+        chat=SimpleNamespace(id=123), message_id=42,
     )
     callback = SimpleNamespace(
         data="commitment_consent:accept:invitation", message=message,
         from_user=SimpleNamespace(id=123), answer=AsyncMock(),
     )
-    await join_flow.accept_commitment(callback, State())
-    assert events == ["next", "delete-consent"]
+    state = State()
+    await join_flow.accept_commitment(callback, state)
+    if registered:
+        assert events == ["next", "delete-consent"]
+    else:
+        assert events == ["next"]
+        assert state.data["_consent_message_id"] == 42
+        assert state.data["_consent_chat_id"] == 123
 
 
 @pytest.mark.asyncio
@@ -80,7 +88,7 @@ async def test_consent_delete_failure_does_not_fail_join(monkeypatch):
         return_value=SimpleNamespace(id=uuid4(), display_name="عضو"),
     ))
     monkeypatch.setattr(join_flow.settings_service, "is_registered", AsyncMock(return_value=True))
-    resume = AsyncMock()
+    resume = AsyncMock(return_value=True)
     monkeypatch.setattr(join_flow, "resume_join_after_registration", resume)
     message = SimpleNamespace(
         bot=SimpleNamespace(khatmsaz_platform=Platform.TELEGRAM),
@@ -112,6 +120,15 @@ async def test_failed_join_does_not_remove_consent_card(monkeypatch):
             from_user=SimpleNamespace(id=123), answer=AsyncMock(),
         ), State())
     message.delete.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_registration_consent_cleanup_uses_persisted_card_and_falls_back():
+    bot = SimpleNamespace(delete_message=AsyncMock(side_effect=RuntimeError("cannot delete")),
+                          edit_message_reply_markup=AsyncMock())
+    await join_flow.cleanup_registered_consent(bot, {"_consent_chat_id": 12, "_consent_message_id": 34})
+    bot.delete_message.assert_awaited_once_with(chat_id=12, message_id=34)
+    bot.edit_message_reply_markup.assert_awaited_once_with(chat_id=12, message_id=34, reply_markup=None)
 
 
 @pytest.mark.asyncio

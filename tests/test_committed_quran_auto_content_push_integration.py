@@ -33,8 +33,11 @@ def _iana_offset_for_local_hour(target_hour: int) -> str:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_deliver_due_next_portions_pushes_real_content_not_just_text():
+async def test_deliver_due_next_portions_pushes_real_content_not_just_text(scope_legacy_delivery_scan, monkeypatch):
     creator_id, member_id, khatm_id = (new_id() for _ in range(3))
+    scope_legacy_delivery_scan(khatm_id)
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(reminder_service, "_notify_user_with_keyboard", AsyncMock(return_value=1))
     member_identity_id = new_id()
     reminder_hour = 10
     tz_name = _iana_offset_for_local_hour(reminder_hour)
@@ -101,6 +104,8 @@ async def test_deliver_due_next_portions_pushes_real_content_not_just_text():
         assert pushed == [(3, 4)]
 
         from khatmsaz.modules.notification.models import NotificationPreference
+        from khatmsaz.modules.notification.models import NotificationLog
+        await session.execute(delete(NotificationLog).where(NotificationLog.participation_id == member.id))
         from khatmsaz.modules.settings.models import UserSettings
         await session.execute(delete(NotificationPreference).where(NotificationPreference.participation_id == member.id))
         await session.execute(delete(KhatmPortion).where(KhatmPortion.khatm_id == khatm_id))

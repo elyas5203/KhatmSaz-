@@ -40,8 +40,9 @@ def _iana_offset_for_local_hour(target_hour: int) -> str:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
+async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour(scope_legacy_delivery_scan, monkeypatch):
     creator_id, member_id, khatm_id = (new_id() for _ in range(3))
+    scope_legacy_delivery_scan(khatm_id)
     member_identity_id = new_id()
     reminder_hour = 9
     tz_name = _iana_offset_for_local_hour(reminder_hour)
@@ -88,6 +89,12 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
         async def notify(platform, subject, text, **kwargs):
             sent.append((platform, subject, text))
 
+        async def fake_control(session, user_id, text, markup, **kwargs):
+            await notify("TELEGRAM", "one-per-day-member", text)
+            return 1
+
+        monkeypatch.setattr(reminder_service, "_notify_user_with_keyboard", fake_control)
+
         # Same day, reminder hour reached: still too early (< 1 full day since completion).
         delivered_same_day = await reminder_service.deliver_due_next_portions(session, notify, tz_name)
         assert delivered_same_day == 0
@@ -114,6 +121,8 @@ async def test_next_portion_is_withheld_until_next_local_day_at_reminder_hour():
         if plan is not None:
             await session.execute(delete(type(plan)).where(type(plan).id == plan.id))
         from khatmsaz.modules.notification.models import NotificationPreference
+        from khatmsaz.modules.notification.models import NotificationLog
+        await session.execute(delete(NotificationLog).where(NotificationLog.participation_id == member.id))
         await session.execute(delete(NotificationPreference).where(NotificationPreference.participation_id == member.id))
         await session.execute(delete(type(member)).where(type(member).khatm_id == khatm_id))
         await session.execute(delete(Khatm).where(Khatm.id == khatm_id))

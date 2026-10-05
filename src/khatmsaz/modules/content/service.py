@@ -263,7 +263,7 @@ async def resolve_complete_quran_page_assets(
 
 async def resolve_current_quran_delivery(
     session: AsyncSession, *, khatm: Khatm, user_id, page_start: int, page_end: int,
-    asset_platform: str = "TELEGRAM"
+    asset_platform: str = "TELEGRAM", audio_enabled: bool | None = None,
 ) -> dict[str, object]:
     """Resolve all available media for one assigned Quran page range.
 
@@ -284,7 +284,7 @@ async def resolve_current_quran_delivery(
             asset_platform=asset_platform,
         )
     audio = None
-    if settings.quran_audio_enabled:
+    if settings.quran_audio_enabled if audio_enabled is None else audio_enabled:
         audio = await resolve_complete_quran_page_assets(
             session, edition_id=CANONICAL_EDITION_ID, page_start=page_start,
                 page_end=page_end, kind=QuranAssetKind.AUDIO, reciter_id=reciter_id,
@@ -300,7 +300,7 @@ async def resolve_current_quran_delivery(
     return {
         "image": image,
         "audio": audio,
-        "text": text if (settings.translation_enabled or settings.tafsir_enabled) else None,
+        "text": text if (not image or settings.translation_enabled or settings.tafsir_enabled) else None,
         "reciter_id": reciter_id,
     }
 

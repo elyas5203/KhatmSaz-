@@ -16,6 +16,7 @@ class ShareOccurrence(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
     participation_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("khatm_participations.id"))
     bot_instance_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("bot_instances.id"))
+    reservation_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("open_reservations.id"), nullable=True, unique=True)
     source_key: Mapped[str] = mapped_column(String(80))
     amount: Mapped[int] = mapped_column(Integer)
     unit: Mapped[str] = mapped_column(String(16))

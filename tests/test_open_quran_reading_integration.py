@@ -33,8 +33,11 @@ def _iana_offset_for_local_hour(target_hour: int) -> str:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour():
+async def test_open_quran_reading_auto_delivers_once_per_day_at_chosen_hour(scope_legacy_delivery_scan, monkeypatch):
     creator_id, member_id, khatm_id = (new_id() for _ in range(3))
+    scope_legacy_delivery_scan(khatm_id)
+    from unittest.mock import AsyncMock
+    monkeypatch.setattr(reminder_service, "_notify_user_with_keyboard", AsyncMock(return_value=1))
     member_identity_id = new_id()
     reminder_hour = 11
     tz_name = _iana_offset_for_local_hour(reminder_hour)

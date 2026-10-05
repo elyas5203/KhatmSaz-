@@ -1,3 +1,18 @@
+## 2026-10-05 — Unified shares (in progress)
+- Owner's Quran numeric/regular confirmation: DEC-PY-0117 in DECISIONS.md.
+- Runtime: modules/share_occurrence/delivery.py; delivery receipts and member routing: bot/occurrence_adapter.py.
+- Numeric expiry/audio migration: migrations/versions/share2026100501_reservation_and_audio.py.
+- PostgreSQL acceptance scenarios: tests/test_redesign_delivery_integration.py. Release status: latest PROJECT_STATE.md and REMINDER_REDESIGN_MASTER.md, not older completion claims.
+
+## 2026-10-04 — Local fixes execution
+- [FIX_EXECUTION_MASTER.md](FIX_EXECUTION_MASTER.md): current authorization for local repairs, F0–F7 and test/deployment gates.
+
+## 2026-10-04 — Full-system audit
+- Entry point: [FULL_SYSTEM_AUDIT_MASTER.md](FULL_SYSTEM_AUDIT_MASTER.md).
+- Exact paths, function names and lines: [audit/ITEMS.csv](audit/ITEMS.csv); module map: [audit/MODULES.md](audit/MODULES.md).
+- Results and handoff: [audit/README.md](audit/README.md), RUNS.csv, WORK_PACKAGES.csv and BUGS.md.
+- Refresh inventory with `scripts/build_audit_inventory.py`; graph/AST provenance is in audit/SNAPSHOT.json.
+
 ## 2026-10-03 — Repeated La'an reminder hotfix
 - Missing Persian return values: `src/khatmsaz/bot/member_copy.py`.
 - Persistent member keyboard: `src/khatmsaz/bot/keyboards.py::member_menu_keyboard`.

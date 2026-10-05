@@ -1,3 +1,22 @@
+## 2026-10-05 — Full share redesign continuation [Codex]
+- [x] Confirm Quran numeric/regular modes with owner (DEC-PY-0117); implement page-aware flows and numeric reservation links.
+- [x] Execute full PostgreSQL-enabled suite: 437 passed; reviewed additive migration and import/diff checks pass locally.
+- [ ] Finish Quran goal/progress compatibility, all-family routing/handler matrix and all master acceptance gates before release.
+- Evidence: audit/evidence/REDESIGN-20261005-CODEX-CHECKPOINT.md. No commit, push or production action.
+
+## 2026-10-04 — Quran picker hotfix [Codex]
+- [x] Fix Quran entry into repetition picker and corrupted weekday labels; add regression tests.
+- [ ] Resolve pre-existing invalid audit test, verify PostgreSQL and remaining local changes before deployment.
+
+## 2026-10-04 — Local repairs execution
+- [x] Prepare FIX_EXECUTION_MASTER.md following owner authorization.
+- [x] Execute and verify F0–F7 locally; production deployment remains separately authorized.
+
+## 2026-10-04 — Full-system audit [Codex]
+- [x] Prepare executable audit master, exact source inventory, graph provenance, allowed-change rules and result/bug templates.
+- [ ] Execute A00–A12 against isolated infrastructure and record item-level evidence.
+- [ ] Reproduce, prioritize and fix verified bugs under the owner's authorized scope; retest original scenarios.
+
 ## 2026-10-03 — La'an hotfix [Codex]
 - [x] Restore Persian reminder/completion return values, audio hint and persistent member keyboard.
 - [x] Verify content/action delivered once over repeated daily scans (12 related tests pass).

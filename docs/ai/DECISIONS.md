@@ -5,6 +5,13 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0117 — Quran numeric and scheduled shares
+
+**Date:** 2026-10-05
+**Owner confirmation:** Quran has both numeric and regular modes. Numeric mode delivers a specified page range immediately; an OPEN reservation lasts 168 hours with the agreed day-six local-noon warning. COMMITMENT pages remain owed until completed. Regular Quran supports a page amount and selected weekdays. Preserve the existing personal page order; creator-fixed quantities remain immutable. This supersedes the earlier UI restriction to a daily-only Quran plan.
+
+---
+
 ### DEC-PY-0116 — Fixed daily amounts and outage recovery
 
 **Date:** 2026-10-03

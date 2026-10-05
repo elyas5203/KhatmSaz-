@@ -88,7 +88,7 @@ async def test_today_lists_khatms_before_delivering_any_share(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_early_regular_share_waits_for_done_before_consuming_schedule(monkeypatch):
+async def test_early_regular_share_uses_same_occurrence_delivery_as_scheduler(monkeypatch):
     participation = SimpleNamespace(
         id="p1", user_id="u1", khatm_id="k1", joined_via_bot_instance_id="bot-1",
         commitment_mode=CommitmentMode.REGULAR.value, schedule_last_sent_at=None,
@@ -124,12 +124,19 @@ async def test_early_regular_share_waits_for_done_before_consuming_schedule(monk
     async def _no_content(*a, **k):
         return True
     monkeypatch.setattr(_portions, "_send_recitation_content", _no_content)
+    from unittest.mock import AsyncMock
+    from khatmsaz.modules.share_occurrence import delivery, repository
+    occurrence = SimpleNamespace(id="share-1", delivered_at=None)
+    prepare, send = AsyncMock(return_value=occurrence), AsyncMock(return_value=True)
+    monkeypatch.setattr(delivery, "prepare", prepare)
+    monkeypatch.setattr(delivery, "deliver", send)
+    monkeypatch.setattr(repository, "list_outstanding", AsyncMock(return_value=[]))
+    monkeypatch.setattr(repository, "list_legacy_portions", AsyncMock(return_value=[]))
     callback = FakeCallback("p1")
     await report.deliver_today_early(callback)
 
-    # The «انجام سهم» button must be on the LAST message (after any content).
-    markup = callback.message.answers[-1][1]["reply_markup"]
-    assert markup.inline_keyboard[0][0].callback_data == "regular_early_done:p1"
+    assert prepare.await_args.kwargs["manual"] is True
+    assert send.await_args.args[1] is occurrence
 
 
 @pytest.mark.asyncio

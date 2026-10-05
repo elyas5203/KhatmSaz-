@@ -394,7 +394,7 @@ def build_join_success_message(
 
 async def resume_join_after_registration(
     message: Message, session, user_id, token: str, *, state: FSMContext | None = None, consent_accepted: bool = False
-) -> None:
+) -> bool | None:
     """The actual join logic — public because `registration.py` calls this
     once a first-time joiner finishes their profile."""
     _user_settings = await settings_service.get_or_create(session, user_id)
@@ -556,12 +556,10 @@ async def resume_join_after_registration(
     is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
     if (
         state is not None and not was_waitlisted and is_quran
-        and khatm.khatm_type == KhatmTypeEnum.OPEN
+        and (khatm.khatm_type == KhatmTypeEnum.OPEN or getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
     ):
-        from khatmsaz.bot.handlers.portions import start_open_quran_setup
-        await start_open_quran_setup(
-            join_message, state, khatm_id=str(khatm.id), lang=lang, summary=text,
-        )
+        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        await start_commitment_mode_picker(message, state, participation.id, lang, summary=text, family="QURAN")
     elif (
         state is not None and is_fresh_join and is_repetition_commitment
         and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
@@ -599,6 +597,7 @@ async def resume_join_after_registration(
             t("join.menu_hint", lang),
             reply_markup=get_fallback_markup(),
         )
+    return True
 
 
 def _get_fallback_markup_for_bot(bot, lang):

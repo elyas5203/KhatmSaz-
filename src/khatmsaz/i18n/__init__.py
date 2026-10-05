@@ -36,34 +36,48 @@ _DEFAULT_LANGUAGE = "fa"
 
 # key -> {lang: text}. Keep `fa` first and always present.
 _STRINGS: dict[str, dict[str, str]] = {
+    "share.pages": {"fa": "📖 سهم شما از «{title}»: صفحات {pages}", "ar": "📖 حصتك من «{title}»: الصفحات {pages}", "en": "📖 Your share in “{title}”: pages {pages}"},
+    "share.amount": {"fa": "🌱 سهم شما از «{title}»: {amount}", "ar": "🌱 حصتك من «{title}»: {amount}", "en": "🌱 Your share in “{title}”: {amount}"},
+    "share.followup": {"fa": "⏳ دو ساعت از دریافت این سهم گذشته است. پس از خواندن، انجامش را ثبت کنید؛ تعهد شما تا انجام باقی می‌ماند.", "ar": "⏳ مضت ساعتان على استلام هذه الحصة. سجّل إتمامها بعد القراءة؛ يبقى الالتزام حتى إتمامها.", "en": "⏳ You received this share two hours ago. Confirm it after reading; your commitment remains until completed."},
+    "share.deadline": {"fa": "⏰ کمتر از یک ساعت تا پایان زمان امروز مانده است. لطفاً سهمتان را بخوانید و ثبت کنید تا تعهد انجام‌نشده‌ای باقی نماند.", "ar": "⏰ بقي أقل من ساعة على نهاية وقت اليوم. يرجى قراءة حصتك وتسجيلها كي لا يبقى الالتزام غير مكتمل.", "en": "⏰ Less than an hour remains before today’s deadline. Please read and confirm your share; unfinished commitments remain due."},
+    "commit.ask_count.quran": {
+        "fa": "چند صفحه می‌خواهید یک‌جا دریافت کنید؟",
+        "ar": "كم صفحة تريد استلامها في هذه الحصة؟",
+        "en": "How many pages would you like in this share?",
+    },
+    "commit.ask_times_per_period.quran": {
+        "fa": "در هر روز انتخاب‌شده چند صفحه بخوانید؟",
+        "ar": "كم صفحة تقرأ في كل يوم تختاره؟",
+        "en": "How many pages on each selected day?",
+    },
 
     "create_khatm.ask_daily_quran": {
-        "fa": "??? ???? ?????? ?????? ???? 2 ????",
-        "ar": "?? ???? ???? ?????? ???? 2 ????",
+        "fa": "سهم روزانهٔ هر عضو چند صفحه باشد؟ مثلاً ۲ صفحه.",
+        "ar": "كم صفحة يقرأ كل عضو يومياً؟ مثلاً صفحتان.",
         "en": "How many pages daily? (e.g. 2)"
     },
     "create_khatm.ask_daily_salawat": {
-        "fa": "??? ????? ?? ??? ?????? ???? 100 ?????",
-        "ar": "?? ????? ?? ?????? ???? 100",
+        "fa": "سهم روزانهٔ هر عضو چند صلوات باشد؟ مثلاً ۱۰۰ صلوات.",
+        "ar": "كم صلاة على النبي لكل عضو يومياً؟ مثلاً 100.",
         "en": "How many salawat daily? (e.g. 100)"
     },
     "create_khatm.ask_daily_laan": {
-        "fa": "??? ??? ?? ??? ???? ?????? ???? 50 ???",
-        "ar": "?? ??? ?? ?????? ???? 50",
+        "fa": "هر عضو ذکر تعیین‌شده را روزانه چند بار بخواند؟ مثلاً ۵۰ بار.",
+        "ar": "كم مرة يقرأ كل عضو الذكر المحدد يومياً؟ مثلاً 50.",
         "en": "How many la'n daily? (e.g. 50)"
     },
     "create_khatm.ask_daily_dua": {
-        "fa": "??? ??? ??? ??? ?? ??? ?????? ??? ???? 1 ???",
-        "ar": "?? ??? ???? ??? ??????? ???? 1",
+        "fa": "هر عضو دعا یا زیارت را روزانه چند بار بخواند؟ مثلاً یک بار.",
+        "ar": "كم مرة يقرأ كل عضو الدعاء أو الزيارة يومياً؟ مثلاً مرة واحدة.",
         "en": "How many times daily? (e.g. 1)"
     },
-    "days.monday": {"fa": "??????", "ar": "???????", "en": "Mon"},
-    "days.tuesday": {"fa": "???????", "ar": "????????", "en": "Tue"},
-    "days.wednesday": {"fa": "????????", "ar": "????????", "en": "Wed"},
-    "days.thursday": {"fa": "????????", "ar": "??????", "en": "Thu"},
-    "days.friday": {"fa": "????", "ar": "??????", "en": "Fri"},
-    "days.saturday": {"fa": "????", "ar": "?????", "en": "Sat"},
-    "days.sunday": {"fa": "??????", "ar": "?????", "en": "Sun"},
+    "days.monday": {"fa": "دوشنبه", "ar": "الاثنين", "en": "Mon"},
+    "days.tuesday": {"fa": "سه‌شنبه", "ar": "الثلاثاء", "en": "Tue"},
+    "days.wednesday": {"fa": "چهارشنبه", "ar": "الأربعاء", "en": "Wed"},
+    "days.thursday": {"fa": "پنج‌شنبه", "ar": "الخميس", "en": "Thu"},
+    "days.friday": {"fa": "جمعه", "ar": "الجمعة", "en": "Fri"},
+    "days.saturday": {"fa": "شنبه", "ar": "السبت", "en": "Sat"},
+    "days.sunday": {"fa": "یکشنبه", "ar": "الأحد", "en": "Sun"},
 
 
     "commit.regular_saved_detailed": {
@@ -121,7 +135,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "menu.settings": {"fa": "⚙️ تنظیمات حساب", "ar": "⚙️ إعدادات الحساب", "en": "⚙️ Account Settings"},
     "menu.create": {"fa": "➕ ساخت ختم جدید", "ar": "➕ إنشاء ختمة جديدة", "en": "➕ Create New Khatm"},
     "menu.help": {"fa": "❓ راهنمای کامل", "ar": "❓ دليل كامل", "en": "❓ Full Guide"},
-    
+
     # New Parent Menus
     "menu.creator.management": {"fa": "👑 مدیریت ختم‌ها", "ar": "👑 إدارة الختمات", "en": "👑 Khatm Management"},
     "menu.creator.finance": {"fa": "📊 گزارش و مالی", "ar": "📊 التقارير والمالية", "en": "📊 Report & Finance"},
@@ -138,9 +152,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "📈 Your khatm report\n\nYou currently have no active khatm created by you.",
     },
     "menu.back_to_main": {"fa": "🔙 بازگشت به منوی اصلی", "ar": "🔙 العودة للقائمة الرئيسية", "en": "🔙 Back to Main Menu"},
-    
+
     # Text for menus
-    
+
     "welcome.text": {
         "fa": (
             "سلام! به <b>ختم‌ساز</b> خوش اومدی 🌱\n\n"
@@ -1384,6 +1398,11 @@ _STRINGS: dict[str, dict[str, str]] = {
     "portions.positive_number_required": {
         "fa": "لطفاً فقط یک عدد بزرگ‌تر از صفر بفرستید.", "ar": "يرجى إرسال رقم أكبر من صفر فقط.",
         "en": "Please send only a number greater than zero.",
+    },
+    "portions.no_capacity_left": {
+        "fa": "ظرفیت کافی باقی نمانده است.",
+        "ar": "سعة غير كافية.",
+        "en": "Not enough capacity."
     },
     "portions.khatm_not_active": {
         "fa": "این ختم دیگر فعال نیست.", "ar": "هذه الختمة لم تعد نشطة.", "en": "This khatm is no longer active.",

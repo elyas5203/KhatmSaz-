@@ -55,11 +55,12 @@ class FakeMessage:
 
     async def answer(self, text, **kwargs):
         self.answers.append((text, kwargs))
+        return SimpleNamespace(message_id=len(self.answers))
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-async def test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it():
+async def test_fixed_committed_quran_join_asks_delivery_hour_and_saves_it():
     creator_id, member_id, khatm_id = new_id(), new_id(), new_id()
     # A fresh chat_id per run (rather than a fixed constant) so
     # `resolve_or_provision_user` can't return a persistent identity left
@@ -75,6 +76,7 @@ async def test_fresh_committed_quran_join_asks_delivery_hour_and_saves_it():
             id=khatm_id, creator_user_id=creator_id, title="قرآن تست پرسش ساعت",
             template_type=KhatmTemplateType.QURAN_PAGE, khatm_type=KhatmTypeEnum.COMMITMENT,
             status=KhatmStatus.ACTIVE, quran_edition_id="madina-hafs",
+            commitment_policy="FIXED_DAILY", daily_commitment_amount=2,
         )
         session.add(khatm)
         await session.flush()
@@ -175,8 +177,9 @@ async def test_fresh_committed_salawat_join_asks_commitment_mode():
             message, session, member_id, token, state=state, consent_accepted=True,
         )
 
-    assert len(message.answers) == 3, "join success + commitment explanation + mode picker expected"
-    assert "چطور می‌خوای بخونی" in message.answers[-1][0]
+    callbacks = [button.callback_data for row in message.answers[-1][1]["reply_markup"].inline_keyboard for button in row]
+    assert any(value.startswith("cmode:regular:") for value in callbacks)
+    assert any(value.startswith("cmode:count:") for value in callbacks)
     assert state.state is None
 
     async with session_scope() as session:

@@ -51,4 +51,4 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     assert res is not None
     assert res.down_revision == "policy2026100302"
     
-    assert script.get_heads() == ["res20261003120539"]
+    assert script.get_heads() == ["share2026100501"]

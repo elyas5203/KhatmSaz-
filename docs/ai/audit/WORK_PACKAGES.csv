@@ -1,0 +1,14 @@
+package_id,status,owner,started_at,head,scope,next_step
+A00,NOT_RUN,,,,startup and infrastructure,Read master and claim this package before testing
+A01,NOT_RUN,,,,identity and authorization,Read master and claim this package before testing
+A02,NOT_RUN,,,,khatm creation and lifecycle,Read master and claim this package before testing
+A03,NOT_RUN,,,,join leave invitations waiting list,Read master and claim this package before testing
+A04,IN_PROGRESS,Codex,2026-10-04T15:00:25.863121+03:30,a2f55b412078b0ab3b23085c5b2f1cc84c4eb6ce,allocation reservations occurrences completion,Continue item-level audit; see RUN-20261004-CODEX-001; no fix authorization
+A05,IN_PROGRESS,Codex,2026-10-04T15:00:25.863121+03:30,a2f55b412078b0ab3b23085c5b2f1cc84c4eb6ce,reminders and notifications,Continue item-level audit; see RUN-20261004-CODEX-001; no fix authorization
+A06,NOT_RUN,,,,content and media,Read master and claim this package before testing
+A07,NOT_RUN,,,,settings i18n and UX,Read master and claim this package before testing
+A08,NOT_RUN,,,,wallet plans SMS,Read master and claim this package before testing
+A09,NOT_RUN,,,,broadcast advertising,Read master and claim this package before testing
+A10,NOT_RUN,,,,web reporting audit,Read master and claim this package before testing
+A11,IN_PROGRESS,Antigravity,2026-10-04T12:30:00+03:30,a2f55b412078b0ab3b23085c5b2f1cc84c4eb6ce,schema and migrations,"Tests run, bugs identified, awaiting owner fix command"
+A12,IN_PROGRESS,Antigravity,2026-10-04T12:30:00+03:30,a2f55b412078b0ab3b23085c5b2f1cc84c4eb6ce,tests scripts docs and uncovered files,"Tests run, bugs identified, awaiting owner fix command"

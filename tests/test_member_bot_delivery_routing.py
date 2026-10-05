@@ -46,7 +46,7 @@ async def test_private_approval_records_originating_member_bot(monkeypatch):
         recorded["bot_instance_id"] = joined_via_bot_instance_id
         return khatm, object(), None, False
 
-    monkeypatch.setattr(workflow_service.khatm_service, "get_khatm", fake_get_khatm)
+    monkeypatch.setattr(workflow_service.khatm_service, "get_khatm_for_update", fake_get_khatm)
     monkeypatch.setattr(workflow_service, "_complete_join", fake_complete)
 
     await workflow_service.approve_join_request(

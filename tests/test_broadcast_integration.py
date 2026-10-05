@@ -23,6 +23,10 @@ async def test_creator_broadcast_requires_moderation_before_send_state():
             ),
         ])
         await session.flush()
+        from khatmsaz.modules.participation.models import Participation
+        member = Participation(id=new_id(), khatm_id=khatm_id, user_id=other_id)
+        session.add(member)
+        await session.flush()
         item = await broadcast_service.submit(session, khatm_id=khatm_id, creator_user_id=user_id, body="پیام تست")
         assert item.status == BroadcastStatus.PENDING
         with pytest.raises(ValueError):
@@ -32,5 +36,6 @@ async def test_creator_broadcast_requires_moderation_before_send_state():
         with pytest.raises(ValueError):
             await broadcast_service.approve(session, item.id)
         await session.execute(delete(KhatmBroadcast).where(KhatmBroadcast.id == item.id))
+        await session.execute(delete(Participation).where(Participation.id == member.id))
         await session.execute(delete(Khatm).where(Khatm.id == khatm_id))
         await session.execute(delete(User).where(User.id.in_([user_id, other_id])))

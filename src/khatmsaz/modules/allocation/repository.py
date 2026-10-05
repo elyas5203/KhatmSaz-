@@ -88,6 +88,52 @@ async def create_next_rotating_portion(
     return portion
 
 
+async def allocate_page_amount(session, khatm_id, participation_id, amount):
+    from khatmsaz.modules.participation.models import Participation
+    plan = await get_plan_by_khatm_for_update(session, khatm_id)
+    if plan is None:
+        return []
+    if plan.allocation_strategy != AllocationStrategy.ROTATING.value:
+        # Historical shared-pool allocations keep their existing boundaries.
+        portion = await next_open_portion(session, plan.id)
+        if portion is None:
+            return []
+        await assign_portion(session, portion.id, participation_id)
+        return [portion]
+    part = await session.get(Participation, participation_id)
+    latest = (await session.execute(select(KhatmPortion).where(
+        KhatmPortion.plan_id == plan.id, KhatmPortion.participation_id == participation_id,
+    ).order_by(KhatmPortion.sequence.desc()).limit(1))).scalar_one_or_none()
+    if latest is None:
+        first = await create_next_rotating_portion(session, plan, khatm_id, participation_id)
+        if first is None:
+            return []
+        start, sequence = first.unit_start, first.sequence
+    else:
+        first = None
+        start, sequence = latest.unit_end + 1, latest.sequence + 1
+    total = max(int(b[1]) for b in plan.positional_boundaries)
+    start = (start - 1) % total + 1
+    result = []
+    remaining = amount
+    while remaining > 0:
+        end = min(total, start + remaining - 1)
+        if first is not None:
+            portion, first = first, None
+            portion.unit_end = end
+        else:
+            portion = KhatmPortion(id=new_id(), plan_id=plan.id, khatm_id=khatm_id,
+                sequence=sequence, unit_kind=PortionUnitKind.POSITIONAL,
+                unit_start=start, unit_end=end, status=PortionStatus.ASSIGNED,
+                participation_id=part.id)
+            session.add(portion)
+        result.append(portion)
+        remaining -= end - start + 1
+        start, sequence = 1, sequence + 1
+    await session.flush()
+    return result
+
+
 async def count_distinct_completed_positional(session: AsyncSession, plan_id) -> int:
     stmt = select(func.count(func.distinct(KhatmPortion.unit_start))).where(
         KhatmPortion.plan_id == plan_id,
@@ -95,6 +141,14 @@ async def count_distinct_completed_positional(session: AsyncSession, plan_id) ->
         KhatmPortion.status == PortionStatus.COMPLETED,
     )
     return int((await session.execute(stmt)).scalar_one())
+
+
+async def completed_positional_ranges(session: AsyncSession, plan_id):
+    stmt = select(KhatmPortion.unit_start, KhatmPortion.unit_end).where(
+        KhatmPortion.plan_id == plan_id, KhatmPortion.unit_kind == PortionUnitKind.POSITIONAL,
+        KhatmPortion.status == PortionStatus.COMPLETED,
+    ).distinct().order_by(KhatmPortion.unit_start, KhatmPortion.unit_end)
+    return list((await session.execute(stmt)).all())
 
 
 async def bulk_create_positional_portions(

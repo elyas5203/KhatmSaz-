@@ -49,7 +49,7 @@ async def test_picking_a_reciter_via_settings_menu_turns_on_audio():
     chat_id = 9_810_000_001
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, chat_id)
-        settings = await settings_service.get_or_create(session, user.id)
+        settings = await settings_service.set_quran_audio_enabled(session, user.id, False)
         assert settings.quran_audio_enabled is False
         user_id = user.id
 
@@ -71,7 +71,7 @@ async def test_picking_a_reciter_via_typed_command_turns_on_audio():
     chat_id = 9_810_000_002
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, chat_id)
-        settings = await settings_service.get_or_create(session, user.id)
+        settings = await settings_service.set_quran_audio_enabled(session, user.id, False)
         assert settings.quran_audio_enabled is False
         user_id = user.id
 

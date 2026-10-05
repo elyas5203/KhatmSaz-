@@ -44,7 +44,7 @@ async def today_overview(message: Message) -> None:
         else:
             settings = await settings_service.get_or_create(session, user.id)
             lang = settings.language
-        for participation in await participation_service.list_my_active(session, user.id):
+        for participation in await participation_service.list_my_active(session, user.id, include_owed=True):
             khatm = await khatm_service.get_khatm(session, participation.khatm_id)
             if khatm is None:
                 continue
@@ -89,6 +89,46 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
         now_utc = datetime.now(timezone.utc)
         today = now_utc.astimezone(user_tz).date()
 
+        from khatmsaz.modules.share_occurrence import delivery, repository as shares
+        if delivery.is_managed(participation, khatm):
+            occurrence = await delivery.prepare(session, participation.id, now=now_utc, manual=True)
+            if occurrence is not None and occurrence.delivered_at is None:
+                try:
+                    await delivery.deliver(session, occurrence, now=now_utc)
+                except Exception:
+                    if not session.is_active:
+                        raise
+                    # Preserve successful component receipts on API failure;
+                    # the next attempt sends only the remaining components.
+                    await safe_answer_callback(callback, t("report.content_unavailable", lang), show_alert=True)
+                    return
+            pending = await shares.list_outstanding(session, participation.id)
+            delivered = [item for item in pending if item.delivered_at is not None]
+            legacy = await shares.list_legacy_portions(session, participation.id)
+            for item in legacy:
+                await callback.message.answer(f"📖 سهم قبلی شما: صفحات {item.unit_start} تا {item.unit_end}",
+                    reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+                        text="✅ انجام همین سهم قبلی", callback_data=f"legacy_share_done:{item.id}")]]))
+            if delivered:
+                from khatmsaz.bot.occurrence_adapter import label, keyboard
+                from khatmsaz.modules.share_occurrence import service as occurrence_service
+                # Actions refer to each old debt; content is never re-forwarded.
+                for item in delivered:
+                    receipts = await shares.list_messages(session, item.id)
+                    action = next((r for r in receipts if r.purpose == "ACTION"), None)
+                    reply_options = {"reply_markup": keyboard(item)}
+                    if action and platform == Platform.TELEGRAM:
+                        reply_options.update(reply_to_message_id=action.message_id, allow_sending_without_reply=True)
+                    view = await callback.message.answer(label(khatm, item), **reply_options)
+                    await occurrence_service.record_message(session, occurrence_id=item.id,
+                        bot_instance_id=item.bot_instance_id, component_key=f"view:{view.message_id}",
+                        purpose="ACTION", chat_id=str(callback.message.chat.id), message_id=view.message_id,
+                        sent_at=now_utc)
+            elif not legacy:
+                await callback.message.answer(t("report.no_portion_today", lang))
+            await safe_answer_callback(callback)
+            return
+
         # Open/member-controlled Quran: reserve today's configured page count
         # now and stamp last_sent, so the scheduler cannot send it again later.
         if khatm.template_type == KhatmTemplateType.QURAN_PAGE and participation.open_reading_pages_per_day:
@@ -131,7 +171,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
 
         # Regular Salawat/Dua/Ziyarat/La'an: merely opening early does NOT
         # consume the scheduled reminder. Only tapping «done» does that.
-        if participation.commitment_mode == CommitmentMode.REGULAR.value:
+        if participation.commitment_mode == CommitmentMode.REGULAR.value and khatm.template_type not in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
             if (
                 participation.schedule_last_sent_at is not None
                 and participation.schedule_last_sent_at.astimezone(user_tz).date() == today

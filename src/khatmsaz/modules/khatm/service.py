@@ -351,6 +351,10 @@ async def get_khatm(session: AsyncSession, khatm_id) -> Khatm | None:
     return await repository.get_by_id(session, khatm_id)
 
 
+async def get_khatm_for_update(session: AsyncSession, khatm_id) -> Khatm | None:
+    return await repository.get_by_id_for_update(session, khatm_id)
+
+
 def has_started(khatm: Khatm, *, now: datetime | None = None) -> bool:
     """Return whether a scheduled khatm is allowed to deliver work yet."""
     if khatm.start_at is None:

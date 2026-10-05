@@ -53,33 +53,59 @@ NotifyFn = Callable[[str, str, str], Awaitable[None]]
 SendQuranPagesFn = Callable[..., Awaitable[None]]
 
 
-async def process_open_reservations(session: AsyncSession, notify: NotifyFn) -> None:
+async def process_open_reservations(session: AsyncSession, notify: NotifyFn, *, reservation_id=None, now=None) -> None:
     from sqlalchemy import select
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
     from khatmsaz.modules.open_contribution.models import OpenReservation, OpenReservationStatus
     
-    now = datetime.now(ZoneInfo("UTC"))
+    now = now or datetime.now(ZoneInfo("UTC"))
     stmt = select(OpenReservation).where(OpenReservation.status == OpenReservationStatus.ACTIVE)
+    if reservation_id is not None:
+        stmt = stmt.where(OpenReservation.id == reservation_id)
     reservations = (await session.execute(stmt)).scalars().all()
     
     for r in reservations:
+        # Match completion's lock order; never hold a reservation then wait for a share.
+        await khatm_service.get_khatm_for_update(session, r.khatm_id)
+        from khatmsaz.modules.open_contribution import repository as reservation_repo
+        r = await reservation_repo.get_reservation(session, r.id, for_update=True)
+        if r.status != OpenReservationStatus.ACTIVE:
+            continue
         if now >= r.expires_at:
             r.status = OpenReservationStatus.EXPIRED
-        elif r.reminded_at is None and now >= (r.expires_at - timedelta(days=1)):
-            r.reminded_at = now
-            # Send warning
+        elif r.reminded_at is None:
             participation = await participation_repository.get_by_id(session, r.participation_id)
             if participation:
                 khatm = await khatm_service.get_khatm(session, str(r.khatm_id))
                 if khatm:
-                    lang = participation.locale or "fa"
+                    settings = await settings_service.get_or_create(session, participation.user_id)
+                    from khatmsaz.modules.share_occurrence.delivery import timezone_for
+                    local_created = r.created_at.astimezone(timezone_for(settings.timezone))
+                    due = (local_created + timedelta(days=6)).replace(hour=12, minute=0, second=0, microsecond=0)
+                    if now < due or not participation.joined_via_bot_instance_id:
+                        continue
+                    lang = settings.language
                     from khatmsaz.i18n import t
-                    await _notify_user(
-                        session, notify, participation.user_id,
+                    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+                    from khatmsaz.modules.share_occurrence import repository as shares
+                    share = await shares.get_by_source(session, participation.id, f"reservation:{r.id}")
+                    if share is not None and share.delivered_at is None:
+                        continue
+                    if share is not None:
+                        from khatmsaz.bot.occurrence_adapter import send_control
+                        if await send_control(session, participation, khatm, share, "RESERVATION_WARNING", now=now):
+                            r.reminded_at = now
+                        continue
+                    action = f"share_done:{share.id}" if share else f"complete_reservation:{r.id}"
+                    sent = await _notify_user_with_keyboard(
+                        session, participation.user_id,
                         t("portions.open_reservation_warning", lang, count=int(r.amount)),
-                        bot_instance_id=khatm.bot_instance_id
+                        InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="✅ انجام این سهم", callback_data=action)]]),
+                        bot_instance_id=participation.joined_via_bot_instance_id,
                     )
+                    if sent:
+                        r.reminded_at = now
 
 
 SECOND_REMINDER_HOURS_BEFORE_DEADLINE = 4
@@ -107,80 +133,78 @@ async def run_once(
     monthly_report_day: int = 1, monthly_report_hour: int = 10,
     send_quran_pages: SendQuranPagesFn | None = None,
 ) -> None:
-    await khatm_service.close_due_khatms(session)
+    """The only live share scan; legacy workers below are not scheduled."""
+    from khatmsaz.core.db import session_scope
+    # Commit lifecycle changes before delivery sessions take khatm locks.
+    async with session_scope() as lifecycle:
+        await khatm_service.close_due_khatms(lifecycle)
+    await deliver_share_occurrences()
+    await cleanup_completed_shares()
+    await process_reservation_warnings()
+    # Reporting errors cannot roll back successfully delivered member shares.
     await completion_service.deliver_pending(session, notify)
     await monthly_report_service.deliver_due(
         session, notify, report_day=monthly_report_day, report_hour=monthly_report_hour
     )
-    await delegate_inactive_portions(session, notify)
-    await process_open_reservations(session, notify)
-    if send_quran_pages is not None:
-        await deliver_due_open_quran_reading(session, notify, send_quran_pages, tz_name)
-    portions = await allocation_service.list_assigned_positional_portions(session)
-    daily_candidates = []
-    for portion in portions:
-        participation = await participation_repository.get_by_id(session, portion.participation_id)
-        if participation is None:
-            continue
-        khatm = await khatm_service.get_khatm(session, portion.khatm_id)
-        if khatm is None or khatm.daily_deadline_hour is None:
-            continue
-        if not khatm_service.has_started(khatm):
-            continue
 
-        preference = await notification_service.get_preference(session, participation.id)
-        user_settings = await settings_service.get_or_create(session, participation.user_id)
+
+async def process_reservation_warnings():
+    from khatmsaz.core.db import session_scope
+    from khatmsaz.modules.open_contribution.models import OpenReservation
+    async with session_scope() as session:
+        ids = list((await session.execute(select(OpenReservation.id).where(OpenReservation.status == "ACTIVE"))).scalars())
+    for rid in ids:
         try:
-            user_tz = ZoneInfo(user_settings.timezone)
-        except (KeyError, ValueError):
-            user_tz = ZoneInfo(tz_name)
-        now_local = datetime.now(user_tz)
-        current_hour = now_local.hour
-        reminders_enabled = preference is None or preference.enabled
-        snoozed = (
-            preference is not None
-            and preference.snoozed_until is not None
-            and preference.snoozed_until > datetime.now(timezone.utc)
-        )
-        reminder_hour = (
-            preference.reminder_hour
-            if preference is not None and preference.enabled
-            else await _default_reminder_hour(session)
-        )
-        reminder_minute = getattr(preference, "reminder_minute", 0) if (preference is not None and preference.enabled) else 0
-        if reminders_enabled and not snoozed and _is_reminder_due(now_local, reminder_hour, reminder_minute):
-            if not await notification_service.already_sent_today(
-                session, participation.id, NotificationKind.DAILY_REMINDER
-            ):
-                logger.debug(
-                    "Daily reminder candidate: participation=%s khatm=%s target=%02d:%02d",
-                    participation.id, khatm.title, reminder_hour, reminder_minute,
-                )
-                daily_candidates.append(
-                    (
-                        participation, khatm, portion, user_settings.language,
-                        user_settings.daily_digest_enabled,
-                    )
-                )
+            async with session_scope() as session:
+                await process_open_reservations(session, None, reservation_id=rid)
+        except Exception:
+            logger.exception("Reservation warning will retry for %s", rid)
 
-        second_hour = max(0, khatm.daily_deadline_hour - SECOND_REMINDER_HOURS_BEFORE_DEADLINE)
-        final_hour = max(0, khatm.daily_deadline_hour - FINAL_REMINDER_HOURS_BEFORE_DEADLINE)
-        if reminders_enabled and not snoozed and current_hour == second_hour:
-            await _maybe_send_staged_reminder(
-                session, notify, participation, khatm, portion,
-                NotificationKind.SECOND_REMINDER, "یادآوری دوم 🌱", user_settings.language, audio_enabled=user_settings.quran_audio_enabled
-            )
-        if reminders_enabled and not snoozed and current_hour == final_hour:
-            await _maybe_send_staged_reminder(
-                session, notify, participation, khatm, portion,
-                NotificationKind.FINAL_REMINDER, "هشدار نهایی قبل از مهلت ⏰", user_settings.language, audio_enabled=user_settings.quran_audio_enabled
-            )
-        if current_hour >= khatm.daily_deadline_hour:
-            await _maybe_record_miss_and_notify_creator(session, notify, participation, khatm)
-    await _send_daily_digest(session, notify, daily_candidates, send_quran_pages)
-    await _send_open_schedule_reminders(session, notify, tz_name)
-    await deliver_due_regular_commitments(session, notify, tz_name)
-    await deliver_due_next_portions(session, notify, tz_name, send_quran_pages)
+
+async def cleanup_completed_shares():
+    """Retry control cleanup independently of membership/goal completion."""
+    from khatmsaz.core.db import session_scope
+    from khatmsaz.modules.share_occurrence import repository as shares
+    from khatmsaz.bot.occurrence_adapter import cleanup
+    async with session_scope() as session:
+        ids = await shares.pending_cleanup_ids(session)
+    for oid in ids:
+        try:
+            async with session_scope() as session:
+                occurrence = await shares.get(session, oid)
+                part = await participation_repository.get_by_id(session, occurrence.participation_id)
+                if part is not None:
+                    await cleanup(session, part, occurrence)
+        except Exception:
+            logger.warning("Share control cleanup will retry for occurrence %s", oid)
+
+
+async def deliver_share_occurrences():
+    """Each member commits independently; one failed delivery cannot stop others."""
+    from khatmsaz.core.db import session_scope
+    from khatmsaz.modules.share_occurrence import delivery
+    async with session_scope() as session:
+        ids = await delivery.candidate_ids(session)
+    for pid in ids:
+        try:
+            async with session_scope() as session:
+                occurrence = await delivery.prepare(session, pid)
+                # Preserve successful component receipts even if the next API
+                # call fails. Database errors must still roll back this member.
+                try:
+                    if occurrence is not None:
+                        await delivery.deliver(session, occurrence)
+                    from khatmsaz.modules.share_occurrence import repository as shares
+                    for pending in await shares.list_outstanding(session, pid):
+                        if pending.source_key.startswith(("count:", "reservation:")) and pending.delivered_at is None:
+                            await delivery.deliver(session, pending)
+                    await delivery.remind(session, pid)
+                except Exception:
+                    if not session.is_active:
+                        raise
+                    logger.warning("Share delivery will retry for membership %s", pid)
+        except Exception:
+            logger.exception("Share scan failed for membership %s", pid)
 
 
 async def _push_portion_content(session, send_quran_pages, participation, khatm, portion) -> None:
@@ -404,6 +428,10 @@ async def deliver_due_regular_commitments(
         khatm = await khatm_service.get_khatm(session, participation.khatm_id)
         if khatm is None or not khatm_service.has_started(khatm):
             continue
+        if getattr(khatm, "template_type", None) in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
+            # Older broken setup flows could persist REGULAR on Quran readers.
+            # Quran delivery belongs to the page/portion workers, never devotional text.
+            continue
         if participation.schedule_freq is None or participation.schedule_hour is None:
             continue
 
@@ -554,6 +582,9 @@ async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
         if not khatm_service.schedule_is_due(khatm, today):
             continue
         for participation in await participation_repository.list_active_for_khatm(session, khatm.id):
+            from khatmsaz.modules.share_occurrence.delivery import is_managed
+            if is_managed(participation, khatm) or participation.commitment_mode == "COUNT":
+                continue
             preference = await notification_service.get_preference(session, participation.id)
             if preference is not None and not preference.enabled:
                 continue

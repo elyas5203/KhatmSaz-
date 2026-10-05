@@ -12,7 +12,7 @@ from aiogram import F, Router
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 from khatmsaz.bot.keyboards import (
     bail_if_menu_button,
@@ -471,6 +471,10 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
             await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
 
+        from khatmsaz.modules.share_occurrence import repository as shares
+        if await shares.has_any(session, participation.id):
+            await safe_answer_callback(callback, "از دکمهٔ انجام زیر همان سهم استفاده کنید. سهم‌های باقی‌مانده در «انجام قرائت امروز» نمایش داده می‌شوند.", show_alert=True)
+            return
         completed, _ = await allocation_service.complete_current_portion_and_advance(
             session, khatm_id, participation.id
         )
@@ -598,23 +602,63 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
 
+    if khatm is not None and participation is not None and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
+        from khatmsaz.bot.handlers.start import AskDeliveryHour
+        from khatmsaz.bot.keyboards import delivery_hour_keyboard
+        await state.set_state(AskDeliveryHour.entering_hour)
+        await state.update_data(delivery_hour_participation_id=str(participation.id), lang=lang)
+        await callback.message.answer(t("join.ask_delivery_hour", lang), reply_markup=delivery_hour_keyboard("join_hour", lang))
+        await safe_answer_callback(callback)
+        return
+
+    if participation is not None and getattr(participation, "commitment_mode", None) in ("COUNT", "REGULAR"):
+        from khatmsaz.modules.share_occurrence import repository as shares
+        async with session_scope() as session:
+            pending = await shares.list_outstanding(session, participation.id)
+            managed = await shares.has_any(session, participation.id)
+        if participation.commitment_mode == "REGULAR" or (managed and pending):
+            await callback.message.answer(t("report.today_do_share", lang), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=t("report.today_do_share", lang), callback_data=f"today_pick:{participation.id}")
+            ]]))
+            await safe_answer_callback(callback)
+            return
+        if managed:
+            from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+            from khatmsaz.bot.member_copy import content_family
+            async with session_scope() as session:
+                family = (await content_family(session, khatm)).upper()
+            await start_commitment_mode_picker(callback.message, state, participation.id, lang, family=family)
+            await safe_answer_callback(callback)
+            return
+
     # Owner request (2026-09-21): the FIRST time a non-committed (open or
     # waitlisted) Quran reader wants to log/read, ask their daily page
     # count and delivery hour once, instead of only ever asking for a bare
     # number with nothing actually sent (BACKLOG.md — open Quran reading).
     # V2 Redesign: Any OPEN khatm, or any MEMBER-CHOICE COMMITMENT khatm, 
     # goes to the Mode Picker if mode is not set.
-    is_member_choice = (
-        khatm.khatm_type == KhatmTypeEnum.OPEN 
+    if (
+        khatm is not None and participation is not None
+        and khatm.template_type == KhatmTemplateType.QURAN_PAGE
+        and not participation.open_reading_pages_per_day
+    ):
+        from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+        await start_commitment_mode_picker(callback.message, state, participation.id, lang, family="QURAN")
+        await safe_answer_callback(callback)
+        return
+
+    is_member_choice = khatm is not None and (
+        khatm.khatm_type == KhatmTypeEnum.OPEN
         or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
     )
     if (
-        khatm is not None and participation is not None 
+        khatm is not None and participation is not None
+        and khatm.template_type != KhatmTemplateType.QURAN_SURAH
         and is_member_choice 
         and getattr(participation, "commitment_mode", None) is None
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
-        commitment_family = "SALAWAT"
+        commitment_family = "QURAN" if khatm.template_type == KhatmTemplateType.QURAN_PAGE else "SALAWAT"
         if khatm.content_category_id:
             commitment_category = await category_service.get(session, khatm.content_category_id)
             if commitment_category is not None:
@@ -681,6 +725,8 @@ async def _finish_open_quran_setup(message: Message, state: FSMContext, data: di
             await state.clear()
             await message.answer(t("portions.not_a_member", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
             return
+        if getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
+            pages_per_day = khatm.daily_commitment_amount
         await participation_service.set_open_reading_pages_per_day(session, participation.id, pages_per_day)
         await notification_service.set_reminder_preference(
             session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
@@ -779,6 +825,14 @@ async def receive_contribution_amount(message: Message, state: FSMContext) -> No
         if khatm is None or khatm.status.name != "ACTIVE":
             await state.clear()
             await message.answer(t("portions.khatm_not_active", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
+            return
+        from khatmsaz.modules.share_occurrence import repository as shares
+        await khatm_service.get_khatm_for_update(session, khatm_id)
+        if await shares.has_any(session, participation.id):
+            await state.clear()
+            await message.answer(t("report.today_do_share", lang), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text=t("report.today_do_share", lang), callback_data=f"today_pick:{participation.id}")
+            ]]))
             return
         if data.get("commitment"):
             portion, counted, surplus = await allocation_service.record_quantity_commitment_progress(
@@ -985,16 +1039,17 @@ async def complete_open_reservation(callback: CallbackQuery, state: FSMContext) 
     async with session_scope() as session:
         try:
             from khatmsaz.modules.open_contribution import service as contribution_service
-            reservation = await contribution_service.get_active_reservation_for_participation(session, None) # this is just a dummy to import
             reservation = await contribution_service.repository.get_reservation(session, reservation_id)
-            if not reservation or reservation.status.name != "ACTIVE":
+            if not reservation or reservation.status != "ACTIVE":
                 await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
                 return
             khatm = await khatm_service.get_khatm(session, str(reservation.khatm_id))
+            user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
             counted, surplus, new_total = await contribution_service.complete_reservation(
-                session, reservation_id, khatm.repetition_target
+                session, reservation_id, khatm.repetition_target, user_id=user.id,
+                bot_instance_id=getattr(callback.message.bot, "khatmsaz_instance_id", None),
             )
-        except Exception:
+        except ValueError:
             await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
             return
 

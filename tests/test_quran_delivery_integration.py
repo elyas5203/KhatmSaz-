@@ -49,7 +49,8 @@ async def test_current_quran_delivery_is_exact_and_reciter_specific():
             session, khatm_id=khatm_id, creator_user_id=user_id, mode="text",
         )
         settings = await session.get(UserSettings, user_id)
-        settings.translation_enabled = True
+        settings.translation_enabled = False
+        settings.tafsir_enabled = False
         text_delivery = await content_service.resolve_current_quran_delivery(
             session, khatm=khatm, user_id=user_id, page_start=10, page_end=11,
         )

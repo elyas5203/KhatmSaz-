@@ -24,6 +24,7 @@ async def pop_first(session: AsyncSession, khatm_id) -> WaitingList | None:
         .where(WaitingList.khatm_id == khatm_id)
         .order_by(WaitingList.position.asc())
         .limit(1)
+        .with_for_update(skip_locked=True)
     )
     result = await session.execute(stmt)
     entry = result.scalar_one_or_none()

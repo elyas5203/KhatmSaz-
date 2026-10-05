@@ -39,9 +39,10 @@ async def test_creator_can_edit_only_cosmetic_fields_on_active_khatm():
             await khatm_service.update_title(
                 session, khatm_id=active_id, creator_user_id=other_id, title="غیرمجاز"
             )
-        with pytest.raises(ValueError):
-            await khatm_service.update_title(
-                session, khatm_id=draft_id, creator_user_id=user_id, title="نباید"
-            )
+        # Structural locking starts at ACTIVE; draft cosmetic edits are also allowed.
+        draft = await khatm_service.update_title(
+            session, khatm_id=draft_id, creator_user_id=user_id, title="پیش‌نویس ویرایش‌شده"
+        )
+        assert draft.title == "پیش‌نویس ویرایش‌شده"
         await session.execute(delete(Khatm).where(Khatm.id.in_([active_id, draft_id])))
         await session.execute(delete(User).where(User.id.in_([user_id, other_id])))

@@ -258,10 +258,24 @@ async def list_active_with_regular_schedule(session: AsyncSession) -> list[Parti
 
 
 async def list_active_for_user(
-    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None
+    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None, include_owed=False
 ) -> list[Participation]:
+    visible = Participation.status == ParticipationStatus.ACTIVE
+    if include_owed:
+        from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+        from khatmsaz.modules.allocation.models import KhatmPortion
+        owed = select(ShareOccurrence.id).where(
+            ShareOccurrence.participation_id == Participation.id,
+            ShareOccurrence.committed.is_(True), ShareOccurrence.delivered_at.is_not(None),
+            ShareOccurrence.completed_at.is_(None),
+        ).exists()
+        legacy = select(KhatmPortion.id).where(
+            KhatmPortion.participation_id == Participation.id,
+            KhatmPortion.status == "ASSIGNED",
+        ).exists()
+        visible = visible | owed | legacy
     stmt = select(Participation).where(
-        Participation.user_id == user_id, Participation.status == ParticipationStatus.ACTIVE
+        Participation.user_id == user_id, visible
     )
     if joined_via_bot_instance_id is not None:
         stmt = stmt.where(Participation.joined_via_bot_instance_id == joined_via_bot_instance_id)
@@ -271,3 +285,8 @@ async def list_active_for_user(
 
 async def get_by_id(session: AsyncSession, participation_id) -> Participation | None:
     return await session.get(Participation, participation_id)
+
+async def get_by_id_for_update(session: AsyncSession, participation_id) -> Participation | None:
+    stmt = select(Participation).where(Participation.id == participation_id).with_for_update().execution_options(populate_existing=True)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()

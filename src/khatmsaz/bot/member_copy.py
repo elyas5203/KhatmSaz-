@@ -37,6 +37,11 @@ def share_label(
     family: str, *, count: int | None = None, start: int | None = None,
     end: int | None = None, lang: str = "fa",
 ) -> str:
+    if lang == "ar":
+        if family == "quran":
+            return f"الصفحات من {start} إلى {end}" if start is not None else f"{count or 1} صفحة من القرآن"
+        names = {"salawat": "صلوات", "dua": "الدعاء المحدد", "ziyarat": "الزيارة المحددة", "laan": "الذكر المحدد"}
+        return f"{count or 1} مرة من {names.get(family, 'القراءة المحددة')}"
     if lang != "fa":
         if family == "quran":
             return f"pages {start} to {end}" if start is not None else f"{count or 1} Quran page(s)"
@@ -77,6 +82,8 @@ def reminder_text(
 def completion_text(
     khatm: Khatm, family: str, share: str, *, invite_line: str = "", lang: str = "fa",
 ) -> str:
+    if lang == "ar":
+        return f"✅ تم تسجيل {share} في ختم «{escape(khatm.title)}». تقبّل الله منكم 🌱{invite_line}"
     if lang != "fa":
         return f"✅ {share} was recorded for “{escape(khatm.title)}”.{invite_line}"
     niyyat = (khatm.niyyat or "سلامتی و فرج امام عصر علیه السلام").strip()

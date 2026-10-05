@@ -13,7 +13,7 @@ not remove them, it only stops presenting them as the only way in.
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import (
     SETTINGS_BUTTON_TEXTS,
@@ -55,6 +55,7 @@ router = Router(name="settings_menu")
 
 class ReminderSettings(StatesGroup):
     entering_custom_time = State()
+    entering_amount = State()
 
 
 async def _current_platform_user(message: Message):
@@ -289,11 +290,92 @@ async def choose_reminder_khatm(callback: CallbackQuery, state: FSMContext) -> N
             await callback.answer("این ختم دیگر در فهرست فعال شما نیست.", show_alert=True)
             return
         hour, minute = await notification_service.get_reminder_time(session, participation)
+    markup = settings_reminder_keyboard(participation_id, settings.language)
+    if khatm.commitment_policy != "FIXED_DAILY":
+        markup.inline_keyboard.insert(0, [InlineKeyboardButton(text="📖 تغییر مقدار سهم‌های بعدی", callback_data=f"share_amount:{participation_id}")])
+    if khatm.template_type == "QURAN_PAGE":
+        enabled = settings.quran_audio_enabled if participation.quran_audio_enabled is None else participation.quran_audio_enabled
+        markup.inline_keyboard.insert(0, [InlineKeyboardButton(text=f"🔊 صوت این ختم: {'روشن' if enabled else 'خاموش'}", callback_data=f"share_audio:{participation_id}")])
+    if khatm.commitment_policy != "FIXED_DAILY":
+        markup.inline_keyboard.insert(0, [InlineKeyboardButton(text="📅 تغییر نوع و روزهای برنامه", callback_data=f"share_plan:{participation_id}")])
     await callback.message.edit_text(
         f"⏰ ختم «{khatm.title}»\n\nساعت فعلی یادآوری: {hour:02d}:{minute:02d}\n\nساعت تازه را انتخاب کن:",
-        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+        reply_markup=markup,
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("share_audio:"))
+async def toggle_share_audio(callback: CallbackQuery, state: FSMContext):
+    pid = callback.data.split(":", 1)[1]
+    async with session_scope() as session:
+        settings, part, khatm = await _owned_reminder_context(session, callback, pid)
+        if part is None or khatm is None or khatm.template_type != "QURAN_PAGE":
+            await callback.answer("این تنظیم برای این عضویت در دسترس نیست.", show_alert=True)
+            return
+        current = settings.quran_audio_enabled if part.quran_audio_enabled is None else part.quran_audio_enabled
+        part.quran_audio_enabled = not current
+    await callback.answer("صوت این ختم خاموش شد." if current else "صوت این ختم روشن شد.")
+
+
+@router.callback_query(F.data.startswith("share_plan:"))
+async def change_share_plan(callback: CallbackQuery, state: FSMContext):
+    pid = callback.data.split(":", 1)[1]
+    async with session_scope() as session:
+        settings, part, khatm = await _owned_reminder_context(session, callback, pid)
+        if part is None or khatm is None or khatm.commitment_policy == "FIXED_DAILY":
+            await callback.answer("برنامهٔ ثابت سازنده قابل تغییر نیست.", show_alert=True)
+            return
+        from khatmsaz.bot.member_copy import content_family
+        family = (await content_family(session, khatm)).upper()
+    from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
+    await state.clear()
+    await start_commitment_mode_picker(callback.message, state, part.id, settings.language, family=family)
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("share_amount:"))
+async def ask_share_amount(callback: CallbackQuery, state: FSMContext):
+    pid = callback.data.split(":", 1)[1]
+    async with session_scope() as session:
+        _, part, khatm = await _owned_reminder_context(session, callback, pid)
+        if part is None or khatm is None or khatm.commitment_policy == "FIXED_DAILY":
+            await callback.answer("مقدار ثابت سازنده قابل تغییر نیست.", show_alert=True)
+            return
+    await state.set_state(ReminderSettings.entering_amount)
+    await state.update_data(amount_participation_id=pid)
+    unit = "صفحه" if khatm.template_type == "QURAN_PAGE" else "مرتبه"
+    await callback.message.answer(f"در هر نوبت چند {unit} می‌خواهید بخوانید؟\nتغییر فقط برای سهم‌های بعدی است؛ سهم‌های دریافت‌شده باقی می‌مانند.")
+    await callback.answer()
+
+
+@router.message(ReminderSettings.entering_amount)
+async def save_share_amount(message: Message, state: FSMContext):
+    raw = (message.text or "").strip()
+    if not raw.isdecimal() or int(raw) <= 0 or int(raw) > 2147483647:
+        await message.answer("لطفاً یک عدد مثبت معتبر بنویسید.")
+        return
+    data = await state.get_data()
+    platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.from_user.id)
+        part = await participation_service.get_by_id(session, data.get("amount_participation_id"))
+        if part is None or part.user_id != user.id or part.joined_via_bot_instance_id != member_instance_id(message.bot):
+            await state.clear()
+            return
+        khatm = await khatm_service.get_khatm_for_update(session, part.khatm_id)
+        if khatm.commitment_policy == "FIXED_DAILY":
+            await message.answer("مقدار این ختم را سازنده تعیین کرده است.")
+        elif khatm.template_type == "QURAN_PAGE":
+            if int(raw) > content_service.get_quran_total_pages(khatm):
+                await message.answer("تعداد صفحات نباید از کل صفحات این قرآن بیشتر باشد.")
+                return
+            part.open_reading_pages_per_day = int(raw)
+            await message.answer("✅ تعداد صفحات سهم‌های بعدی ذخیره شد.")
+        else:
+            part.commitment_per_occurrence = int(raw)
+            await message.answer("✅ مقدار سهم‌های بعدی ذخیره شد.")
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("set_reminder:"))

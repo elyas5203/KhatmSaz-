@@ -92,6 +92,11 @@ async def get_by_id(session: AsyncSession, khatm_id) -> Khatm | None:
     return await session.get(Khatm, khatm_id)
 
 
+async def get_by_id_for_update(session: AsyncSession, khatm_id) -> Khatm | None:
+    stmt = select(Khatm).where(Khatm.id == khatm_id).with_for_update().execution_options(populate_existing=True)
+    return (await session.execute(stmt)).scalar_one_or_none()
+
+
 async def set_status(session: AsyncSession, khatm_id, status: KhatmStatus) -> None:
     khatm = await session.get(Khatm, khatm_id)
     if khatm is None:

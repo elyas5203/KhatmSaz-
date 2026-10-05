@@ -112,6 +112,20 @@ async def get_paid_invoice_by_resource(
     return result.scalar_one_or_none()
 
 
+async def get_invoice_by_resource(
+    session: AsyncSession, *, user_id, kind: InvoiceKind | str, resource_ref: str
+) -> WalletInvoice | None:
+    kind_value = kind.value if isinstance(kind, InvoiceKind) else kind
+    result = await session.execute(
+        select(WalletInvoice).where(
+            WalletInvoice.user_id == user_id,
+            WalletInvoice.kind == kind_value,
+            WalletInvoice.resource_ref == resource_ref,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def mark_invoice_refunded(
     session: AsyncSession, invoice_id, refunded_at: datetime
 ) -> WalletInvoice | None:

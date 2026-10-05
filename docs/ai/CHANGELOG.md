@@ -1,3 +1,38 @@
+## 2026-10-05 — Share redesign continuation [Codex]
+- Final local suite: 564 PASS with PostgreSQL integration enabled, zero failures/skips. Local migration head is `share2026100501`; production migration and runtime QA were not run.
+- Follow-up validation reached 437 passing PostgreSQL-enabled tests; retained debts are discoverable after leaving, Today supplies exact-share actions with cleanup receipts, and Quran text/audio-only fallbacks and member-bot language were corrected. Final requirement-by-requirement acceptance is still pending.
+- Implemented numeric and regular Quran entry points according to DEC-PY-0117, exact page snapshots, member quantity changes for future shares, and nullable per-khatm audio override.
+- Connected receipt-based share delivery, independent completion/reminders, and OPEN reservation deadlines; added reviewed additive migration share2026100501.
+- Replaced temporary consent-registration flag with persisted card identity and success-only cleanup after transaction commit.
+- Validation is PARTIAL: focused tests pass; full PostgreSQL run recorded 421 passed and 16 failed before the subsequent fixture repairs. Production untouched; not pushed.
+
+## 2026-10-04 — Codex — Quran picker and corrupted text regression
+- Restored Quran contribution routing, guarded stale repetition setup/delivery/completion, and corrected weekday translations/order and creator amount prompts.
+- Added 18 regression cases. Diagnostic suite excluding pre-existing broken audit test: 328 passed, 94 skipped; full collection remains blocked. No deployment or production data changes.
+
+## 2026-10-04 — Antigravity — Executed F0-F7 Local Fixes
+- **Database**: Merged divergent Alembic heads into `a6289f6b73c2`.
+- **Concurrency**: Added row-level locking (`with_for_update`) to waiting list promotion and open reservation commitments.
+- **Bot/UX**: Fixed consent card deletion to wait until registration finishes, solving lost-path issues. Added missing translation keys.
+- **Quran Policy**: Enforced `force_open=True` for `QURAN_PAGE` and separated `FIXED_DAILY` scheduling from `REGULAR` numeric metrics.
+- **Tests**: Cleaned up all 11 test suite failures. Test suite now passes cleanly (310 passed).
+
+## 2026-10-04 — Codex — Local repair execution master
+- Added phased local repair instructions, authorization boundary and regression criteria; no runtime changes or deployment.
+
+## 2026-10-04 — Codex — Direct A04/A05 audit
+- Added source-backed reservation findings, append-only run records and ownership tracking. Analysis only; no fixes or production actions.
+
+## 2026-10-04
+- **Audit**: Executed full test suite in audit mode and logged 11 failures related to outdated tests and Alembic heads in `BUGS.md`. (Antigravity)
+
+## 2026-10-04 — Codex — Audit is analysis-only
+- Clarified owner boundary: report findings first; no code or test changes until a later explicit fix request.
+
+## 2026-10-04 — Codex — Full-system audit playbook
+- Added FULL_SYSTEM_AUDIT_MASTER.md and audit/ inventories, module map, work ownership, run evidence and bug records.
+- Added repeatable AST inventory generator; documented historical graph limitations and explicit allowed/prohibited actions. No runtime changes or claim of completed system testing.
+
 ## 2026-10-03 — Codex — La'an reminder hotfix
 - Return Persian reminder/completion text so delivery can send the Done button and record today's delivery instead of resending content every minute.
 - Restore Quran audio hint and request persistent member keyboard.

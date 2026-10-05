@@ -19,6 +19,7 @@ from khatmsaz.modules.wallet.models import (
     CouponDiscountType,
     DiscountCoupon,
     InvoiceKind,
+    InvoiceStatus,
     TxType,
     Wallet,
     WalletInvoice,
@@ -314,11 +315,14 @@ async def refund_purchase_invoice(
     description: str,
 ) -> int | None:
     """Refund a paid purchase once; return None when no invoice exists."""
-    invoice = await repository.get_paid_invoice_by_resource(
+    invoice = await repository.get_invoice_by_resource(
         session, user_id=user_id, kind=kind, resource_ref=resource_ref
     )
     if invoice is None:
         return None
+    if invoice.status != InvoiceStatus.PAID.value:
+        raise InvalidPaymentError(f"invoice is {invoice.status}, cannot refund")
+
     marked = await repository.mark_invoice_refunded(
         session, invoice.id, datetime.now(timezone.utc)
     )

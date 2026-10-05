@@ -1,0 +1,194 @@
+{
+  "head": "a2f55b412078b0ab3b23085c5b2f1cc84c4eb6ce",
+  "scope": "All tracked files except graph artifacts, generated audit inventories and .env files; untracked files excluded",
+  "counts": {
+    "files": 564,
+    "items": 4462,
+    "edges": 23105,
+    "kinds": {
+      "FILE": 564,
+      "MARKDOWN_LINK": 65,
+      "URL_REFERENCE": 243,
+      "FUNCTION": 2194,
+      "LINK_BUILDER": 269,
+      "TEMPLATE_LINK": 185,
+      "CLASS": 220,
+      "DECORATOR": 722
+    }
+  },
+  "parse_errors": [],
+  "graph": {
+    "built_at_commit": "a1c4f4622e01aef175f504c5db29b9af35f5f7df",
+    "nodes": 4153,
+    "edges": 14701,
+    "sha256": "6246287b3571042b6757105b4cb89c4e25a59fe6a7a255fe0635f5f0185d4b72",
+    "missing_current_source_files": [
+      "src/khatmsaz/bot/admin_notifications.py",
+      "src/khatmsaz/bot/member_copy.py",
+      "src/khatmsaz/core/devotional_images.py",
+      "src/khatmsaz/modules/khatm/commitment_policy.py",
+      "src/khatmsaz/modules/share_occurrence/__init__.py",
+      "src/khatmsaz/modules/share_occurrence/models.py",
+      "src/khatmsaz/modules/share_occurrence/repository.py",
+      "src/khatmsaz/modules/share_occurrence/service.py"
+    ],
+    "hubs": [
+      {
+        "id": "src_khatmsaz_core_db_session_scope",
+        "degree": 398,
+        "file": "src/khatmsaz/core/db.py"
+      },
+      {
+        "id": "src_khatmsaz_i18n_init_t",
+        "degree": 390,
+        "file": "src/khatmsaz/i18n/__init__.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_identity_models_platform",
+        "degree": 306,
+        "file": "src/khatmsaz/modules/identity/models.py"
+      },
+      {
+        "id": "src_khatmsaz_web_app",
+        "degree": 242,
+        "file": "src/khatmsaz/web/app.py"
+      },
+      {
+        "id": "sqlalchemy",
+        "degree": 205,
+        "file": ""
+      },
+      {
+        "id": "src_khatmsaz_modules_khatm_models_khatm",
+        "degree": 167,
+        "file": "src/khatmsaz/modules/khatm/models.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_handlers_create_khatm",
+        "degree": 159,
+        "file": "src/khatmsaz/bot/handlers/create_khatm.py"
+      },
+      {
+        "id": "src_khatmsaz_core_db",
+        "degree": 154,
+        "file": "src/khatmsaz/core/db.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_identity_models",
+        "degree": 149,
+        "file": "src/khatmsaz/modules/identity/models.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_identity_models_user",
+        "degree": 143,
+        "file": "src/khatmsaz/modules/identity/models.py"
+      },
+      {
+        "id": "src_khatmsaz_core_ids_new_id",
+        "degree": 140,
+        "file": "src/khatmsaz/core/ids.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_keyboards",
+        "degree": 128,
+        "file": "src/khatmsaz/bot/keyboards.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_khatm_models_khatmtemplatetype",
+        "degree": 122,
+        "file": "src/khatmsaz/modules/khatm/models.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_keyboards_safe_answer_callback",
+        "degree": 121,
+        "file": "src/khatmsaz/bot/keyboards.py"
+      },
+      {
+        "id": "tests_test_devotional_media_delivery_message",
+        "degree": 118,
+        "file": "tests/test_devotional_media_delivery.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_handlers_my_khatms",
+        "degree": 118,
+        "file": "src/khatmsaz/bot/handlers/my_khatms.py"
+      },
+      {
+        "id": "pytest",
+        "degree": 113,
+        "file": ""
+      },
+      {
+        "id": "src_khatmsaz_bot_handlers_portions",
+        "degree": 102,
+        "file": "src/khatmsaz/bot/handlers/portions.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_identity_service_resolve_or_provision_user",
+        "degree": 101,
+        "file": "src/khatmsaz/modules/identity/service.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_khatm_models",
+        "degree": 101,
+        "file": "src/khatmsaz/modules/khatm/models.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_khatm_models_khatmstatus",
+        "degree": 98,
+        "file": "src/khatmsaz/modules/khatm/models.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_khatm_models_khatmtypeenum",
+        "degree": 95,
+        "file": "src/khatmsaz/modules/khatm/models.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_handlers_start",
+        "degree": 94,
+        "file": "src/khatmsaz/bot/handlers/start.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_participation_models_participation",
+        "degree": 93,
+        "file": "src/khatmsaz/modules/participation/models.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_authorization_models_adminpermission",
+        "degree": 93,
+        "file": "src/khatmsaz/modules/authorization/models.py"
+      },
+      {
+        "id": "src_khatmsaz_bot_handlers_admin",
+        "degree": 92,
+        "file": "src/khatmsaz/bot/handlers/admin.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_settings_service_get_or_create",
+        "degree": 91,
+        "file": "src/khatmsaz/modules/settings/service.py"
+      },
+      {
+        "id": "src_khatmsaz_modules_identity_service",
+        "degree": 89,
+        "file": "src/khatmsaz/modules/identity/service.py"
+      },
+      {
+        "id": "tests_test_owner_spec_d_registrationmessage_delete",
+        "degree": 88,
+        "file": "tests/test_owner_spec_d.py"
+      },
+      {
+        "id": "src_khatmsaz_core_ids",
+        "degree": 87,
+        "file": "src/khatmsaz/core/ids.py"
+      }
+    ]
+  },
+  "limitations": [
+    "Historical graph is not current runtime evidence.",
+    "AST call candidates are not resolved runtime call edges.",
+    "Dynamic routes, FSM transitions and generated links require manual expansion.",
+    "NOT_RUN means inventory only; no behavior was tested."
+  ]
+}

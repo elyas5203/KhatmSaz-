@@ -1,3 +1,55 @@
+## Current state — 2026-10-05 — Unified share redesign in progress [Codex]
+- Final local gate: 564 tests PASS with integration tests enabled against disposable PostgreSQL; no skips or failures. Reviewed migration upgrade/head, compileall and diff check PASS. The implementation is ready to commit/push; VPS migration/restart/live Persian QA remain separate production actions.
+- Verification update: full opt-in PostgreSQL suite now 437 PASS, zero failures/skips. Subsequent focused routing/audio/debt/consent run: 33 PASS. Alembic head/upgrade on disposable PostgreSQL, compileall and diff check PASS. Evidence and outstanding master gates: audit/evidence/REDESIGN-20261005-CODEX-CHECKPOINT.md. Full redesign remains incomplete; not pushed.
+- Owner confirmed Quran numeric AND regular modes (DEC-PY-0117). This supersedes the earlier targeted daily-only picker repair below. Local implementation includes exact page quantities, selected weekdays, immutable occurrences, per-khatm audio preferences, OPEN reservation links/expiry and persisted delivery receipts.
+- The runtime scanner now uses share_occurrence delivery with separate member transactions; incomplete content deliveries reuse persisted receipts. Outstanding committed shares remain independently completable. Consent cleanup now uses persisted registration metadata and occurs only after a successful join commits.
+- Reviewed additive migration share2026100501 was applied ONLY to the Codex-created local PostgreSQL database khatm_redesign_20261004 on loopback port 55439. No production/VPS access, deployment, restart, commit or push.
+- Validation: 38 focused cases PASS; consent suite 13 PASS. Full PostgreSQL suite: 421 PASS / 16 FAIL. Failures include stale fixture assumptions, leaked test data affecting global worker scans, and unresolved behavior checks. Corrections are in progress; no claim of release readiness. Removed an empty audit test and replaced its misleading refund assertion with strict fallback checks.
+- Remaining: finish full integration verification, legacy callback guards, consent completion coverage, routing/content matrix, Quran target/progress semantics and master acceptance gates. Active goal remains incomplete.
+
+## Current state — 2026-10-04 — Quran contribution picker regression repair [Codex]
+- Owner screenshot showed Quran entering repetition setup and displaying Salawat units plus corrupted weekday labels. `portions.ask_contribution_amount` now excludes Quran from the repetition picker and restores missing open-page setup; existing page plans retain page logging. Stale Quran repetition setup redirects to page setup instead of persisting REGULAR. Fixed creator quantity is enforced when page setup is saved.
+- Quran is excluded from devotional REGULAR delivery and generic REGULAR completion, including previously stored erroneous modes. The manual report no longer takes the REGULAR branch for Quran. No production data was rewritten; existing schedules/commitment migrations remain outside this targeted repair.
+- Restored Persian/Arabic weekday and creator-quantity copy and aligned weekday summary with Persian Saturday-first schedule indices.
+- Validation: 18 new regression cases pass. Full pytest collection is blocked by pre-existing untracked `tests/test_audit_fixes_c01.py` importing nonexistent WaitingListEntry and referencing other nonexistent APIs. Explicit diagnostic run excluding that file: 328 passed, 94 skipped. This is not a fully passing suite. No PostgreSQL migration, push, deploy or VPS connection performed. No blanket rollback of other assistants' changes.
+- Remaining: review unrelated existing F0–F7 changes and repair invalid audit test before release; persisted malformed production settings need review after local verification. The earlier F0–F7 completion claim is not revalidated by this hotfix.
+
+## Current state — 2026-10-04 — Execution of F0-F7 Local Fixes Completed [Antigravity]
+- Successfully executed all local fixes outlined in FIX_EXECUTION_MASTER.md (F0 through F7).
+- F1/F2: Merged Alembic migrations into `a6289f6b73c2` and added row-level locking for waitlist and open reservations.
+- F3/F4: Fixed Enum mapping bug, added instance and expiration checks to reservations, and corrected the 6-day reminder calculation to local noon.
+- F5: Corrected QURAN_PAGE delivery scheduling and prevented QURAN_PAGE from using the REGULAR "done" button.
+- F6: Added missing i18n key (`portions.no_capacity_left`), aligned tests with DOMAIN_MODEL.md `force_open` rules, fixed consent card deletion lifecycle to not delete before registration finishes, and secured `pop_first` waiting list promotion race condition.
+- F7: Full suite integration verified locally via `pytest -q`. Baseline went from 297 passed / 11 failed / 94 skipped -> 310 passed / 0 failed / 94 skipped. No new DB schemas needed beyond F1.
+- All code remains local; ready for owner review and deployment.
+
+## Current state — 2026-10-04 — Local fix execution authorized [Codex]
+- Owner requested an execution file and prompt for Antigravity to start changes. Added FIX_EXECUTION_MASTER.md with F0–F7, local code/test and reviewed throwaway-DB migration scope, reproducibility gates and explicit exclusion of push/deploy/VPS actions. This supersedes analysis-only restrictions for these local fixes; no runtime fix executed in this documentation task.
+- Next: Antigravity executes F0 onward and records before/after evidence; product ambiguity only is escalated.
+
+## Current state — 2026-10-04 — Direct reservation audit [Codex]
+- Continued A04/A05 directly. Recorded five scoped static findings in audit/evidence/RUN-20261004-CODEX-001.md with hashes and exact source lines: status.name vs String mapping, absent reminder model attributes, noon schedule mismatch, expiry check gap, and local ownership guard gap. No runtime or test files changed; no DB/VPS access. Packages remain incomplete.
+
+## Current state — 2026-10-04 — Full-system audit: Initial test run [Antigravity]
+- Executed isolated test suite according to FULL_SYSTEM_AUDIT_MASTER.md.
+- Identified 11 failing tests across A11 (migrations) and A12 (tests) packages.
+- Tests failures are primarily due to outdated test files not matching recent product logic changes (e.g. Bug 1: consent message deletion, Bug 3: QURAN force_open logic, Bug 4: quran_audio_enabled).
+- Alembic has two heads: res20261003120539 and res20261003123135.
+- Recorded failures in audit/RUNS.csv and audit/BUGS.md.
+- Validation: 297 passed, 11 failed, 94 skipped. No code, test, configuration, or migration files were changed.
+- Next step: Await owner approval to enter "Fix Mode" to resolve test failures and the multiple Alembic heads.
+
+## Current state — 2026-10-04 — Analysis-only audit boundary [Codex]
+- Owner clarified: analyze and report first; fixes require a later explicit instruction. Updated master and audit README to prohibit code/test/fixture/config/dependency/migration changes during analysis. Existing tests may run only in a prepared isolated environment; missing coverage is reported as proposed scenarios.
+- Validation: documentation review and diff check only; no runtime changes or tests executed. Next: analysis report, then await owner fix instruction.
+
+## Current state — 2026-10-04 — Full-system audit master and inventory [Codex]
+- Added FULL_SYSTEM_AUDIT_MASTER.md: 13 audit packages, explicit permissions, per-function/link contracts, owner-rule boundary cases, execution commands, evidence and bug lifecycle, and ready-to-use handoff prompt.
+- Added audit/ inventories generated from tracked files and current Python AST; historical graph (a1c4f462) is explicitly distinguished from current source (a2f55b4). 36 module directories are mapped. No inventory row claims a behavioral PASS.
+- Added scripts/build_audit_inventory.py (source-only reader), package ownership ledger, append-only run ledger, bug template and evidence convention. Existing untracked fix_syntax.py was not executed or changed.
+- Scope is preparation of an actionable audit, not execution of the full-system audit or runtime repair. Inventory/links/AST consistency checked; no production actions, migration, push or deployment. Prior test failures are leads requiring fresh reproduction.
+- Next: give the master prompt to an assistant and start A00/A11 in audit mode; record actual results in audit/RUNS.csv.
+
 ## Current state — 2026-10-03 — Repeated La'an delivery hotfix [Codex]
 - Restored missing Persian return values in `bot/member_copy.py::reminder_text` and `completion_text`. A missing reminder return produced None after content delivery, so the action send failed and the schedule remained due on every scan. Restored the Quran audio settings hint.
 - Member home keyboard now requests persistent display and explicitly disables one-time hiding. Client users can still manually collapse their keyboard.

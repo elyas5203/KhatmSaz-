@@ -54,6 +54,9 @@ def build_notify_fn(bots_by_platform: dict[Platform, Bot]) -> NotifyFn:
         bot = None
         if bot_instance_id:
             candidate = registry.get_by_instance_id(bot_instance_id)
+            if candidate is None:
+                logger.warning("Member route unavailable: %s", bot_instance_id)
+                return
             if candidate is not None and getattr(candidate, "khatmsaz_platform", None) == Platform(platform_value):
                 bot = candidate
             elif candidate is not None:
@@ -219,7 +222,7 @@ async def send_media(
 
 async def send_devotional_content(
     session, platform_value: str, chat_id: str, *, khatm, lang: str,
-    bot_instance_id=None,
+    bot_instance_id=None, receipt_sender=None,
 ) -> bool:
     """Send the configured image/PDF/text immediately before a reminder."""
     from khatmsaz.core.bot_registry import get_registry
@@ -238,15 +241,23 @@ async def send_devotional_content(
             self.bot = bot
 
         async def answer(self, text, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_message", text=text, **kwargs)
             return await bot.send_message(chat_id=int(chat_id), text=text, **kwargs)
 
         async def answer_photo(self, photo, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_photo", photo=photo, **kwargs)
             return await bot.send_photo(chat_id=int(chat_id), photo=photo, **kwargs)
 
         async def answer_document(self, document, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_document", document=document, **kwargs)
             return await bot.send_document(chat_id=int(chat_id), document=document, **kwargs)
 
         async def answer_audio(self, audio, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_audio", audio=audio, **kwargs)
             return await bot.send_audio(chat_id=int(chat_id), audio=audio, **kwargs)
 
     target = _TargetMessage()

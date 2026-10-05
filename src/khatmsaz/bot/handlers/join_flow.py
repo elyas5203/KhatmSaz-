@@ -67,12 +67,18 @@ async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0)
         if part is not None:
             khatm = await khatm_service.get_khatm(session, part.khatm_id)
             if khatm and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
-                from khatmsaz.modules.participation.commitment import ScheduleFreq
-                await participation_service.set_commitment_schedule(
-                    session, participation_id, freq=ScheduleFreq.DAILY.value,
-                    hour=hour, minute=minute, times_per_period=1
-                )
-                part.commitment_per_occurrence = khatm.daily_commitment_amount
+                from khatmsaz.modules.khatm.models import KhatmTemplateType
+                if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+                    await participation_service.set_open_reading_pages_per_day(
+                        session, participation_id, khatm.daily_commitment_amount
+                    )
+                else:
+                    from khatmsaz.modules.participation.commitment import ScheduleFreq
+                    await participation_service.set_commitment_schedule(
+                        session, participation_id, freq=ScheduleFreq.DAILY.value,
+                        hour=hour, minute=minute, times_per_period=1
+                    )
+                    part.commitment_per_occurrence = khatm.daily_commitment_amount
 
 
 def _parse_delivery_time(raw: str) -> tuple[int, int] | None:
@@ -156,14 +162,11 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
         await callback.answer(t("join.commitment_expired", "fa"), show_alert=True)
         return
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    joined = False
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         await state.update_data(pending_commitment_token=None)
         await callback.answer()
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
         await state.clear()
         if not await settings_service.is_registered(session, user.id) or not user.display_name:
             if getattr(callback.message.bot, "khatmsaz_role", None) == BotRole.MEMBER:
@@ -178,16 +181,38 @@ async def accept_commitment(callback: CallbackQuery, state: FSMContext) -> None:
                     callback.message, state, pending_join_token=token,
                     consent_accepted=True,
                 )
+            await state.update_data(
+                _consent_chat_id=callback.message.chat.id,
+                _consent_message_id=callback.message.message_id,
+            )
         else:
-            await resume_join_after_registration(
+            joined = await resume_join_after_registration(
                 callback.message, session, user.id, token, state=state, consent_accepted=True
             )
     # This is only the accepted invitation card, never the newly sent question,
     # welcome card or reading media. Cleanup must not undo a successful join.
+    if joined is True:
+        try:
+            await callback.message.delete()
+        except Exception:
+            try:
+                await callback.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+
+
+async def cleanup_registered_consent(bot, data: dict) -> None:
+    """Remove only the persisted consent card, after the join commits."""
+    chat_id, message_id = data.get("_consent_chat_id"), data.get("_consent_message_id")
+    if chat_id is None or message_id is None:
+        return
     try:
-        await callback.message.delete()
+        await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception:
-        pass
+        try:
+            await bot.edit_message_reply_markup(chat_id=chat_id, message_id=message_id, reply_markup=None)
+        except Exception:
+            pass
 
 
 @router.callback_query(F.data.startswith("commitment_consent:cancel"))

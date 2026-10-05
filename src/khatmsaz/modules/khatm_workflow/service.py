@@ -317,7 +317,7 @@ async def join_via_token(
     `joined_via_bot_instance_id` records which member bot the join came
     through so later reminders route back via that same bot."""
     khatm_id = await invitation_service.resolve_khatm_id(session, token)
-    khatm = await khatm_service.get_khatm(session, khatm_id)
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
 
     if khatm is not None and khatm.visibility == KhatmVisibility.PRIVATE:
         if await participation_service.get_active(session, khatm_id, user_id) is not None:
@@ -332,7 +332,7 @@ async def approve_join_request(
 ) -> tuple[Khatm | None, Participation, KhatmPortion | None, bool]:
     """The creator approved a PRIVATE khatm's join request — actually create
     the participation now. Same return shape as `join_via_token`."""
-    khatm = await khatm_service.get_khatm(session, khatm_id)
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
     if khatm is None or khatm.creator_user_id != creator_user_id:
         raise PermissionError("only the khatm creator may approve join requests")
     return await _complete_join(
@@ -435,7 +435,7 @@ async def cancel_khatm(
     session: AsyncSession, *, khatm_id, creator_user_id
 ) -> tuple[Khatm, int]:
     """Cancel an unused khatm and refund its recorded creation price internally."""
-    khatm = await khatm_service.get_khatm(session, khatm_id)
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
     if khatm is None or khatm.creator_user_id != creator_user_id:
         raise KhatmCancellationError("khatm is not owned by the creator")
     if khatm.status != KhatmStatus.ACTIVE:
@@ -478,7 +478,7 @@ async def resolve_missed_commitment(
     participation = await participation_service.get_by_id(session, participation_id)
     if participation is None or participation.khatm_id != khatm_id or not participation.is_committed:
         raise InvalidCreatorDecisionError("participation is not an active committed membership")
-    khatm = await khatm_service.get_khatm(session, khatm_id)
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
     if khatm is None or khatm.template_type != KhatmTemplateType.QURAN_PAGE or khatm.khatm_type != KhatmTypeEnum.COMMITMENT:
         raise InvalidCreatorDecisionError("decision applies only to committed Quran khatms")
 

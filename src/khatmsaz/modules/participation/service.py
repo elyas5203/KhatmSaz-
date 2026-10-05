@@ -149,15 +149,18 @@ async def is_paused(participation) -> bool:
 
 
 async def list_my_active(
-    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None
+    session: AsyncSession, user_id, *, joined_via_bot_instance_id=None, include_owed=False
 ) -> list[Participation]:
     return await repository.list_active_for_user(
-        session, user_id, joined_via_bot_instance_id=joined_via_bot_instance_id
+        session, user_id, joined_via_bot_instance_id=joined_via_bot_instance_id, include_owed=include_owed
     )
 
 
 async def get_by_id(session: AsyncSession, participation_id) -> Participation | None:
     return await repository.get_by_id(session, participation_id)
+
+async def get_by_id_for_update(session: AsyncSession, participation_id) -> Participation | None:
+    return await repository.get_by_id_for_update(session, participation_id)
 
 
 async def count_for_khatm(session: AsyncSession, khatm_id) -> int:

@@ -15,6 +15,7 @@ async def test_content_preferences_are_independent_and_persisted():
     async with session_scope() as session:
         session.add(User(id=user_id))
         await session.flush()
+        await settings_service.set_quran_audio_enabled(session, user_id, False)
         await settings_service.set_content_option(session, user_id, "translation", True)
         await settings_service.set_content_option(session, user_id, "tafsir", False)
         settings = await settings_service.get_or_create(session, user_id)

@@ -48,7 +48,7 @@ async def test_admin_session_opens_mobile_dashboard_routes():
             ("/audit", "خط زمانی فعالیت‌های حساس"),
             ("/operations", "سلامت سرویس‌ها"),
             ("/broadcasts", "پیام‌های گروهی سازنده‌ها"),
-            ("/categories", "صلوات، لعن و ادعیه"),
+            ("/categories", "لعن و ادعیه"),
             ("/phone-verifications", "تأیید شماره‌های خارج از ایران"),
         ):
             response = await client.get(path)

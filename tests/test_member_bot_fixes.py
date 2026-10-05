@@ -155,7 +155,7 @@ async def test_next_portion_delivery_records_daily_reminder_to_prevent_duplicate
     async def _get_khatm(_s, _kid): return khatm
     def _has_started(_k): return True
     async def _get_pref(_s, _pid): return SimpleNamespace(enabled=True, reminder_hour=0, reminder_minute=0)
-    async def _get_settings(_s, _uid): return SimpleNamespace(timezone="Asia/Tehran", language="fa")
+    async def _get_settings(_s, _uid): return SimpleNamespace(timezone="Asia/Tehran", language="fa", quran_audio_enabled=True)
     async def _allocate(_s, _kid, _pid): return next_portion
     async def _push(*a, **k): return None
     async def _render(_s, *a, **k): return "متن"

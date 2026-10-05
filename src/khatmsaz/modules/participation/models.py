@@ -61,6 +61,8 @@ class Participation(Base):
     # `bot/handlers/portions.py`'s open-Quran setup flow and
     # `reminder_engine.service.deliver_due_open_quran_reading`.
     open_reading_pages_per_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # NULL inherits the account preference; an explicit choice belongs to this khatm.
+    quran_audio_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     # 1-based cursor into the khatm's Quran edition — the next page this
     # reader hasn't been sent yet. Advances every time content is actually
     # delivered, whether by the daily auto-send or a manual "ثبت مشارکت".

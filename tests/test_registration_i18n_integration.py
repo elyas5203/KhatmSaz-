@@ -34,6 +34,9 @@ class FakeState:
     async def update_data(self, **values):
         self.data.update(values)
 
+    async def get_data(self):
+        return self.data.copy()
+
     async def set_state(self, value):
         self.state = value
 
@@ -50,6 +53,7 @@ class FakeMessage:
 
     async def answer(self, text, **kwargs):
         self.answers.append((text, kwargs))
+        return SimpleNamespace(message_id=len(self.answers))
 
 
 @pytest.mark.integration
@@ -67,7 +71,9 @@ async def test_registration_starts_in_the_users_saved_language(lang):
     await start_registration(message, state, pending_join_token="integration-token")
 
     assert state.state == Registration.entering_name
-    assert state.data == {"pending_join_token": "integration-token", "language": lang}
+    assert state.data["pending_join_token"] == "integration-token"
+    assert state.data["language"] == lang
+    assert state.data["_registration_mid"] == 1
     assert message.answers[0][0] == t("registration.ask_name", lang)
     assert _phone_keyboard(lang).keyboard[0][0].text == t("registration.share_phone", lang)
     assert _province_keyboard(lang).inline_keyboard[-1][0].text == t("registration.outside_iran", lang)
@@ -85,7 +91,8 @@ async def test_registration_starts_in_the_users_saved_language(lang):
     profile_message = FakeMessage(chat_id)
     await begin_profile(profile_message, profile_state)
     assert profile_state.state == ProfileEdit.entering_name
-    assert profile_state.data == {"language": lang}
+    assert profile_state.data["language"] == lang
+    assert profile_state.data["_profile_mid"] == 1
     assert profile_message.answers[0][0] == t("profile.ask_name", lang)
     assert profile_province_keyboard(lang).inline_keyboard[0][0].text == (
         "أذربيجان الشرقية" if lang == "ar" else "East Azerbaijan"
