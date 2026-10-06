@@ -163,7 +163,12 @@ def build_join_consent_message(
         category_title=category_title, category_group=category_group,
     )
     if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
-        unit = t("create_khatm.unit.salawat", lang) if getattr(khatm, "content_category_id", None) else (t("create_khatm.unit.time", lang) if khatm.template_type == KhatmTemplateType.SALAWAT else t("create_khatm.unit.page", lang))
+        if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
+            unit = t("create_khatm.unit.page", lang)
+        elif (category_group or "SALAWAT") == "SALAWAT":
+            unit = t("create_khatm.unit.salawat", lang)
+        else:
+            unit = t("create_khatm.unit.time", lang)
         return f"{preview}\n\n" + t("join.consent.fixed_daily_rule", lang, amount=khatm.daily_commitment_amount, unit=unit)
     warning_key = (
         "join.consent.commitment_rule"

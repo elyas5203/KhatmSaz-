@@ -710,9 +710,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "This share is not active for you.",
     },
     "commit.count_saved": {
-        "fa": "✅ تعهدت ثبت شد: {target} بار. هر وقت خوندی، با دکمهٔ زیر ثبتش کن. 🌱",
-        "ar": "✅ تم تسجيل التزامك: {target} مرة. كلما قرأت سجّله بالزر أدناه. 🌱",
-        "en": "✅ Your pledge is set: {target} times. Log it with the button below whenever you read. 🌱",
+        "fa": "✅ تعهد شما با موفقیت ثبت شد: {target} مرتبه. پس از انجام، با دکمهٔ زیر ثبت نمایید. 🌱",
+        "ar": "✅ تم تسجيل التزامك: {target} مرة. بعد الأداء، سجّله بالزر أدناه. 🌱",
+        "en": "✅ Your pledge is set: {target} times. Log it with the button below when completed. 🌱",
     },
     "commit.count_logged": {
         "fa": "ثبت شد 🌱 تا حالا {done} از {target}.",
@@ -720,17 +720,17 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Logged 🌱 {done} of {target} so far.",
     },
     "commit.count_completed": {
-        "fa": "🎉 آفرین! تعهدت رو کامل کردی ({target} بار). اگه دوست داری، تعهد جدید بزن.",
-        "ar": "🎉 أحسنت! أكملت التزامك ({target} مرة). إن أحببت، سجّل التزامًا جديدًا.",
-        "en": "🎉 Well done! You completed your pledge ({target} times). Pledge again if you like.",
+        "fa": "🎉 طاعت و همراهی‌تان قبول حق! تعهد شما کامل شد ({target} مرتبه). در صورت تمایل می‌توانید تعهد جدیدی ثبت نمایید. 🌱",
+        "ar": "🎉 تقبّل الله طاعتكم! أكملتم التزامكم ({target} مرة). إن أحببتم، يمكنكم تسجيل التزام جديد. 🌱",
+        "en": "🎉 Well done! You completed your pledge ({target} times). Pledge again if you like. 🌱",
     },
-    "commit.count.log_one": {"fa": "✅ یکی خوندم", "ar": "✅ قرأت واحدة", "en": "✅ Read one"},
+    "commit.count.log_one": {"fa": "✅ ۱ سهم انجام شد", "ar": "✅ أنجزت حصة واحدة", "en": "✅ 1 portion done"},
     "commit.count.log_custom": {"fa": "🔢 تعداد دلخواه", "ar": "🔢 عدد مخصص", "en": "🔢 Custom amount"},
     "commit.count.new_pledge": {"fa": "➕ تعهد جدید", "ar": "➕ التزام جديد", "en": "➕ New pledge"},
     "commit.ask_log_amount": {
-        "fa": "چند تا خوندی؟ عدد رو بنویس.",
-        "ar": "كم قرأت؟ اكتب العدد.",
-        "en": "How many did you read? Type a number.",
+        "fa": "چه تعداد انجام دادید؟ عدد را بنویسید:",
+        "ar": "كم أنجزت؟ اكتب العدد:",
+        "en": "How many did you complete? Type a number:",
     },
     "intro.image_caption.QURAN": {
         "fa": "مخاطبان شما وارد بات «ختم قرآن» می‌شوند.\nهمهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱",
@@ -1594,19 +1594,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "⏳ <b>توجه: این ختم تعهدی است.</b>\n"
             "سازنده این ختم، مقدار {amount} {unit} را به صورت ثابت و روزانه برای هر عضو در نظر گرفته است.\n"
-            "با ورود به این ختم، شما متعهد می‌شوید که این مقدار را به صورت منظم قرائت کنید.\n\n"
+            "با ورود به این ختم، متعهد می‌شوید که این مقدار را به صورت منظم ادا نمایید.\n\n"
             "اگر مایلید در این ختم شرکت کنید، دکمه تأیید را بزنید."
         ),
         "ar": (
             "⏳ <b>انتباه: هذا ختم إلزامي.</b>\n"
             "حدد المنشئ كمية يومية ثابتة وهي {amount} {unit} لكل عضو.\n"
-            "بانضمامك، أنت تلتزم بقراءة هذا المقدار بانتظام.\n\n"
+            "بانضمامك، أنت تلتزم بأداء هذا المقدار بانتظام.\n\n"
             "إذا كنت ترغب في المشاركة، اضغط على زر التأكيد."
         ),
         "en": (
             "⏳ <b>Note: This is a commitment khatm.</b>\n"
             "The creator has set a fixed daily amount of {amount} {unit} for each member.\n"
-            "By joining, you commit to reciting this amount regularly.\n\n"
+            "By joining, you commit to completing this amount regularly.\n\n"
             "If you wish to participate, please tap the confirm button."
         ),
     },

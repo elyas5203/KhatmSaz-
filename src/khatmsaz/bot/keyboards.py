@@ -832,10 +832,12 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
     )
 
 
-def regular_commitment_done_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+def regular_commitment_done_keyboard(pid: str, lang: str = "fa", family: str | None = None) -> InlineKeyboardMarkup:
     """One-tap completion for the concrete REGULAR occurrence just sent."""
+    from khatmsaz.bot.member_copy import done_button_label
+    btn_text = done_button_label(family, lang) if family else t("commit.regular.done_button", lang)
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=t("commit.regular.done_button", lang), callback_data=f"regular_done:{pid}"
+        text=btn_text, callback_data=f"regular_done:{pid}"
     )]])
 
 

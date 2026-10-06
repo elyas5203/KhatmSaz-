@@ -15,8 +15,11 @@ from khatmsaz.i18n import t
 
 
 def keyboard(occurrence):
+    from khatmsaz.bot.member_copy import done_button_label
+    family = occurrence.content_spec.get("family", "salawat") if occurrence.content_spec else "salawat"
+    lang = occurrence.content_spec.get("language", "fa") if occurrence.content_spec else "fa"
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=t("commit.regular.done_button", occurrence.content_spec.get("language", "fa")), callback_data=f"share_done:{occurrence.id}",
+        text=done_button_label(family, lang), callback_data=f"share_done:{occurrence.id}",
     )]])
 
 

@@ -937,12 +937,14 @@ async def choose_commitment_policy(callback: CallbackQuery, state: FSMContext) -
         data = await state.get_data()
         tt = data.get("template_type", "")
         cg = data.get("category_group", "")
-        if tt == "QURAN":
+        if tt in ("QURAN", "QURAN_PAGE"):
             ask_key = "create_khatm.ask_daily_quran"
+        elif cg == "LAAN":
+            ask_key = "create_khatm.ask_daily_laan"
+        elif cg == "DUA":
+            ask_key = "create_khatm.ask_daily_dua"
         elif tt == "SALAWAT" or cg == "SALAWAT":
             ask_key = "create_khatm.ask_daily_salawat"
-        elif tt == "LAAN":
-            ask_key = "create_khatm.ask_daily_laan"
         else:
             ask_key = "create_khatm.ask_daily_dua"
             

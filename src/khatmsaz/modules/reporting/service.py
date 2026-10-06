@@ -90,10 +90,18 @@ class ClosedMonthReport:
     quran_pages: int
     salawat_count: int
     completed_khatms: int
+    dua_count: int = 0
+    laan_count: int = 0
 
     @property
     def has_activity(self) -> bool:
-        return bool(self.quran_pages or self.salawat_count or self.completed_khatms)
+        return bool(
+            self.quran_pages
+            or self.salawat_count
+            or self.completed_khatms
+            or self.dua_count
+            or self.laan_count
+        )
 
 
 async def get_closed_month_report(

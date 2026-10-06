@@ -59,17 +59,95 @@ def share_label(
     return f"{amount} مرتبه {labels.get(family, 'ذکر تعیین‌شده')}"
 
 
+def action_verb(family: str, lang: str = "fa") -> str:
+    if lang == "ar":
+        return {"quran": "قراءة", "salawat": "إرسال", "dua": "قراءة", "ziyarat": "قراءة", "laan": "ذكر"}.get(family, "إتمام")
+    if lang != "fa":
+        return {"quran": "recite", "salawat": "send", "dua": "recite", "ziyarat": "recite", "laan": "recite"}.get(family, "complete")
+    return {
+        "quran": "قرائت",
+        "salawat": "ذکر",
+        "dua": "قرائت",
+        "ziyarat": "قرائت",
+        "laan": "ذکر",
+    }.get(family, "انجام")
+
+
+def done_button_label(family: str | None, lang: str = "fa") -> str:
+    fam = family or "salawat"
+    if lang == "ar":
+        labels = {
+            "quran": "✅ تمّت التلاوة بنجاح",
+            "salawat": "✅ تم إرسال الصلوات",
+            "dua": "✅ تمّت قراءة الدعاء",
+            "ziyarat": "✅ تمّت الزيارة",
+            "laan": "✅ تمّ الذكر بنجاح",
+        }
+        return labels.get(fam, "✅ أنجزت حصتي")
+    if lang != "fa":
+        labels = {
+            "quran": "✅ Mark portion done",
+            "salawat": "✅ Salawat sent",
+            "dua": "✅ Dua recited",
+            "ziyarat": "✅ Ziyarat recited",
+            "laan": "✅ Recitation completed",
+        }
+        return labels.get(fam, "✅ Mark share done")
+    labels = {
+        "quran": "✅ قرائت بخش فوق انجام شد",
+        "salawat": "✅ ذکر صلوات فرستاده شد",
+        "dua": "✅ قرائت دعا انجام شد",
+        "ziyarat": "✅ قرائت زیارت انجام شد",
+        "laan": "✅ ذکر لعن انجام شد",
+    }
+    return labels.get(fam, "✅ قرائت بخش فوق انجام شد")
+
+
+def format_deadline(deadline: int | None, user_tz: str | None = None, lang: str = "fa") -> str:
+    if deadline is None:
+        return "پایان امروز" if lang == "fa" else ("نهاية اليوم" if lang == "ar" else "the end of today")
+    tz_label = "(به وقت ایران)" if (user_tz is None or "Tehran" in user_tz or "Iran" in user_tz) else "(به وقت محلی)"
+    if 6 <= deadline < 12:
+        period = "صبح امروز"
+    elif 12 <= deadline < 16:
+        period = "ظهر امروز"
+    elif 16 <= deadline < 19:
+        period = "بعدازظهر امروز"
+    else:
+        period = "امشب"
+    return f"ساعت {deadline:02d}:00 {period} {tz_label}"
+
+
+def time_greeting(hour: int | None = None, lang: str = "fa") -> str:
+    if lang != "fa":
+        return "Greetings 🌱"
+    if hour is None:
+        return "با سلام و احترام 🌱"
+    if 4 <= hour < 7:
+        return "با سلام و احترام، سحرگاه‌تون پربرکت 🌱"
+    if 7 <= hour < 12:
+        return "با سلام و احترام، صبح‌تون بخیر ☀️"
+    if 12 <= hour < 16:
+        return "با سلام و احترام، ظهرتون بخیر 🌞"
+    if 16 <= hour < 19:
+        return "با سلام و احترام، عصرتون بخیر 🌤"
+    return "با سلام و احترام، شب‌تون آرام 🌙"
+
+
 def reminder_text(
-    khatm: Khatm, family: str, share: str, *, deadline: int | None, lang: str = "fa", audio_enabled: bool = False
+    khatm: Khatm, family: str, share: str, *, deadline: int | None, lang: str = "fa", audio_enabled: bool = False,
+    user_tz: str | None = None, current_hour: int | None = None,
 ) -> str:
     if lang != "fa":
         return f"🌱 Your share in “{escape(khatm.title)}” is ready: {share}."
-    deadline_text = f"ساعت {deadline:02d}:00 امشب (به وقت ایران)" if deadline is not None else "پایان امروز"
-    action = "قرائت" if family in {"quran", "dua", "ziyarat"} else "انجام"
+    deadline_text = format_deadline(deadline, user_tz=user_tz, lang=lang)
+    action = action_verb(family, lang)
+    btn_label = done_button_label(family, lang)
+    greeting = time_greeting(current_hour, lang)
     res = (
-        "با سلام و احترام 🌱\n\n"
+        f"{greeting}\n\n"
         f"لطفاً {share} از ختم «{escape(khatm.title)}» را حداکثر تا {deadline_text} {action} بفرمایید "
-        "و پس از انجام، روی دکمهٔ «✅ قرائت بخش فوق انجام شد» بزنید.\n\n"
+        f"و پس از انجام، روی دکمهٔ «{btn_label}» بزنید.\n\n"
         "اگر امروز فرصت کافی ندارید، می‌توانید از یکی از دوستان یا آشنایان خود برای انجام این سهم کمک بگیرید "
         "تا برنامهٔ امروز ختم کامل بماند.\n\n"
         "در پناه حضرت صاحب‌الزمان علیه السلام"
@@ -89,7 +167,14 @@ def completion_text(
     niyyat = (khatm.niyyat or "سلامتی و فرج امام عصر علیه السلام").strip()
     if niyyat.startswith("به نیت "):
         niyyat = niyyat[len("به نیت "):].strip()
-    verb = "خوانده شد" if family in {"quran", "dua", "ziyarat"} else "انجام شد"
+    verbs = {
+        "quran": "تلاوت شد",
+        "salawat": "انجام شد",
+        "dua": "قرائت شد",
+        "ziyarat": "قرائت شد",
+        "laan": "ذکر شد",
+    }
+    verb = verbs.get(family, "انجام شد")
     res = (
         "با سلام 🌱\n\n"
         f"✅ {share} {verb}.\n\n"
