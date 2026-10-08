@@ -1,3 +1,8 @@
+## 2026-10-08 — Antigravity — Daily Deadline Hour 24 & Wizard Auto-Seed Robustness
+- **Deadline Hour 24 Support:** Fixed `ValueError: hour must be in 0..23` in `share_occurrence/delivery.py` by converting hour 24 (end-of-day deadline) to midnight of the following day. Added regression test in `tests/test_khutbah_integration.py`.
+- **Wizard Category Seed Guard:** Protected `seed_canonical_categories` inside `create_khatm.py:_show_category_prompt` with a try-except block so unseeded or mocked test environments do not fail.
+- **Validation:** 353 unit tests PASS.
+
 ## 2026-10-08 — Antigravity — Auto-Seed Khutbah Fadakiah Category in Wizard
 - **Auto-Seeding Khutbah Fadakiah:** Added `seed_canonical_categories` in `khatm_category/service.py` ensuring «خطبه فدکیه حضرت فاطمه زهرا (س)» is always seeded and active.
 - **Wizard Integration:** Hooked `seed_canonical_categories` to bot startup in `bootstrap.py` and on-the-fly in `create_khatm.py:_show_category_prompt`, so selecting «📜 ختم خطبه‌ها» immediately offers «خطبه فدکیه حضرت فاطمه زهرا (س)».

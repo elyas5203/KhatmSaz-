@@ -135,3 +135,25 @@ async def test_seed_canonical_categories_creates_khutbah_category():
     assert cat.group == KhatmCategoryGroup.KHUTBAH
     assert cat.title == "خطبه فدکیه حضرت فاطمه زهرا (س)"
 
+
+def test_calc_deadline_supports_end_of_day_24():
+    from datetime import datetime, timezone
+    from khatmsaz.modules.share_occurrence.delivery import _calc_deadline
+
+    local = datetime(2026, 10, 8, 14, 30, tzinfo=timezone.utc)
+    # Hour 24 should be 00:00:00 of next day
+    deadline_24 = _calc_deadline(local, 24)
+    assert deadline_24 is not None
+    assert deadline_24.day == 9
+    assert deadline_24.hour == 0
+    assert deadline_24.minute == 0
+
+    # Normal hour 22
+    deadline_22 = _calc_deadline(local, 22)
+    assert deadline_22 is not None
+    assert deadline_22.day == 8
+    assert deadline_22.hour == 22
+
+    # None
+    assert _calc_deadline(local, None) is None
+

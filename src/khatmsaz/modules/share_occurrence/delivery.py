@@ -51,6 +51,16 @@ async def candidate_ids(session):
     )).scalars())
 
 
+def _calc_deadline(local: datetime, deadline_hour: int | None) -> datetime | None:
+    if deadline_hour is None:
+        return None
+    if deadline_hour >= 24:
+        return (local + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    if 0 <= deadline_hour <= 23:
+        return local.replace(hour=deadline_hour, minute=0, second=0, microsecond=0)
+    return None
+
+
 async def prepare(session, participation_id, *, now=None, manual=False):
     now = now or datetime.now(timezone.utc)
     part = await memberships.get_by_id(session, participation_id)
@@ -108,10 +118,7 @@ async def prepare(session, participation_id, *, now=None, manual=False):
     attempted = next((item for item in pending if item.source_key.startswith("daily:") and item.delivered_at is None), None)
     if attempted is not None:
         attempted.scheduled_for = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
-        attempted.deadline_at = (
-            local.replace(hour=khatm.daily_deadline_hour, minute=0, second=0, microsecond=0)
-            if khatm.daily_deadline_hour is not None else None
-        )
+        attempted.deadline_at = _calc_deadline(local, khatm.daily_deadline_hour)
         await session.flush()
         return attempted
     spec = {}
@@ -132,9 +139,7 @@ async def prepare(session, participation_id, *, now=None, manual=False):
             if amount <= 0:
                 return None
             spec = {"ranges": [[start, start + amount - 1]]}
-    deadline = None
-    if khatm.daily_deadline_hour is not None:
-        deadline = local.replace(hour=khatm.daily_deadline_hour, minute=0, second=0, microsecond=0)
+    deadline = _calc_deadline(local, khatm.daily_deadline_hour)
     occurrence, _ = await service.create_once(
         session, participation_id=part.id, bot_instance_id=part.joined_via_bot_instance_id,
         source_key=key, amount=amount, unit="PAGE" if quran else "COUNT",

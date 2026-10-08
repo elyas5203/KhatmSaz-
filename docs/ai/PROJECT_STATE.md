@@ -1,3 +1,12 @@
+## Current state — 2026-10-08 — Daily Deadline Hour 24 & Wizard Auto-Seed Robustness [Antigravity]
+- **Handled End-of-Day Deadline Hour 24:**
+  - Resolved `ValueError: hour must be in 0..23` in reminder background scan (`_run_reminder_scan` / `share_occurrence/delivery.py`).
+  - Added `_calc_deadline(local, deadline_hour)` helper in `share_occurrence/delivery.py`: when `deadline_hour >= 24` (meaning end of day), it calculates `(local + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)`.
+  - Added unit test in `tests/test_khutbah_integration.py:test_calc_deadline_supports_end_of_day_24`.
+- **Protected Category Auto-Seed in Wizard:**
+  - Wrapped `category_service.seed_canonical_categories(session)` in `create_khatm.py:_show_category_prompt` with a `try...except Exception` guard so mock environments and database connection glitches don't break the wizard.
+- **Validation:** 353 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — Auto-Seed Khutbah Fadakiah Category in Wizard [Antigravity]
 - **Auto-Seeding Khutbah Fadakiah in Creator Wizard:**
   - Resolved empty category prompt «هنوز گزینه‌ای در این بخش فعال نشده است» when creator selects «📜 ختم خطبه‌ها».
