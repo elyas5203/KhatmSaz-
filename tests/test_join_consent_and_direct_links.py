@@ -58,6 +58,39 @@ def test_consent_copy_is_custom_for_commitment_and_open_khatms():
     assert "شرعی" not in open_join
 
 
+def test_fixed_daily_commitment_consent_units_by_family():
+    # 1. La'an commitment
+    laan_khatm = _khatm(KhatmTypeEnum.COMMITMENT)
+    laan_khatm.commitment_policy = "FIXED_DAILY"
+    laan_khatm.daily_commitment_amount = 3
+    laan_khatm.template_type = KhatmTemplateType.SALAWAT
+    laan_text = build_join_consent_message(
+        laan_khatm, "سازنده", 5, lang="fa", category_group="LAAN", category_title="لعن زیارت عاشورا"
+    )
+    assert "مقدار 3 مرتبه" in laan_text
+    assert "صلوات" not in laan_text
+
+    # 2. Salawat commitment
+    salawat_khatm = _khatm(KhatmTypeEnum.COMMITMENT)
+    salawat_khatm.commitment_policy = "FIXED_DAILY"
+    salawat_khatm.daily_commitment_amount = 100
+    salawat_khatm.template_type = KhatmTemplateType.SALAWAT
+    salawat_text = build_join_consent_message(
+        salawat_khatm, "سازنده", 5, lang="fa", category_group="SALAWAT"
+    )
+    assert "مقدار 100 صلوات" in salawat_text
+
+    # 3. Quran commitment
+    quran_khatm = _khatm(KhatmTypeEnum.COMMITMENT)
+    quran_khatm.commitment_policy = "FIXED_DAILY"
+    quran_khatm.daily_commitment_amount = 2
+    quran_khatm.template_type = KhatmTemplateType.QURAN_PAGE
+    quran_text = build_join_consent_message(
+        quran_khatm, "سازنده", 5, lang="fa"
+    )
+    assert "مقدار 2 صفحه" in quran_text
+
+
 def test_commitment_without_target_never_looks_open_and_preview_heading_is_hidden():
     khatm = _khatm(KhatmTypeEnum.COMMITMENT)
     khatm.repetition_target = None

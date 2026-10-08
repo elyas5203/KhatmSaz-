@@ -705,15 +705,15 @@ async def _maybe_record_miss_and_notify_creator(session, notify, participation, 
         session, _tone_key(khatm, "reminder.creator_miss"), locale=creator_settings.language,
         title=khatm.title, name=member_name, misses=misses,
         default=(
-            f"⚠️ در ختم «{khatm.title}»، «{member_name}» {misses} روز پشت‌سرهم سهمش رو نخونده."
+            f"⚠️ در ختم «{khatm.title}»، همراه گرامی «{member_name}» طی {misses} روز متوالی سهم خود را ثبت نکرده‌اند."
         ),
     )
     # Phone and action prompt are always appended — they're operational details,
     # not part of the customisable template text.
     creator_text += (
         f"\n\n📞 شماره تماس: {phone}\n\n"
-        "چیکارش کنیم؟ می‌تونی باهاش تماس بگیری یا پیام بدی — بعد اگه خواستی از "
-        "«👥 اعضا» در مدیریت ختم حذفش کنی."
+        "راهنما: می‌توانید با ایشان تماس گرفته یا پیام دهید و در صورت تمایل، از "
+        "بخش «👥 اعضا» در مدیریت ختم وضعیت عضویت را بررسی فرمایید."
     )
     await _notify_user(session, notify, khatm.creator_user_id, creator_text)
 

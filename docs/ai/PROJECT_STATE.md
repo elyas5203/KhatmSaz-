@@ -7,18 +7,14 @@
 - **Next Steps:**
   - Proceed with Khutbah family setup (WP-13) and La'an in-bot moderation queue (WP-14) upon owner confirmation.
 
-## Current state — 2026-10-06 — V3 Wizard & Bot UX Implementation in Progress [Antigravity]
-- **Progress Completed:**
-  - `i18n/__init__.py`: Completely purged "شرعی" and "دین شرعی" across commitment/open texts. Removed obsolete "دوباره دکمه ساخت ختم را بزنید". Added family-specific completion labels (`portions.button.done.{quran,salawat,dua,laan,khutbah}`) and About Us text (`@khedmatgozaran_khadem`).
-  - Keyboards (`keyboards.py`): Restored `is_persistent=True` on all reply keyboards to eliminate disappearing menu bug. Replaced `ReplyKeyboardRemove` with restoring home menu. Redesigned member menu. Added `edit_khatm_fields_keyboard` and `settings_reminder_saved_keyboard`. Family-aware `portion_done_keyboard` and `regular_commitment_done_keyboard`.
-  - Phone Registration / Verification: Added `assets/shareNumber.jpg` visual guidance check in `registration.py`, `member_registration.py`, and `profile.py`. Cleaned up OTP exchange messages (`problem1.jpg`) in `change_phone.py`. Preserved verification FSM state in `resume_khatm_creation_if_pending`.
-  - Wizard Questions Streamlining (`create_khatm.py`): Dropped creator name question (`problem2.jpg` -> defaults to `FULL_NAME`), dropped daily deadline hour question (defaults to 24), dropped allowed platforms question (defaults to BOTH). Added edit menu callbacks.
-  - Settings & Occurrences: Fixed duplicate hour keyboard in `settings_menu.py`. Registered About Us in `help.py`. Family-aware done button in `occurrence_adapter.py` and `reminder_engine/service.py`.
-- **Remaining for Next Session:**
-  - Finish wiring `editing_from_confirm` checks in remaining `create_khatm.py` steps (`choose_category`, `choose_mode`, `enter_niyyat`, targets, policies, tones, back button).
-  - Split `finish_invite_links` into 2 messages: Message 1 = Creator confirmation + home menu; Message 2 = Ready-to-forward shareable invitation card.
-  - Apply sequential share allocation priority (Mode 1: earlier hour gets earlier shares, tie-break by `joined_at ASC`).
-  - Run full pytest verification.
+## Current state — 2026-10-06 — Taxonomy-Aware Copy, Dignified Tone & Role Separation [Antigravity]
+- **Bug Fix (La'an & Dua Unit Misattribution):** Fixed critical root-cause bug where category-based Khatms (such as La'an or Dua) displayed "صلوات" in consent cards and wizards (`start.py` and `create_khatm.py`). Replaced with `category_group` checking (`LAAN` -> `مرتبه ذکر`, `DUA` -> `مرتبه قرائت`, `SALAWAT` -> `صلوات`). Replaced "قرائت" in fixed daily rule consent text with universal devotional verb "ادا نمایید".
+- **Dynamic Time & Family Vocabulary (`member_copy.py`):** Added `action_verb(family, lang)` and `done_button_label(family, lang)` supporting 5 families (Quran, Salawat, Dua, Ziyarat, La'an). Replaced hardcoded "امشب" and "(به وقت ایران)" with dynamic time-of-day deadline (`صبح امروز`, `ظهر امروز`, `بعدازظهر امروز`, `امشب`) and time-aware greetings (`سحرگاه‌تون پربرکت`, `صبح‌تون بخیر`, `ظهرتون بخیر`, `عصرتون بخیر`, `شب‌تون آرام و پربرکت`) while maintaining backward compatibility for 23:00 / Iran timezone.
+- **Tone Refinement:** Upgraded casual/slang phrases across `i18n/__init__.py` ("یکی خوندم" -> "۱ سهم انجام شد", "چند تا خوندی؟" -> "چه تعداد انجام دادید؟", "آفرین" -> "طاعت و همراهی‌تان قبول حق"). Polished creator miss notification in `reminder_engine/service.py` to dignified managerial phrasing instead of "چیکارش کنیم؟".
+- **Creator vs Member Completion Separation (`completion/service.py`):** Added separate congratulations for Khatm creators ("🌸 تبریک و خداقوت به بانی محترم...") vs participating members ("🎉 ختم «...» با همراهی شما به پایان رسید..."), surfaced dedication intention (`🤲 به نیت: ...`), and adapted portion icon (📖 for Quran, 📿 for devotional).
+- **Monthly Report Taxonomy Support (`monthly_report/service.py`, `reporting/service.py`):** Added `dua_count` and `laan_count` to `ClosedMonthReport` with localized Persian/Arabic/English labels, preventing collapse of devotions and curses into Salawat.
+- **Master Checklist Completed:** All 6 steps in `MASTER_MESSAGES_AND_COPY_AUDIT_REPORT.md` verified and ticked off.
+- **Validation:** 31 targeted unit and integration tests PASS cleanly.
 
 ## Current state — 2026-10-06 — V3 Wizard & Commitment Redesign Master [Antigravity]
 - **V3 Master Architecture:** Formulated `docs/ai/V3_WIZARD_REDESIGN_MASTER.md` and 5 modular sub-specifications in `docs/ai/v3_specs/` covering creator onboarding, elimination of "شرعی", phone share guidance asset location (`assets/shareNumber.jpg`), disappearance of reply menu bugfix, removal of 3 obsolete wizard steps, confirmation edit buttons, Khutbah (خطبه) sequential cycle model, La'an moderation queue, and daily creator reporting.

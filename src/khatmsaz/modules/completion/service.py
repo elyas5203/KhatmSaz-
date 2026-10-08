@@ -15,19 +15,47 @@ NotifyFn = Callable[[str, str, str], Awaitable[None]]
 UNDO_GRACE = timedelta(minutes=5)
 
 
-def _message(title: str, stats, locale: str) -> str:
+from khatmsaz.modules.khatm.models import KhatmTemplateType
+
+
+def _message(title: str, stats, locale: str, khatm=None, is_creator: bool = False) -> str:
+    niyyat_line = ""
+    if khatm and khatm.niyyat:
+        clean_niyyat = khatm.niyyat.strip()
+        if clean_niyyat.startswith("به نیت "):
+            clean_niyyat = clean_niyyat[len("به نیت "):].strip()
+        if locale == "ar":
+            niyyat_line = f"🤲 بنية: {clean_niyyat}"
+        elif locale == "en":
+            niyyat_line = f"🤲 Dedicated for: {clean_niyyat}"
+        else:
+            niyyat_line = f"🤲 به نیت: {clean_niyyat}"
+
     if locale == "ar":
-        lines = [f"🎉 اكتملت ختمة «{title}»", "تقبّل الله من الجميع 🤍"]
+        if is_creator:
+            lines = [f"🌸 هنيئاً لمنشئ الختمة؛ اكتملت ختمة «{title}» بنجاح.", "تقبّل الله سعيكم المبارك 🤍"]
+        else:
+            lines = [f"🎉 اكتملت ختمة «{title}»", "تقبّل الله من الجميع 🤍"]
         member_label, portion_label, contribution_label = "المشاركون", "الحصص المكتملة", "مجموع المشاركات"
     elif locale == "en":
-        lines = [f"🎉 “{title}” is complete", "May everyone’s devotion be accepted 🤍"]
+        if is_creator:
+            lines = [f"🌸 Congratulations to the creator; “{title}” is complete.", "May your efforts be accepted 🤍"]
+        else:
+            lines = [f"🎉 “{title}” is complete", "May everyone’s devotion be accepted 🤍"]
         member_label, portion_label, contribution_label = "Participants", "Completed portions", "Total contributions"
     else:
-        lines = [f"🎉 ختم «{title}» با همراهی شما به پایان رسید.", "خدا از همه قبول کند 🤍"]
+        if is_creator:
+            lines = [f"🌸 تبریک و خداقوت به بانی محترم؛ ختم «{title}» با همراهی اعضا به پایان رسید.", "طاعت و خدمت خالصانه‌تان قبول حق 🤍"]
+        else:
+            lines = [f"🎉 ختم «{title}» با همراهی شما به پایان رسید.", "خدا از همه قبول کند 🤍"]
         member_label, portion_label, contribution_label = "تعداد همراهان", "سهم‌های تکمیل‌شده", "مجموع مشارکت"
+
+    if niyyat_line:
+        lines.append(niyyat_line)
     lines.append(f"👥 {member_label}: {stats.total_members}")
     if stats.total_portions:
-        lines.append(f"📖 {portion_label}: {stats.completed_portions} / {stats.total_portions}")
+        icon = "📖" if khatm and getattr(khatm, "template_type", None) == KhatmTemplateType.QURAN_PAGE else "📿"
+        lines.append(f"{icon} {portion_label}: {stats.completed_portions} / {stats.total_portions}")
     if stats.contribution_total:
         lines.append(f"🌱 {contribution_label}: {int(stats.contribution_total)}")
     return "\n".join(lines)
@@ -63,7 +91,13 @@ async def deliver_pending(
         sent_to: set[tuple[str, str]] = set()
         for user_id in user_ids:
             settings = await settings_service.get_or_create(session, user_id)
-            text = _message(khatm.title, stats, settings.language)
+            text = _message(
+                khatm.title,
+                stats,
+                settings.language,
+                khatm=khatm,
+                is_creator=(user_id == khatm.creator_user_id),
+            )
             for identity in await identity_service.list_identities_for_user(session, user_id):
                 destination = (identity.platform.value, identity.subject)
                 if destination in sent_to:

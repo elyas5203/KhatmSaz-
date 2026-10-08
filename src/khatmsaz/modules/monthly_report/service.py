@@ -30,17 +30,21 @@ def _previous_month_bounds(local_now: datetime) -> tuple[datetime, datetime, str
 def _render(period: str, report, locale: str) -> str:
     if locale == "ar":
         lines = [f"🌙 تقريرك الإيجابي لشهر {period}", "تقبّل الله منك 🤍"]
-        labels = ("صفحات القرآن", "الصلوات", "الختمات المكتملة")
+        labels = ("صفحات القرآن", "الصلوات", "الختمات المكتملة", "الأدعية والزيارات", "الأذكار")
     elif locale == "en":
         lines = [f"🌙 Your positive report for {period}", "May your devotion be accepted 🤍"]
-        labels = ("Quran pages", "Salawat", "Completed khatms")
+        labels = ("Quran pages", "Salawat", "Completed khatms", "Duas & Ziyarats", "Devotional recitations")
     else:
         lines = [f"🌙 گزارش مثبت شما برای ماه {period}", "همراهی‌تان ارزشمند است؛ خدا قبول کند 🤍"]
-        labels = ("صفحه قرآن", "صلوات", "ختم به‌پایان‌رسیده")
+        labels = ("صفحه قرآن", "صلوات", "ختم به‌پایان‌رسیده", "ادعیه و زیارات", "اذکار و برائت")
     if report.quran_pages:
         lines.append(f"📖 {labels[0]}: {report.quran_pages}")
     if report.salawat_count:
         lines.append(f"📿 {labels[1]}: {report.salawat_count}")
+    if getattr(report, "dua_count", 0):
+        lines.append(f"🤲 {labels[3]}: {report.dua_count}")
+    if getattr(report, "laan_count", 0):
+        lines.append(f"⚡ {labels[4]}: {report.laan_count}")
     if report.completed_khatms:
         lines.append(f"🎉 {labels[2]}: {report.completed_khatms}")
     return "\n".join(lines)

@@ -4,11 +4,20 @@
 - **Sequential Allocation Priority (`delivery.candidate_ids` & `allocation.repository`):** Implemented time-based priority (Mode 1): earlier scheduled hour receives earlier portions/pages. Ties broken by `joined_at ASC`.
 - **Validation:** Added `tests/test_v3_wizard_and_allocation.py`. 337 non-integration tests PASS cleanly.
 
-## 2026-10-06 — Antigravity — V3 Wizard & Bot UX Overhaul (In Progress)
+## 2026-10-06 — Antigravity — V3 Wizard & Bot UX Overhaul
 - **i18n & Wording:** Stripped all occurrences of "شرعی" and "دین شرعی" across commitment and open khatm copy. Removed obsolete "دوباره دکمه ساخت ختم را بزنید" phrases. Added family-specific done buttons (`portions.button.done.*`) and About Us strings (`@khedmatgozaran_khadem`).
 - **Keyboards & Persistence:** Enforced `is_persistent=True` on reply keyboards across all menus. Replaced `ReplyKeyboardRemove` calls in phone handlers with home menu restoration. Redesigned member menu. Added edit menu for confirmation screen. Added `settings_reminder_saved_keyboard`.
 - **Wizard Streamlining:** Dropped creator name, daily deadline hour (default 24:00), and platform selection (default BOTH) questions. Added inline field edit flow.
 - **Settings & Delivery:** Prevented duplicate hour grid in reminder settings. Handled family-aware done buttons in occurrence delivery and reminder engine.
+
+## 2026-10-06 — Antigravity — Taxonomy-Aware Copy, Dignified Tone & Role Separation
+- **Fixed (La'an & Dua Unit Misattribution):** Resolved critical screenshot bug where category-backed Khatms (La'an, Dua) displayed "صلوات" in consent cards and wizards (`start.py`, `create_khatm.py`). Replaced with `category_group` checking (`LAAN` -> `مرتبه ذکر`, `DUA` -> `مرتبه قرائت`, `SALAWAT` -> `صلوات`). Replaced "قرائت" in fixed daily rule consent text with universal devotional verb "ادا نمایید".
+- **Added (Dynamic Time & Family Vocabulary in `member_copy.py`):** Added `action_verb(family, lang)` and `done_button_label(family, lang)` supporting 5 families (Quran, Salawat, Dua, Ziyarat, La'an). Replaced hardcoded "امشب" and "(به وقت ایران)" with dynamic time-of-day deadline (`صبح امروز`, `ظهر امروز`, `بعدازظهر امروز`, `امشب`) and time-aware greetings (`سحرگاه‌تون پربرکت`, `صبح‌تون بخیر`, `ظهرتون بخیر`, `عصرتون بخیر`, `شب‌تون آرام و پربرکت`) while preserving backward compatibility.
+- **Refined (Tone & Dignity):** Polished informal slang in `i18n/__init__.py` ("یکی خوندم" -> "۱ سهم انجام شد", "چند تا خوندی؟" -> "چه تعداد انجام دادید؟", "آفرین" -> "طاعت و همراهی‌تان قبول حق"). Polished creator miss notification in `reminder_engine/service.py` to dignified managerial phrasing.
+- **Added (Creator vs Member Completion Separation in `completion/service.py`):** Differentiated creator congratulations from member celebration, surfaced dedication intention (`🤲 به نیت: ...`), and adapted portion icon (📖 for Quran, 📿 for devotional).
+- **Added (Monthly Report Taxonomy Support):** Added `dua_count` and `laan_count` to `ClosedMonthReport` with localized Persian/Arabic/English labels in `monthly_report/service.py` and `reporting/service.py`.
+- **Master Checklist Completed:** All 6 steps in `MASTER_MESSAGES_AND_COPY_AUDIT_REPORT.md` completed and ticked off.
+- **Validation:** 31 targeted unit and integration tests PASS cleanly.
 
 ## 2026-10-05 — Antigravity — Systemd Stop Timeout, Polling Supervisor & Persian i18n Cleanup
 - **Fixed (Stop Timeout & SIGKILL):** Fixed multi-dispatcher signal handler collision in `bootstrap.py` where `dp_member.start_polling` overwrote `dp_creator`'s SIGTERM handler. Unified process termination with `shutdown_event: asyncio.Event`, `handle_signals=False` on aiogram dispatchers, and explicit clean stop of scheduler, web server, and pollers within 1 second.
