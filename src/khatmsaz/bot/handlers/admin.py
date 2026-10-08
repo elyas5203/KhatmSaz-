@@ -275,8 +275,7 @@ async def admin_quran_source_forward(message: Message) -> None:
     if not isinstance(origin, MessageOriginChannel):
         return
     expected_chat_id = get_settings().quran_source_telegram_chat_id
-    if expected_chat_id and origin.chat.id != expected_chat_id:
-        await message.answer("این پیام از کانال قرآن تعیین‌شده نیامده و ثبت نشد.")
+    if not expected_chat_id or origin.chat.id != expected_chat_id:
         return
     parsed = content_service.parse_quran_channel_caption(message.caption or message.text)
     if parsed is None:

@@ -1,3 +1,14 @@
+## Current state — 2026-10-08 — Auto-Provision Devotional Asset & Quran Forward Interception Fix [Antigravity]
+- **Auto-Provisioning Devotional Asset & Category in `add_devotional_video_page`:**
+  - Fixed server-side `ValueError: enabled devotional asset not found` when admin runs `/set_video khutbah-fadakiah 1` before running any seeding script.
+  - Automatically provisions `DevotionalAsset` and `KhatmCategory` on demand if missing when setting video parts.
+- **Fixed Quran Channel Forward Handler Interception:**
+  - In `admin.py:275`, forwarded messages from channels other than the configured Quran source channel now return silently instead of answering with error message «این پیام از کانال قرآن تعیین‌شده نیامده و ثبت نشد.»
+- **Admin Video Reply Command Enhancements:**
+  - Added support for extracting channel links from video message caption (`target_msg.caption`) in addition to text in `manage_content.py:set_video_direct`.
+  - Added try-except error catching and reporting to user on unexpected failures.
+- **Validation:** 350 passed, 230 skipped in 11.33s.
+
 ## Current state — 2026-10-08 — Khutbah 5-Part Video Delivery & Dua-Ziyarat Bot Routing [Antigravity]
 - **Khutbah Bot Routing Bound to Dua & Ziyarat:**
   - Implemented user directive: «بات ارسال خطبه فدک بات دعا و زیارته».

@@ -76,48 +76,52 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
     target_msg = message.reply_to_message or message
     platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
 
-    async with session_scope() as session:
-        if link:
-            import re
-            m = re.search(r"t\.me/([^/]+)/(\d+)", link)
-            if m:
-                ch, mid = m.groups()
-                ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+    try:
+        async with session_scope() as session:
+            if link:
+                import re
+                m = re.search(r"t\.me/([^/]+)/(\d+)", link)
+                if m:
+                    ch, mid = m.groups()
+                    ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+                    media = await content_service.add_devotional_video_page(
+                        session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
+                        page_number=page_number,
+                    )
+                    await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> از طریق لینک کانال ثبت شد.")
+                    return
+
+            file_id = None
+            if target_msg.video:
+                file_id = target_msg.video.file_id
+            elif target_msg.document and (target_msg.document.mime_type or "").startswith("video/"):
+                file_id = target_msg.document.file_id
+
+            if file_id:
                 media = await content_service.add_devotional_video_page(
-                    session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
+                    session, slug=slug, asset_ref=file_id, asset_platform=platform_val.value,
                     page_number=page_number,
                 )
-                await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> از طریق لینک کانال ثبت شد.")
+                await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ذخیره شد.")
                 return
 
-        file_id = None
-        if target_msg.video:
-            file_id = target_msg.video.file_id
-        elif target_msg.document and (target_msg.document.mime_type or "").startswith("video/"):
-            file_id = target_msg.document.file_id
+            text_body = (target_msg.caption or target_msg.text or "").strip()
+            if text_body:
+                import re
+                m = re.search(r"t\.me/([^/]+)/(\d+)", text_body)
+                if m:
+                    ch, mid = m.groups()
+                    ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+                    media = await content_service.add_devotional_video_page(
+                        session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
+                        page_number=page_number,
+                    )
+                    await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+                    return
 
-        if file_id:
-            media = await content_service.add_devotional_video_page(
-                session, slug=slug, asset_ref=file_id, asset_platform=platform_val.value,
-                page_number=page_number,
-            )
-            await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ذخیره شد.")
-            return
-
-        if target_msg.text:
-            import re
-            m = re.search(r"t\.me/([^/]+)/(\d+)", target_msg.text)
-            if m:
-                ch, mid = m.groups()
-                ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
-                media = await content_service.add_devotional_video_page(
-                    session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
-                    page_number=page_number,
-                )
-                await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
-                return
-
-    await message.answer("⚠️ ویدیویی یافت نشد. لطفاً روی یک ویدیو ریپلای کنید یا لینک پست را قرار دهید.")
+        await message.answer("⚠️ ویدیویی یافت نشد. لطفاً روی یک ویدیو ریپلای کنید یا لینک پست را قرار دهید.")
+    except Exception as exc:
+        await message.answer(f"⚠️ خطا در ثبت ویدیو: {str(exc)}")
 
 
 @router.message(ManageContentState.waiting_for_slug)

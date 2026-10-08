@@ -70,3 +70,29 @@ def test_khutbah_routing_to_dua_ziyarat_bot():
     resolved = bot_reg_service.resolve_bot_category(khatm, cat)
     assert resolved == BotCategory.DUA_ZIYARAT
 
+
+@pytest.mark.asyncio
+async def test_add_devotional_video_page_autoprovisions_asset():
+    from khatmsaz.modules.content import service as content_service
+    added = []
+
+    class MockSession:
+        async def scalar(self, stmt):
+            return None
+
+        def add(self, entity):
+            added.append(entity)
+
+        async def flush(self):
+            pass
+
+    session = MockSession()
+    media = await content_service.add_devotional_video_page(
+        session, slug="khutbah-fadakiah", asset_ref="video-ref-1", asset_platform="TELEGRAM", page_number=1,
+    )
+    assert media.page_number == 1
+    assert media.asset_ref == "video-ref-1"
+    # Auto-created asset and category
+    assert any(getattr(e, "slug", None) == "khutbah-fadakiah" for e in added)
+    assert any(getattr(e, "group", None) is not None for e in added)
+
