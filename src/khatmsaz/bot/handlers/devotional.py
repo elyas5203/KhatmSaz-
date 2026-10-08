@@ -44,15 +44,22 @@ async def _send_portable_media(
     forward_source = content_service.decode_telegram_forward_ref(asset_ref)
     if forward_source is not None:
         source_chat_id, source_message_id = forward_source
-        try:
-            await message.bot.forward_message(
-                chat_id=message.chat.id,
-                from_chat_id=source_chat_id,
-                message_id=source_message_id,
-            )
-            return
-        except Exception:
-            pass
+        if hasattr(message, "forward"):
+            try:
+                await message.forward(source_chat_id, source_message_id)
+                return
+            except Exception:
+                pass
+        else:
+            try:
+                await message.bot.forward_message(
+                    chat_id=message.chat.id,
+                    from_chat_id=source_chat_id,
+                    message_id=source_message_id,
+                )
+                return
+            except Exception:
+                pass
 
     sender = getattr(message, {
         "IMAGE": "answer_photo",
@@ -86,6 +93,7 @@ async def _send_portable_media(
 
 async def deliver_devotional_media(
     session, message: Message, *, slug: str, asset, platform: Platform, lang: str,
+    page_numbers: list[int] | None = None,
 ) -> bool:
     """Sends every registered piece of media for one devotional asset:
     Video clips (if present), or PDF, image page(s) in order, then audio.
@@ -94,8 +102,12 @@ async def deliver_devotional_media(
     # Owner rule: if video clips are present, deliver videos directly
     video_pages = await content_service.list_devotional_video_pages(session, slug, platform.value)
     if video_pages:
+        if page_numbers:
+            filtered = [v for v in video_pages if v.page_number in page_numbers]
+            if filtered:
+                video_pages = filtered
         for vid in video_pages:
-            part_label = f" — بخش {vid.page_number}" if vid.page_number > 0 and len(video_pages) > 1 else ""
+            part_label = f" — بخش {vid.page_number}" if vid.page_number > 0 else ""
             caption = f"🎬 <b>{escape(asset.title)}</b>{part_label}"
             await _send_portable_media(
                 message, kind="VIDEO", asset_ref=vid.asset_ref, platform=platform,

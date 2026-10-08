@@ -1,3 +1,19 @@
+## Current state — 2026-10-08 — Khutbah Video Delivery & Member Prompt Customization [Antigravity]
+- **Fixed Devotional Video Delivery (`AttributeError: '_TargetMessage' has no attribute 'answer_video'`):**
+  - Added `answer_video`, `answer_animation`, `answer_voice`, and `forward` to `_TargetMessage` in `notify_adapter.py`.
+  - Added `send_video` fallback to `occurrence_adapter.py` for cross-bot file identifier re-uploads.
+- **Customized Member Commitment Prompts for Khutbah:**
+  - Added `commit.ask_times_per_period.khutbah` («چند بخش از خطبه را می‌خواهید در روزهای انتخابی بخوانید؟ عدد را بنویسید (مثلاً ۱ یا ۲)») and `commit.ask_count.khutbah` in `i18n`.
+  - Refined `commit.period.these_days` to «روزهای انتخابی».
+  - Added unit `commit.unit.khutbah` («بخش»).
+  - Resolved `family` properly via `content_family` in `start.py` and `member_commitment.py`.
+- **Sequential Khutbah 5-Part Section Allocation:**
+  - In `delivery.py:prepare`, Khutbah occurrences now compute and assign sequential section ranges (e.g. section 1, section 2, ...) based on completed shares.
+  - In `occurrence_adapter.py` and `devotional.py`, `send_devotional_content` delivers only the designated section's video for the day rather than dumping all videos at once.
+- **Admin `/videos` Command:**
+  - Added `/videos [slug]` (or `/list_videos`) in `manage_content.py` allowing creators to see the status of all registered video sections.
+- **Validation:** 356 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — Daily Deadline Hour 24 & Wizard Auto-Seed Robustness [Antigravity]
 - **Handled End-of-Day Deadline Hour 24:**
   - Resolved `ValueError: hour must be in 0..23` in reminder background scan (`_run_reminder_scan` / `share_occurrence/delivery.py`).

@@ -223,6 +223,7 @@ async def send_media(
 async def send_devotional_content(
     session, platform_value: str, chat_id: str, *, khatm, lang: str,
     bot_instance_id=None, receipt_sender=None,
+    page_numbers: list[int] | None = None,
 ) -> bool:
     """Send the configured image/PDF/text immediately before a reminder."""
     from khatmsaz.core.bot_registry import get_registry
@@ -236,9 +237,14 @@ async def send_devotional_content(
     if bot is None or getattr(bot, "khatmsaz_platform", platform) != platform:
         return False
 
+    class _TargetChat:
+        def __init__(self, cid: int):
+            self.id = cid
+
     class _TargetMessage:
         def __init__(self):
             self.bot = bot
+            self.chat = _TargetChat(int(chat_id))
 
         async def answer(self, text, **kwargs):
             if receipt_sender:
@@ -259,6 +265,26 @@ async def send_devotional_content(
             if receipt_sender:
                 return await receipt_sender("send_audio", audio=audio, **kwargs)
             return await bot.send_audio(chat_id=int(chat_id), audio=audio, **kwargs)
+
+        async def answer_video(self, video, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_video", video=video, **kwargs)
+            return await bot.send_video(chat_id=int(chat_id), video=video, **kwargs)
+
+        async def answer_animation(self, animation, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_animation", animation=animation, **kwargs)
+            return await bot.send_animation(chat_id=int(chat_id), animation=animation, **kwargs)
+
+        async def answer_voice(self, voice, **kwargs):
+            if receipt_sender:
+                return await receipt_sender("send_voice", voice=voice, **kwargs)
+            return await bot.send_voice(chat_id=int(chat_id), voice=voice, **kwargs)
+
+        async def forward(self, from_chat_id, message_id):
+            if receipt_sender:
+                return await receipt_sender("forward_message", from_chat_id=from_chat_id, message_id=message_id)
+            return await bot.forward_message(chat_id=int(chat_id), from_chat_id=from_chat_id, message_id=message_id)
 
     target = _TargetMessage()
     try:
@@ -304,6 +330,7 @@ async def send_devotional_content(
 
         has_media = await deliver_devotional_media(
             session, target, slug=slug, asset=asset, platform=platform, lang=lang,
+            page_numbers=page_numbers,
         )
         if not has_media and not sent and asset.text_body:
             for chunk in asset.text_body.split("\x1e"):

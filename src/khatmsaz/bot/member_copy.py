@@ -19,6 +19,8 @@ async def content_family(session: AsyncSession, khatm: Khatm) -> str:
     )
     if category is None:
         title = getattr(khatm, "title", "")
+        if "خطبه" in title:
+            return "khutbah"
         if "زیارت" in title:
             return "ziyarat"
         if "دعا" in title:

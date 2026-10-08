@@ -569,7 +569,8 @@ async def resume_join_after_registration(
         and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
-        family = pending_category_group if 'pending_category_group' in locals() else None
+        from khatmsaz.bot.member_copy import content_family
+        family = (await content_family(session, khatm)).upper()
         await start_commitment_mode_picker(
             message, state, participation.id, lang, summary=text, family=family
         )

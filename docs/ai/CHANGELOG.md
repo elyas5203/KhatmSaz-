@@ -1,3 +1,10 @@
+## 2026-10-08 — Antigravity — Khutbah Video Delivery & Member Prompt Customization
+- **Devotional Video Delivery:** Fixed `AttributeError: '_TargetMessage' object has no attribute 'answer_video'` by implementing `answer_video`, `answer_animation`, `answer_voice`, and `forward` in `notify_adapter.py:_TargetMessage`. Added `send_video` fallback support in `occurrence_adapter.py`.
+- **Customized Khutbah Member Prompts:** Added `commit.ask_times_per_period.khutbah` and `commit.ask_count.khutbah` in `i18n` asking «چند بخش از خطبه را می‌خواهید در روزهای انتخابی بخوانید؟». Updated `commit.period.these_days` to «روزهای انتخابی». Added `commit.unit.khutbah` («بخش»).
+- **Sequential Khutbah 5-Part Section Delivery:** Added sequential section allocation in `delivery.py:prepare` and section-specific delivery in `occurrence_adapter.py` and `devotional.py`.
+- **Command `/videos`:** Added `/videos [slug]` (or `/list_videos`) in `manage_content.py` to inspect all registered video sections.
+- **Validation:** 356 unit tests PASS.
+
 ## 2026-10-08 — Antigravity — Daily Deadline Hour 24 & Wizard Auto-Seed Robustness
 - **Deadline Hour 24 Support:** Fixed `ValueError: hour must be in 0..23` in `share_occurrence/delivery.py` by converting hour 24 (end-of-day deadline) to midnight of the following day. Added regression test in `tests/test_khutbah_integration.py`.
 - **Wizard Category Seed Guard:** Protected `seed_canonical_categories` inside `create_khatm.py:_show_category_prompt` with a try-except block so unseeded or mocked test environments do not fail.

@@ -50,7 +50,12 @@ def label(khatm, occurrence):
     if occurrence.unit == "PAGE":
         pages = "، ".join(f"{a} تا {b}" if a != b else str(a) for a, b in occurrence.content_spec["ranges"])
         return t("share.pages", lang, title=escape(khatm.title), pages=pages)
-    amount = share_label(occurrence.content_spec.get("family", "salawat"), count=occurrence.amount, lang=lang)
+    family = occurrence.content_spec.get("family", "salawat")
+    start = None
+    end = None
+    if occurrence.content_spec.get("ranges"):
+        start, end = occurrence.content_spec["ranges"][0]
+    amount = share_label(family, count=occurrence.amount, start=start, end=end, lang=lang)
     return t("share.amount", lang, title=escape(khatm.title), amount=amount)
 
 
@@ -117,8 +122,15 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
     elif collecting:
         from khatmsaz.bot.notify_adapter import send_devotional_content
         settings = await settings_service.get_or_create(session, part.user_id)
+        page_numbers = None
+        if occurrence.content_spec and "ranges" in occurrence.content_spec:
+            page_numbers = [
+                p for start, end in occurrence.content_spec["ranges"]
+                for p in range(start, end + 1)
+            ]
         if not await send_devotional_content(session, bot.khatmsaz_platform.value, str(chat),
-                khatm=khatm, lang=occurrence.content_spec["language"], bot_instance_id=occurrence.bot_instance_id, receipt_sender=collect):
+                khatm=khatm, lang=occurrence.content_spec["language"], bot_instance_id=occurrence.bot_instance_id,
+                receipt_sender=collect, page_numbers=page_numbers):
             return False
     if not components:
         return False
@@ -135,7 +147,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         try:
             message = await getattr(bot, method)(chat_id=chat, **kwargs)
         except TelegramBadRequest as exc:
-            arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document"}.get(method)
+            arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document", "send_video": "video"}.get(method)
             if arg is None or "wrong file identifier" not in str(exc).lower():
                 raise
             owner = get_registry().get_creator_bot(bot.khatmsaz_platform)
@@ -143,7 +155,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
                 raise
             buffer = BytesIO()
             await owner.download(kwargs[arg], destination=buffer)
-            kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf'}[arg] }")
+            kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf','video':'mp4'}[arg] }")
             message = await getattr(bot, method)(chat_id=chat, **kwargs)
         await service.record_message(session, occurrence_id=occurrence.id,
             bot_instance_id=occurrence.bot_instance_id, component_key=key, purpose="CONTENT",

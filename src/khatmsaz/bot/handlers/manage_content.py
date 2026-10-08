@@ -126,6 +126,24 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
         await message.answer(f"⚠️ خطا در ثبت ویدیو: {str(exc)}", parse_mode=None)
 
 
+@router.message(Command("videos", "list_videos"))
+async def list_videos_command(message: Message, command: CommandObject) -> None:
+    """Lists all registered videos for a devotional slug (default: khutbah-fadakiah)."""
+    slug = (command.args or "").strip().lower() or "khutbah-fadakiah"
+    platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        pages = await content_service.list_devotional_video_pages(session, slug, platform_val.value)
+    if not pages:
+        await message.answer(f"ℹ️ هنوز هیچ ویدیویی برای <code>{slug}</code> ثبت نشده است.")
+        return
+    lines = [f"🎥 <b>ویدیوهای ثبت‌شده برای <code>{slug}</code>:</b>\n"]
+    for p in sorted(pages, key=lambda x: x.page_number):
+        ref_preview = p.asset_ref[:35] + "..." if len(p.asset_ref) > 35 else p.asset_ref
+        lines.append(f"• <b>بخش {p.page_number}</b>: <code>{ref_preview}</code> ✅")
+    lines.append(f"\nمجموع: <b>{len(pages)} بخش</b> فعال است.")
+    await message.answer("\n".join(lines))
+
+
 @router.message(ManageContentState.waiting_for_slug)
 async def receive_slug(message: Message, state: FSMContext) -> None:
     if not message.text:

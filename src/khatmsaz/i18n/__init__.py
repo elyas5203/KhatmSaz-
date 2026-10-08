@@ -97,6 +97,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "commit.unit.salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "commit.unit.dua": {"fa": "مرتبه", "ar": "مرة", "en": "times"},
+    "commit.unit.khutbah": {"fa": "بخش", "ar": "قسم", "en": "section"},
 
 
     "portions.open_reservation_warning": {
@@ -619,6 +620,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة ستقرأ اللعن؟ اكتب العدد.",
         "en": "How many la'an recitations will you make? Type a number.",
     },
+    "commit.ask_count.khutbah": {
+        "fa": "چند بخش از خطبه را می‌خواهید بخوانید؟ عدد را بنویسید (مثلاً ۱ یا ۲).",
+        "ar": "كم قسماً من الخطبة تريد أن تقرأ؟ اكتب العدد (مثلاً 1).",
+        "en": "How many sections of the Khutbah will you read? Type a number (e.g. 1).",
+    },
     "commit.ask_count_invalid": {
         "fa": "یک عدد درست بنویس (مثلاً 100).",
         "ar": "اكتب عددًا صحيحًا (مثلاً 100).",
@@ -632,7 +638,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "commit.period.day": {"fa": "روز", "ar": "يوم", "en": "day"},
     "commit.period.week": {"fa": "هفته", "ar": "أسبوع", "en": "week"},
     "commit.period.month": {"fa": "ماه", "ar": "شهر", "en": "month"},
-    "commit.period.these_days": {"fa": "روز انتخاب‌شده", "ar": "يوم محدد", "en": "selected day"},
+    "commit.period.these_days": {"fa": "روزهای انتخابی", "ar": "الأيام المحددة", "en": "selected days"},
     "commit.ask_weekdays": {
         "fa": "کدام روزهای هفته؟ روزهای موردنظر را بزنید (می‌توانید چند روز انتخاب کنید) و بعد «تأیید روزها» را بزنید.",
         "ar": "أي أيام الأسبوع؟ اختر الأيام (يمكن اختيار عدة أيام) ثم اضغط «تأكيد الأيام».",
@@ -659,6 +665,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "در هر {period} چه تعداد لعن می‌فرستید؟ عدد را بنویسید.",
         "ar": "كم مرة ستقرأ اللعن في كل {period}؟ اكتب العدد.",
         "en": "How many la'an recitations per {period}? Type a number.",
+    },
+    "commit.ask_times_per_period.khutbah": {
+        "fa": "چند بخش از خطبه را می‌خواهید در {period} بخوانید؟ عدد را بنویسید (مثلاً ۱ یا ۲). اگر چند روز انتخاب کرده‌اید، این عدد برای هر یک از آن روزهاست.",
+        "ar": "كم قسماً من الخطبة تريد أن تقرأ في {period}؟ اكتب العدد (مثلاً 1).",
+        "en": "How many sections of the Khutbah will you read in {period}? Type a number (e.g. 1).",
     },
     "commit.hour.custom": {
         "fa": "🕒 ساعت دلخواه (مثلاً 13:25)",

@@ -129,6 +129,7 @@ async def start_commitment_mode_picker(
 
 
 def _family_prompt(base: str, family: str | None) -> str:
+    fam = (family or "").upper()
     suffix = {
         "SALAWAT": "salawat",
         "DUA": "dua",
@@ -136,7 +137,8 @@ def _family_prompt(base: str, family: str | None) -> str:
         "DUA_ZIYARAT": "dua",
         "LAAN": "laan",
         "QURAN": "quran",
-    }.get(family or "")
+        "KHUTBAH": "khutbah",
+    }.get(fam)
     return f"{base}.{suffix}" if suffix else base
 
 
@@ -498,8 +500,13 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         0: "days.saturday", 1: "days.sunday", 2: "days.monday",
         3: "days.tuesday", 4: "days.wednesday", 5: "days.thursday", 6: "days.friday"
     }
-    family = data.get("commit_family")
-    unit = t("portions.unit.page", lang) if family == "QURAN" else t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
+    family = (data.get("commit_family") or "").upper()
+    unit = (
+        t("portions.unit.page", lang) if family == "QURAN"
+        else t("commit.unit.salawat", lang) if family == "SALAWAT"
+        else t("commit.unit.khutbah", lang) if family == "KHUTBAH"
+        else t("commit.unit.dua", lang)
+    )
     
     if freq == ScheduleFreq.WEEKLY.value:
         sel = sorted(set(data.get("commit_weekdays") or []))

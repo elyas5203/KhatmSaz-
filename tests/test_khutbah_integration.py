@@ -157,3 +157,74 @@ def test_calc_deadline_supports_end_of_day_24():
     # None
     assert _calc_deadline(local, None) is None
 
+
+def test_khutbah_family_prompt_and_i18n():
+    from khatmsaz.bot.handlers.member_commitment import _family_prompt
+    from khatmsaz.i18n import t
+
+    key = _family_prompt("commit.ask_times_per_period", "KHUTBAH")
+    assert key == "commit.ask_times_per_period.khutbah"
+
+    period_these_days = t("commit.period.these_days", "fa")
+    assert period_these_days == "روزهای انتخابی"
+
+    prompt_text = t(key, "fa", period=period_these_days)
+    assert "چند بخش از خطبه را می‌خواهید در روزهای انتخابی بخوانید؟" in prompt_text
+
+    unit_khutbah = t("commit.unit.khutbah", "fa")
+    assert unit_khutbah == "بخش"
+
+
+def test_khutbah_share_label_and_ranges():
+    from khatmsaz.bot.member_copy import share_label
+
+    label_single = share_label("khutbah", start=1, end=1, lang="fa")
+    assert label_single == "بخش 1 از خطبه"
+
+    label_range = share_label("khutbah", start=1, end=2, lang="fa")
+    assert label_range == "بخش 1 تا 2 از خطبه"
+
+
+@pytest.mark.asyncio
+async def test_notify_adapter_target_message_supports_video():
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.bot import notify_adapter
+    from khatmsaz.modules.identity.models import Platform
+
+    mock_bot = MagicMock()
+    mock_bot.send_video = AsyncMock(return_value=MagicMock(message_id=99))
+    mock_bot.khatmsaz_platform = Platform.TELEGRAM
+
+    mock_registry = MagicMock()
+    mock_registry.get_creator_bot.return_value = mock_bot
+    mock_registry.get_by_instance_id.return_value = mock_bot
+
+    collected = []
+    async def receipt_sender(method, **kwargs):
+        collected.append((method, kwargs))
+        return MagicMock(message_id=len(collected))
+
+    # Test delivery using send_devotional_content with mock khatm
+    with patch("khatmsaz.core.bot_registry.get_registry", return_value=mock_registry):
+        mock_session = AsyncMock()
+        mock_khatm = MagicMock()
+        mock_khatm.description = None
+        mock_khatm.title = "خطبه فدکیه"
+
+        with patch("khatmsaz.modules.content.service.resolve_khatm_devotional_source", AsyncMock(return_value=(None, "khutbah-fadakiah"))):
+            with patch("khatmsaz.modules.content.service.get_devotional_asset", AsyncMock(return_value=MagicMock(title="خطبه فدکیه", text_body=None))):
+                with patch("khatmsaz.modules.content.service.list_devotional_video_pages", AsyncMock(return_value=[
+                    MagicMock(page_number=1, asset_ref="video_file_id_1"),
+                    MagicMock(page_number=2, asset_ref="video_file_id_2"),
+                ])):
+                    result = await notify_adapter.send_devotional_content(
+                        mock_session, "TELEGRAM", "123456", khatm=mock_khatm, lang="fa",
+                        receipt_sender=receipt_sender, page_numbers=[1],
+                    )
+                    assert result is True
+                    assert len(collected) == 1
+                    assert collected[0][0] == "send_video"
+                    assert collected[0][1]["video"] == "video_file_id_1"
+                    assert "بخش 1" in collected[0][1]["caption"]
+
+
