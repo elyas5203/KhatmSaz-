@@ -19,6 +19,7 @@ def upgrade() -> None:
         "devotional_assets",
         "content_type IN ('DUA', 'ZIYARAT', 'SALAWAT', 'KHUTBAH')",
     )
+    op.execute("ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'")
 
 
 def downgrade() -> None:

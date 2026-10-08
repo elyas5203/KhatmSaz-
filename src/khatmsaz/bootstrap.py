@@ -322,6 +322,16 @@ async def main() -> None:
     except Exception:
         logger.warning("Devotional text seed failed — will retry next restart.", exc_info=True)
 
+    # Self-heal database enums on every startup (e.g. KHUTBAH in khatmcategorygroup)
+    try:
+        from sqlalchemy import text
+        from khatmsaz.core.db import get_engine
+        async with get_engine().connect() as conn:
+            await conn.execution_options(isolation_level="AUTOCOMMIT")
+            await conn.execute(text("ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'"))
+    except Exception as exc:
+        logger.debug("Database enum self-heal check: %s", exc)
+
     async def _run_reminder_scan() -> None:
         runtime_status.mark_scan_started()
         try:

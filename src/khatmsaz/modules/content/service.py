@@ -605,28 +605,6 @@ async def add_devotional_video_page(
         session.add(asset)
         await session.flush()
 
-    if "khutbah" in slug or slug == "khutbah-fadakiah":
-        from khatmsaz.modules.khatm_category.models import KhatmCategory, KhatmCategoryGroup
-        cat = await session.scalar(
-            select(KhatmCategory).where(
-                KhatmCategory.group == KhatmCategoryGroup.KHUTBAH,
-                KhatmCategory.devotional_slug == slug,
-            )
-        )
-        if cat is None:
-            cat = KhatmCategory(
-                id=new_id(),
-                group=KhatmCategoryGroup.KHUTBAH,
-                title="خطبه فدکیه حضرت فاطمه زهرا (س)",
-                body_text="خطبه شریف فدکیه در ۵ بخش مجزا به همراه ویدیو و ترجمه فارسی.",
-                source_note="احتجاج طبرسی / بحارالانوار",
-                devotional_slug=slug,
-                is_active=True,
-                sort_order=1,
-            )
-            session.add(cat)
-            await session.flush()
-
     asset_platform = asset_platform.upper().strip()
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")

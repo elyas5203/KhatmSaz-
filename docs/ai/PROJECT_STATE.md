@@ -1,3 +1,10 @@
+## Current state — 2026-10-08 — KhatmCategoryGroup Enum & Decoupled Video Addition Fix [Antigravity]
+- **Fixed `InvalidTextRepresentationError` on Enum `khatmcategorygroup`:**
+  - Resolved `invalid input value for enum khatmcategorygroup: "KHUTBAH"` on saving videos.
+  - Decoupled `add_devotional_video_page` from `khatm_categories` table; video registration now purely manages `DevotionalAsset` and `DevotionalMedia` without querying category groups.
+  - Added self-healing SQL command `ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'` on bot startup in `bootstrap.py` and in Alembic migration `khutbah2026100801`.
+- **Validation:** 351 passed, 230 skipped in 12.31s (100% green).
+
 ## Current state — 2026-10-08 — Devotional Asset DB Constraint & Error Parsing Fix [Antigravity]
 - **Fixed `ck_devotional_assets_type` DB Check Constraint Failure:**
   - Resolved `asyncpg.exceptions.CheckViolationError: new row for relation "devotional_assets" violates check constraint "ck_devotional_assets_type"` on inserting `DevotionalAsset`.

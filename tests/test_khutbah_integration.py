@@ -92,9 +92,10 @@ async def test_add_devotional_video_page_autoprovisions_asset():
     )
     assert media.page_number == 1
     assert media.asset_ref == "video-ref-1"
-    # Auto-created asset and category
-    assert any(getattr(e, "slug", None) == "khutbah-fadakiah" for e in added)
-    assert any(getattr(e, "group", None) is not None for e in added)
+    # Auto-created devotional asset with DUA type for Postgres check constraint compatibility
+    created_asset = next((e for e in added if getattr(e, "slug", None) == "khutbah-fadakiah"), None)
+    assert created_asset is not None
+    assert created_asset.content_type == "DUA"
 
 
 def test_decode_telegram_forward_ref_supports_tg_forward_and_usernames():

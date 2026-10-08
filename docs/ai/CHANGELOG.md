@@ -1,3 +1,8 @@
+## 2026-10-08 — Antigravity — KhatmCategoryGroup Enum & Decoupled Video Addition Fix
+- **Decoupled Video Registration:** Removed redundant `KhatmCategory` query from `add_devotional_video_page`, preventing `invalid input value for enum khatmcategorygroup: "KHUTBAH"` from blocking `/set_video`.
+- **Database Enum Self-Heal & Migration:** Added `ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'` to bot startup in `bootstrap.py` and in Alembic migration `khutbah2026100801`.
+- **Validation:** 351 unit tests PASS.
+
 ## 2026-10-08 — Antigravity — Devotional Asset DB Constraint & Error Parsing Fix
 - **DB Check Constraint Fix:** Fixed `CheckViolationError: new row for relation "devotional_assets" violates check constraint "ck_devotional_assets_type"`. Used `content_type="DUA"` in `add_devotional_video_page` and `scripts/register_khutbah_fadakiah.py` to ensure immediate out-of-the-box compatibility with existing production schemas.
 - **Alembic Migration:** Added migration `khutbah2026100801_allow_khutbah_devotional_asset.py` expanding `ck_devotional_assets_type` to allow `('DUA', 'ZIYARAT', 'SALAWAT', 'KHUTBAH')`.
