@@ -218,6 +218,28 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
             if end-start+1 < amount:
                 ranges.append([1,amount-(end-start+1)])
             spec = {"ranges": ranges}
+    else:
+        from khatmsaz.bot.member_copy import content_family
+        fam = await content_family(session, khatm)
+        if fam == "khutbah":
+            from sqlalchemy import func
+            from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+            from khatmsaz.modules.content import service as content_service
+            completed_count = (await session.scalar(
+                select(func.count()).select_from(ShareOccurrence).where(
+                    ShareOccurrence.participation_id == part.id,
+                    ShareOccurrence.completed_at.is_not(None),
+                )
+            )) or 0
+            total_sections = 5
+            category, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
+            if slug:
+                videos = await content_service.list_devotional_video_pages(session, slug, "TELEGRAM")
+                if videos:
+                    total_sections = max(v.page_number for v in videos) or 5
+            sec_start = ((completed_count * amount) % total_sections) + 1
+            sec_end = min(sec_start + amount - 1, total_sections)
+            spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
     part.commitment_mode = "COUNT"
     part.commitment_target = amount
     key = f"reservation:{reservation.id}" if reservation else f"count:{uuid4()}"

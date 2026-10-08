@@ -1,3 +1,8 @@
+## 2026-10-08 — Antigravity — Single Section Delivery & Self-Healing for Khutbah Occurrences
+- **Prevent Multi-Part Video Blast:** Fixed `deliver_devotional_media` so when `page_numbers` is omitted and multiple video parts exist, only the first part is sent by default rather than delivering all parts.
+- **Self-Healing Legacy Occurrences & Numeric Commitments:** Added oversized `delivery_components` detection and reset in `occurrence_adapter.py`. Implemented automatic section range calculation and `content_spec` backfill when `ranges` is missing in `occurrence_adapter.py` and `delivery.py:prepare_numeric`.
+- **Validation:** 358 unit tests PASS (100% green).
+
 ## 2026-10-08 — Antigravity — Khutbah Video Delivery & Member Prompt Customization
 - **Devotional Video Delivery:** Fixed `AttributeError: '_TargetMessage' object has no attribute 'answer_video'` by implementing `answer_video`, `answer_animation`, `answer_voice`, and `forward` in `notify_adapter.py:_TargetMessage`. Added `send_video` fallback support in `occurrence_adapter.py`.
 - **Customized Khutbah Member Prompts:** Added `commit.ask_times_per_period.khutbah` and `commit.ask_count.khutbah` in `i18n` asking «چند بخش از خطبه را می‌خواهید در روزهای انتخابی بخوانید؟». Updated `commit.period.these_days` to «روزهای انتخابی». Added `commit.unit.khutbah` («بخش»).

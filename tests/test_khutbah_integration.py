@@ -228,3 +228,89 @@ async def test_notify_adapter_target_message_supports_video():
                     assert "بخش 1" in collected[0][1]["caption"]
 
 
+@pytest.mark.asyncio
+async def test_deliver_devotional_media_defaults_to_single_part_when_no_page_numbers():
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.bot.handlers import devotional
+    from khatmsaz.modules.identity.models import Platform
+
+    collected = []
+    mock_message = MagicMock()
+    mock_message.answer_video = AsyncMock(side_effect=lambda video, caption=None: collected.append((video, caption)))
+    mock_message.bot = MagicMock()
+
+    mock_session = AsyncMock()
+    asset = MagicMock(title="خطبه فدکیه", text_body=None)
+    with patch("khatmsaz.modules.content.service.list_devotional_video_pages", AsyncMock(return_value=[
+        MagicMock(page_number=1, asset_ref="video_file_id_1"),
+        MagicMock(page_number=2, asset_ref="video_file_id_2"),
+        MagicMock(page_number=3, asset_ref="video_file_id_3"),
+    ])):
+        res = await devotional.deliver_devotional_media(
+            mock_session, mock_message, slug="khutbah-fadakiah", asset=asset,
+            platform=Platform.TELEGRAM, lang="fa", page_numbers=None,
+        )
+        assert res is True
+        # Must only send 1 video (part 1), never all 3 videos!
+        assert len(collected) == 1
+        assert collected[0][0] == "video_file_id_1"
+        assert "بخش 1" in collected[0][1]
+
+
+@pytest.mark.asyncio
+async def test_occurrence_adapter_self_heals_legacy_khutbah_occurrence():
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.bot import occurrence_adapter
+    from khatmsaz.modules.identity.models import Platform
+
+    mock_bot = MagicMock()
+    mock_bot.khatmsaz_platform = Platform.TELEGRAM
+    mock_bot.khatmsaz_language = "fa"
+
+    mock_part = MagicMock(id=uuid4(), user_id=123, khatm_id=uuid4())
+    mock_khatm = MagicMock(id=mock_part.khatm_id, template_type="SALAWAT")
+    
+    # Legacy occurrence: content_spec has no ranges, but has 5 stored components for amount=1
+    mock_occurrence = MagicMock(
+        id=uuid4(),
+        amount=1,
+        unit="COUNT",
+        bot_instance_id=uuid4(),
+        content_spec={"delivery_components": [{"method": "send_video"}] * 5},
+    )
+
+    captured_page_numbers = []
+    async def mock_send_devotional_content(*args, **kwargs):
+        captured_page_numbers.extend(kwargs.get("page_numbers") or [])
+        sender = kwargs.get("receipt_sender")
+        if sender:
+            await sender("send_video", video="vid1", caption="بخش 1")
+        return True
+
+    mock_session = AsyncMock()
+    mock_bot.send_video = AsyncMock(return_value=MagicMock(message_id=101))
+    # Mock route to return mock_bot
+    with patch("khatmsaz.bot.occurrence_adapter.route", AsyncMock(return_value=(mock_bot, 123456))):
+        with patch("khatmsaz.bot.occurrence_adapter.repository.list_messages", AsyncMock(return_value=[])):
+            with patch("khatmsaz.bot.occurrence_adapter.service.record_message", AsyncMock()):
+                with patch("khatmsaz.bot.occurrence_adapter.send_control", AsyncMock(return_value=True)):
+                    with patch("khatmsaz.modules.settings.service.get_or_create", AsyncMock(return_value=MagicMock(language="fa"))):
+                        with patch("khatmsaz.bot.member_copy.content_family", AsyncMock(return_value="khutbah")):
+                            with patch("khatmsaz.modules.content.service.resolve_khatm_devotional_source", AsyncMock(return_value=(None, "khutbah-fadakiah"))):
+                                with patch("khatmsaz.modules.content.service.list_devotional_video_pages", AsyncMock(return_value=[
+                                    MagicMock(page_number=i) for i in range(1, 6)
+                                ])):
+                                    with patch("khatmsaz.bot.notify_adapter.send_devotional_content", side_effect=mock_send_devotional_content):
+                                        # Mock scalar to return 0 completed counts
+                                        mock_session.scalar.return_value = 0
+                                        ok = await occurrence_adapter.deliver_occurrence(
+                                            mock_session, mock_part, mock_khatm, mock_occurrence, now=MagicMock()
+                                        )
+                                        assert ok is True
+                                        # Stored components was reset and only 1 section was passed
+                                        assert captured_page_numbers == [1]
+                                        assert mock_occurrence.content_spec["ranges"] == [[1, 1]]
+                                        assert mock_occurrence.content_spec["family"] == "khutbah"
+
+
+

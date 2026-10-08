@@ -106,6 +106,9 @@ async def deliver_devotional_media(
             filtered = [v for v in video_pages if v.page_number in page_numbers]
             if filtered:
                 video_pages = filtered
+        elif len(video_pages) > 1:
+            # Multi-part devotional: default to part 1 instead of blasting all parts
+            video_pages = [min(video_pages, key=lambda v: v.page_number)]
         for vid in video_pages:
             part_label = f" — بخش {vid.page_number}" if vid.page_number > 0 else ""
             caption = f"🎬 <b>{escape(asset.title)}</b>{part_label}"

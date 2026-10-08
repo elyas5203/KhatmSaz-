@@ -1,3 +1,13 @@
+## Current state — 2026-10-08 — Single Section Delivery & Self-Healing for Khutbah Occurrences [Antigravity]
+- **Prevent Blasting All Videos for Multi-Part Devotionals:**
+  - In `devotional.py:deliver_devotional_media`, when `page_numbers` is None and `len(video_pages) > 1`, default to `[min(video_pages, key=lambda v: v.page_number)]` instead of delivering all videos at once.
+- **Self-Healing Legacy Occurrences & Numeric Commitments:**
+  - In `occurrence_adapter.py:deliver_occurrence`:
+    - Detected and reset oversized `delivery_components` (`len(components) > occurrence.amount`), preventing previously cached 5-video batches from repeating.
+    - If `ranges` is missing in `content_spec` (e.g. older occurrences created before updates), automatically compute sequential section ranges (`sec_start`, `sec_end`) based on completed occurrences and persist back into `content_spec`.
+  - In `delivery.py:prepare_numeric`: Added section range calculation for Khutbah in numeric commitment mode.
+- **Validation:** 358 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — Khutbah Video Delivery & Member Prompt Customization [Antigravity]
 - **Fixed Devotional Video Delivery (`AttributeError: '_TargetMessage' has no attribute 'answer_video'`):**
   - Added `answer_video`, `answer_animation`, `answer_voice`, and `forward` to `_TargetMessage` in `notify_adapter.py`.
