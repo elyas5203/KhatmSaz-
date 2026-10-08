@@ -332,6 +332,15 @@ async def main() -> None:
     except Exception as exc:
         logger.debug("Database enum self-heal check: %s", exc)
 
+    # Seed canonical categories (e.g. Khutbah Fadakiah) on every startup
+    try:
+        from khatmsaz.modules.khatm_category import service as category_service
+        async with session_scope() as session:
+            cat_seed_result = await category_service.seed_canonical_categories(session)
+        logger.info("Canonical category seed: %s", cat_seed_result)
+    except Exception:
+        logger.warning("Canonical category seed failed — will retry next restart.", exc_info=True)
+
     async def _run_reminder_scan() -> None:
         runtime_status.mark_scan_started()
         try:

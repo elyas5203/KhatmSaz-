@@ -130,3 +130,38 @@ async def decline_request(session: AsyncSession, request_id) -> KhatmCategoryReq
     if request.status != KhatmCategoryRequestStatus.PENDING:
         raise ValueError("request is not pending")
     return await repository.mark_request_declined(session, request)
+
+
+async def seed_canonical_categories(session: AsyncSession) -> dict[str, object]:
+    """Idempotently ensure canonical categories (e.g. Khutbah Fadakiah) exist.
+    Runs on startup so `git pull && systemctl restart khatmsaz` makes them live
+    without requiring any manual script or CLI intervention."""
+    from sqlalchemy import select
+    from khatmsaz.core.ids import new_id
+
+    # 1. Khutbah Fadakiah
+    cat = await session.scalar(
+        select(KhatmCategory).where(
+            KhatmCategory.group == KhatmCategoryGroup.KHUTBAH,
+            KhatmCategory.devotional_slug == "khutbah-fadakiah",
+        )
+    )
+    if cat is None:
+        cat = KhatmCategory(
+            id=new_id(),
+            group=KhatmCategoryGroup.KHUTBAH,
+            title="خطبه فدکیه حضرت فاطمه زهرا (س)",
+            body_text="خطبه شریف فدکیه در ۵ بخش مجزا به همراه ویدیو و ترجمه فارسی.",
+            source_note="احتجاج طبرسی / بحارالانوار",
+            devotional_slug="khutbah-fadakiah",
+            is_active=True,
+            sort_order=1,
+        )
+        session.add(cat)
+        await session.flush()
+    elif not cat.is_active:
+        cat.is_active = True
+        await session.flush()
+
+    return {"khutbah_fadakiah": str(cat.id)}
+

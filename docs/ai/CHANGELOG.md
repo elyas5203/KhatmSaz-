@@ -1,3 +1,8 @@
+## 2026-10-08 — Antigravity — Auto-Seed Khutbah Fadakiah Category in Wizard
+- **Auto-Seeding Khutbah Fadakiah:** Added `seed_canonical_categories` in `khatm_category/service.py` ensuring «خطبه فدکیه حضرت فاطمه زهرا (س)» is always seeded and active.
+- **Wizard Integration:** Hooked `seed_canonical_categories` to bot startup in `bootstrap.py` and on-the-fly in `create_khatm.py:_show_category_prompt`, so selecting «📜 ختم خطبه‌ها» immediately offers «خطبه فدکیه حضرت فاطمه زهرا (س)».
+- **Validation:** 352 unit tests PASS.
+
 ## 2026-10-08 — Antigravity — KhatmCategoryGroup Enum & Decoupled Video Addition Fix
 - **Decoupled Video Registration:** Removed redundant `KhatmCategory` query from `add_devotional_video_page`, preventing `invalid input value for enum khatmcategorygroup: "KHUTBAH"` from blocking `/set_video`.
 - **Database Enum Self-Heal & Migration:** Added `ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'` to bot startup in `bootstrap.py` and in Alembic migration `khutbah2026100801`.

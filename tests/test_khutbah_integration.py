@@ -110,3 +110,28 @@ def test_decode_telegram_forward_ref_supports_tg_forward_and_usernames():
     res3 = decode_telegram_forward_ref("invalid_ref")
     assert res3 is None
 
+
+@pytest.mark.asyncio
+async def test_seed_canonical_categories_creates_khutbah_category():
+    from khatmsaz.modules.khatm_category import service as category_service
+    from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+    added = []
+
+    class MockSession:
+        async def scalar(self, stmt):
+            return None
+
+        def add(self, entity):
+            added.append(entity)
+
+        async def flush(self):
+            pass
+
+    session = MockSession()
+    result = await category_service.seed_canonical_categories(session)
+    assert "khutbah_fadakiah" in result
+    cat = next((e for e in added if getattr(e, "devotional_slug", None) == "khutbah-fadakiah"), None)
+    assert cat is not None
+    assert cat.group == KhatmCategoryGroup.KHUTBAH
+    assert cat.title == "خطبه فدکیه حضرت فاطمه زهرا (س)"
+

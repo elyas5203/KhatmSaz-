@@ -1,3 +1,10 @@
+## Current state — 2026-10-08 — Auto-Seed Khutbah Fadakiah Category in Wizard [Antigravity]
+- **Auto-Seeding Khutbah Fadakiah in Creator Wizard:**
+  - Resolved empty category prompt «هنوز گزینه‌ای در این بخش فعال نشده است» when creator selects «📜 ختم خطبه‌ها».
+  - Added `seed_canonical_categories` in `khatm_category/service.py` ensuring «خطبه فدکیه حضرت فاطمه زهرا (س)» (`khutbah-fadakiah`) is always seeded and active.
+  - Wired `seed_canonical_categories` to both bot startup in `bootstrap.py` and on-the-fly fallback in `create_khatm.py:_show_category_prompt`.
+- **Validation:** 352 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — KhatmCategoryGroup Enum & Decoupled Video Addition Fix [Antigravity]
 - **Fixed `InvalidTextRepresentationError` on Enum `khatmcategorygroup`:**
   - Resolved `invalid input value for enum khatmcategorygroup: "KHUTBAH"` on saving videos.

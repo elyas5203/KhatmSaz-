@@ -451,6 +451,9 @@ async def _show_category_prompt(
     lang = await _lang(state)
     async with session_scope() as session:
         categories = await category_service.list_active(session, group)
+        if group == KhatmCategoryGroup.KHUTBAH and not categories:
+            await category_service.seed_canonical_categories(session)
+            categories = await category_service.list_active(session, group)
     await state.set_state(CreateKhatm.choosing_category)
     text = (
         t(_CATEGORY_GROUP_PROMPT_KEYS[group], lang)
