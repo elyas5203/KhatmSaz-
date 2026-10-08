@@ -15,8 +15,22 @@ from khatmsaz.i18n import t
 
 
 def keyboard(occurrence):
+    family = occurrence.content_spec.get("family")
+    lang = occurrence.content_spec.get("language", "fa")
+    if family == "salawat":
+        done_text = t("portions.button.done.salawat", lang)
+    elif family in ("dua", "ziyarat"):
+        done_text = t("portions.button.done.dua", lang)
+    elif family == "laan":
+        done_text = t("portions.button.done.laan", lang)
+    elif family == "khutbah":
+        done_text = t("portions.button.done.khutbah", lang)
+    elif family == "quran" or getattr(occurrence, "unit", None) == "PAGE":
+        done_text = t("portions.button.done.quran", lang)
+    else:
+        done_text = t("commit.regular.done_button", lang)
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=t("commit.regular.done_button", occurrence.content_spec.get("language", "fa")), callback_data=f"share_done:{occurrence.id}",
+        text=done_text, callback_data=f"share_done:{occurrence.id}",
     )]])
 
 

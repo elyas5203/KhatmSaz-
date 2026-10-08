@@ -1,3 +1,15 @@
+## 2026-10-08 — Antigravity — V3 Wizard Flow Completion, 2-Message Output & Sequential Allocation Priority
+- **Wizard Editing Flow (`create_khatm.py`):** Fully connected `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`).
+- **Split Invite Output (`create_khatm.py`):** Separated `finish_invite_links` output into 2 distinct messages: Message 1 provides creator greeting/management confirmation with persistent reply menu (`main_menu_keyboard(is_creator=True)`). Message 2 provides the ready-to-forward shareable invitation card for members without duplicate "ختم ختم", with proxy niyyat support, clear template and mode labels, and disabled link preview (`LinkPreviewOptions(is_disabled=True)`).
+- **Sequential Allocation Priority (`delivery.candidate_ids` & `allocation.repository`):** Implemented time-based priority (Mode 1): earlier scheduled hour receives earlier portions/pages. Ties broken by `joined_at ASC`.
+- **Validation:** Added `tests/test_v3_wizard_and_allocation.py`. 337 non-integration tests PASS cleanly.
+
+## 2026-10-06 — Antigravity — V3 Wizard & Bot UX Overhaul (In Progress)
+- **i18n & Wording:** Stripped all occurrences of "شرعی" and "دین شرعی" across commitment and open khatm copy. Removed obsolete "دوباره دکمه ساخت ختم را بزنید" phrases. Added family-specific done buttons (`portions.button.done.*`) and About Us strings (`@khedmatgozaran_khadem`).
+- **Keyboards & Persistence:** Enforced `is_persistent=True` on reply keyboards across all menus. Replaced `ReplyKeyboardRemove` calls in phone handlers with home menu restoration. Redesigned member menu. Added edit menu for confirmation screen. Added `settings_reminder_saved_keyboard`.
+- **Wizard Streamlining:** Dropped creator name, daily deadline hour (default 24:00), and platform selection (default BOTH) questions. Added inline field edit flow.
+- **Settings & Delivery:** Prevented duplicate hour grid in reminder settings. Handled family-aware done buttons in occurrence delivery and reminder engine.
+
 ## 2026-10-05 — Antigravity — Systemd Stop Timeout, Polling Supervisor & Persian i18n Cleanup
 - **Fixed (Stop Timeout & SIGKILL):** Fixed multi-dispatcher signal handler collision in `bootstrap.py` where `dp_member.start_polling` overwrote `dp_creator`'s SIGTERM handler. Unified process termination with `shutdown_event: asyncio.Event`, `handle_signals=False` on aiogram dispatchers, and explicit clean stop of scheduler, web server, and pollers within 1 second.
 - **Fixed (Startup Crash Resilience):** Added supervisor loop with backoff retry around `Dispatcher.start_polling` so a transient 60s network timeout on startup does not crash the systemd service. Decoupled creator and member polling tasks.

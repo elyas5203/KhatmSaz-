@@ -36,7 +36,7 @@ def _member_phone_keyboard(lang: str, *, telegram: bool) -> ReplyKeyboardMarkup:
     if telegram:
         rows.append([KeyboardButton(text=t("registration.share_phone", lang), request_contact=True)])
     rows.append([KeyboardButton(text=t("ck.back", lang))])
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True, is_persistent=True)
 
 
 def _member_inline_back(target: str, lang: str) -> list[InlineKeyboardButton]:
@@ -71,15 +71,31 @@ async def _member_reg_prompt(message: Message, state: FSMContext, text: str, rep
             pass
     intro = data.get("_member_reg_intro")
     rendered = f"{intro}\n\n{text}" if intro else text
-    sent = await message.answer(rendered, reply_markup=reply_markup)
+    sent = None
+    if isinstance(reply_markup, ReplyKeyboardMarkup):
+        from pathlib import Path
+        from aiogram.types import FSInputFile
+        photo_path = Path("assets/shareNumber.jpg")
+        if photo_path.exists():
+            try:
+                sent = await message.answer_photo(
+                    FSInputFile(str(photo_path)),
+                    caption=rendered,
+                    reply_markup=reply_markup,
+                )
+            except Exception:
+                sent = None
+    if sent is None:
+        sent = await message.answer(rendered, reply_markup=reply_markup)
     await state.update_data(_member_reg_mid=sent.message_id)
     return sent
 
 
 async def _remove_phone_keyboard(message: Message) -> None:
-    """Telegram requires a standalone reply-keyboard removal; hide its message."""
     try:
-        transient = await message.answer("⌨️", reply_markup=ReplyKeyboardRemove())
+        from khatmsaz.bot.keyboards import home_keyboard_for_bot
+        lang = getattr(message.bot, "khatmsaz_language", "fa")
+        transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))
         await transient.delete()
     except Exception:
         pass

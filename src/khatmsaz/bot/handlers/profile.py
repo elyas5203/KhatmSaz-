@@ -49,7 +49,23 @@ async def _profile_prompt(message: Message, state: FSMContext, text: str, reply_
             await message.bot.delete_message(message.chat.id, error_mid)
         except Exception:
             pass
-    sent = await message.answer(text, reply_markup=reply_markup)
+    sent = None
+    from aiogram.types import ReplyKeyboardMarkup
+    if isinstance(reply_markup, ReplyKeyboardMarkup):
+        from pathlib import Path
+        from aiogram.types import FSInputFile
+        photo_path = Path("assets/shareNumber.jpg")
+        if photo_path.exists():
+            try:
+                sent = await message.answer_photo(
+                    FSInputFile(str(photo_path)),
+                    caption=text,
+                    reply_markup=reply_markup,
+                )
+            except Exception:
+                sent = None
+    if sent is None:
+        sent = await message.answer(text, reply_markup=reply_markup)
     await state.update_data(_profile_mid=sent.message_id, _profile_error_mid=None)
     return sent
 
@@ -97,13 +113,19 @@ def _gender_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 async def begin_profile(message: Message, state: FSMContext, *, cleanup_message_ids: list[int] | None = None) -> None:
+    prior_data = await state.get_data()
+    resume_from_start = prior_data.get("resume_khatm_creation_from_start", False)
     await state.clear()
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
-    await state.update_data(language=lang, _profile_cleanup_mids=cleanup_message_ids or [])
+    await state.update_data(
+        language=lang,
+        _profile_cleanup_mids=cleanup_message_ids or [],
+        resume_khatm_creation_from_start=resume_from_start,
+    )
     await state.set_state(ProfileEdit.entering_name)
     await _profile_prompt(message, state, t("profile.ask_name", lang))
 
@@ -160,6 +182,12 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         )
         return
     await state.update_data(phone=phone)
+    from khatmsaz.bot.keyboards import home_keyboard_for_bot
+    try:
+        transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))
+        await transient.delete()
+    except Exception:
+        pass
     await state.set_state(ProfileEdit.choosing_province)
     await _profile_prompt(
         message, state, t("registration.ask_province", lang),

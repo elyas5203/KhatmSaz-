@@ -188,7 +188,7 @@ def test_every_public_join_routes_through_the_explicit_consent_gate():
 
 
 def test_family_intro_copy_names_the_destination_bot():
-    assert t("intro.image_caption.DUA_ZIYARAT", "fa") == (
-        "مخاطبان شما وارد بات «ختم دعا و زیارت» می‌شوند.\n"
-        "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱"
-    )
+    caption = t("intro.image_caption.DUA_ZIYARAT", "fa")
+    assert "وارد بات «ختم دعا و زیارت برای صاحب‌الزمان» می‌شوند" in caption
+    assert "به نیت ظهور امام زمان" in caption
+    assert "نیابت خاص" in caption

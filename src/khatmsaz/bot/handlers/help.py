@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.keyboards import (
+    ABOUT_US_BUTTON_TEXTS,
     HELP_BUTTON_TEXTS,
     help_keyboard,
     help_create_actions_keyboard,
@@ -100,3 +101,9 @@ async def help_open_my_khatms(callback: CallbackQuery) -> None:
 
     await list_my_khatms(callback.message)
     await safe_answer_callback(callback)
+
+
+@router.message(F.text.in_(ABOUT_US_BUTTON_TEXTS))
+async def about_us_command(message: Message) -> None:
+    lang, _, _ = await _resolve_user_info(message)
+    await message.answer(t("about_us.text", lang))

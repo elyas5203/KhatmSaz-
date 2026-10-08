@@ -71,17 +71,18 @@ async def _remember_otp_prompt(
 
 
 async def _remove_otp_exchange(message: Message, data: dict) -> None:
-    """Remove the OTP question and typed code after verification completes."""
+    """Remove the OTP question, error messages, and typed code after verification completes."""
     try:
         await message.delete()
     except Exception:
         pass
-    prompt_id = data.get("_phone_verify_mid")
-    if prompt_id:
-        try:
-            await message.bot.delete_message(message.chat.id, prompt_id)
-        except Exception:
-            pass
+    for key in ("_phone_verify_mid", "_phone_verify_error_mid"):
+        prompt_id = data.get(key)
+        if prompt_id:
+            try:
+                await message.bot.delete_message(message.chat.id, prompt_id)
+            except Exception:
+                pass
 
 
 async def _lang_for(chat_id, bot) -> str:
@@ -425,7 +426,8 @@ async def receive_change_code(message: Message, state: FSMContext) -> None:
             return
         if reason != "invalid code":
             await state.clear()
-        await message.answer(t("change_phone.otp_invalid_or_expired", lang))
+        sent_err = await message.answer(t("change_phone.otp_invalid_or_expired", lang))
+        await state.update_data(_phone_verify_error_mid=getattr(sent_err, "message_id", None))
         return
     except (KeyError, ValueError):
         await state.clear()

@@ -33,7 +33,7 @@ def test_every_wizard_keyboard_is_localized_without_cancel(lang):
     # keyboards that take extra args
     conf = k.confirm_keyboard(allow_coupon=True, lang=lang)
     assert conf.inline_keyboard[0][0].text == t("ck.confirm", lang)
-    assert conf.inline_keyboard[-1][0].callback_data == "ck:back"
+    assert conf.inline_keyboard[-1][0].callback_data == "ck:edit_menu"
     cat = k.category_choice_keyboard([], group="DUA", allow_custom_request=True, lang=lang)
     assert cat.inline_keyboard[-1][0].callback_data == "ck:back"
     assert cat.inline_keyboard[0][0].text == t("ck.cat.custom", lang)

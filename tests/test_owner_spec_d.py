@@ -54,7 +54,8 @@ def test_d3_every_member_menu_contacts_the_khatm_creator_not_support():
 
 def test_d4_member_menu_and_admin_panel_expose_custom_khatm_contact():
     labels = [button.text for row in member_menu_keyboard("fa").keyboard for button in row]
-    assert t("menu.custom_khatm", "fa") in labels
+    assert t("menu.about_us", "fa") in labels
+    assert t("menu.custom_khatm", "fa") not in labels
     operations = (ROOT / "src/khatmsaz/web/templates/operations.html").read_text(encoding="utf-8")
     assert 'name="custom_khatm_admin_phone"' in operations
     assert "/operations/custom-khatm-phone" in operations
@@ -149,7 +150,7 @@ def test_d6_join_trust_copy_has_creator_invitation_and_clean_proxy_niyyat():
         niyyat="به نیت ظهور امام زمان علیه السلام — به نیابت از حاج احمد",
     )
     text = build_join_trust_message(khatm, "آقای رضایی")
-    assert "دعوت به ختم «ختم ظهور»" in text
+    assert "دعوت به «ختم ظهور»" in text
     assert "سازندهٔ ختم: آقای رضایی" in text
     assert "به نیابت از حاج احمد" in text
     assert "به نیت: به نیت" not in text

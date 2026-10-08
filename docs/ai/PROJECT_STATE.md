@@ -1,3 +1,30 @@
+## Current state — 2026-10-08 — V3 Wizard Flow, 2-Message Output & Sequential Allocation Completed [Antigravity]
+- **Completed Tasks (Approved by Owner):**
+  - **Editing from Confirmation Wired (`create_khatm.py`):** Fully integrated `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`) to avoid key errors.
+  - **Split Output into 2 Messages (`finish_invite_links`):** Message 1 delivers creator greeting/management confirmation with persistent reply menu (`main_menu_keyboard(is_creator=True)`). Message 2 delivers the ready-to-forward invitation card for members without duplicate "ختم ختم", with proxy niyyat support, clean template and mode labels, and disabled link preview (`LinkPreviewOptions(is_disabled=True)`).
+  - **Sequential Share Allocation Priority (Mode 1 chosen by Owner):** Earlier scheduled hour receives earlier portions/pages. In case of identical hours, tie-break by `joined_at ASC`. Implemented in `delivery.candidate_ids` and `allocation.repository.list_latest_portion_per_participation`.
+  - **Test Verification:** Full non-integration test suite passes: `337 passed, 230 deselected in 12.06s` (including new dedicated tests in `tests/test_v3_wizard_and_allocation.py`).
+- **Next Steps:**
+  - Proceed with Khutbah family setup (WP-13) and La'an in-bot moderation queue (WP-14) upon owner confirmation.
+
+## Current state — 2026-10-06 — V3 Wizard & Bot UX Implementation in Progress [Antigravity]
+- **Progress Completed:**
+  - `i18n/__init__.py`: Completely purged "شرعی" and "دین شرعی" across commitment/open texts. Removed obsolete "دوباره دکمه ساخت ختم را بزنید". Added family-specific completion labels (`portions.button.done.{quran,salawat,dua,laan,khutbah}`) and About Us text (`@khedmatgozaran_khadem`).
+  - Keyboards (`keyboards.py`): Restored `is_persistent=True` on all reply keyboards to eliminate disappearing menu bug. Replaced `ReplyKeyboardRemove` with restoring home menu. Redesigned member menu. Added `edit_khatm_fields_keyboard` and `settings_reminder_saved_keyboard`. Family-aware `portion_done_keyboard` and `regular_commitment_done_keyboard`.
+  - Phone Registration / Verification: Added `assets/shareNumber.jpg` visual guidance check in `registration.py`, `member_registration.py`, and `profile.py`. Cleaned up OTP exchange messages (`problem1.jpg`) in `change_phone.py`. Preserved verification FSM state in `resume_khatm_creation_if_pending`.
+  - Wizard Questions Streamlining (`create_khatm.py`): Dropped creator name question (`problem2.jpg` -> defaults to `FULL_NAME`), dropped daily deadline hour question (defaults to 24), dropped allowed platforms question (defaults to BOTH). Added edit menu callbacks.
+  - Settings & Occurrences: Fixed duplicate hour keyboard in `settings_menu.py`. Registered About Us in `help.py`. Family-aware done button in `occurrence_adapter.py` and `reminder_engine/service.py`.
+- **Remaining for Next Session:**
+  - Finish wiring `editing_from_confirm` checks in remaining `create_khatm.py` steps (`choose_category`, `choose_mode`, `enter_niyyat`, targets, policies, tones, back button).
+  - Split `finish_invite_links` into 2 messages: Message 1 = Creator confirmation + home menu; Message 2 = Ready-to-forward shareable invitation card.
+  - Apply sequential share allocation priority (Mode 1: earlier hour gets earlier shares, tie-break by `joined_at ASC`).
+  - Run full pytest verification.
+
+## Current state — 2026-10-06 — V3 Wizard & Commitment Redesign Master [Antigravity]
+- **V3 Master Architecture:** Formulated `docs/ai/V3_WIZARD_REDESIGN_MASTER.md` and 5 modular sub-specifications in `docs/ai/v3_specs/` covering creator onboarding, elimination of "شرعی", phone share guidance asset location (`assets/shareNumber.jpg`), disappearance of reply menu bugfix, removal of 3 obsolete wizard steps, confirmation edit buttons, Khutbah (خطبه) sequential cycle model, La'an moderation queue, and daily creator reporting.
+- **Protocol Enforced:** Explicit anti-hallucination rule documented: no AI may guess or invent business rules. Explicit clarification questions logged for owner review.
+- **Validation:** Master documents cross-checked against codebase handlers and models; baseline non-integration test suite passes.
+
 ## Current state — 2026-10-05 — Stop Timeout & Persian Button Cleanups [Antigravity]
 - **Stop Timeout & SIGKILL Fix:** Fixed multi-dispatcher signal handler collision in `bootstrap.py` where `dp_member.start_polling` overwrote `dp_creator`'s SIGTERM handler. Handled unified shutdown using `shutdown_event: asyncio.Event` with `handle_signals=False` in aiogram, `install_signal_handlers=False` in uvicorn, and clean explicit stops for scheduler, web server, and dispatchers within 1 second.
 - **Startup Crash Resilience:** Added supervisor loop with exponential backoff around `Dispatcher.start_polling` so transient 60s Telegram/Bale network timeouts do not take down the entire systemd service. Decoupled creator and member polling tasks.

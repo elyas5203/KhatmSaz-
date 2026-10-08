@@ -86,7 +86,11 @@ def _creator_display_name(khatm: Khatm, creator) -> str:
 def build_join_trust_message(khatm: Khatm, creator_name: str, lang: str = "fa") -> str:
     """Compact trust context shown before a first-time member enters profile data."""
     creator = escape(creator_name or t("join.creator_display.anonymous", lang))
-    text = t("join.trust.invited", lang, creator=creator, title=escape(khatm.title))
+    title_text = (khatm.title or "").strip()
+    if title_text.startswith("ختم ") or title_text.startswith("ختمة "):
+        text = f"🌱 دعوت به «{escape(title_text)}»"
+    else:
+        text = t("join.trust.invited", lang, creator=creator, title=escape(title_text))
     text += t("join.trust.from", lang, creator=creator)
     if khatm.niyyat:
         text += t("join.trust.niyyat", lang, niyyat=escape(_clean_niyyat(khatm.niyyat)))
@@ -107,15 +111,8 @@ def build_join_preview_message(
     category_title: str | None = None,
     category_group: str | None = None,
 ) -> str:
-    """Owner complaint (2026-09-20): the old preview only showed title/
-    creator/niyyat/member-count — it never explained *what kind* of khatm
-    this is or *what committing to it actually means*, which is exactly
-    the information someone needs before tapping join. `category_title`/
-    `category_group` (for SALAWAT-family khatms) must be resolved by the
-    caller from `content_category_id`, since this function stays sync."""
-    text = ""
-    text += t("join.preview.title", lang, title=escape(khatm.title))
-    text += "\n\n" + build_join_trust_message(khatm, creator_name, lang)
+    """Preview card shown before a member joins."""
+    text = build_join_trust_message(khatm, creator_name, lang)
 
     if khatm.template_type == KhatmTemplateType.QURAN_PAGE:
         text += t("join.preview.type_line", lang, icon="📖", type=t("join.preview.type_quran", lang))

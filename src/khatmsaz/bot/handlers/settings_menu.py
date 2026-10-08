@@ -30,6 +30,7 @@ from khatmsaz.bot.keyboards import (
     settings_reminder_keyboard,
     settings_reminder_custom_keyboard,
     settings_reminder_khatms_keyboard,
+    settings_reminder_saved_keyboard,
     settings_timezone_keyboard,
     sms_subscription_keyboard,
 )
@@ -393,7 +394,7 @@ async def set_reminder(callback: CallbackQuery) -> None:
     await callback.answer(t("settings.reminder_saved", settings.language))
     await callback.message.edit_text(
         f"✅ یادآوری ختم «{khatm.title}» روی ساعت {hour:02d}:{minute:02d} تنظیم شد.",
-        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+        reply_markup=settings_reminder_saved_keyboard(participation_id, settings.language),
     )
 
 
@@ -447,7 +448,7 @@ async def save_custom_reminder(message: Message, state: FSMContext) -> None:
     await state.clear()
     await message.answer(
         f"✅ یادآوری ختم «{khatm.title}» روی ساعت {hour:02d}:{minute:02d} تنظیم شد.",
-        reply_markup=settings_reminder_keyboard(participation_id, settings.language),
+        reply_markup=settings_reminder_saved_keyboard(participation_id, settings.language),
     )
 
 

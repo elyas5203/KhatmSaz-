@@ -68,6 +68,7 @@ def _phone_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
         keyboard=[[KeyboardButton(text=t("registration.share_phone", lang), request_contact=True)]],
         resize_keyboard=True,
         one_time_keyboard=True,
+        is_persistent=True,
     )
 
 
@@ -115,7 +116,22 @@ async def _registration_prompt(message: Message, state: FSMContext, text: str, r
             await message.bot.delete_message(message.chat.id, prompt_id)
         except Exception:
             pass
-    sent = await message.answer(text, reply_markup=reply_markup)
+    sent = None
+    if isinstance(reply_markup, ReplyKeyboardMarkup):
+        from pathlib import Path
+        from aiogram.types import FSInputFile
+        photo_path = Path("assets/shareNumber.jpg")
+        if photo_path.exists():
+            try:
+                sent = await message.answer_photo(
+                    FSInputFile(str(photo_path)),
+                    caption=text,
+                    reply_markup=reply_markup,
+                )
+            except Exception:
+                sent = None
+    if sent is None:
+        sent = await message.answer(text, reply_markup=reply_markup)
     if sent is not None:
         await state.update_data(_registration_mid=getattr(sent, "message_id", None))
     return sent
@@ -123,7 +139,9 @@ async def _registration_prompt(message: Message, state: FSMContext, text: str, r
 
 async def _remove_phone_keyboard(message: Message) -> None:
     try:
-        transient = await message.answer("⌨️", reply_markup=ReplyKeyboardRemove())
+        from khatmsaz.bot.keyboards import home_keyboard_for_bot
+        lang = getattr(message.bot, "khatmsaz_language", "fa")
+        transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))
         await transient.delete()
     except Exception:
         pass

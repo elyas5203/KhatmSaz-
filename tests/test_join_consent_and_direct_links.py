@@ -51,11 +51,11 @@ def test_consent_copy_is_custom_for_commitment_and_open_khatms():
     open_join = build_join_consent_message(_khatm(KhatmTypeEnum.OPEN), "سازنده", 2)
 
     assert "این ختم تعهدی است" in committed
-    assert "تعهد شرعی" in committed
-    assert "دِین" in committed
+    assert "شرعی" not in committed
+    assert "دین" not in committed
+    assert "پیشرفت ختم" in committed
     assert "این ختم آزاد است" in open_join
-    assert "تعهد شرعی یا دِینی" in open_join
-    assert "احترام به جمع" in open_join
+    assert "شرعی" not in open_join
 
 
 def test_commitment_without_target_never_looks_open_and_preview_heading_is_hidden():

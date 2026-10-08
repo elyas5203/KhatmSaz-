@@ -210,18 +210,29 @@ async def bulk_create_positional_portions_from_boundaries(
 
 
 async def list_latest_portion_per_participation(session: AsyncSession) -> list[KhatmPortion]:
-    """Owner request (2026-09-26): "portions should advance daily regardless of completion" — 
+    """Owner request (2026-09-26, 2026-10-06): "portions should advance daily regardless of completion" — 
     a committed Quran participant gets a new portion every calendar day. This returns each 
-    participant's most recent portion (either ASSIGNED or COMPLETED), so the reminder engine 
-    can check if they already received one today.
+    participant's most recent portion (either ASSIGNED or COMPLETED), ordered by reminder time 
+    (earlier hours first, tie-broken by joined_at ASC).
     """
+    from khatmsaz.modules.participation.models import Participation
+    from khatmsaz.modules.notification.models import NotificationPreference
+
+    effective_hour = func.coalesce(Participation.schedule_hour, NotificationPreference.reminder_hour, 12)
     stmt = (
         select(KhatmPortion)
+        .join(Participation, KhatmPortion.participation_id == Participation.id)
+        .outerjoin(NotificationPreference, NotificationPreference.participation_id == Participation.id)
         .where(
             KhatmPortion.status.in_([PortionStatus.COMPLETED, PortionStatus.ASSIGNED]),
             KhatmPortion.participation_id.isnot(None),
         )
-        .order_by(KhatmPortion.participation_id, KhatmPortion.sequence.desc())
+        .order_by(
+            effective_hour.asc(),
+            Participation.joined_at.asc(),
+            KhatmPortion.participation_id,
+            KhatmPortion.sequence.desc(),
+        )
     )
     rows = list((await session.execute(stmt)).scalars())
     seen: set = set()

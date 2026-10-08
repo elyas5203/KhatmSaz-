@@ -1,3 +1,7 @@
+## 2026-10-06 — V3 Wizard & Flow Overhaul Master
+- Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)
+- Sub-specs: [v3_specs/](v3_specs/) (Creator onboarding, commitment vs free, Khutbah cyclic allocation, La'an moderation, Member UI & daily reporting)
+
 ## 2026-10-05 — Unified shares (in progress)
 - Owner's Quran numeric/regular confirmation: DEC-PY-0117 in DECISIONS.md.
 - Runtime: modules/share_occurrence/delivery.py; delivery receipts and member routing: bot/occurrence_adapter.py.

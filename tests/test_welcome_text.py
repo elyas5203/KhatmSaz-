@@ -40,8 +40,7 @@ def test_join_preview_is_informational_and_escaped():
         status=KhatmStatus.ACTIVE, niyyat="نیت <خیر>", welcome_text="متن & ویژه",
     )
     text = build_join_preview_message(khatm, "سازنده <ناشناس>", 7)
-    assert "عنوان: ختم &lt;معرفی&gt;" in text
-    assert "دعوت به ختم «ختم &lt;معرفی&gt;»" in text
+    assert "دعوت به «ختم &lt;معرفی&gt;»" in text
     assert "سازندهٔ ختم: سازنده &lt;ناشناس&gt;" in text
     assert "تعداد اعضای فعلی: 7" in text
     assert "هنوز عضو نشده‌اید" in text
@@ -57,7 +56,7 @@ def test_join_trust_message_names_creator_proxy_and_never_duplicates_niyyat_labe
 
     text = build_join_trust_message(khatm, "آقای <رضایی>")
 
-    assert "دعوت به ختم «ختم &lt;اعتماد&gt;»" in text
+    assert "دعوت به «ختم &lt;اعتماد&gt;»" in text
     assert "سازندهٔ ختم: آقای &lt;رضایی&gt;" in text
     assert "به نیابت از مادر مرحومم" in text
     assert "به نیت: به نیت" not in text

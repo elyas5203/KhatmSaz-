@@ -33,13 +33,22 @@ def is_managed(participation, khatm):
 
 
 async def candidate_ids(session):
+    from sqlalchemy import func
+    from khatmsaz.modules.notification.models import NotificationPreference
     from khatmsaz.modules.share_occurrence.models import ShareOccurrence
-    return list((await session.execute(select(Participation.id).where(
-        Participation.joined_via_bot_instance_id.is_not(None),
-        (Participation.status == "ACTIVE") | select(ShareOccurrence.id).where(
-            ShareOccurrence.participation_id == Participation.id, ShareOccurrence.completed_at.is_(None),
-        ).exists(),
-    ))).scalars())
+
+    effective_hour = func.coalesce(Participation.schedule_hour, NotificationPreference.reminder_hour, 12)
+    return list((await session.execute(
+        select(Participation.id)
+        .outerjoin(NotificationPreference, NotificationPreference.participation_id == Participation.id)
+        .where(
+            Participation.joined_via_bot_instance_id.is_not(None),
+            (Participation.status == "ACTIVE") | select(ShareOccurrence.id).where(
+                ShareOccurrence.participation_id == Participation.id, ShareOccurrence.completed_at.is_(None),
+            ).exists(),
+        )
+        .order_by(effective_hour.asc(), Participation.joined_at.asc())
+    )).scalars())
 
 
 async def prepare(session, participation_id, *, now=None, manual=False):

@@ -33,6 +33,9 @@ PUBLIC_KHATMS_BUTTON_TEXT = t("menu.public_khatms", "fa")
 SUPPORT_BUTTON_TEXT = t("menu.support", "fa")
 CREATOR_REQUEST_BUTTON_TEXT = t("menu.creator_request", "fa")
 
+ABOUT_US_BUTTON_TEXT = t("menu.about_us", "fa")
+ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
+
 CREATE_BUTTON_TEXTS = variants("menu.create")
 MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
 TODAY_BUTTON_TEXTS = variants("menu.today")
@@ -63,19 +66,22 @@ RESERVED_MENU_TEXTS = (
     | PUBLIC_KHATMS_BUTTON_TEXTS | SUPPORT_BUTTON_TEXTS | CONTACT_CREATOR_BUTTON_TEXTS | CUSTOM_KHATM_BUTTON_TEXTS | CREATOR_REQUEST_BUTTON_TEXTS
     | CREATOR_MANAGEMENT_BUTTON_TEXTS | CREATOR_FINANCE_BUTTON_TEXTS
     | CREATOR_SUPPORT_BUTTON_TEXTS | CREATOR_WALLET_BUTTON_TEXTS
-    | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS
+    | BACK_TO_MAIN_BUTTON_TEXTS | PHONE_SHARE_BUTTON_TEXTS | ABOUT_US_BUTTON_TEXTS
     | {"📢 ارسال پیام گروهی"}
 )
 
 def member_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
-    # Owner (2026-09-29): members contact the KHATM CREATOR, not a generic
-    # support desk — the label and flow are «ارتباط با سازندهٔ ختم».
+    # Owner (2026-10-06, V3): member menu layout:
+    # 1: امروز
+    # 2: ختم‌های من, تنظیمات
+    # 3: ارتباط با سازندهٔ ختم
+    # 4: ختم‌های عمومی, درباره ما
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text=t("menu.today", lang))],
-            [KeyboardButton(text=t("menu.my_khatms", lang)), KeyboardButton(text=t("menu.public_khatms", lang))],
-            [KeyboardButton(text=t("menu.custom_khatm", lang)), KeyboardButton(text=t("menu.settings", lang))],
-            [KeyboardButton(text=t("menu.contact_creator", lang))],
+            [KeyboardButton(text=t("menu.my_khatms", lang)), KeyboardButton(text=t("menu.settings", lang))],
+            [KeyboardButton(text=t("menu.contact_creator", lang)), KeyboardButton(text=t("menu.public_khatms", lang))],
+            [KeyboardButton(text=t("menu.about_us", lang))],
         ],
         resize_keyboard=True,
         is_persistent=True,
@@ -142,6 +148,8 @@ def creator_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.settings", lang)), KeyboardButton(text=t("menu.creator.support", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def creator_management_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -152,6 +160,8 @@ def creator_management_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def creator_finance_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -162,6 +172,8 @@ def creator_finance_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -171,6 +183,8 @@ def creator_support_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.back_to_main", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
@@ -183,6 +197,8 @@ def admin_menu_keyboard(lang: str = "fa") -> ReplyKeyboardMarkup:
             [KeyboardButton(text=t("menu.settings", lang))],
         ],
         resize_keyboard=True,
+        is_persistent=True,
+        one_time_keyboard=False,
     )
 
 def main_menu_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> ReplyKeyboardMarkup:
@@ -348,6 +364,14 @@ def settings_reminder_custom_keyboard(participation_id: str) -> InlineKeyboardMa
     return InlineKeyboardMarkup(inline_keyboard=[[
         InlineKeyboardButton(text="🔙 بازگشت به ساعت‌ها", callback_data=f"reminder_khatm:{participation_id}")
     ]])
+
+
+def settings_reminder_saved_keyboard(participation_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏰ تغییر مجدد ساعت", callback_data=f"reminder_khatm:{participation_id}")],
+        [InlineKeyboardButton(text="🔙 بازگشت به فهرست ختم‌ها", callback_data="settings:reminder")],
+        [InlineKeyboardButton(text="🏠 تنظیمات اصلی", callback_data="settings:home")],
+    ])
 
 
 def settings_on_off_keyboard(*, prefix: str, enabled: bool, lang: str = "fa") -> InlineKeyboardMarkup:
@@ -638,9 +662,25 @@ def confirm_keyboard(*, allow_coupon: bool = False, lang: str = "fa") -> InlineK
     rows = [[InlineKeyboardButton(text=t("ck.confirm", lang), callback_data="ck:confirm")]]
     if allow_coupon:
         rows.append([InlineKeyboardButton(text=t("ck.coupon", lang), callback_data="ck:coupon")])
-    rows.append(_ck_back_row(lang))
+    # Owner request (2026-10-06, V3): replace «مرحله قبل» with «ویرایش مشخصات»
+    rows.append([InlineKeyboardButton(text="✏️ ویرایش مشخصات", callback_data="ck:edit_menu")])
     return InlineKeyboardMarkup(
         inline_keyboard=rows
+    )
+
+
+def edit_khatm_fields_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="۱. 📖 نوع ختم", callback_data="ck:edit:template")],
+            [InlineKeyboardButton(text="۲. 🔒 حالت ختم (تعهدی / آزاد)", callback_data="ck:edit:mode")],
+            [InlineKeyboardButton(text="۳. 📝 عنوان ختم", callback_data="ck:edit:title")],
+            [InlineKeyboardButton(text="۴. 🌸 نیت و نیابت", callback_data="ck:edit:niyyat")],
+            [InlineKeyboardButton(text="۵. 🎯 مقدار هدف / سهم روزانه", callback_data="ck:edit:target")],
+            [InlineKeyboardButton(text="۶. 🔔 لحن یادآوری", callback_data="ck:edit:tone")],
+            [InlineKeyboardButton(text="۷. 🌐 سطح دسترسی (عمومی / خصوصی)", callback_data="ck:edit:visibility")],
+            [InlineKeyboardButton(text="⬅️ بازگشت به تأیید نهایی", callback_data="ck:edit:back_to_confirm")],
+        ]
     )
 
 
@@ -654,18 +694,27 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 
 
 def portion_done_keyboard(
-    khatm_id: str, *, allow_snooze: bool = True, undo_completed_id: str | None = None,
+    khatm_id: str, *, family: str | None = None, allow_snooze: bool = True, undo_completed_id: str | None = None,
     undo_next_id: str | None = None, lang: str = "fa",
 ) -> InlineKeyboardMarkup:
     """For a portion that's still PENDING (not completed yet) — shows the
-    content + "done" buttons. Owner-reported bug (2026-09-21): this was
-    also being reused for the post-completion confirmation message, where
-    "show content"/"done" make no sense anymore (the portion is already
-    done) — see `post_completion_keyboard` below for that case instead.
-    Skipping/releasing an owed share is deliberately unsupported."""
+    content + "done" buttons. Tailors the "done" label to the devotional family."""
+    if family == "salawat":
+        done_text = t("portions.button.done.salawat", lang)
+    elif family in ("dua", "ziyarat"):
+        done_text = t("portions.button.done.dua", lang)
+    elif family == "laan":
+        done_text = t("portions.button.done.laan", lang)
+    elif family == "khutbah":
+        done_text = t("portions.button.done.khutbah", lang)
+    elif family == "quran":
+        done_text = t("portions.button.done.quran", lang)
+    else:
+        done_text = t("portions.button.done", lang)
+
     rows = [
         [InlineKeyboardButton(text=t("portions.button.show_content", lang), callback_data=f"content:{khatm_id}")],
-        [InlineKeyboardButton(text=t("portions.button.done", lang), callback_data=f"done:{khatm_id}")],
+        [InlineKeyboardButton(text=done_text, callback_data=f"done:{khatm_id}")],
     ]
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
@@ -832,10 +881,22 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
     )
 
 
-def regular_commitment_done_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardMarkup:
+def regular_commitment_done_keyboard(pid: str, lang: str = "fa", *, family: str | None = None) -> InlineKeyboardMarkup:
     """One-tap completion for the concrete REGULAR occurrence just sent."""
+    if family == "salawat":
+        done_text = t("portions.button.done.salawat", lang)
+    elif family in ("dua", "ziyarat"):
+        done_text = t("portions.button.done.dua", lang)
+    elif family == "laan":
+        done_text = t("portions.button.done.laan", lang)
+    elif family == "khutbah":
+        done_text = t("portions.button.done.khutbah", lang)
+    elif family == "quran":
+        done_text = t("portions.button.done.quran", lang)
+    else:
+        done_text = t("commit.regular.done_button", lang)
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=t("commit.regular.done_button", lang), callback_data=f"regular_done:{pid}"
+        text=done_text, callback_data=f"regular_done:{pid}"
     )]])
 
 

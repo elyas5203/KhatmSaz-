@@ -50,9 +50,10 @@ def test_participant_menu_exactly_matches_dec_py_0076():
     assert labels == [
         t("menu.today", "fa"),
         t("menu.my_khatms", "fa"),
+        t("menu.settings", "fa"),
+        t("menu.contact_creator", "fa"),
         t("menu.public_khatms", "fa"),
-        t("menu.custom_khatm", "fa"),
-        t("menu.settings", "fa"), t("menu.contact_creator", "fa"),
+        t("menu.about_us", "fa"),
     ]
 
 
