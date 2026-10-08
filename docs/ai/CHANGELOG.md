@@ -1,3 +1,10 @@
+## 2026-10-08 — Antigravity — Devotional Asset DB Constraint & Error Parsing Fix
+- **DB Check Constraint Fix:** Fixed `CheckViolationError: new row for relation "devotional_assets" violates check constraint "ck_devotional_assets_type"`. Used `content_type="DUA"` in `add_devotional_video_page` and `scripts/register_khutbah_fadakiah.py` to ensure immediate out-of-the-box compatibility with existing production schemas.
+- **Alembic Migration:** Added migration `khutbah2026100801_allow_khutbah_devotional_asset.py` expanding `ck_devotional_assets_type` to allow `('DUA', 'ZIYARAT', 'SALAWAT', 'KHUTBAH')`.
+- **Telegram Error Entity Parsing:** Added `parse_mode=None` to `message.answer` on unexpected errors in `manage_content.py:set_video_direct` so Python exception formatting (`<class ...>`) does not crash Telegram. Added support for `target_msg.animation`.
+- **Telegram Forward Ref Decoding:** Supported `tg_forward:` prefix alongside `telegram-forward:`, handling string channel usernames (`@channel`) and numeric IDs.
+- **Validation:** 351 unit tests PASS.
+
 ## 2026-10-08 — Antigravity — Auto-Provision Devotional Asset & Quran Forward Interception Fix
 - **Auto-Provisioning Devotional Asset & Category:** Added automatic on-demand creation of `DevotionalAsset` and `KhatmCategory` in `content/service.py:add_devotional_video_page` if missing in DB when setting video clips via `/set_video`, preventing `ValueError: enabled devotional asset not found`.
 - **Quran Forward Interception Fix:** Suppressed unwanted «این پیام از کانال قرآن تعیین‌شده نیامده و ثبت نشد.» error reply in `admin.py:275` for forwards from other channels by returning silently.

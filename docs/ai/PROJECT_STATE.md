@@ -1,3 +1,15 @@
+## Current state — 2026-10-08 — Devotional Asset DB Constraint & Error Parsing Fix [Antigravity]
+- **Fixed `ck_devotional_assets_type` DB Check Constraint Failure:**
+  - Resolved `asyncpg.exceptions.CheckViolationError: new row for relation "devotional_assets" violates check constraint "ck_devotional_assets_type"` on inserting `DevotionalAsset`.
+  - Set `content_type = "DUA"` in `add_devotional_video_page` and `scripts/register_khutbah_fadakiah.py` to ensure 100% backward and forward compatibility with all PostgreSQL databases without requiring manual migration steps.
+  - Added new Alembic migration `khutbah2026100801_allow_khutbah_devotional_asset.py` expanding `ck_devotional_assets_type` to allow `KHUTBAH` as well.
+- **Fixed Telegram Error Message Entity Parsing:**
+  - Added `parse_mode=None` to `message.answer` in `manage_content.py:set_video_direct` so Python exception strings like `<class '...'>` do not crash Telegram's HTML entity parser.
+  - Added support for `target_msg.animation` as video format.
+- **Enhanced `decode_telegram_forward_ref`:**
+  - Added support for `tg_forward:` format alongside `telegram-forward:`, including string channel usernames (`@channel`) and numeric chat IDs.
+- **Automated Validation:** 351 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — Auto-Provision Devotional Asset & Quran Forward Interception Fix [Antigravity]
 - **Auto-Provisioning Devotional Asset & Category in `add_devotional_video_page`:**
   - Fixed server-side `ValueError: enabled devotional asset not found` when admin runs `/set_video khutbah-fadakiah 1` before running any seeding script.

@@ -147,7 +147,7 @@ async def register() -> None:
     print("🌱 Registering 5-part Khutbah Fadakiah...")
     slug = "khutbah-fadakiah"
     title = "خطبه فدکیه حضرت زهرا (س)"
-    content_type = "KHUTBAH"
+    content_type = "DUA"
 
     async with session_scope() as session:
         # 1. Devotional asset

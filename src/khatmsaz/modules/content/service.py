@@ -80,12 +80,20 @@ def encode_telegram_forward_ref(source_chat_id: int, source_message_id: int) -> 
     return f"{TELEGRAM_FORWARD_PREFIX}{source_chat_id}:{source_message_id}"
 
 
-def decode_telegram_forward_ref(asset_ref: str) -> tuple[int, int] | None:
-    if not asset_ref.startswith(TELEGRAM_FORWARD_PREFIX):
+def decode_telegram_forward_ref(asset_ref: str) -> tuple[int | str, int] | None:
+    if asset_ref.startswith("tg_forward:"):
+        prefix = "tg_forward:"
+    elif asset_ref.startswith(TELEGRAM_FORWARD_PREFIX):
+        prefix = TELEGRAM_FORWARD_PREFIX
+    else:
         return None
     try:
-        chat_id, message_id = asset_ref.removeprefix(TELEGRAM_FORWARD_PREFIX).split(":", 1)
-        return int(chat_id), int(message_id)
+        chat_id_raw, message_id_raw = asset_ref.removeprefix(prefix).split(":", 1)
+        mid = int(message_id_raw)
+        ch: int | str = chat_id_raw
+        if ch.lstrip("-").isdigit():
+            ch = int(ch)
+        return ch, mid
     except (TypeError, ValueError):
         return None
 
@@ -582,7 +590,10 @@ async def add_devotional_video_page(
     asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
     if asset is None:
         title = "خطبه فدکیه حضرت زهرا (س)" if "fadak" in slug else slug
-        content_type = "KHUTBAH" if "khutbah" in slug else "DUA"
+        # Note: In PostgreSQL, legacy ck_devotional_assets_type requires 'DUA', 'ZIYARAT', or 'SALAWAT'.
+        # Using 'DUA' guarantees immediate compatibility across all environments even before
+        # manual database migrations are run.
+        content_type = "DUA"
         asset = DevotionalAsset(
             id=new_id(),
             content_type=content_type,

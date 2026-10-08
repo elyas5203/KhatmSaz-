@@ -94,6 +94,8 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
             file_id = None
             if target_msg.video:
                 file_id = target_msg.video.file_id
+            elif target_msg.animation:
+                file_id = target_msg.animation.file_id
             elif target_msg.document and (target_msg.document.mime_type or "").startswith("video/"):
                 file_id = target_msg.document.file_id
 
@@ -121,7 +123,7 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
 
         await message.answer("⚠️ ویدیویی یافت نشد. لطفاً روی یک ویدیو ریپلای کنید یا لینک پست را قرار دهید.")
     except Exception as exc:
-        await message.answer(f"⚠️ خطا در ثبت ویدیو: {str(exc)}")
+        await message.answer(f"⚠️ خطا در ثبت ویدیو: {str(exc)}", parse_mode=None)
 
 
 @router.message(ManageContentState.waiting_for_slug)

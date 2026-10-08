@@ -96,3 +96,16 @@ async def test_add_devotional_video_page_autoprovisions_asset():
     assert any(getattr(e, "slug", None) == "khutbah-fadakiah" for e in added)
     assert any(getattr(e, "group", None) is not None for e in added)
 
+
+def test_decode_telegram_forward_ref_supports_tg_forward_and_usernames():
+    from khatmsaz.modules.content.service import decode_telegram_forward_ref
+
+    res1 = decode_telegram_forward_ref("tg_forward:@khedmatgozaran_group:25286")
+    assert res1 == ("@khedmatgozaran_group", 25286)
+
+    res2 = decode_telegram_forward_ref("telegram-forward:-10012345:99")
+    assert res2 == (-10012345, 99)
+
+    res3 = decode_telegram_forward_ref("invalid_ref")
+    assert res3 is None
+

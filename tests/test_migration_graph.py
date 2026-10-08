@@ -50,5 +50,9 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     res = script.get_revision("res20261003120539")
     assert res is not None
     assert res.down_revision == "policy2026100302"
-    
-    assert script.get_heads() == ["share2026100501"]
+
+    khutbah = script.get_revision("khutbah2026100801")
+    assert khutbah is not None
+    assert khutbah.down_revision == "share2026100501"
+
+    assert script.get_heads() == ["khutbah2026100801"]
