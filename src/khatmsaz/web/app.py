@@ -83,7 +83,7 @@ from khatmsaz.web.telegram_mini_app import InvalidTelegramInitData, validate_tel
 
 COOKIE_NAME = "khatmsaz_admin_session"
 CREATOR_COOKIE_NAME = "khatmsaz_creator_session"
-CATEGORY_GROUP_LABELS = {"SALAWAT": "صلوات", "LAAN": "لعن", "DUA": "دعا / زیارت"}
+CATEGORY_GROUP_LABELS = {"SALAWAT": "صلوات", "LAAN": "لعن", "DUA": "دعا / زیارت", "KHUTBAH": "خطبه"}
 FA_LABELS = {
     "ACTIVE": "فعال",
     "DRAFT": "پیش‌نویس",
@@ -93,6 +93,7 @@ FA_LABELS = {
     "QURAN_PAGE": "صفحات قرآن",
     "SALAWAT": "صلوات",
     "DUA": "ادعیه و زیارات",
+    "KHUTBAH": "خطبه‌ها",
     "ZIYARAT": "زیارت",
     "LAAN": "لعن",
     "COMMITMENT": "تعهدی",
@@ -2086,6 +2087,7 @@ async def categories_page(request: Request):
     grouped_items = {
         "DUA": [item for item in items if item.group == KhatmCategoryGroup.DUA],
         "LAAN": [item for item in items if item.group == KhatmCategoryGroup.LAAN],
+        "KHUTBAH": [item for item in items if item.group == KhatmCategoryGroup.KHUTBAH],
     }
     for group_items in grouped_items.values():
         for position, item in enumerate(group_items, start=1):

@@ -187,3 +187,118 @@ async def test_sequential_candidate_ids_priority():
     assert "ORDER BY" in sql_str
     assert "joined_at" in sql_str
     assert "coalesce" in sql_str.lower()
+
+
+@pytest.mark.asyncio
+async def test_previous_wizard_step_comprehensive_flow():
+    """Verify that clicking ck:back steps backward step-by-step through all wizard states without jumping to template."""
+    from khatmsaz.bot.handlers.create_khatm import previous_wizard_step
+    from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+
+    cb = AsyncMock(spec=CallbackQuery)
+    cb.data = "ck:back"
+    cb.from_user = MagicMock(id=555)
+    cb.message = AsyncMock(spec=Message)
+    cb.message.chat = MagicMock(id=555)
+    cb.message.bot = AsyncMock()
+    cb.message.answer = AsyncMock()
+    cb.answer = AsyncMock()
+
+    with patch("khatmsaz.bot.handlers.create_khatm._wiz", new_callable=AsyncMock) as mock_wiz, \
+         patch("khatmsaz.bot.handlers.create_khatm.safe_clear_inline_keyboard", new_callable=AsyncMock):
+
+        # 1. From confirming -> choosing_visibility
+        state = DummyState(data={}, state=CreateKhatm.confirming.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_visibility.state
+
+        # 2. From choosing_visibility -> choosing_reminder_tone
+        state = DummyState(data={}, state=CreateKhatm.choosing_visibility.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_reminder_tone.state
+
+        # 3. From choosing_reminder_tone (Commitment + FIXED_DAILY) -> entering_fixed_daily_amount
+        state = DummyState(
+            data={"khatm_type": KhatmTypeEnum.COMMITMENT.value, "commitment_policy": "FIXED_DAILY"},
+            state=CreateKhatm.choosing_reminder_tone.state,
+        )
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.entering_fixed_daily_amount.state
+
+        # 4. From entering_fixed_daily_amount -> choosing_commitment_policy
+        state = DummyState(data={}, state=CreateKhatm.entering_fixed_daily_amount.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_commitment_policy.state
+
+        # 5. From choosing_commitment_policy (Salawat) -> choosing_commitment_total
+        state = DummyState(
+            data={"template_type": KhatmTemplateType.SALAWAT.value, "category_group": KhatmCategoryGroup.SALAWAT.value},
+            state=CreateKhatm.choosing_commitment_policy.state,
+        )
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_commitment_total.state
+
+        # 6. From choosing_commitment_total (Salawat) -> entering_creator_contact
+        state = DummyState(
+            data={"category_group": KhatmCategoryGroup.SALAWAT.value},
+            state=CreateKhatm.choosing_commitment_total.state,
+        )
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.entering_creator_contact.state
+
+        # 7. From entering_creator_contact -> entering_welcome
+        state = DummyState(data={}, state=CreateKhatm.entering_creator_contact.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.entering_welcome.state
+
+        # 8. From entering_welcome -> entering_niyyat
+        state = DummyState(data={}, state=CreateKhatm.entering_welcome.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.entering_niyyat.state
+
+        # 9. From entering_niyyat -> choosing_mode
+        state = DummyState(
+            data={"template_type": KhatmTemplateType.QURAN_PAGE.value},
+            state=CreateKhatm.entering_niyyat.state,
+        )
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_mode.state
+
+        # 10. From choosing_mode (Quran) -> choosing_template
+        state = DummyState(
+            data={"template_type": KhatmTemplateType.QURAN_PAGE.value},
+            state=CreateKhatm.choosing_mode.state,
+        )
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_template.state
+
+        # 11. From choosing_mode (Khutbah) -> choosing_category
+        state = DummyState(
+            data={"category_group": KhatmCategoryGroup.KHUTBAH.value},
+            state=CreateKhatm.choosing_mode.state,
+        )
+        with patch("khatmsaz.bot.handlers.create_khatm.category_service.list_active", AsyncMock(return_value=[])):
+            await previous_wizard_step(cb, state)
+            assert await state.get_state() == CreateKhatm.choosing_category.state
+
+        # 12. From choosing_category -> choosing_template
+        state = DummyState(data={}, state=CreateKhatm.choosing_category.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() == CreateKhatm.choosing_template.state
+
+        # 13. From choosing_template -> cancels wizard & clears state
+        state = DummyState(data={}, state=CreateKhatm.choosing_template.state)
+        await previous_wizard_step(cb, state)
+        assert await state.get_state() is None
+        cb.message.answer.assert_called()
+
+
+def test_khutbah_button_in_template_keyboard():
+    """Verify that template_choice_keyboard includes Khutbah option."""
+    from khatmsaz.bot.keyboards import template_choice_keyboard
+    kb = template_choice_keyboard("fa")
+    button_datas = [btn.callback_data for row in kb.inline_keyboard for btn in row]
+    button_texts = [btn.text for row in kb.inline_keyboard for btn in row]
+
+    assert "ck:group:KHUTBAH" in button_datas
+    assert any("خطبه" in txt for txt in button_texts)

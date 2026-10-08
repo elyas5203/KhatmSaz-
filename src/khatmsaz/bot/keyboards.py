@@ -526,12 +526,13 @@ def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tpl.salawat", lang), callback_data="ck:group:SALAWAT")],
             [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
             [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
+            [InlineKeyboardButton(text=t("ck.tpl.khutbah", lang), callback_data="ck:group:KHUTBAH")],
             _ck_cancel_row(lang),
         ]
     )
 
 
-_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲"}
+_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲", "KHUTBAH": "📜"}
 
 
 def category_choice_keyboard(

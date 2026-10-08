@@ -1,3 +1,10 @@
+## Current state — 2026-10-08 — V3 Wizard Step-by-Step Back Navigation & Khutbah Integration [Antigravity]
+- **Previous Step Navigation Bug Resolved (P1):** Fixed critical navigation bug where pressing «مرحله قبل» (`ck:back`) jumped back to the first step (`choosing_template`). Implemented comprehensive step-by-step reverse FSM routing across all wizard states (`confirming` -> `choosing_visibility` -> `choosing_reminder_tone` -> target/policy/fixed daily -> `entering_creator_contact` -> `entering_welcome` -> `entering_niyyat` -> `choosing_mode` -> category -> template -> cancel).
+- **Khutbah Family Activated (P3):** Added «📜 ختم خطبه‌ها» (`ck:group:KHUTBAH`) to `template_choice_keyboard`. Added `KhatmCategoryGroup.KHUTBAH` in domain models, web admin panel, and `i18n` strings with support for sequential parts, audio files, and cycling.
+- **Example Copy Cleaned (P2):** Eliminated the word «فلانی» completely from onboarding captions, examples, and documentation.
+- **Section P in OWNER_SPEC_MASTER.md:** Fully updated and documented covering items P1 to P7.
+- **Validation:** All 344 non-integration unit tests pass cleanly in 12.34s (including new tests in `tests/test_v3_wizard_and_allocation.py`).
+
 ## Current state — 2026-10-08 — V3 Wizard Flow, 2-Message Output & Sequential Allocation Completed [Antigravity]
 - **Completed Tasks (Approved by Owner):**
   - **Editing from Confirmation Wired (`create_khatm.py`):** Fully integrated `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`) to avoid key errors.

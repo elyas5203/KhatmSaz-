@@ -30,6 +30,8 @@ async def content_family(session: AsyncSession, khatm: Khatm) -> str:
         return "salawat"
     if category.group == KhatmCategoryGroup.LAAN:
         return "laan"
+    if category.group == KhatmCategoryGroup.KHUTBAH:
+        return "khutbah"
     return "ziyarat" if "زیارت" in category.title else "dua"
 
 
@@ -40,15 +42,25 @@ def share_label(
     if lang == "ar":
         if family == "quran":
             return f"الصفحات من {start} إلى {end}" if start is not None else f"{count or 1} صفحة من القرآن"
+        if family == "khutbah":
+            return f"القسم {start}" if start is not None else f"{count or 1} قسم من الخطبة"
         names = {"salawat": "صلوات", "dua": "الدعاء المحدد", "ziyarat": "الزيارة المحددة", "laan": "الذكر المحدد"}
         return f"{count or 1} مرة من {names.get(family, 'القراءة المحددة')}"
     if lang != "fa":
         if family == "quran":
             return f"pages {start} to {end}" if start is not None else f"{count or 1} Quran page(s)"
+        if family == "khutbah":
+            return f"section {start}" if start is not None else f"{count or 1} section(s) of the Khutbah"
         names = {"salawat": "Salawat", "dua": "the selected dua", "ziyarat": "the selected ziyarat", "laan": "the selected la'an"}
         return f"{count or 1} time(s) {names.get(family, 'the selected recitation')}"
     if family == "quran":
         return f"صفحات {start} تا {end}" if start is not None else f"{count or 1} صفحه از قرآن"
+    if family == "khutbah":
+        if start is not None and end is not None and start != end:
+            return f"بخش {start} تا {end} از خطبه"
+        if start is not None:
+            return f"بخش {start} از خطبه"
+        return f"{count or 1} بخش از خطبه"
     amount = count or 1
     labels = {
         "salawat": "صلوات",
@@ -61,15 +73,16 @@ def share_label(
 
 def action_verb(family: str, lang: str = "fa") -> str:
     if lang == "ar":
-        return {"quran": "قراءة", "salawat": "إرسال", "dua": "قراءة", "ziyarat": "قراءة", "laan": "ذكر"}.get(family, "إتمام")
+        return {"quran": "قراءة", "salawat": "إرسال", "dua": "قراءة", "ziyarat": "قراءة", "laan": "ذكر", "khutbah": "قراءة"}.get(family, "إتمام")
     if lang != "fa":
-        return {"quran": "recite", "salawat": "send", "dua": "recite", "ziyarat": "recite", "laan": "recite"}.get(family, "complete")
+        return {"quran": "recite", "salawat": "send", "dua": "recite", "ziyarat": "recite", "laan": "recite", "khutbah": "recite"}.get(family, "complete")
     return {
         "quran": "قرائت",
         "salawat": "ذکر",
         "dua": "قرائت",
         "ziyarat": "قرائت",
-        "laan": "ذکر",
+        "laan": "قرائت",
+        "khutbah": "قرائت",
     }.get(family, "انجام")
 
 

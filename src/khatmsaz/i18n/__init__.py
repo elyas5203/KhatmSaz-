@@ -71,6 +71,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة يقرأ كل عضو الدعاء أو الزيارة يومياً؟ مثلاً مرة واحدة.",
         "en": "How many times daily? (e.g. 1)"
     },
+    "create_khatm.ask_daily_khutbah": {
+        "fa": "هر عضو خطبه را روزانه چند بخش بخواند؟ مثلاً ۱ بخش.",
+        "ar": "كم قسماً من الخطبة يقرأ كل عضو يومياً؟ مثلاً قسم واحد.",
+        "en": "How many sections daily? (e.g. 1)"
+    },
     "days.monday": {"fa": "دوشنبه", "ar": "الاثنين", "en": "Mon"},
     "days.tuesday": {"fa": "سه‌شنبه", "ar": "الثلاثاء", "en": "Tue"},
     "days.wednesday": {"fa": "چهارشنبه", "ar": "الأربعاء", "en": "Wed"},
@@ -378,6 +383,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.category_prompt.LAAN": {
         "fa": "کدام لعن را می‌خواهید؟", "ar": "أي لعن تريد؟", "en": "Which la'an do you want?",
     },
+    "create_khatm.category_prompt.KHUTBAH": {
+        "fa": "کدام خطبه را می‌خواهید؟", "ar": "أي خطبة تريد؟", "en": "Which khutbah do you want?",
+    },
     "create_khatm.category_empty": {
         "fa": "هنوز گزینه‌ای در این بخش فعال نشده است. مدیریت باید ابتدا زیرمجموعه‌های این بخش را اضافه کند.",
         "ar": "لم يتم تفعيل أي خيار في هذا القسم بعد. يجب على الإدارة إضافة خيارات هذا القسم أولاً.",
@@ -491,6 +499,22 @@ _STRINGS: dict[str, dict[str, str]] = {
             "(you set it) of this la'an.\n\n"
             "🌿 <b>Open:</b> there's no pledge; everyone recites and logs as much "
             "as they want until the khatm's total goal is reached."
+        ),
+    },
+    "create_khatm.mode_explanation.khutbah": {
+        "fa": (
+            "🔒 <b>تعهدی:</b> بخش‌های مشخص‌شده از خطبه سر ساعت انتخابی مخاطب با صوت و متن ارسال می‌شود "
+            "تا به یک روتین منظم تبدیل شود و متعهد به قرائت آن در مهلت روزانه است تا دور خطبه کامل شود.\n\n"
+            "🌿 <b>آزاد:</b> ارسال منظم ساعتی ندارد؛ هرکس هر زمان خواست وارد بات می‌شود، بخش‌های خطبه را می‌خواند "
+            "و ثبت می‌کند."
+        ),
+        "ar": (
+            "🔒 <b>ملتزمة:</b> تُرسل أقسام محددة من الخطبة بالصوت والنص في الوقت المحدد.\n\n"
+            "🌿 <b>مفتوحة:</b> لا يوجد التزام؛ يقرأ العضو في أي وقت يشاء."
+        ),
+        "en": (
+            "🔒 <b>Commitment:</b> specific sections of the Khutbah are sent with audio and text at the chosen hour.\n\n"
+            "🌿 <b>Open:</b> no scheduled delivery; members read at their own pace."
         ),
     },
     "create_khatm.ask_mode": {
@@ -732,7 +756,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم قرآن برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة القرآن لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Quran Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -741,7 +765,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم صلوات برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة الصلوات لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Salawat Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -750,7 +774,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم دعا و زیارت برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة الدعاء والزيارة لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Dua and Ziyarat Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -759,7 +783,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم لعن برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة اللعن لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “La'an Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -795,6 +819,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "\n\nمثلاً: «این لعن را به نیت ظهور امام زمان علیه‌السلام می‌خوانیم».",
         "ar": "\n\nمثلاً: «نقول هذا اللعن بنية الفرج».",
         "en": "\n\nExample: “We're reciting this la'an with the intention of a swift relief.”",
+    },
+    "create_khatm.welcome_example.khutbah": {
+        "fa": "\n\nمثلاً: «این خطبه را به نیت نشر معارف اهل‌بیت علیهم‌السلام می‌خوانیم».",
+        "ar": "\n\nمثلاً: «نقرأ هذه الخطبة بنية نشر معارف أهل البيت عليهم السلام».",
+        "en": "\n\nExample: “We are reciting this Khutbah for the knowledge of Ahl al-Bayt.”",
     },
     "create_khatm.welcome_suffix": {
         "fa": "\n\n(اختیاری، حداکثر ۵۰۰ کاراکتر؛ اگه نمی‌خواید چیزی بنویسید، دکمهٔ رد کردن رو بزنید):",
@@ -848,6 +877,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "هدف کل این ختم چه تعداد لعن باشد؟ سهم روزانه/هفتگی/ماهانه را هر مخاطب برای خودش انتخاب می‌کند.\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
         "ar": "كم يكون مجموع اللعن في هذه الختمة؟",
         "en": "What should the total la'an goal be?",
+    },
+    "create_khatm.ask_commitment_total.khutbah": {
+        "fa": "این خطبه در مجموع چند دور کامل ختم شود؟\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش دورها هست:",
+        "ar": "كم دورة كاملة تُختم هذه الخطبة إجمالاً؟",
+        "en": "How many complete cycles of this Khutbah should be completed in total?",
     },
     "create_khatm.commitment_total.custom": {
         "fa": "🔢 عدد دلخواه", "ar": "🔢 رقم مخصص", "en": "🔢 Custom number",
@@ -948,6 +982,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.group_label.SALAWAT": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "create_khatm.group_label.DUA": {"fa": "دعا یا زیارت", "ar": "دعاء أو زيارة", "en": "Dua or Ziyarat"},
     "create_khatm.group_label.LAAN": {"fa": "لعن", "ar": "لعن", "en": "La'an"},
+    "create_khatm.group_label.KHUTBAH": {"fa": "خطبه", "ar": "خطبة", "en": "Khutbah"},
     "create_khatm.group_label.generic": {"fa": "ذکر شمارشی", "ar": "ذكر عدّي", "en": "Countable recitation"},
     "create_khatm.group_label.quran": {"fa": "قرآن", "ar": "القرآن", "en": "Quran"},
     "create_khatm.progress.header": {"fa": "📋 انتخاب‌های شما تا اینجا:", "ar": "📋 اختياراتك حتى الآن:", "en": "📋 Your choices so far:"},
@@ -1495,6 +1530,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "ck.tpl.salawat": {"fa": "📿 ختم صلوات", "ar": "📿 ختم الصلوات", "en": "📿 Salawat khatm"},
     "ck.tpl.dua": {"fa": "🤲 ختم دعا و زیارت", "ar": "🤲 ختم الدعاء والزيارة", "en": "🤲 Dua & Ziyarat khatm"},
     "ck.tpl.laan": {"fa": "🗡 ختم لعن", "ar": "🗡 ختم اللعن", "en": "🗡 La'n khatm"},
+    "ck.tpl.khutbah": {"fa": "📜 ختم خطبه‌ها", "ar": "📜 ختم الخطب", "en": "📜 Khutbah khatm"},
     "ck.cat.custom": {"fa": "➕ دعا یا زیارت دیگر", "ar": "➕ دعاء أو زيارة أخرى", "en": "➕ Another dua or ziyarat"},
     "ck.skip_niyyat": {"fa": "رد کردن ⏭", "ar": "تخطٍّ ⏭", "en": "Skip ⏭"},
     "ck.content_mode.auto": {"fa": "⚙️ خودکار (هرچه موجود بود)", "ar": "⚙️ تلقائي (ما هو متوفر)", "en": "⚙️ Auto (whatever exists)"},
