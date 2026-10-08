@@ -1,3 +1,13 @@
+## Current state — 2026-10-08 — Join Preview Total Goal & Completion Reporting Button Renaming [Antigravity]
+- **Clarified Commitment Join Preview Total Goal:**
+  - Resolved confusing copy in `join.preview.mode_commitment_quantified` which previously said «با عضویت، متعهد می‌شید {count} {unit} انجام بدید».
+  - Now clearly states that `{count}` is the total goal of the khatm («هدف کل ختم: {count} {unit} (سهم انتخابی خود را پس از عضویت متعهد می‌شوید)»).
+- **Renamed Completion Action Button to «اعلام انجام قرائت»:**
+  - Renamed `portions.button.done*`, `commit.regular.done_button`, and `member_copy.py:done_button_label` from «... انجام شد» to «✅ اعلام انجام قرائت».
+  - Clarifies to members that they must tap this button to report/register their recitation after reading.
+  - Renamed `menu.today` to «📖 اعلام انجام قرائت امروز» with backward-compatible button matching in `keyboards.py:TODAY_BUTTON_TEXTS`.
+- **Validation:** 360 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-08 — Single Section Delivery & Self-Healing for Khutbah Occurrences [Antigravity]
 - **Prevent Blasting All Videos for Multi-Part Devotionals:**
   - In `devotional.py:deliver_devotional_media`, when `page_numbers` is None and `len(video_pages) > 1`, default to `[min(video_pages, key=lambda v: v.page_number)]` instead of delivering all videos at once.

@@ -473,7 +473,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
 
         from khatmsaz.modules.share_occurrence import repository as shares
         if await shares.has_any(session, participation.id):
-            await safe_answer_callback(callback, "از دکمهٔ انجام زیر همان سهم استفاده کنید. سهم‌های باقی‌مانده در «انجام قرائت امروز» نمایش داده می‌شوند.", show_alert=True)
+            await safe_answer_callback(callback, "از دکمهٔ انجام زیر همان سهم استفاده کنید. سهم‌های باقی‌مانده در «اعلام انجام قرائت امروز» نمایش داده می‌شوند.", show_alert=True)
             return
         completed, _ = await allocation_service.complete_current_portion_and_advance(
             session, khatm_id, participation.id

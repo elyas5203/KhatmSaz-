@@ -313,4 +313,35 @@ async def test_occurrence_adapter_self_heals_legacy_khutbah_occurrence():
                                         assert mock_occurrence.content_spec["family"] == "khutbah"
 
 
+def test_khutbah_commitment_preview_states_total_goal_not_per_member():
+    khatm = Khatm(
+        id=uuid4(),
+        title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)",
+        template_type=KhatmTemplateType.SALAWAT,
+        khatm_type=KhatmTypeEnum.COMMITMENT,
+        repetition_target=110,
+        niyyat="ظهور امام زمان عجل الله تعالی فرجه الشریف",
+    )
+    preview = build_join_preview_message(
+        khatm,
+        creator_name="خدمتگزاران تک",
+        member_count=3,
+        lang="fa",
+        category_title="خطبه فدکیه حضرت فاطمه زهرا (س)",
+        category_group="KHUTBAH",
+    )
+    assert "هدف کل ختم: 110 مرتبه" in preview
+    assert "متعهد می‌شید 110 مرتبه انجام بدید" not in preview
+    assert "سهم انتخابی خود را پس از عضویت متعهد می‌شوید" in preview
+
+
+def test_done_button_label_returns_report_recitation():
+    from khatmsaz.bot.member_copy import done_button_label
+
+    assert done_button_label("khutbah", "fa") == "✅ اعلام انجام قرائت"
+    assert done_button_label("quran", "fa") == "✅ اعلام انجام قرائت"
+    assert done_button_label("dua", "fa") == "✅ اعلام انجام قرائت دعا"
+
+
+
 

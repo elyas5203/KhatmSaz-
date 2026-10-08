@@ -111,14 +111,14 @@ def done_button_label(family: str | None, lang: str = "fa") -> str:
         }
         return labels.get(fam, "✅ Mark share done")
     labels = {
-        "quran": "✅ قرائت بخش فوق انجام شد",
-        "salawat": "✅ ذکر صلوات فرستاده شد",
-        "dua": "✅ قرائت دعا انجام شد",
-        "ziyarat": "✅ قرائت زیارت انجام شد",
-        "laan": "✅ ذکر لعن انجام شد",
-        "khutbah": "✅ قرائت این بخش از خطبه انجام شد",
+        "quran": "✅ اعلام انجام قرائت",
+        "salawat": "✅ اعلام انجام ذکر صلوات",
+        "dua": "✅ اعلام انجام قرائت دعا",
+        "ziyarat": "✅ اعلام انجام قرائت زیارت",
+        "laan": "✅ اعلام انجام ذکر لعن",
+        "khutbah": "✅ اعلام انجام قرائت",
     }
-    return labels.get(fam, "✅ قرائت بخش فوق انجام شد")
+    return labels.get(fam, "✅ اعلام انجام قرائت")
 
 
 def format_deadline(deadline: int | None, user_tz: str | None = None, lang: str = "fa") -> str:

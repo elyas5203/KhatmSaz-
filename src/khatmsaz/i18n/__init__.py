@@ -132,9 +132,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
 
     "menu.today": {
-        "fa": "📖 انجام قرائت امروز",
-        "ar": "📖 إنجاز قراءة اليوم",
-        "en": "📖 Complete today's reading",
+        "fa": "📖 اعلام انجام قرائت امروز",
+        "ar": "📖 إعلان إنجاز قراءة اليوم",
+        "en": "📖 Report Today's Recitation",
     },
     "menu.my_khatms": {"fa": "🕋 لیست ختم‌های من", "ar": "🕋 قائمة ختماتي", "en": "🕋 My Khatms List"},
     "menu.report": {"fa": "📈 گزارش عملکرد من", "ar": "📈 تقرير أدائي", "en": "📈 My Performance"},
@@ -316,19 +316,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Your profile was updated successfully ✅",
     },
     "help.home": {
-        "fa": "📖 <b>راهنمای ختم‌ساز</b>\n\nلازم نیست دستوری حفظ کنید؛ موضوع موردنظرتان را از دکمه‌های زیر انتخاب کنید.\n\nختم می‌تواند «تعهدی» باشد؛ یعنی سهم پذیرفته‌شده باید انجام شود، یا «آزاد» باشد؛ یعنی هرکس بدون تعهد هر مقدار که خواست مشارکت می‌کند. عمومی یا خصوصی بودن فقط روش ورود اعضا را مشخص می‌کند.\n\nبرای دریافت زودتر سهم همان روز، «📖 انجام قرائت امروز» را بزنید.",
-        "ar": "❓ دليل ختم‌ساز\n\nلا تحتاج إلى حفظ الأوامر. اختر الموضوع المطلوب من الأزرار أدناه؛ كل قسم مشروح خطوة بخطوة.\n\nلقراءة حصة اليوم مبكراً اضغط «📖 إنجاز قراءة اليوم» من القائمة السفلية.",
-        "en": "❓ KhatmSaz Guide\n\nYou do not need to memorize commands. Choose a topic with the buttons below; every section is explained step by step.\n\nTo read today's portion early, tap “📖 Complete today's reading” in the bottom menu.",
+        "fa": "📖 <b>راهنمای ختم‌ساز</b>\n\nلازم نیست دستوری حفظ کنید؛ موضوع موردنظرتان را از دکمه‌های زیر انتخاب کنید.\n\nختم می‌تواند «تعهدی» باشد؛ یعنی سهم پذیرفته‌شده باید انجام شود، یا «آزاد» باشد؛ یعنی هرکس بدون تعهد هر مقدار که خواست مشارکت می‌کند. عمومی یا خصوصی بودن فقط روش ورود اعضا را مشخص می‌کند.\n\nبرای دریافت زودتر سهم همان روز، «📖 اعلام انجام قرائت امروز» را بزنید.",
+        "ar": "❓ دليل ختم‌ساز\n\nلا تحتاج إلى حفظ الأوامر. اختر الموضوع المطلوب من الأزرار أدناه؛ كل قسم مشروح خطوة بخطوة.\n\nلقراءة حصة اليوم مبكراً اضغط «📖 إعلان إنجاز قراءة اليوم» من القائمة السفلية.",
+        "en": "❓ KhatmSaz Guide\n\nYou do not need to memorize commands. Choose a topic with the buttons below; every section is explained step by step.\n\nTo read today's portion early, tap “📖 Report Today's Recitation” in the bottom menu.",
     },
     "help.join": {
-        "fa": "👋 شروع و عضویت در یک ختم\n\n۱) لینکی را که سازنده برایتان فرستاده باز کنید.\n۲) اگر اولین بار است، بات نام، شماره موبایل، استان، شهر و جنسیت را مرحله‌به‌مرحله می‌پرسد.\n۳) تنظیم‌های همان ختم را روی یک پیام انتخاب می‌کنید و عضویتتان کامل می‌شود.\n۴) اگر ختم خصوصی باشد، درخواست برای سازنده می‌رود و بعد از تأیید به شما خبر داده می‌شود.\n\nبعد از عضویت، از «📖 انجام قرائت امروز» یک ختم را انتخاب کنید تا سهم همان روز زودتر برایتان فرستاده شود.",
-        "ar": "👋 البدء والانضمام إلى ختمة\n\n١) افتح الرابط الذي أرسله منشئ الختمة.\n٢) سترى التفاصيل أولاً؛ فتح الرابط وحده لا يعني أنك انضممت.\n٣) اضغط زر الانضمام. في المرة الأولى يسألك البوت عن الاسم والهاتف والمحافظة والمدينة والجنس خطوة بخطوة.\n٤) في الختمة الملتزمة، اقرأ التعهد القصير ولا تؤكده إلا إذا قبلته.\n٥) إذا كانت الختمة خاصة، ينتظر طلبك موافقة المنشئ وسيصلك إشعار بعدها.\n\nبعد الانضمام تجد حصصك دائماً في «📖 إنجاز قراءة اليوم» و«🕋 ختماتي».",
-        "en": "👋 Starting and joining a khatm\n\n1) Open the invite link sent by the creator.\n2) You first see the khatm details; opening the link alone does not join you.\n3) Tap the join button. On your first time, the bot asks for your name, phone, province, city, and gender step by step.\n4) For a commitment khatm, read the short pledge and confirm only if you accept it.\n5) For a private khatm, your request waits for the creator's approval and you are notified afterward.\n\nAfter joining, your portions are always available under “📖 Complete today's reading” and “🕋 My Khatms”.",
+        "fa": "👋 شروع و عضویت در یک ختم\n\n۱) لینکی را که سازنده برایتان فرستاده باز کنید.\n۲) اگر اولین بار است، بات نام، شماره موبایل، استان، شهر و جنسیت را مرحله‌به‌مرحله می‌پرسد.\n۳) تنظیم‌های همان ختم را روی یک پیام انتخاب می‌کنید و عضویتتان کامل می‌شود.\n۴) اگر ختم خصوصی باشد، درخواست برای سازنده می‌رود و بعد از تأیید به شما خبر داده می‌شود.\n\nبعد از عضویت، از «📖 اعلام انجام قرائت امروز» یک ختم را انتخاب کنید تا سهم همان روز زودتر برایتان فرستاده شود.",
+        "ar": "👋 البدء والانضمام إلى ختمة\n\n١) افتح الرابط الذي أرسله منشئ الختمة.\n٢) سترى التفاصيل أولاً؛ فتح الرابط وحده لا يعني أنك انضممت.\n٣) اضغط زر الانضمام. في المرة الأولى يسألك البوت عن الاسم والهاتف والمحافظة والمدينة والجنس خطوة بخطوة.\n٤) في الختمة الملتزمة، اقرأ التعهد القصير ولا تؤكده إلا إذا قبلته.\n٥) إذا كانت الختمة خاصة، ينتظر طلبك موافقة المنشئ وسيصلك إشعار بعدها.\n\nبعد الانضمام تجد حصصك دائماً في «📖 إعلان إنجاز قراءة اليوم» و«🕋 ختماتي».",
+        "en": "👋 Starting and joining a khatm\n\n1) Open the invite link sent by the creator.\n2) You first see the khatm details; opening the link alone does not join you.\n3) Tap the join button. On your first time, the bot asks for your name, phone, province, city, and gender step by step.\n4) For a commitment khatm, read the short pledge and confirm only if you accept it.\n5) For a private khatm, your request waits for the creator's approval and you are notified afterward.\n\nAfter joining, your portions are always available under “📖 Report Today's Recitation” and “🕋 My Khatms”.",
     },
     "help.portion": {
-        "fa": "📖 دیدن و انجام سهم\n\n۱) در منوی پایین «📖 انجام قرائت امروز» را بزنید.\n۲) زیر سهم قرآن روی «📖 نمایش محتوای سهم» بزنید تا تصویر صفحه‌ها ارسال شود.\n۳) اگر صوت را روشن کرده باشید، تلاوت همان بازه هم می‌آید. بعضی فایل‌های کانال دو یا سه صفحه را یکجا دارند.\n۴) بعد از خواندن فقط یک بار «✅ انجام دادم» را بزنید؛ تأیید دوم لازم نیست.\n۵) اگر اشتباه زدید، تا پنج دقیقه می‌توانید آخرین ثبت را برگردانید.\n\nبرای ختم آزاد، مقدار انجام‌شده را وارد می‌کنید. در ختم تعهدی می‌توانید مقدار را یک‌جا یا چند مرحله ثبت کنید.",
-        "ar": "📖 عرض الحصة وإتمامها\n\n١) اضغط «📖 إنجاز قراءة اليوم» في القائمة السفلية.\n٢) تحت حصة القرآن اضغط زر عرض المحتوى لتصلك صور الصفحات.\n٣) إذا فعّلت الصوت يصلك تلاوة النطاق نفسه؛ وقد يغطي ملف واحد صفحتين أو ثلاثاً.\n٤) بعد القراءة اضغط «✅ أنجزت» مرة واحدة فقط.\n٥) إذا ضغطت بالخطأ يمكنك التراجع عن آخر تسجيل خلال خمس دقائق.\n\nفي الختمة المفتوحة تُدخل الكمية المنجزة، وفي الملتزمة يمكنك تسجيلها دفعة واحدة أو على مراحل.",
-        "en": "📖 Viewing and completing a portion\n\n1) Tap “📖 Complete today's reading” in the bottom menu.\n2) Under a Quran portion, tap the content button to receive the page images.\n3) If audio is enabled, the matching recitation is sent too; one channel file may cover two or three pages.\n4) After reading, tap “✅ Done” only once.\n5) If you tap by mistake, you can undo the latest completion for five minutes.\n\nFor an open khatm, enter the amount completed. For a commitment khatm, you may record it all at once or in several steps.",
+        "fa": "📖 دیدن و انجام سهم\n\n۱) در منوی پایین «📖 اعلام انجام قرائت امروز» را بزنید.\n۲) زیر سهم قرآن روی «📖 نمایش محتوای سهم» بزنید تا تصویر صفحه‌ها ارسال شود.\n۳) اگر صوت را روشن کرده باشید، تلاوت همان بازه هم می‌آید. بعضی فایل‌های کانال دو یا سه صفحه را یکجا دارند.\n۴) بعد از خواندن فقط یک بار «✅ اعلام انجام قرائت» را بزنید؛ تأیید دوم لازم نیست.\n۵) اگر اشتباه زدید، تا پنج دقیقه می‌توانید آخرین ثبت را برگردانید.\n\nبرای ختم آزاد، مقدار انجام‌شده را وارد می‌کنید. در ختم تعهدی می‌توانید مقدار را یک‌جا یا چند مرحله ثبت کنید.",
+        "ar": "📖 عرض الحصة وإتمامها\n\n١) اضغط «📖 إعلان إنجاز قراءة اليوم» في القائمة السفلية.\n٢) تحت حصة القرآن اضغط زر عرض المحتوى لتصلك صور الصفحات.\n٣) إذا فعّلت الصوت يصلك تلاوة النطاق نفسه؛ وقد يغطي ملف واحد صفحتين أو ثلاثاً.\n٤) بعد القراءة اضغط «✅ إعلان إنجاز القراءة» مرة واحدة فقط.\n٥) إذا ضغطت بالخطأ يمكنك التراجع عن آخر تسجيل خلال خمس دقائق.\n\nفي الختمة المفتوحة تُدخل الكمية المنجزة، وفي الملتزمة يمكنك تسجيلها دفعة واحدة أو على مراحل.",
+        "en": "📖 Viewing and completing a portion\n\n1) Tap “📖 Report Today's Recitation” in the bottom menu.\n2) Under a Quran portion, tap the content button to receive the page images.\n3) If audio is enabled, the matching recitation is sent too; one channel file may cover two or three pages.\n4) After reading, tap “✅ Report reading done” only once.\n5) If you tap by mistake, you can undo the latest completion for five minutes.\n\nFor an open khatm, enter the amount completed. For a commitment khatm, you may record it all at once or in several steps.",
     },
     "help.create": {
         "fa": "➕ ساخت یک ختم جدید\n\n۱) در بات ختم‌ساز «➕ ساخت ختم جدید» را بزنید و در صورت نیاز مشخصات و تأیید شماره را کامل کنید.\n۲) خانوادهٔ محتوا، آزاد یا تعهدی بودن و تنظیم‌های مرتبط را مرحله‌به‌مرحله انتخاب کنید. عنوان مناسب خودکار ساخته می‌شود و با «مرحلهٔ قبل» می‌توانید انتخاب‌ها را اصلاح کنید.\n۳) پیش از ساخت، خلاصه و هزینهٔ نهایی را می‌بینید؛ تا تأیید نهایی چیزی ساخته یا کم نمی‌شود.\n۴) بعد از ساخت، لینک اختصاصی را برای مخاطبانتان بفرستید.\n\nاگر دعای موردنظر در فهرست نیست، «درخواست نوع ختم جدید» را بزنید.",
@@ -723,7 +723,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "🏠 منوی اصلی", "ar": "🏠 القائمة الرئيسية", "en": "🏠 Main menu",
     },
     "commit.regular.done_button": {
-        "fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
+        "fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report reading done",
     },
     "commit.regular.done_confirmed": {
         "fa": "✅ قرائت شما ({count} مرتبه) در سیستم ثبت شد و شما در ثواب این ختم شریک شدید.\n\nبا تشکر 🌱",
@@ -1327,16 +1327,16 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
-    "portions.button.contribute": {"fa": "✅ انجام سهم", "ar": "✅ إنجاز الحصة", "en": "✅ Complete share"},
+    "portions.button.contribute": {"fa": "✅ اعلام انجام سهم", "ar": "✅ إعلان إنجاز الحصة", "en": "✅ Report share done"},
     "portions.button.show_content": {
         "fa": "📖 نمایش محتوای سهم", "ar": "📖 عرض محتوى الحصة", "en": "📖 Show portion content",
     },
-    "portions.button.done": {"fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت", "en": "✅ I did it"},
-    "portions.button.done.quran": {"fa": "✅ قرائت صفحات انجام شد", "ar": "✅ تمّت القراءة", "en": "✅ Pages Read"},
-    "portions.button.done.salawat": {"fa": "✅ صلوات‌ها فرستاده شد", "ar": "✅ تمّت الصلاة", "en": "✅ Salawat Sent"},
-    "portions.button.done.dua": {"fa": "✅ قرائت دعا / زیارت انجام شد", "ar": "✅ تمّت القراءة", "en": "✅ Dua Recited"},
-    "portions.button.done.laan": {"fa": "✅ ذکر لعن انجام شد", "ar": "✅ تمّ الذكر", "en": "✅ La'an Recited"},
-    "portions.button.done.khutbah": {"fa": "✅ استماع / قرائت بخش انجام شد", "ar": "✅ تم الاستماع / القراءة", "en": "✅ Khutbah Completed"},
+    "portions.button.done": {"fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report reading done"},
+    "portions.button.done.quran": {"fa": "✅ اعلام انجام قرائت صفحات", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report pages read"},
+    "portions.button.done.salawat": {"fa": "✅ اعلام انجام صلوات‌ها", "ar": "✅ إعلان إنجاز الصلاة", "en": "✅ Report salawat sent"},
+    "portions.button.done.dua": {"fa": "✅ اعلام انجام قرائت دعا / زیارت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report dua recited"},
+    "portions.button.done.laan": {"fa": "✅ اعلام انجام ذکر لعن", "ar": "✅ إعلان إنجاز الذكر", "en": "✅ Report la'an recited"},
+    "portions.button.done.khutbah": {"fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report recitation done"},
     "portions.button.snooze": {"fa": "⏰ تعویق یادآوری", "ar": "⏰ تأجيل التذكير", "en": "⏰ Snooze reminder"},
     "portions.button.undo": {
         "fa": "↩️ لغو آخرین ثبت (تا ۵ دقیقه)", "ar": "↩️ تراجع عن آخر تسجيل (خلال ۵ دقائق)",
@@ -2645,9 +2645,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "\n🌿 Mode: Open — you have no fixed portion; read as many pages as you want, whenever you want.",
     },
     "join.preview.mode_commitment_quantified": {
-        "fa": "\n🔒 حالت: تعهدی — با عضویت، متعهد می‌شید {count} {unit} انجام بدید.",
-        "ar": "\n🔒 الحالة: ملتزمة — بالانضمام تلتزم بإنجاز {count} {unit}.",
-        "en": "\n🔒 Mode: Commitment — by joining, you pledge to complete {count} {unit}.",
+        "fa": "\n🔒 حالت: تعهدی — هدف کل ختم: {count} {unit} (سهم انتخابی خود را پس از عضویت متعهد می‌شوید).",
+        "ar": "\n🔒 الحالة: ملتزمة — الهدف الكلي للختمة: {count} {unit} (تحدد حصتك وبرنامجك بعد الانضمام).",
+        "en": "\n🔒 Mode: Commitment — Total khatm goal: {count} {unit} (you choose your share and schedule after joining).",
     },
     "join.preview.mode_open_generic": {
         "fa": "\n🌿 حالت: آزاد — هیچ تعهدی نیست؛ هرکس هرچقدر خواست مشارکت می‌کنه.",

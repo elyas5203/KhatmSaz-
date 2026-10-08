@@ -1,3 +1,8 @@
+## 2026-10-08 — Antigravity — Join Preview Total Goal & Completion Reporting Button Renaming
+- **Clarified Commitment Join Preview Total Goal:** Updated `join.preview.mode_commitment_quantified` so that `{count}` is properly presented as the total goal of the khatm («هدف کل ختم: {count} {unit}») rather than asserting each member commits to the entire total.
+- **Renamed Completion Action Button to «اعلام انجام قرائت»:** Changed completion buttons (`portions.button.done*`, `commit.regular.done_button`, `member_copy.py:done_button_label`) to «✅ اعلام انجام قرائت» so users clearly recognize that clicking the button reports/registers their recitation. Renamed `menu.today` to «📖 اعلام انجام قرائت امروز» with backward-compatible button matching in `keyboards.py:TODAY_BUTTON_TEXTS`.
+- **Validation:** 360 unit tests PASS (100% green).
+
 ## 2026-10-08 — Antigravity — Single Section Delivery & Self-Healing for Khutbah Occurrences
 - **Prevent Multi-Part Video Blast:** Fixed `deliver_devotional_media` so when `page_numbers` is omitted and multiple video parts exist, only the first part is sent by default rather than delivering all parts.
 - **Self-Healing Legacy Occurrences & Numeric Commitments:** Added oversized `delivery_components` detection and reset in `occurrence_adapter.py`. Implemented automatic section range calculation and `content_spec` backfill when `ranges` is missing in `occurrence_adapter.py` and `delivery.py:prepare_numeric`.
