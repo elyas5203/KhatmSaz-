@@ -219,7 +219,6 @@ async def main() -> None:
     dp_creator.include_router(my_khatms_router)
     dp_creator.include_router(admin_router)
     dp_creator.include_router(broadcast_router)
-    dp_creator.include_router(manage_content_router)
     dp_creator.include_router(wallet_router)
     dp_creator.include_router(creator_decisions_router)
     dp_creator.include_router(creator_request_router)
@@ -247,6 +246,7 @@ async def main() -> None:
         return getattr(fresh, "router")
 
     _shared_module_paths = [
+        "khatmsaz.bot.handlers.manage_content",
         "khatmsaz.bot.handlers.public_khatms",
         "khatmsaz.bot.handlers.leave",
         "khatmsaz.bot.handlers.join_flow",

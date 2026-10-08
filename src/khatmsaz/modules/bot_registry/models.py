@@ -19,6 +19,7 @@ class BotCategory(str, enum.Enum):
     SALAWAT = "SALAWAT"
     DUA_ZIYARAT = "DUA_ZIYARAT"
     LAAN = "LAAN"
+    KHUTBAH = "KHUTBAH"
 
 
 class BotInstance(Base):

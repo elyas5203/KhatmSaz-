@@ -23,6 +23,9 @@ class _Message:
     async def answer_audio(self, value, **kwargs):
         self.calls.append(("AUDIO", value))
 
+    async def answer_video(self, value, **kwargs):
+        self.calls.append(("VIDEO", value))
+
     async def answer(self, value, **kwargs):
         self.calls.append(("TEXT", value))
 
@@ -38,6 +41,10 @@ async def test_reading_media_is_delivered_image_first_then_pdf(monkeypatch):
     async def audios(*args, **kwargs):
         return []
 
+    async def videos(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(devotional.content_service, "list_devotional_video_pages", videos)
     monkeypatch.setattr(devotional.content_service, "list_devotional_image_pages", images)
     monkeypatch.setattr(devotional.content_service, "get_devotional_pdf", pdf)
     monkeypatch.setattr(devotional.content_service, "list_devotional_audio_variants", audios)
@@ -51,6 +58,29 @@ async def test_reading_media_is_delivered_image_first_then_pdf(monkeypatch):
 
     assert delivered is True
     assert [kind for kind, _ in message.calls] == ["IMAGE", "PDF"]
+
+
+@pytest.mark.asyncio
+async def test_video_media_is_delivered_directly_instead_of_text_audio(monkeypatch):
+    async def videos(*args, **kwargs):
+        return [SimpleNamespace(asset_ref="video-ref-1", page_number=1)]
+
+    async def images(*args, **kwargs):
+        return [SimpleNamespace(asset_ref="image-ref", page_number=1)]
+
+    monkeypatch.setattr(devotional.content_service, "list_devotional_video_pages", videos)
+    monkeypatch.setattr(devotional.content_service, "list_devotional_image_pages", images)
+    message = _Message()
+    asset = SimpleNamespace(title="خطبه فدکیه", image_ref=None, image_platform=None, audio_ref=None, audio_platform=None)
+
+    delivered = await devotional.deliver_devotional_media(
+        object(), message, slug="khutbah-fadakiah", asset=asset,
+        platform=Platform.TELEGRAM, lang="fa",
+    )
+
+    assert delivered is True
+    assert [kind for kind, _ in message.calls] == ["VIDEO"]
+
 
 
 @pytest.mark.asyncio

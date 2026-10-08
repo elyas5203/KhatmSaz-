@@ -189,6 +189,7 @@ def completion_text(
         "dua": "قرائت شد",
         "ziyarat": "قرائت شد",
         "laan": "ذکر شد",
+        "khutbah": "قرائت شد",
     }
     verb = verbs.get(family, "انجام شد")
     res = (

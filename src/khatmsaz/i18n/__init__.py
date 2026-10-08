@@ -788,6 +788,15 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "يدخل جمهورك إلى بوت «ختمة اللعن لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “La'an Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
+    "intro.image_caption.KHUTBAH": {
+        "fa": (
+            "مخاطبان شما وارد بات «ختم خطبه برای صاحب‌الزمان» می‌شوند.\n"
+            "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
+        ),
+        "ar": "يدخل جمهورك إلى بوت «ختمة الخطبة لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
+        "en": "Your audience enters the “Khutbah Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
+    },
     "reminder.regular_commitment": {
         "fa": "🌱 وقت خواندن سهم شما از «{title}» است: {count} مرتبه.",
         "ar": "🌱 حان وقت قراءة نصيبك من «{title}»: {count} مرة.",
@@ -2602,6 +2611,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "join.preview.type_salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "join.preview.type_dua": {"fa": "دعا یا زیارت", "ar": "دعاء أو زيارة", "en": "Dua or Ziyarat"},
     "join.preview.type_laan": {"fa": "لعن", "ar": "لعن", "en": "La'an"},
+    "join.preview.type_khutbah": {"fa": "خطبه", "ar": "خطبة", "en": "Khutbah"},
     "join.preview.type_line": {
         "fa": "\n{icon} نوع ختم: {type}", "ar": "\n{icon} نوع الختمة: {type}", "en": "\n{icon} Khatm type: {type}",
     },

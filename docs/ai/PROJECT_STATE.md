@@ -1,3 +1,50 @@
+## Current state — 2026-10-08 — Khutbah 5-Part Video Delivery & Dua-Ziyarat Bot Routing [Antigravity]
+- **Khutbah Bot Routing Bound to Dua & Ziyarat:**
+  - Implemented user directive: «بات ارسال خطبه فدک بات دعا و زیارته».
+  - In `src/khatmsaz/modules/bot_registry/service.py:resolve_bot_category` and `create_khatm.py:_bot_category_for`: Khutbah khatms route to `BotCategory.DUA_ZIYARAT`, utilizing the existing Dua/Ziyarat member bot without creating an additional bot instance in Telegram.
+- **Video Delivery Support (Direct Replacement for Text & Audio):**
+  - Added full support for `VIDEO` media kind in `content/service.py` (`list_devotional_video_pages`, `add_devotional_video_page`, `append_devotional_media_from_message`).
+  - In `devotional.py:deliver_devotional_media`: When video clips are present for a devotional asset (such as Khutbah Fadakiah), the bot delivers the video clips directly (via `answer_video` / `BufferedInputFile` or channel forwards). As requested by user («بجای متن و فایل و صوت همین ویدیو براشون ارسال بشه»), text, PDF, and audio are bypassed when videos are available.
+- **Admin In-Bot Video Upload & Reply Shortcut:**
+  - Shared `manage_content` router across both `dp_creator` and `dp_member` dispatchers in `bootstrap.py`.
+  - Added direct command `/set_video <slug> [part] [optional_link]` and `/add_video` in `manage_content.py`. Admins can simply reply to any video or forward with `/set_video khutbah-fadakiah 1` (up to 5), or provide channel links like `https://t.me/khedmatgozaran_group/25286`.
+- **Khutbah Fadakiah 5-Part Canonical Restructuring:**
+  - Updated `scripts/register_khutbah_fadakiah.py` to reflect the 5 canonical sections matching the Khedmatgozaran video series (parts 1 through 5).
+- **Automated Validation:** 349 passed, 230 skipped in 12.21s (100% green).
+
+## Current state — 2026-10-08 — Master Audit V3 Bugs Resolved & Khutbah Fadakiah Seeded [Antigravity]
+- **All 9 Audit Ledger Bugs Fully Resolved:**
+  1. **Bug 1 (Fixed Navigation Deadlock):** Added `@router.message(F.text.in_(BACK_TO_MAIN_BUTTON_TEXTS))` in `src/khatmsaz/bot/handlers/panel.py` routing directly to `creator_menu_keyboard(lang)`.
+  2. **Bug 2 (Removed Creator Role Gate):** Dropped restrictive `user.role` gate across `panel.py` and `creator_broadcast.py` to allow new creators immediate access to creator menus as mandated by A5.
+  3. **Bug 3 (Khutbah Multi-Bot Infrastructure):** Added `BotCategory.KHUTBAH` in `bot_registry/models.py`, `bot_registry/service.py`, and `keyboards.py`, preventing Khutbah khatms from falling back to Salawat bots.
+  4. **Bug 4 (Creator Panel Inline Report Button):** Changed callback in `panel.py:146-155` from member's `personal_report` to `creator_finance_report_entry`.
+  5. **Bug 5 (Cleaned Visibility & Tone Steps):** Separated `_ask_reminder_tone` and `_show_visibility_step` in `create_khatm.py`; pressing «مرحله قبل» in `choosing_visibility` now goes directly back to reminder tone selection.
+  6. **Bug 6 (Khutbah Fadakiah Seeded):** Created `scripts/register_khutbah_fadakiah.py` registering all 8 canonical sections of Khutbah Fadakiah, linked audio media slots, and active category in `khatm_categories`. Added `KHUTBAH` to `DEVOTIONAL_TYPES` in `content/service.py`.
+  7. **Bug 7 (Khutbah Join Preview):** Added `KHUTBAH` type label and `📜` icon mapping in `start.py:124-135` and `join.preview.type_khutbah` in `i18n/__init__.py`.
+  8. **Bug 8 (Khutbah Completion Verb):** Added `"khutbah": "قرائت شد"` to `verbs` in `src/khatmsaz/bot/member_copy.py:186-193`.
+  9. **Bug 9 (Khutbah Web Intro Image & Captions):** Added `khutbah` field to web panel `/bots` in `web/app.py:2760, 2788` and `web/templates/bot_tokens.html`, along with `intro.image_caption.KHUTBAH` in `i18n/__init__.py`.
+- **Automated Tests:** 347 passed, 230 skipped in 17.13s (0 failures).
+
+## Current state — 2026-10-08 — Master System Audit Report V3 Completed (No Code Changes) [Antigravity]
+- **Zero-Code Full-System Audit Completed:** Conducted comprehensive 100% Persian-focused audit across creator bot, member bots, admin web panel, routing dispatchers, database models, and copy. Adhered strictly to owner's constraint: no code modified, purely analytical audit.
+- **Master Report Documented:** Created `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` detailing:
+  1. Plain-Persian explanation of delivery mechanics across all 5 families (Quran, Khutbah, Dua/Ziyarat, Salawat, La'an).
+  2. Step-by-step instructions for placing and activating Khutbah audio files and texts (plug-and-play analogy).
+  3. Identified 3 Critical Bugs:
+     - Dead button «🔙 بازگشت به منوی اصلی» across 3 creator submenus (`src/khatmsaz/bot/keyboards.py:160, 172, 183`) due to missing router handler.
+     - New creators blocked on menu buttons due to obsolete `UserRole.CREATOR` check (`panel.py:55, 66, 82`, `creator_broadcast.py:57`), violating OWNER_SPEC_MASTER A5.
+     - Khutbah category unmapped in `BotCategory` and `resolve_bot_category` (`bot_registry/`), falling back to Salawat bot.
+  4. Identified 3 High-Priority Bugs:
+     - Inline creator report button calling member's `personal_report` instead of `creator_finance_report_entry` (`panel.py:136-145`).
+     - Back button looping on `choosing_visibility` (`create_khatm.py:1767-1768`).
+     - Empty Khutbah categories in database requiring seed script.
+  5. Identified 3 Medium Bugs:
+     - Missing Khutbah label in join preview (`start.py:124-128`).
+     - Missing Khutbah verb in completion text (`member_copy.py:186-193`).
+     - Missing Khutbah intro image configuration in admin web panel (`web/app.py:2760, 2788`).
+  6. Verified 100% compliance on copy sanitization: «فلانی» completely eliminated, «شرعی» completely eliminated, «(عج)» expanded, non-Persian languages hidden.
+- **Validation:** Test suite baseline confirmed: 344 passed non-integration tests in 22.04s.
+
 ## Current state — 2026-10-08 — V3 Wizard Step-by-Step Back Navigation & Khutbah Integration [Antigravity]
 - **Previous Step Navigation Bug Resolved (P1):** Fixed critical navigation bug where pressing «مرحله قبل» (`ck:back`) jumped back to the first step (`choosing_template`). Implemented comprehensive step-by-step reverse FSM routing across all wizard states (`confirming` -> `choosing_visibility` -> `choosing_reminder_tone` -> target/policy/fixed daily -> `entering_creator_contact` -> `entering_welcome` -> `entering_niyyat` -> `choosing_mode` -> category -> template -> cancel).
 - **Khutbah Family Activated (P3):** Added «📜 ختم خطبه‌ها» (`ck:group:KHUTBAH`) to `template_choice_keyboard`. Added `KhatmCategoryGroup.KHUTBAH` in domain models, web admin panel, and `i18n` strings with support for sequential parts, audio files, and cycling.

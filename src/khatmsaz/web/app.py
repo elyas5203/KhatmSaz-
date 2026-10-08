@@ -2757,7 +2757,7 @@ async def bots_page(request: Request, platform: str = "TELEGRAM"):
         all_bots = await bot_registry_service.list_all_instances(session)
         family_intro_images = {
             key: await system_settings_service.get_str(session, f"intro_image_{key}")
-            for key in ("quran", "salawat", "dua_ziyarat", "laan")
+            for key in ("quran", "salawat", "dua_ziyarat", "laan", "khutbah")
         }
     filtered = [b for b in all_bots if b.platform == platform]
     needs_restart = any(
@@ -2786,13 +2786,20 @@ async def bots_page(request: Request, platform: str = "TELEGRAM"):
 async def save_family_intro_images(
     request: Request, csrf: str = Form(...), quran: str = Form(""),
     salawat: str = Form(""), dua_ziyarat: str = Form(""), laan: str = Form(""),
+    khutbah: str = Form(""),
 ):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    values = {"quran": quran, "salawat": salawat, "dua_ziyarat": dua_ziyarat, "laan": laan}
+    values = {
+        "quran": quran,
+        "salawat": salawat,
+        "dua_ziyarat": dua_ziyarat,
+        "laan": laan,
+        "khutbah": khutbah,
+    }
     async with session_scope() as session:
         try:
             for key, value in values.items():

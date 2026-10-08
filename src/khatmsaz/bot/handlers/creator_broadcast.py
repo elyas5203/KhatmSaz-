@@ -54,11 +54,6 @@ async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> 
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-            await message.answer("شما دسترسی سازنده ندارید.")
-            if callback:
-                await safe_answer_callback(callback)
-            return
         khatms = [k for k in await khatm_service.list_my_created(session, user.id) if k.status == KhatmStatus.ACTIVE]
 
     await state.update_data(creator_id=str(user.id), platform=platform.value)

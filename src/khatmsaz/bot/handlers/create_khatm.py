@@ -120,7 +120,7 @@ def _bot_category_for(template_type: str, category_group: str | None) -> str:
         return BotCategory.QURAN.value
     if category_group == KhatmCategoryGroup.LAAN.value:
         return BotCategory.LAAN.value
-    if category_group in (KhatmCategoryGroup.DUA.value, KhatmCategoryGroup.KHUTBAH.value):
+    if category_group in (KhatmCategoryGroup.KHUTBAH.value, KhatmCategoryGroup.DUA.value):
         return BotCategory.DUA_ZIYARAT.value
     return BotCategory.SALAWAT.value
 
@@ -1055,7 +1055,7 @@ async def _after_commitment_policy(message: Message, state: FSMContext) -> None:
     # Owner request (2026-10-06, V3): daily deadline hour question removed.
     # Defaults to 24 (end of day).
     await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
@@ -1159,7 +1159,7 @@ async def enter_open_target(message: Message, state: FSMContext) -> None:
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
         await _show_confirmation(message, state, platform=platform, platform_subject=str(message.from_user.id))
         return
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.message(StateFilter(CreateKhatm.entering_commitment_quantity))
@@ -1174,7 +1174,7 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
     # Owner (2026-09-28): drop the capacity question entirely — it's an
     # unnecessary extra step; khatms are unlimited by default.
     await state.update_data(salawat_commitment_quantity=int(raw), capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.callback_query(F.data.startswith("ck:edition:"), StateFilter(CreateKhatm.choosing_edition))
@@ -1194,7 +1194,7 @@ async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1207,7 +1207,7 @@ async def choose_content_delivery_mode(callback: CallbackQuery, state: FSMContex
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1222,14 +1222,14 @@ async def enter_deadline_hour(message: Message, state: FSMContext) -> None:
         return
     # Owner (2026-09-28): capacity question removed (unnecessary step).
     await state.update_data(daily_deadline_hour=int(raw), capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.callback_query(F.data == "ck:capacity:unlimited", StateFilter(CreateKhatm.choosing_capacity_mode))
 async def choose_unlimited_capacity(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(capacity=None)
     await safe_clear_inline_keyboard(callback.message)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1255,10 +1255,10 @@ async def enter_capacity_number(message: Message, state: FSMContext) -> None:
         await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     await state.update_data(capacity=int(raw))
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
-async def _ask_visibility(message: Message, state: FSMContext) -> None:
+async def _ask_reminder_tone(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     data = await state.get_data()
     group = data.get("category_group")
@@ -1268,6 +1268,8 @@ async def _ask_visibility(message: Message, state: FSMContext) -> None:
         share = "صلوات‌های امروز"
     elif group == KhatmCategoryGroup.LAAN.value:
         share = "ذکر لعن امروز"
+    elif group == KhatmCategoryGroup.KHUTBAH.value:
+        share = "خطبه امروز"
     else:
         share = "زیارت امروز" if "زیارت" in (data.get("content_category_title") or "") else "دعای امروز"
     await state.set_state(CreateKhatm.choosing_reminder_tone)
@@ -1275,6 +1277,21 @@ async def _ask_visibility(message: Message, state: FSMContext) -> None:
         message, state,
         t("create_khatm.ask_reminder_tone", lang, share=share),
         reply_markup=reminder_tone_keyboard(lang),
+    )
+
+
+async def _ask_visibility(message: Message, state: FSMContext) -> None:
+    """Pre-visibility routing: enters reminder tone step first."""
+    await _ask_reminder_tone(message, state)
+
+
+async def _show_visibility_step(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_visibility)
+    await _wiz(
+        message, state,
+        t("create_khatm.ask_visibility", lang),
+        reply_markup=visibility_choice_keyboard(lang),
     )
 
 
@@ -1296,11 +1313,7 @@ async def choose_reminder_tone(callback: CallbackQuery, state: FSMContext) -> No
     # رو اشتباه فهمیدی، بعداً توضیح میدم." Defaults to off; the owner
     # will describe the intended logic separately before this gets
     # rebuilt properly, rather than guessing at it now.
-    await state.set_state(CreateKhatm.choosing_visibility)
-    await _wiz(
-        callback.message, state,
-        t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang)
-    )
+    await _show_visibility_step(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1563,11 +1576,9 @@ async def handle_edit_field_choice(callback: CallbackQuery, state: FSMContext) -
             return
         await _after_start_schedule(callback.message, state)
     elif field == "tone":
-        await state.set_state(CreateKhatm.choosing_reminder_tone)
-        await _wiz(callback.message, state, t("create_khatm.ask_reminder_tone", lang, share="امروز"), reply_markup=reminder_tone_keyboard(lang))
+        await _ask_reminder_tone(callback.message, state)
     elif field == "visibility":
-        await state.set_state(CreateKhatm.choosing_visibility)
-        await _wiz(callback.message, state, t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang))
+        await _show_visibility_step(callback.message, state)
     else:
         await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
     await safe_answer_callback(callback)
@@ -1765,13 +1776,9 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
             else:
                 await _ask_commitment_policy(message, state)
     elif current == CreateKhatm.choosing_visibility.state:
-        await _ask_visibility(message, state)
+        await _ask_reminder_tone(message, state)
     elif current == CreateKhatm.confirming.state:
-        await state.set_state(CreateKhatm.choosing_visibility)
-        await _wiz(
-            message, state, t("create_khatm.ask_visibility", lang),
-            reply_markup=visibility_choice_keyboard(lang),
-        )
+        await _show_visibility_step(message, state)
     elif current in {CreateKhatm.entering_coupon.state, CreateKhatm.editing_title.state}:
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
         await _show_confirmation(

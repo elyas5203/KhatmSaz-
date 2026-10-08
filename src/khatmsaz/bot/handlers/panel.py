@@ -1,6 +1,13 @@
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
-from khatmsaz.bot.keyboards import creator_finance_keyboard, main_menu_keyboard
+from khatmsaz.bot.keyboards import (
+    BACK_TO_MAIN_BUTTON_TEXTS,
+    creator_finance_keyboard,
+    creator_management_keyboard,
+    creator_menu_keyboard,
+    creator_support_keyboard,
+    main_menu_keyboard,
+)
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t, variants
 from khatmsaz.modules.identity import service as identity_service
@@ -49,11 +56,17 @@ def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
         ]
     )
 
+@router.message(F.text.in_(BACK_TO_MAIN_BUTTON_TEXTS))
+async def handle_back_to_main_menu(message: Message) -> None:
+    user, lang = await _get_context(message)
+    await message.answer(
+        "به منوی اصلی بازگشتید 🌱",
+        reply_markup=creator_menu_keyboard(lang),
+    )
+
 @router.message(F.text.in_(variants("menu.creator.management")))
 async def handle_creator_management(message: Message) -> None:
     user, lang = await _get_context(message)
-    if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-        return
     await message.answer(
         "🎛 <b>پنل مدیریت سازنده</b>\n\nلطفاً یکی از بخش‌های زیر را انتخاب کنید:",
         reply_markup=creator_panel_keyboard(lang)
@@ -63,8 +76,6 @@ async def handle_creator_management(message: Message) -> None:
 async def handle_creator_finance(message: Message) -> None:
     """Open the finance submenu instead of confusing it with one report."""
     user, lang = await _get_context(message)
-    if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-        return
     await message.answer(
         t("creator.finance.menu_intro", lang),
         reply_markup=creator_finance_keyboard(lang),
@@ -79,18 +90,18 @@ async def handle_creator_wallet(message: Message) -> None:
     `handlers/wallet.py`; before this button it was only reachable via the
     `/wallet` command, so creators had no tap-only entry (owner request)."""
     user, _lang = await _get_context(message)
-    if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-        return
     from khatmsaz.bot.handlers.wallet import _show_wallet
     await _show_wallet(message)
 
 
 @router.message(F.text.in_(variants("menu.creator.support")))
 async def handle_creator_support(message: Message) -> None:
-    """«❓ راهنما و پشتیبانی» reply button had no handler either — route it to
-    the help home, which already offers the contact-support entry."""
-    from khatmsaz.bot.handlers.help import help_command
-    await help_command(message)
+    """«❓ راهنما و پشتیبانی» reply button — open support submenu."""
+    user, lang = await _get_context(message)
+    await message.answer(
+        "❓ <b>راهنما و پشتیبانی</b>\n\nبرای دریافت راهنمایی یا ارتباط با مدیریت، یکی از گزینه‌ها را انتخاب کنید:",
+        reply_markup=creator_support_keyboard(lang),
+    )
 
 
 @router.message(F.text.in_(variants("help.button.admin_panel")))
@@ -135,13 +146,13 @@ async def handle_creator_panel_broadcast(callback: CallbackQuery, state: FSMCont
 
 @router.callback_query(F.data == "creator_panel:finance")
 async def handle_creator_panel_finance(callback: CallbackQuery) -> None:
-    """Open the real personal report instead of a "coming soon" dead-end."""
+    """Open the real creator report instead of member personal report."""
     try:
         await callback.message.delete()
     except Exception:
         pass
-    from khatmsaz.bot.handlers.report import personal_report
-    await personal_report(callback.message)
+    from khatmsaz.bot.handlers.report import creator_finance_report_entry
+    await creator_finance_report_entry(callback.message)
     await callback.answer()
 
 @router.callback_query(F.data == "creator_panel:wallet")

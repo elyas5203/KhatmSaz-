@@ -1103,7 +1103,7 @@ import base64
 import uuid
 
 _JOIN_ROUTE_PLATFORMS = ("TELEGRAM", "BALE")
-_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN")
+_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN", "KHUTBAH")
 _JOIN_ROUTE_LANGUAGES = ("fa", "ar", "en")
 
 
@@ -1115,9 +1115,11 @@ def _join_route_byte(bot) -> int | None:
     language = getattr(bot, "khatmsaz_language", None)
     if platform not in _JOIN_ROUTE_PLATFORMS or category not in _JOIN_ROUTE_CATEGORIES or language not in _JOIN_ROUTE_LANGUAGES:
         return None
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
     index = (
-        _JOIN_ROUTE_PLATFORMS.index(platform) * 12
-        + _JOIN_ROUTE_CATEGORIES.index(category) * 3
+        _JOIN_ROUTE_PLATFORMS.index(platform) * stride_platform
+        + _JOIN_ROUTE_CATEGORIES.index(category) * stride_category
         + _JOIN_ROUTE_LANGUAGES.index(language)
     )
     return index + 1
@@ -1148,10 +1150,13 @@ def unpack_join_callback_route(data: str) -> tuple[str, str, str] | None:
     if len(raw) < 33 or raw[32] == 0:
         return None
     index = raw[32] - 1
-    if index >= len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES):
+    total_slots = len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    if index >= total_slots:
         return None
-    platform_index, remainder = divmod(index, 12)
-    category_index, language_index = divmod(remainder, 3)
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
+    platform_index, remainder = divmod(index, stride_platform)
+    category_index, language_index = divmod(remainder, stride_category)
     return (
         _JOIN_ROUTE_PLATFORMS[platform_index],
         _JOIN_ROUTE_CATEGORIES[category_index],

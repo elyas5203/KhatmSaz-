@@ -124,12 +124,14 @@ def build_join_preview_message(
         type_key = {
             "DUA": "join.preview.type_dua",
             "LAAN": "join.preview.type_laan",
+            "KHUTBAH": "join.preview.type_khutbah",
         }.get(category_group or "SALAWAT", "join.preview.type_salawat")
+        icon = "📜" if (category_group or "") == "KHUTBAH" else "📿"
         type_label = t(type_key, lang)
         if category_title:
-            text += t("join.preview.type_line_with_category", lang, icon="📿", type=type_label, category=escape(category_title))
+            text += t("join.preview.type_line_with_category", lang, icon=icon, type=type_label, category=escape(category_title))
         else:
-            text += t("join.preview.type_line", lang, icon="📿", type=type_label)
+            text += t("join.preview.type_line", lang, icon=icon, type=type_label)
         if _is_commitment(khatm):
             if khatm.repetition_target:
                 unit = t("create_khatm.unit.salawat", lang) if (category_group or "SALAWAT") == "SALAWAT" else t("create_khatm.unit.time", lang)
