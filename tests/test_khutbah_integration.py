@@ -336,12 +336,42 @@ def test_khutbah_commitment_preview_states_total_goal_not_per_member():
 
 
 def test_done_button_label_returns_report_recitation():
+    from types import SimpleNamespace
     from khatmsaz.bot.member_copy import done_button_label
+    from khatmsaz.bot.occurrence_adapter import keyboard
 
+    # Fallback labels when no share details are passed
     assert done_button_label("khutbah", "fa") == "✅ اعلام انجام قرائت"
     assert done_button_label("quran", "fa") == "✅ اعلام انجام قرائت"
     assert done_button_label("dua", "fa") == "✅ اعلام انجام قرائت دعا"
 
+    # Customized dynamic labels when share details are passed
+    assert done_button_label("quran", "fa", start=124, end=126) == "✅ اعلام ثبت قرائت صفحه 124 تا 126"
+    assert done_button_label("quran", "fa", start=124, end=124) == "✅ اعلام ثبت قرائت صفحه 124"
+    assert done_button_label("salawat", "fa", count=100) == "✅ اعلام ثبت قرائت 100 صلوات"
+    assert (
+        done_button_label("khutbah", "fa", start=3, end=4, title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
+        == "✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه"
+    )
+    assert (
+        done_button_label("khutbah", "fa", start=3, end=3, title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
+        == "✅ اعلام ثبت قرائت بخش 3 خطبه فدکیه"
+    )
+    assert (
+        done_button_label("khutbah", "fa", start=1, end=3, title="ختم خطبه غدیریه")
+        == "✅ اعلام ثبت قرائت بخش 1 تا 3 خطبه غدیریه"
+    )
+    assert done_button_label("ziyarat", "fa", count=1, title="ختم زیارت عاشورا") == "✅ اعلام ثبت قرائت زیارت عاشورا"
+    assert done_button_label("dua", "fa", count=3, title="ختم دعای عهد") == "✅ اعلام ثبت قرائت 3 مرتبه دعای عهد"
+    assert done_button_label("laan", "fa", count=100) == "✅ اعلام ثبت قرائت 100 مرتبه ذکر لعن"
 
-
-
+    # Verify occurrence_adapter.keyboard builds dynamic button text from occurrence + khatm
+    occ_khutbah = SimpleNamespace(
+        id=uuid4(),
+        unit="COUNT",
+        amount=2,
+        content_spec={"family": "khutbah", "language": "fa", "ranges": [[3, 4]]},
+    )
+    khatm_khutbah = SimpleNamespace(title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
+    kb = keyboard(occ_khutbah, khatm_khutbah)
+    assert kb.inline_keyboard[0][0].text == "✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه"

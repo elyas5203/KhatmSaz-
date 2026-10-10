@@ -640,10 +640,14 @@ async def complete_share(callback: CallbackQuery) -> None:
     await safe_answer_callback(callback, "✅ انجام این سهم ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
     if changed:
         from khatmsaz.bot.member_copy import completion_text, share_label
-        family = occurrence.content_spec.get("family", "salawat")
-        lang = occurrence.content_spec.get("language", "fa")
+        spec = occurrence.content_spec or {}
+        family = spec.get("family") or ("quran" if getattr(occurrence, "unit", None) == "PAGE" else "salawat")
+        lang = spec.get("language", "fa")
+        start = end = None
+        if spec.get("ranges"):
+            start, end = spec["ranges"][0][0], spec["ranges"][-1][1]
         await callback.message.answer(completion_text(khatm, family,
-            share_label(family, count=occurrence.amount, lang=lang), lang=lang))
+            share_label(family, count=occurrence.amount, start=start, end=end, lang=lang), lang=lang))
 
 
 @router.callback_query(F.data.startswith("legacy_share_done:"))

@@ -14,15 +14,21 @@ from khatmsaz.modules.share_occurrence import repository, service
 from khatmsaz.i18n import t
 
 
-def keyboard(occurrence):
+def keyboard(occurrence, khatm=None):
     from khatmsaz.bot.member_copy import done_button_label
     spec = occurrence.content_spec or {}
     family = spec.get("family")
     if not family:
         family = "quran" if getattr(occurrence, "unit", None) == "PAGE" else "salawat"
     lang = spec.get("language", "fa")
+    ranges = spec.get("ranges")
+    amount = getattr(occurrence, "amount", None)
+    title = getattr(khatm, "title", None) or spec.get("title")
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=done_button_label(family, lang), callback_data=f"share_done:{occurrence.id}",
+        text=done_button_label(
+            family, lang, count=amount, ranges=ranges, title=title,
+        ),
+        callback_data=f"share_done:{occurrence.id}",
     )]])
 
 
@@ -73,7 +79,7 @@ async def send_control(session, part, khatm, occurrence, purpose, *, now):
         text += "\n" + t("share.deadline", occurrence.content_spec.get("language", "fa"))
     elif purpose == "RESERVATION_WARNING":
         text += "\n" + t("portions.open_reservation_warning", occurrence.content_spec.get("language", "fa"), count=occurrence.amount)
-    msg = await bot.send_message(chat_id=chat, text=text, reply_markup=keyboard(occurrence))
+    msg = await bot.send_message(chat_id=chat, text=text, reply_markup=keyboard(occurrence, khatm))
     await service.record_message(session, occurrence_id=occurrence.id, bot_instance_id=occurrence.bot_instance_id,
         component_key=purpose, purpose="FOLLOWUP" if purpose == "RESERVATION_WARNING" else purpose, chat_id=str(chat), message_id=msg.message_id, sent_at=now)
     return True
@@ -93,6 +99,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         settings = await settings_service.get_or_create(session, part.user_id)
         occurrence.content_spec = {**occurrence.content_spec,
             "family": await content_family(session, khatm),
+            "title": getattr(khatm, "title", None),
             "language": getattr(bot, "khatmsaz_language", None) or settings.language}
     components = components or []
     async def collect(method, **kwargs):

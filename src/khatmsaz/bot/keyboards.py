@@ -704,10 +704,14 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def portion_done_keyboard(
     khatm_id: str, *, family: str | None = None, allow_snooze: bool = True, undo_completed_id: str | None = None,
     undo_next_id: str | None = None, lang: str = "fa",
+    start: int | None = None, end: int | None = None, count: int | None = None, title: str | None = None,
 ) -> InlineKeyboardMarkup:
     """For a portion that's still PENDING (not completed yet) — shows the
     content + "done" buttons. Tailors the "done" label to the devotional family."""
-    if family == "salawat":
+    if start is not None or end is not None or count is not None or title is not None:
+        from khatmsaz.bot.member_copy import done_button_label
+        done_text = done_button_label(family or "quran", lang, count=count, start=start, end=end, title=title)
+    elif family == "salawat":
         done_text = t("portions.button.done.salawat", lang)
     elif family in ("dua", "ziyarat"):
         done_text = t("portions.button.done.dua", lang)
@@ -889,10 +893,18 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
     )
 
 
-def regular_commitment_done_keyboard(pid: str, lang: str = "fa", family: str | None = None) -> InlineKeyboardMarkup:
+def regular_commitment_done_keyboard(
+    pid: str, lang: str = "fa", family: str | None = None,
+    *, count: int | None = None, start: int | None = None, end: int | None = None, title: str | None = None,
+) -> InlineKeyboardMarkup:
     """One-tap completion for the concrete REGULAR occurrence just sent."""
     from khatmsaz.bot.member_copy import done_button_label
-    btn_text = done_button_label(family, lang) if family else t("commit.regular.done_button", lang)
+    has_details = any(x is not None for x in (count, start, end)) or bool(title)
+    btn_text = (
+        done_button_label(family, lang, count=count, start=start, end=end, title=title)
+        if (family or has_details)
+        else t("commit.regular.done_button", lang)
+    )
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
         text=btn_text, callback_data=f"regular_done:{pid}"
     )]])

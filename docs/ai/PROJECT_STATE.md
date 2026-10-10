@@ -1,3 +1,15 @@
+## Current state — 2026-10-10 — Dynamic Share-Aware Completion Button Labels («اعلام ثبت قرائت ...») [Antigravity]
+- **Customized Dynamic Inline Button (`done_button_label` & `occurrence_adapter.keyboard`):**
+  - Enhanced `member_copy.py:done_button_label` and `_clean_khatm_title` to generate share-specific, family-aware inline button labels whenever share details (`count`, `start`, `end`, `ranges`, `title`) are provided, while preserving static fallback labels when called without share details:
+    - **Quran (`quran`):** `✅ اعلام ثبت قرائت صفحه 124 تا 126` (or `✅ اعلام ثبت قرائت صفحه 124` for a single page).
+    - **Salawat (`salawat`):** `✅ اعلام ثبت قرائت 100 صلوات`.
+    - **Khutbah (`khutbah`):** `✅ اعلام ثبت قرائت بخش 3 خطبه فدکیه` (single section), `✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه` (two consecutive sections), or `✅ اعلام ثبت قرائت بخش 1 تا 3 خطبه فدکیه` (range).
+    - **Dua & Ziyarat (`dua`, `ziyarat`):** `✅ اعلام ثبت قرائت زیارت عاشورا` (single) or `✅ اعلام ثبت قرائت 3 مرتبه دعای عهد` (multiple).
+    - **La'an (`laan`):** `✅ اعلام ثبت قرائت 100 مرتبه ذکر لعن`.
+  - Wired `count`, `ranges`/`start`/`end`, and `khatm.title` through `occurrence_adapter.py` (`keyboard`, `send_control`, `deliver_occurrence`), `keyboards.py` (`portion_done_keyboard`, `regular_commitment_done_keyboard`), `handlers/report.py`, `handlers/member_commitment.py` (`complete_share`), and `reminder_engine/service.py`.
+- **Master Documentation Alignment:** Updated `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` §2.1 to document the exact dynamic button patterns per content family.
+- **Validation:** 33 targeted tests in `test_khutbah_integration.py`, `test_member_copy.py`, and `test_member_commitment_flow.py` PASS (100% green).
+
 ## Current state — 2026-10-08 — Join Preview Total Goal & Completion Reporting Button Renaming [Antigravity]
 - **Clarified Commitment Join Preview Total Goal:**
   - Resolved confusing copy in `join.preview.mode_commitment_quantified` which previously said «با عضویت، متعهد می‌شید {count} {unit} انجام بدید».

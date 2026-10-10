@@ -1,3 +1,9 @@
+## 2026-10-10 — Antigravity — Dynamic Share-Aware Completion Button Labels («اعلام ثبت قرائت ...»)
+- **Dynamic Per-Share & Per-Khatm Action Buttons:** Updated `member_copy.py:done_button_label`, `occurrence_adapter.py:keyboard`, `keyboards.py` (`portion_done_keyboard`, `regular_commitment_done_keyboard`), `handlers/report.py`, `handlers/member_commitment.py`, and `reminder_engine/service.py` so the completion button beneath delivered shares dynamically displays the exact pages, count, or section + khatm title (e.g. `✅ اعلام ثبت قرائت صفحه 124 تا 126`, `✅ اعلام ثبت قرائت 100 صلوات`, `✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه`, `✅ اعلام ثبت قرائت زیارت عاشورا`).
+- **Range-Aware Completion Confirmation:** Updated `member_commitment.py:complete_share` to pass `start` and `end` from `occurrence.content_spec["ranges"]` to `share_label`, ensuring Quran and Khutbah completion messages cite the exact page/section range completed.
+- **Master Audit Documentation:** Updated `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` §2.1 with the dynamic button specifications.
+- **Validation:** 33 targeted tests PASS.
+
 ## 2026-10-08 — Antigravity — Join Preview Total Goal & Completion Reporting Button Renaming
 - **Clarified Commitment Join Preview Total Goal:** Updated `join.preview.mode_commitment_quantified` so that `{count}` is properly presented as the total goal of the khatm («هدف کل ختم: {count} {unit}») rather than asserting each member commits to the entire total.
 - **Renamed Completion Action Button to «اعلام انجام قرائت»:** Changed completion buttons (`portions.button.done*`, `commit.regular.done_button`, `member_copy.py:done_button_label`) to «✅ اعلام انجام قرائت» so users clearly recognize that clicking the button reports/registers their recitation. Renamed `menu.today` to «📖 اعلام انجام قرائت امروز» with backward-compatible button matching in `keyboards.py:TODAY_BUTTON_TEXTS`.

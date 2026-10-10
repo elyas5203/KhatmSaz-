@@ -288,7 +288,10 @@ async def deliver_due_next_portions(
                             from khatmsaz.bot.keyboards import portion_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
                                 session, participation.user_id, text,
-                                portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language),
+                                portion_done_keyboard(
+                                    str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                                    lang=user_settings.language, start=latest_portion.unit_start, end=latest_portion.unit_end,
+                                ),
                                 bot_instance_id=participation.joined_via_bot_instance_id,
                             )
                             if delivered_now:
@@ -313,7 +316,8 @@ async def deliver_due_next_portions(
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
             portion_done_keyboard(
-                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language,
+                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                lang=user_settings.language, start=next_portion.unit_start, end=next_portion.unit_end,
             ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
@@ -479,7 +483,10 @@ async def deliver_due_regular_commitments(
                             from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
                                 session, participation.user_id, text,
-                                regular_commitment_done_keyboard(str(participation.id), user_settings.language),
+                                regular_commitment_done_keyboard(
+                                    str(participation.id), user_settings.language, family=family,
+                                    count=count, title=khatm.title,
+                                ),
                                 bot_instance_id=participation.joined_via_bot_instance_id,
                             )
                             if delivered_now:
@@ -510,7 +517,10 @@ async def deliver_due_regular_commitments(
         from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
-            regular_commitment_done_keyboard(str(participation.id), user_settings.language),
+            regular_commitment_done_keyboard(
+                str(participation.id), user_settings.language, family=family,
+                count=count, title=khatm.title,
+            ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
         if delivered_now:
@@ -638,7 +648,10 @@ async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_p
         )
         delivered = await _notify_user_with_keyboard(
             session, participation.user_id, text,
-            portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=locale),
+            portion_done_keyboard(
+                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                lang=locale, start=portion.unit_start, end=portion.unit_end,
+            ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
         if delivered:
@@ -673,7 +686,10 @@ async def _maybe_send_staged_reminder(
     from khatmsaz.bot.keyboards import portion_done_keyboard
     delivered = await _notify_user_with_keyboard(
         session, participation.user_id, text,
-        portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=locale),
+        portion_done_keyboard(
+            str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+            lang=locale, start=portion.unit_start, end=portion.unit_end,
+        ),
         bot_instance_id=participation.joined_via_bot_instance_id,
     )
     if delivered:

@@ -116,7 +116,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                 for item in delivered:
                     receipts = await shares.list_messages(session, item.id)
                     action = next((r for r in receipts if r.purpose == "ACTION"), None)
-                    reply_options = {"reply_markup": keyboard(item)}
+                    reply_options = {"reply_markup": keyboard(item, khatm)}
                     if action and platform == Platform.TELEGRAM:
                         reply_options.update(reply_to_message_id=action.message_id, allow_sending_without_reply=True)
                     view = await callback.message.answer(label(khatm, item), **reply_options)
@@ -182,13 +182,15 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
             # L5 (owner 2026-09-30): deliver the actual zekr/dua/ziyarat/salawat
             # content first, then the «انجام سهم» button as the LAST message.
             from khatmsaz.bot.handlers.portions import _send_recitation_content
+            from khatmsaz.bot.member_copy import content_family, done_button_label
+            family = await content_family(session, khatm)
             await callback.message.answer(t("reminder.regular_commitment", lang, title=khatm.title, count=count))
             if not await _send_recitation_content(session, callback.message, khatm):
                 await safe_answer_callback(callback, t("report.content_unavailable", lang), show_alert=True)
                 return
             early_done_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(
-                    text=t("commit.regular.done_button", lang),
+                    text=done_button_label(family, lang, count=count, title=khatm.title),
                     callback_data=f"regular_early_done:{participation.id}",
                 )
             ]])
@@ -239,7 +241,10 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
             await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
             await callback.message.answer(
                 t("report.today_page_label", lang, title=khatm.title, start=portion.unit_start, end=portion.unit_end),
-                reply_markup=portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang),
+                reply_markup=portion_done_keyboard(
+                    str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=lang,
+                    start=portion.unit_start, end=portion.unit_end,
+                ),
             )
             await safe_answer_callback(callback)
             return
