@@ -1,3 +1,9 @@
+## 2026-10-10 — Antigravity — Continuous Quran-Style Khutbah Section Progression & Duplicate Reply Fix
+- **Continuous Khutbah Section Progression:** Added `allocate_khutbah_section_range` in `share_occurrence/delivery.py` and wired it into `prepare`, `prepare_numeric`, `occurrence_adapter.py:deliver_occurrence`, and `handlers/report.py:deliver_today_early` so Khutbah sections advance on every issued share (like Quran) even when prior shares remain uncompleted, while self-healing any colliding uncompleted share ranges.
+- **Duplicate Self-Reply Fix:** Excluded newly delivered shares (`just_delivered_id`) from the immediate debt-reply loop in `handlers/report.py:deliver_today_early`.
+- **Master Audit Documentation:** Updated `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` §9 with the ratified rule and implementation details.
+- **Validation:** 362 unit tests PASS (100% green).
+
 ## 2026-10-10 — Antigravity — Dynamic Share-Aware Completion Button Labels («اعلام ثبت قرائت ...»)
 - **Dynamic Per-Share & Per-Khatm Action Buttons:** Updated `member_copy.py:done_button_label`, `occurrence_adapter.py:keyboard`, `keyboards.py` (`portion_done_keyboard`, `regular_commitment_done_keyboard`), `handlers/report.py`, `handlers/member_commitment.py`, and `reminder_engine/service.py` so the completion button beneath delivered shares dynamically displays the exact pages, count, or section + khatm title (e.g. `✅ اعلام ثبت قرائت صفحه 124 تا 126`, `✅ اعلام ثبت قرائت 100 صلوات`, `✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه`, `✅ اعلام ثبت قرائت زیارت عاشورا`).
 - **Range-Aware Completion Confirmation:** Updated `member_commitment.py:complete_share` to pass `start` and `end` from `occurrence.content_spec["ranges"]` to `share_label`, ensuring Quran and Khutbah completion messages cite the exact page/section range completed.

@@ -1,3 +1,12 @@
+## Current state — 2026-10-10 — Continuous Quran-Style Khutbah Section Progression & Duplicate Reply Fix [Antigravity]
+- **Continuous Khutbah Section Progression (`allocate_khutbah_section_range`):**
+  - Updated `share_occurrence/delivery.py` (`prepare`, `prepare_numeric`) and `bot/occurrence_adapter.py` (`deliver_occurrence`) to advance Khutbah section ranges (`[[sec_start, sec_end]]`) continuously across every issued `ShareOccurrence` in chronological order, rather than waiting for `completed_at` to be set.
+  - Added automatic self-healing for existing uncompleted occurrences that previously received colliding `ranges` due to the legacy `completed_at`-only formula.
+- **Prevent Immediate Duplicate Self-Reply in `report.py:deliver_today_early`:**
+  - Tracked `just_delivered_id` when `deliver_today_early` delivers today's share for the first time, excluding it from the immediate debt-reply loop (`for item in delivered`) so the bot does not reply to the message it just sent 1 second earlier while still replying to any uncompleted shares from previous days.
+- **Master Documentation:** Documented in Section 9 of `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md`.
+- **Validation:** 362 passed, 230 skipped (100% green).
+
 ## Current state — 2026-10-10 — Dynamic Share-Aware Completion Button Labels («اعلام ثبت قرائت ...») [Antigravity]
 - **Customized Dynamic Inline Button (`done_button_label` & `occurrence_adapter.keyboard`):**
   - Enhanced `member_copy.py:done_button_label` and `_clean_khatm_title` to generate share-specific, family-aware inline button labels whenever share details (`count`, `start`, `end`, `ranges`, `title`) are provided, while preserving static fallback labels when called without share details:

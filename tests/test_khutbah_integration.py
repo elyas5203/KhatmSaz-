@@ -375,3 +375,81 @@ def test_done_button_label_returns_report_recitation():
     khatm_khutbah = SimpleNamespace(title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
     kb = keyboard(occ_khutbah, khatm_khutbah)
     assert kb.inline_keyboard[0][0].text == "✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه"
+
+
+@pytest.mark.asyncio
+async def test_khutbah_sections_advance_like_quran_even_when_prior_shares_uncompleted():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.modules.share_occurrence.delivery import allocate_khutbah_section_range
+
+    part_id = uuid4()
+    khatm = SimpleNamespace(id=uuid4(), title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
+    stored_occurrences = []
+
+    class FakeResult:
+        def scalars(self):
+            return list(stored_occurrences)
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=lambda *a, **kw: FakeResult())
+    session.flush = AsyncMock()
+
+    with patch("khatmsaz.modules.content.service.resolve_khatm_devotional_source", AsyncMock(return_value=(None, "khutbah-fadakiah"))):
+        with patch("khatmsaz.modules.content.service.list_devotional_video_pages", AsyncMock(return_value=[
+            MagicMock(page_number=i) for i in range(1, 6)
+        ])):
+            # Day 1: 2 sections -> (1, 2)
+            s1, e1 = await allocate_khutbah_section_range(session, part_id, khatm, 2)
+            assert (s1, e1) == (1, 2)
+            stored_occurrences.append(SimpleNamespace(
+                id=uuid4(), amount=2, completed_at=None, content_spec={"ranges": [[s1, e1]], "family": "khutbah"},
+            ))
+
+            # Day 2 (Day 1 still uncompleted!): advances to (3, 4)
+            s2, e2 = await allocate_khutbah_section_range(session, part_id, khatm, 2)
+            assert (s2, e2) == (3, 4)
+            stored_occurrences.append(SimpleNamespace(
+                id=uuid4(), amount=2, completed_at=None, content_spec={"ranges": [[s2, e2]], "family": "khutbah"},
+            ))
+
+            # Day 3 (Days 1 & 2 still uncompleted!): advances to (5, 5)
+            s3, e3 = await allocate_khutbah_section_range(session, part_id, khatm, 2)
+            assert (s3, e3) == (5, 5)
+            stored_occurrences.append(SimpleNamespace(
+                id=uuid4(), amount=2, completed_at=None, content_spec={"ranges": [[s3, e3]], "family": "khutbah"},
+            ))
+
+            # Day 4: wraps cleanly to next cycle (1, 2)
+            s4, e4 = await allocate_khutbah_section_range(session, part_id, khatm, 2)
+            assert (s4, e4) == (1, 2)
+
+
+@pytest.mark.asyncio
+async def test_khutbah_self_heals_colliding_uncompleted_occurrences():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.modules.share_occurrence.delivery import allocate_khutbah_section_range
+
+    part_id = uuid4()
+    khatm = SimpleNamespace(id=uuid4(), title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)")
+    occ1 = SimpleNamespace(id=uuid4(), amount=2, completed_at="2026-10-07", content_spec={"ranges": [[1, 2]], "family": "khutbah"})
+    occ2 = SimpleNamespace(id=uuid4(), amount=2, completed_at=None, content_spec={"ranges": [[3, 4]], "family": "khutbah"})
+    # Legacy bug caused occ3 to also have [[3, 4]] while occ2 was uncompleted
+    occ3 = SimpleNamespace(id=uuid4(), amount=2, completed_at=None, content_spec={"ranges": [[3, 4]], "family": "khutbah"})
+
+    class FakeResult:
+        def scalars(self):
+            return [occ1, occ2, occ3]
+
+    session = MagicMock()
+    session.execute = AsyncMock(side_effect=lambda *a, **kw: FakeResult())
+    session.flush = AsyncMock()
+
+    with patch("khatmsaz.modules.content.service.resolve_khatm_devotional_source", AsyncMock(return_value=(None, "khutbah-fadakiah"))):
+        with patch("khatmsaz.modules.content.service.list_devotional_video_pages", AsyncMock(return_value=[
+            MagicMock(page_number=i) for i in range(1, 6)
+        ])):
+            await allocate_khutbah_section_range(session, part_id, khatm, 2)
+            assert occ2.content_spec["ranges"] == [[3, 4]]
+            assert occ3.content_spec["ranges"] == [[5, 5]]

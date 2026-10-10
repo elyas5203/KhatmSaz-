@@ -61,6 +61,92 @@ def _calc_deadline(local: datetime, deadline_hour: int | None) -> datetime | Non
     return None
 
 
+async def allocate_khutbah_section_range(
+    session,
+    participation_id,
+    khatm,
+    amount: int,
+    *,
+    target_occurrence_id=None,
+) -> tuple[int, int]:
+    """Advance Khutbah sections continuously across every issued ShareOccurrence
+    (like Quran pages), even when earlier occurrences are not yet marked completed.
+
+    Also self-heals any existing uncompleted occurrences whose `ranges` collided
+    with their predecessor due to the legacy `completed_at`-only formula.
+    """
+    from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+    from khatmsaz.modules.content import service as content_service
+
+    total_sections = 5
+    if khatm is not None:
+        _, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
+        if slug:
+            videos = await content_service.list_devotional_video_pages(session, slug, "TELEGRAM")
+            if videos:
+                total_sections = max(v.page_number for v in videos) or 5
+
+    rows = []
+    if hasattr(session, "execute"):
+        import inspect
+        try:
+            res = await session.execute(
+                select(ShareOccurrence)
+                .where(ShareOccurrence.participation_id == participation_id)
+                .order_by(ShareOccurrence.created_at.asc(), ShareOccurrence.id.asc())
+            )
+            if res is not None and hasattr(res, "scalars") and not inspect.iscoroutinefunction(res.scalars):
+                scalars = res.scalars()
+                if not inspect.iscoroutine(scalars):
+                    rows = [
+                        r for r in scalars
+                        if isinstance(getattr(r, "amount", None), int)
+                    ]
+        except Exception:
+            rows = []
+
+    cursor = 0
+    prev_range = None
+    dirty = False
+    for occ in rows:
+        occ_amt = occ.amount or 1
+        expected_start = (cursor % total_sections) + 1
+        expected_end = min(expected_start + occ_amt - 1, total_sections)
+        spec = dict(occ.content_spec or {})
+        existing_ranges = spec.get("ranges")
+
+        if occ.id == target_occurrence_id:
+            if not existing_ranges or (occ.completed_at is None and prev_range and existing_ranges == prev_range):
+                spec["ranges"] = [[expected_start, expected_end]]
+                spec["family"] = "khutbah"
+                if existing_ranges and prev_range and existing_ranges == prev_range:
+                    spec.pop("delivery_components", None)
+                occ.content_spec = spec
+                if hasattr(session, "flush"):
+                    await session.flush()
+                return expected_start, expected_end
+            return existing_ranges[0][0], existing_ranges[-1][1]
+
+        if not existing_ranges or (occ.completed_at is None and prev_range and existing_ranges == prev_range):
+            spec["ranges"] = [[expected_start, expected_end]]
+            spec["family"] = "khutbah"
+            if existing_ranges and prev_range and existing_ranges == prev_range:
+                spec.pop("delivery_components", None)
+            occ.content_spec = spec
+            existing_ranges = spec["ranges"]
+            dirty = True
+
+        prev_range = existing_ranges
+        cursor = existing_ranges[-1][1]
+
+    if dirty and hasattr(session, "flush"):
+        await session.flush()
+
+    sec_start = (cursor % total_sections) + 1
+    sec_end = min(sec_start + (amount or 1) - 1, total_sections)
+    return sec_start, sec_end
+
+
 async def prepare(session, participation_id, *, now=None, manual=False):
     now = now or datetime.now(timezone.utc)
     part = await memberships.get_by_id(session, participation_id)
@@ -143,23 +229,7 @@ async def prepare(session, participation_id, *, now=None, manual=False):
         from khatmsaz.bot.member_copy import content_family
         fam = await content_family(session, khatm)
         if fam == "khutbah":
-            from sqlalchemy import func
-            from khatmsaz.modules.share_occurrence.models import ShareOccurrence
-            from khatmsaz.modules.content import service as content_service
-            completed_count = (await session.scalar(
-                select(func.count()).select_from(ShareOccurrence).where(
-                    ShareOccurrence.participation_id == part.id,
-                    ShareOccurrence.completed_at.is_not(None),
-                )
-            )) or 0
-            total_sections = 5
-            category, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
-            if slug:
-                videos = await content_service.list_devotional_video_pages(session, slug, "TELEGRAM")
-                if videos:
-                    total_sections = max(v.page_number for v in videos) or 5
-            sec_start = ((completed_count * amount) % total_sections) + 1
-            sec_end = min(sec_start + amount - 1, total_sections)
+            sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
             spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
     deadline = _calc_deadline(local, khatm.daily_deadline_hour)
     occurrence, _ = await service.create_once(
@@ -222,23 +292,7 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
         from khatmsaz.bot.member_copy import content_family
         fam = await content_family(session, khatm)
         if fam == "khutbah":
-            from sqlalchemy import func
-            from khatmsaz.modules.share_occurrence.models import ShareOccurrence
-            from khatmsaz.modules.content import service as content_service
-            completed_count = (await session.scalar(
-                select(func.count()).select_from(ShareOccurrence).where(
-                    ShareOccurrence.participation_id == part.id,
-                    ShareOccurrence.completed_at.is_not(None),
-                )
-            )) or 0
-            total_sections = 5
-            category, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
-            if slug:
-                videos = await content_service.list_devotional_video_pages(session, slug, "TELEGRAM")
-                if videos:
-                    total_sections = max(v.page_number for v in videos) or 5
-            sec_start = ((completed_count * amount) % total_sections) + 1
-            sec_end = min(sec_start + amount - 1, total_sections)
+            sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
             spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
     part.commitment_mode = "COUNT"
     part.commitment_target = amount

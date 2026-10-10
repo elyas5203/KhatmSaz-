@@ -92,9 +92,11 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
         from khatmsaz.modules.share_occurrence import delivery, repository as shares
         if delivery.is_managed(participation, khatm):
             occurrence = await delivery.prepare(session, participation.id, now=now_utc, manual=True)
+            just_delivered_id = None
             if occurrence is not None and occurrence.delivered_at is None:
                 try:
-                    await delivery.deliver(session, occurrence, now=now_utc)
+                    if await delivery.deliver(session, occurrence, now=now_utc):
+                        just_delivered_id = occurrence.id
                 except Exception:
                     if not session.is_active:
                         raise
@@ -102,8 +104,16 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                     # the next attempt sends only the remaining components.
                     await safe_answer_callback(callback, t("report.content_unavailable", lang), show_alert=True)
                     return
+            from khatmsaz.bot.member_copy import content_family
+            if (await content_family(session, khatm)) == "khutbah":
+                await delivery.allocate_khutbah_section_range(
+                    session, participation.id, khatm, getattr(participation, "commitment_per_occurrence", None) or 1
+                )
             pending = await shares.list_outstanding(session, participation.id)
-            delivered = [item for item in pending if item.delivered_at is not None]
+            delivered = [
+                item for item in pending
+                if item.delivered_at is not None and item.id != just_delivered_id
+            ]
             legacy = await shares.list_legacy_portions(session, participation.id)
             for item in legacy:
                 await callback.message.answer(f"📖 سهم قبلی شما: صفحات {item.unit_start} تا {item.unit_end}",
@@ -124,7 +134,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                         bot_instance_id=item.bot_instance_id, component_key=f"view:{view.message_id}",
                         purpose="ACTION", chat_id=str(callback.message.chat.id), message_id=view.message_id,
                         sent_at=now_utc)
-            elif not legacy:
+            elif not legacy and just_delivered_id is None:
                 await callback.message.answer(t("report.no_portion_today", lang))
             await safe_answer_callback(callback)
             return
