@@ -594,20 +594,32 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
         )
         # Thank + invite others into THIS khatm with its direct member-bot link.
         from khatmsaz.bot.handlers.portions import _invite_friends_line
-        from khatmsaz.bot.member_copy import completion_text, content_family, share_label
+        from khatmsaz.bot.member_copy import (
+            build_motivational_progress_snippet,
+            completion_text,
+            content_family,
+            share_label,
+        )
         invite_line = await _invite_friends_line(
             session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
         )
         family = await content_family(session, khatm)
+        snippet = await build_motivational_progress_snippet(session, khatm)
         confirmed_text = completion_text(
             khatm, family, share_label(family, count=amount, lang=lang),
-            invite_line=invite_line, lang=lang,
+            invite_line=invite_line, progress_snippet=snippet, lang=lang,
         )
     try:
         await callback.message.delete()
     except Exception:
         await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(confirmed_text)
+    keyboard = None
+    if part:
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="📖 خواندن یک سهم دیگر", callback_data=f"today_pick:{part.id}")
+        ]])
+    await callback.message.answer(confirmed_text, reply_markup=keyboard)
     await safe_answer_callback(callback)
 
 
@@ -642,15 +654,33 @@ async def complete_share(callback: CallbackQuery) -> None:
         await cleanup(session, part, occurrence)
     await safe_answer_callback(callback, "✅ انجام این سهم ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
     if changed:
-        from khatmsaz.bot.member_copy import completion_text, share_label
+        from khatmsaz.bot.member_copy import (
+            build_motivational_progress_snippet,
+            completion_text,
+            share_label,
+        )
         spec = occurrence.content_spec or {}
         family = spec.get("family") or ("quran" if getattr(occurrence, "unit", None) == "PAGE" else "salawat")
         lang = spec.get("language", "fa")
         start = end = None
         if spec.get("ranges"):
             start, end = spec["ranges"][0][0], spec["ranges"][-1][1]
-        await callback.message.answer(completion_text(khatm, family,
-            share_label(family, count=occurrence.amount, start=start, end=end, lang=lang), lang=lang))
+        async with session_scope() as session:
+            snippet = await build_motivational_progress_snippet(session, khatm)
+        keyboard = None
+        if part:
+            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[
+                InlineKeyboardButton(text="📖 خواندن یک سهم دیگر", callback_data=f"today_pick:{part.id}")
+            ]])
+        await callback.message.answer(
+            completion_text(
+                khatm, family,
+                share_label(family, count=occurrence.amount, start=start, end=end, lang=lang),
+                progress_snippet=snippet, lang=lang,
+            ),
+            reply_markup=keyboard,
+        )
 
 
 @router.callback_query(F.data.startswith("legacy_share_done:"))

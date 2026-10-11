@@ -521,10 +521,14 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     else:
         label = share_label(family, start=completed.unit_start, end=completed.unit_end, lang=lang)
         
+    async with session_scope() as session:
+        from khatmsaz.bot.member_copy import build_motivational_progress_snippet
+        snippet = await build_motivational_progress_snippet(session, khatm)
+
     confirmation = completion_text(
         khatm, family,
         label,
-        invite_line=invite_line, lang=lang,
+        invite_line=invite_line, progress_snippet=snippet, lang=lang,
     )
     if plan_completed:
         await callback.message.answer(

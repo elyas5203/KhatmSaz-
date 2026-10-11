@@ -1,3 +1,19 @@
+## Current state — 2026-10-11 — Member Daily 14:00 Progress Digest & Motivational Banner Master (MASTER-07) [Antigravity]
+- **Member Daily 14:00 Progress Digest (`member_daily_digest.py`):**
+  - Scheduled automated progress digest delivered daily at 14:00 (Tehran time) to active members participating in active khatms.
+  - Multi-bot Routing: Notifications are strictly dispatched through the member bot each participant joined through (`joined_via_bot_instance_id`), isolating Quran, Salawat, Dua and other member bot streams.
+  - Per-Khatm Progress Breakdown: Shows progress up to yesterday, today's recitations so far (up to 14:00), total count and overall progress percentage, plus the member's current status for today (done, pending, or ready).
+  - Quick-action interactive buttons: Attached `today_pick:{participation.id}` inline buttons enabling 1-click continuation or contribution directly from the digest.
+  - Idempotency & Database Schema: Added self-healing columns `last_member_daily_digest_date` (VARCHAR 10) and `member_daily_digest_enabled` (BOOLEAN DEFAULT TRUE) in `user_settings` and `bootstrap.py`.
+- **Motivational Progress Banner upon Portion Completion:**
+  - Added `build_motivational_progress_snippet` in `src/khatmsaz/bot/member_copy.py` calculating yesterday's, today's, and total progress across custom units.
+  - Enhanced `completion_text` in `member_copy.py` with `progress_snippet: str = ""` to append a concise motivational progress banner right when a member clicks "✅ اعلام انجام سهم" / Done.
+  - Integrated in `complete_share` and `regular_early_done` in `member_commitment.py` and `mark_portion_done` in `portions.py` alongside a prompt button `[📖 خواندن یک سهم دیگر]` (`today_pick:{part.id}`).
+- **Master Documentation:**
+  - Authored `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md`.
+  - Updated `docs/ai/INDEX.md`.
+- **Validation:** 5 dedicated unit tests in `tests/test_member_daily_digest.py` (100% PASS); full 35-test combined suite passed in 5.26s.
+
 ## Current state — 2026-10-11 — Khutbah Ghadir Multi-Media Trio (8 Parts) & Creator Daily 12:00 PM Report Master [Antigravity]
 - **Khutbah Ghadir 8-Part Multi-Media Trio (`khutbah-ghadir`):**
   - Canonical Seeding: Added idempotent canonical category seeding for `khutbah-ghadir` («خطبه غدیر پیامبر اکرم (ص)») under `KhatmCategoryGroup.KHUTBAH` in `khatm_category/service.py:seed_canonical_categories`. Automatically appears in bot creation wizard under «📜 خطبه‌ها».

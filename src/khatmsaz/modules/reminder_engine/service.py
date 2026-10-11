@@ -164,6 +164,11 @@ async def run_once(
         await deliver_creator_daily_reports(session, notify, tz_name=tz_name)
     except Exception:
         logger.exception("deliver_creator_daily_reports failed")
+    try:
+        from khatmsaz.modules.reporting.member_daily_digest import deliver_member_daily_digests
+        await deliver_member_daily_digests(session, notify, tz_name=tz_name)
+    except Exception:
+        logger.exception("deliver_member_daily_digests failed")
 
 
 async def check_share_occurrence_misses(session: AsyncSession, notify: NotifyFn) -> None:

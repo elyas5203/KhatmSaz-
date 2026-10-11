@@ -55,6 +55,9 @@ class UserSettings(Base):
     # YYYY-MM-DD of the last delivered creator 12:00 PM daily report.
     last_creator_daily_report_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
     creator_daily_report_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # YYYY-MM-DD of the last delivered member 14:00 daily digest.
+    last_member_daily_digest_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    member_daily_digest_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

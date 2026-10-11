@@ -317,12 +317,18 @@ def reminder_text(
 
 
 def completion_text(
-    khatm: Khatm, family: str, share: str, *, invite_line: str = "", lang: str = "fa",
+    khatm: Khatm, family: str, share: str, *, invite_line: str = "", progress_snippet: str = "", lang: str = "fa",
 ) -> str:
     if lang == "ar":
-        return f"✅ تم تسجيل {share} في ختم «{escape(khatm.title)}». تقبّل الله منكم 🌱{invite_line}"
+        msg = f"✅ تم تسجيل {share} في ختم «{escape(khatm.title)}». تقبّل الله منكم 🌱"
+        if progress_snippet:
+            msg += f"\n\n{progress_snippet}"
+        return f"{msg}{invite_line}"
     if lang != "fa":
-        return f"✅ {share} was recorded for “{escape(khatm.title)}”.{invite_line}"
+        msg = f"✅ {share} was recorded for “{escape(khatm.title)}”."
+        if progress_snippet:
+            msg += f"\n\n{progress_snippet}"
+        return f"{msg}{invite_line}"
     niyyat = (khatm.niyyat or "سلامتی و فرج امام عصر علیه السلام").strip()
     if niyyat.startswith("به نیت "):
         niyyat = niyyat[len("به نیت "):].strip()
@@ -339,7 +345,61 @@ def completion_text(
         "با سلام 🌱\n\n"
         f"✅ {share} {verb}.\n\n"
         f"اعلام شما در سیستم ثبت شد و در ثواب ختم «{escape(khatm.title)}» به نیت {escape(niyyat)} شریک شدید.\n\n"
+    )
+    if progress_snippet:
+        res += f"{progress_snippet}\n\n"
+    res += (
         "خداوند از شما قبول فرماید. با تشکر."
         f"{invite_line}"
     )
     return res
+
+
+async def build_motivational_progress_snippet(
+    session, khatm, now_utc=None, lang: str = "fa",
+) -> str:
+    """Build a concise motivational progress snippet for a completed share."""
+    if not khatm:
+        return ""
+    try:
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        from khatmsaz.modules.reporting.creator_daily_report import (
+            format_khatm_amount,
+            get_khatm_daily_counts,
+            to_persian_digits,
+        )
+
+        now_utc = now_utc or datetime.now(timezone.utc)
+        tz = ZoneInfo("Asia/Tehran")
+        local_now = now_utc.astimezone(tz)
+        today_start_utc = local_now.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+
+        before_today, today, total, _ = await get_khatm_daily_counts(
+            session, khatm, today_start_utc, now_utc
+        )
+        before_str = await format_khatm_amount(session, khatm, before_today)
+        today_str = await format_khatm_amount(session, khatm, today)
+        total_str = await format_khatm_amount(session, khatm, total)
+
+        progress_line = f"▫️ مجموع قرائت‌شده: <b>{total_str}</b>"
+        if khatm.repetition_target is not None and khatm.repetition_target > 0:
+            effective_target = khatm.repetition_target
+            fam = await content_family(session, khatm)
+            if fam == "khutbah":
+                sections_per_round = 8 if (khatm.title and "غدیر" in khatm.title) else 5
+                if effective_target < sections_per_round:
+                    effective_target *= sections_per_round
+            target_str = await format_khatm_amount(session, khatm, effective_target)
+            percent = min(round((total / effective_target) * 100, 1), 100.0) if effective_target > 0 else 0.0
+            progress_line += f" از <b>{target_str}</b> (پیشرفت: <b>{to_persian_digits(percent)}٪</b>)"
+
+        return (
+            "📊 <b>روند پیشرفت کلی این ختم:</b>\n"
+            f"▫️ قرائت تا دیروز: {before_str}\n"
+            f"▫️ قرائت‌های امروز: {today_str}\n"
+            f"{progress_line}"
+        )
+    except Exception:
+        return ""
+
