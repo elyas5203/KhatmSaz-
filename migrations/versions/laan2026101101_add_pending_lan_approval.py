@@ -14,9 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "khatms",
-        sa.Column("pending_lan_approval", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+    op.execute(
+        "ALTER TABLE khatms ADD COLUMN IF NOT EXISTS pending_lan_approval BOOLEAN DEFAULT FALSE NOT NULL;"
     )
 
 
