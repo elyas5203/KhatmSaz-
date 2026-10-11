@@ -35,3 +35,16 @@ async def mark_accepted(session: AsyncSession, token_hash: str, user_id) -> None
     invitation.accepted_at = datetime.now(timezone.utc)
     invitation.accepted_by_user_id = user_id
     await session.flush()
+
+
+async def list_for_khatm(session: AsyncSession, khatm_id) -> list[KhatmInvitation]:
+    stmt = (
+        select(KhatmInvitation)
+        .where(
+            KhatmInvitation.khatm_id == khatm_id,
+            KhatmInvitation.cancelled_at.is_(None),
+        )
+        .order_by(KhatmInvitation.created_at.desc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())

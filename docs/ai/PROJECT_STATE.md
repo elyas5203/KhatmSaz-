@@ -1,3 +1,20 @@
+## Current state — 2026-10-11 — Admin Panel Line-by-Line Debug, Invitation Service Extensions & Stability Master [Antigravity]
+- **Admin Web Panel Stability & ASGI Exception Fix (`BUG-W01` to `BUG-W20`):**
+  - Resolved production crash `AttributeError: module 'khatmsaz.modules.invitation.service' has no attribute 'list_for_khatm'` at `app.py:2105` inside `khatm_detail` and `decide_laan_moderation`.
+  - Added `list_for_khatm` and `get_or_create_for_khatm` to `invitation.service` and `invitation.repository`.
+  - Added secure `.token` property on `KhatmInvitation` model returning `_raw_token` or truncated hash.
+  - Implemented `build_web_invite_url(token, khatm_bot_cat=None)` in `bot/invite_links.py` with exception-safe fallback when `bot_registry` is not yet initialized.
+  - Fixed 15+ missing global imports in `src/khatmsaz/web/app.py`: `openpyxl` (`Workbook`, `get_column_letter`), `asyncio`, `re`, `Any`, `WaitingList`, `Wallet`, `UserPlan`, `PhoneClaim`, `CreatorRequest`, `CreatorRequestStatus`, `QuranPageAsset`, `InvoiceKind`, `khatm_request_service`, `advertising_service`, `main_menu_keyboard`, `send_media`, `send_with_keyboard`, `occ_repo`, `occ_service`, `allocation_service`.
+  - Aligned service method signatures:
+    - `system_settings_service`: Changed call to `list_current` and added alias `list_all = list_current` to prevent false database-down status on `/operations`.
+    - `plan_service`: Replaced invalid `assign_plan` with `set_plan` and added backward-compatibility wrapper `assign_plan`.
+    - `workflow_service`: Fixed `leave_khatm` parameter from `user_id` to `part.id` in `admin_remove_khatm_member`.
+    - `wallet_service`: Added required `invoice_kind=InvoiceKind.PURCHASE` parameter to `wallet_service.purchase` in `decide_broadcast`.
+    - `admin_complete_member_share`: Migrated from non-existent methods to `occ_service.list_outstanding`, `occ_service.complete`, and `allocation_service.complete_current_portion_and_advance`.
+  - Authored Master Document `docs/ai/ADMIN_PANEL_DEBUG_AND_FIX_MASTER.md` cataloging all 20 bugs and 6 work packages (all verified).
+  - Added dedicated test suite `tests/test_admin_panel_all_routes.py` (10 tests, 100% PASS).
+- **Validation:** 382 passed, 230 skipped in pytest (100% green, 0 failures).
+
 ## Current state — 2026-10-11 — PhoneClaim e164 Attribute Fix & None-Safe Session Queries [Antigravity]
 - **Users 360-Degree View AttributeError Fix (`/users`):**
   - Resolved `AttributeError: 'PhoneClaim' object has no attribute 'phone_e164'` in `src/khatmsaz/web/app.py:2400` which crashed the `/users` tab when loading users with verified phone claims. Correct attribute on `PhoneClaim` is `e164`.

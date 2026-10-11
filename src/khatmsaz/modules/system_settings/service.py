@@ -73,6 +73,9 @@ async def list_current(session: AsyncSession) -> dict[str, int]:
     return result
 
 
+list_all = list_current
+
+
 async def get_str(session: AsyncSession, key: str, default: str = "") -> str:
     if key not in KNOWN_STRING_SETTINGS:
         raise ValueError(f"unknown string system setting: {key}")

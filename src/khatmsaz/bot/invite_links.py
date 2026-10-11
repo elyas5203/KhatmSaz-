@@ -92,3 +92,25 @@ def pick_primary_link(
         for value in urls.values():
             return value
     return None
+
+
+def build_web_invite_url(token: str, khatm_bot_cat: str | None = None) -> str:
+    """Build a primary invite URL for a token.
+    If khatm_bot_cat is provided and matching member bots exist, returns the primary Telegram link.
+    Otherwise falls back to any available Telegram member bot or /join/{token}.
+    """
+    try:
+        if khatm_bot_cat:
+            by_lang = build_member_invite_links(khatm_bot_cat, token)
+            primary = pick_primary_link(by_lang, preferred_lang="fa", preferred_platform="TELEGRAM")
+            if primary:
+                return primary
+        registry = get_registry()
+        for bot in registry.member_bots():
+            username = getattr(bot, "khatmsaz_username", None)
+            platform = getattr(bot, "khatmsaz_platform", None)
+            if username and platform == Platform.TELEGRAM:
+                return f"https://t.me/{username}?start=join_{token}"
+    except Exception:
+        pass
+    return f"/join/{token}"

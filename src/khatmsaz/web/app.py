@@ -1,12 +1,15 @@
 """FastAPI administration dashboard, authenticated by bot-issued sessions."""
 
+import asyncio
 import hashlib
 import json
+import re
 import secrets
 import time
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -14,6 +17,8 @@ from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
 from sqlalchemy import String, case, func, or_, select, text
 from sqlalchemy.orm import aliased
 
@@ -23,17 +28,23 @@ from khatmsaz.core.devotional_images import (
     DEVOTIONAL_IMAGE_DIRNAME,
     validate_devotional_image_ref,
 )
-from khatmsaz.modules.bot_registry import service as bot_registry_service
+from khatmsaz.bot.keyboards import main_menu_keyboard
+from khatmsaz.bot.notify_adapter import get_notify_fn, send_media, send_with_keyboard
+from khatmsaz.modules.advertising import service as advertising_service
+from khatmsaz.modules.allocation import service as allocation_service
+from khatmsaz.modules.allocation.models import KhatmPortion, PortionStatus
 from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.authorization import service as authorization_service
 from khatmsaz.modules.authorization.models import AdminPermission, AdminRole, AdminRoleGrant
-from khatmsaz.bot.notify_adapter import get_notify_fn
+from khatmsaz.modules.bot_registry import service as bot_registry_service
 from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
-from khatmsaz.modules.participation import service as participation_service
+from khatmsaz.modules.content import service as content_service
+from khatmsaz.modules.content.models import QuranPageAsset
+from khatmsaz.modules.creator_request import service as creator_request_service
+from khatmsaz.modules.creator_request.models import CreatorRequest, CreatorRequestStatus
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, User, UserRole
-from khatmsaz.modules.creator_request import service as creator_request_service
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
@@ -46,40 +57,59 @@ from khatmsaz.modules.khatm.models import (
     KhatmVisibility,
 )
 from khatmsaz.modules.khatm.quran_editions import CANONICAL_QURAN_EDITION_ID
+from khatmsaz.modules.khatm_category import service as category_service
+from khatmsaz.modules.khatm_category.models import (
+    KhatmCategory,
+    KhatmCategoryGroup,
+    KhatmCategoryRequest,
+    KhatmCategoryRequestStatus,
+)
+from khatmsaz.modules.khatm_request import service as khatm_request_service
+from khatmsaz.modules.khatm_request.models import KhatmRequest, KhatmRequestStatus
 from khatmsaz.modules.khatm_workflow import service as workflow_service
 from khatmsaz.bot import invite_links
-from khatmsaz.modules.content import service as content_service
-from khatmsaz.modules.khatm_category import service as category_service
-from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup, KhatmCategoryRequest, KhatmCategoryRequestStatus
-from khatmsaz.modules.phone import repository as phone_repository
-from khatmsaz.modules.manual_phone_verification.models import ManualPhoneVerification
-from khatmsaz.modules.khatm_request.models import KhatmRequest, KhatmRequestStatus
-from khatmsaz.modules.message_template import repository as template_repository
-from khatmsaz.modules.message_template.models import MessageTemplate
 from khatmsaz.modules.manual_phone_verification import repository as manual_phone_repository
 from khatmsaz.modules.manual_phone_verification import service as manual_phone_service
-from khatmsaz.modules.allocation.models import KhatmPortion, PortionStatus
+from khatmsaz.modules.manual_phone_verification.models import ManualPhoneVerification
+from khatmsaz.modules.message_template import repository as template_repository
+from khatmsaz.modules.message_template.models import MessageTemplate
 from khatmsaz.modules.notification.models import NotificationKind, NotificationLog
 from khatmsaz.modules.open_contribution.models import OpenContribution
+from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.participation.models import Participation, ParticipationStatus
+from khatmsaz.modules.phone import repository as phone_repository
+from khatmsaz.modules.phone.models import PhoneClaim
+from khatmsaz.modules.plan import service as plan_service
+from khatmsaz.modules.plan.models import (
+    ACTIVE_PLAN_TIERS,
+    PlanDefinition,
+    PlanTier,
+    PricingMode,
+    UserPlan,
+)
 from khatmsaz.modules.reporting import service as reporting_service
+from khatmsaz.modules.servant_ad import service as servant_ad_service
 from khatmsaz.modules.session import service as session_service
 from khatmsaz.modules.settings import service as settings_service
-from khatmsaz.i18n import t as web_t
-from khatmsaz.config import get_settings
-from khatmsaz.modules.wallet import service as wallet_service
-from khatmsaz.modules.wallet.service import InsufficientFundsError
-from khatmsaz.modules.wallet.gateway import GatewayError
-from khatmsaz.modules.wallet.payping import PayPingGateway
-from khatmsaz.modules.wallet.models import CouponDiscountType, WalletInvoice
 from khatmsaz.modules.settings.models import UserSettings
-from khatmsaz.modules.plan import service as plan_service
-from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanDefinition, PlanTier, PricingMode
+from khatmsaz.modules.share_occurrence import repository as occ_repo, service as occ_service
+from khatmsaz.modules.sms.provider import build_provider as build_sms_provider
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.sms_subscription.models import SmsPlanOption
-from khatmsaz.modules.sms.provider import build_provider as build_sms_provider
 from khatmsaz.modules.system_settings import service as system_settings_service
-from khatmsaz.bot.notify_adapter import get_notify_fn
+from khatmsaz.modules.waiting_list.models import WaitingList
+from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.gateway import GatewayError
+from khatmsaz.modules.wallet.models import (
+    CouponDiscountType,
+    InvoiceKind,
+    Wallet,
+    WalletInvoice,
+)
+from khatmsaz.modules.wallet.payping import PayPingGateway
+from khatmsaz.modules.wallet.service import InsufficientFundsError
+from khatmsaz.i18n import t as web_t
+from khatmsaz.config import get_settings
 from khatmsaz.web.telegram_mini_app import InvalidTelegramInitData, validate_telegram_init_data
 
 COOKIE_NAME = "khatmsaz_admin_session"
@@ -428,7 +458,7 @@ async def operations_page(request: Request):
             custom_khatm_admin_phone = await system_settings_service.get_str(
                 session, "custom_khatm_admin_phone"
             )
-            system_int_settings = await system_settings_service.list_all(session)
+            system_int_settings = await system_settings_service.list_current(session)
     except Exception:
         database_ok = False
 
@@ -1737,9 +1767,15 @@ async def decide_laan_moderation(
                 updated_description=updated_description.strip() or None,
             )
             khatm_title = khatm.title
+            khatm_bot_cat = "LAAN"
             if approved:
-                invs = await invitation_service.list_for_khatm(session, khatm.id)
-                invite_token = invs[0].token if invs else (await invitation_service.create_invitation(session, khatm.id)).token
+                invite_token = await invitation_service.get_or_create_for_khatm(
+                    session, khatm.id, khatm.creator_user_id
+                )
+                try:
+                    khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+                except Exception:
+                    khatm_bot_cat = "LAAN"
             identities = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
             await audit_service.record(
                 session,
@@ -1757,7 +1793,7 @@ async def decide_laan_moderation(
         notify = None
     if notify is not None and identities:
         if approved and invite_token:
-            link_url = invite_links.build_web_invite_url(invite_token)
+            link_url = invite_links.build_web_invite_url(invite_token, khatm_bot_cat)
             msg = (
                 f"✅ ختم لعن اختصاصی شما «{khatm_title}» توسط مدیریت بررسی و تأیید شد!\n\n"
                 f"🔗 لینک دعوت و مشارکت در ختم:\n{link_url}"
@@ -2102,8 +2138,12 @@ async def khatm_detail(request: Request, khatm_id: UUID, q: str = "", page: int 
                 )
             ).all()
         )
-        invs = await invitation_service.list_for_khatm(session, khatm.id)
-        invite_url = invite_links.build_web_invite_url(invs[0].token) if invs else ""
+        try:
+            token = await invitation_service.get_or_create_for_khatm(session, khatm.id, khatm.creator_user_id)
+            khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+            invite_url = invite_links.build_web_invite_url(token, khatm_bot_cat)
+        except Exception:
+            invite_url = ""
     return templates.TemplateResponse(
         request=request,
         name="khatm_detail.html",
@@ -2242,18 +2282,22 @@ async def admin_complete_member_share(
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    from khatmsaz.modules.share_occurrence import repository as occ_repo, service as occ_service
-    from khatmsaz.modules.allocation import service as allocation_service
     async with session_scope() as session:
         part = await session.get(Participation, participation_id)
         if part is None or part.khatm_id != khatm_id:
             return HTMLResponse("عضویت پیدا نشد.", status_code=404)
-        open_occs = await occ_repo.list_open_for_participation(session, participation_id)
+        open_occs = await occ_service.list_outstanding(session, participation_id)
         for occ in open_occs:
-            await occ_service.complete_occurrence(
-                session, occ.id, actor_user_id=part.user_id, now=datetime.now(tz=ZoneInfo("UTC"))
-            )
-        await allocation_service.complete_my_portions(session, participation_id)
+            try:
+                await occ_service.complete(
+                    session, occ.id, user_id=part.user_id, bot_instance_id=None, record_progress=True
+                )
+            except Exception:
+                pass
+        try:
+            await allocation_service.complete_current_portion_and_advance(session, participation_id)
+        except Exception:
+            pass
         await audit_service.record(
             session,
             actor_user_id=admin.id,
@@ -2283,7 +2327,7 @@ async def admin_remove_khatm_member(
         part = await session.get(Participation, participation_id)
         if part is None or part.khatm_id != khatm_id:
             return HTMLResponse("عضویت پیدا نشد.", status_code=404)
-        await workflow_service.leave_khatm(session, user_id=part.user_id, khatm_id=khatm_id)
+        await workflow_service.leave_khatm(session, part.id, reason="حذف توسط ادمین")
         await audit_service.record(
             session,
             actor_user_id=admin.id,
@@ -2468,7 +2512,7 @@ async def admin_set_user_plan(
     except ValueError:
         return HTMLResponse("پلن نامعتبر است.", status_code=400)
     async with session_scope() as session:
-        await plan_service.assign_plan(session, user_id, tier, assigned_by_user_id=admin.id)
+        await plan_service.set_plan(session, user_id, tier)
         await audit_service.record(
             session,
             actor_user_id=admin.id,
@@ -2753,6 +2797,7 @@ async def decide_broadcast(
                         session, user_id=item.creator_user_id,
                         gross_amount_toman=item.cost_toman,
                         description=f"ارسال گروهی {item.channel}",
+                        invoice_kind=InvoiceKind.PURCHASE,
                     )
                 except InsufficientFundsError:
                     item.status = BroadcastStatus.PENDING

@@ -29,6 +29,10 @@ async def set_plan(session: AsyncSession, user_id, plan: PlanTier) -> None:
     await repository.upsert(session, user_id, plan)
 
 
+async def assign_plan(session: AsyncSession, user_id, plan: PlanTier, *, assigned_by_user_id=None) -> None:
+    await set_plan(session, user_id, plan)
+
+
 # --- Owner model §A1: admin-editable member cap + advertising flag ----------
 
 FREE_TOTAL_MEMBER_CAP_KEY = "free_total_member_cap"
