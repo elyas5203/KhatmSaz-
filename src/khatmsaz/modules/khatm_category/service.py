@@ -160,5 +160,26 @@ async def seed_canonical_categories(session: AsyncSession) -> dict[str, object]:
         session.add(cat)
         await session.flush()
 
-    return {"khutbah_fadakiah": str(cat.id)}
+    # 2. Khutbah Ghadir
+    cat_ghadir = await session.scalar(
+        select(KhatmCategory).where(
+            KhatmCategory.group == KhatmCategoryGroup.KHUTBAH,
+            KhatmCategory.devotional_slug == "khutbah-ghadir",
+        )
+    )
+    if cat_ghadir is None:
+        cat_ghadir = KhatmCategory(
+            id=new_id(),
+            group=KhatmCategoryGroup.KHUTBAH,
+            title="خطبه غدیر پیامبر اکرم (ص)",
+            body_text="خطبه شریف غدیر خم در ۸ بخش به همراه ویدیو، متن و صوت.",
+            source_note="احتجاج طبرسی / روضة الواعظین",
+            devotional_slug="khutbah-ghadir",
+            is_active=True,
+            sort_order=2,
+        )
+        session.add(cat_ghadir)
+        await session.flush()
+
+    return {"khutbah_fadakiah": str(cat.id), "khutbah_ghadir": str(cat_ghadir.id)}
 

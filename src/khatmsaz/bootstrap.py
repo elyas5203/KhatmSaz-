@@ -331,6 +331,8 @@ async def main() -> None:
             await conn.execute(text("ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'"))
             await conn.execute(text("ALTER TABLE devotional_media ALTER COLUMN reciter_label TYPE TEXT"))
             await conn.execute(text("ALTER TABLE khatms ADD COLUMN IF NOT EXISTS pending_lan_approval BOOLEAN DEFAULT FALSE"))
+            await conn.execute(text("ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS last_creator_daily_report_date VARCHAR(10)"))
+            await conn.execute(text("ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS creator_daily_report_enabled BOOLEAN DEFAULT TRUE"))
     except Exception as exc:
         logger.debug("Database schema self-heal check: %s", exc)
 

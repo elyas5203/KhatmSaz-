@@ -115,6 +115,26 @@ async def deliver_devotional_media(
                 message, kind="VIDEO", asset_ref=vid.asset_ref, platform=platform,
                 filename=f"{slug}-{vid.page_number}.mp4", caption=caption,
             )
+            # Check and send part-specific PDF if registered
+            part_pdf = await content_service.get_devotional_pdf(session, slug, platform.value, page_number=vid.page_number)
+            if part_pdf:
+                caption_pdf = part_pdf.reciter_label or f"📄 متن {asset.title} — بخش {vid.page_number}"
+                await _send_portable_media(
+                    message, kind="PDF", asset_ref=part_pdf.asset_ref, platform=platform,
+                    filename=f"{slug}-{vid.page_number}.pdf", caption=caption_pdf,
+                )
+            # Check and send part-specific Audio if registered
+            if session is not None and hasattr(session, "scalar"):
+                part_media = await content_service.list_devotional_media_for_part(
+                    session, slug=slug, page_number=vid.page_number, asset_platform=platform.value
+                )
+                for part_aud in part_media:
+                    if part_aud.kind == "AUDIO" and isinstance(getattr(part_aud, "asset_ref", None), str):
+                        caption_aud = part_aud.reciter_label or f"🔊 صوت {asset.title} — بخش {vid.page_number}"
+                        await _send_portable_media(
+                            message, kind="AUDIO", asset_ref=part_aud.asset_ref, platform=platform,
+                            filename=f"{slug}-{vid.page_number}.mp3", caption=caption_aud,
+                        )
         return True
 
     has_reading_media = False

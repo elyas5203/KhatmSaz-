@@ -2,7 +2,7 @@
 
 import re
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import case, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.core.devotional_images import validate_devotional_image_ref
@@ -50,9 +50,10 @@ async def resolve_khatm_devotional_source(session: AsyncSession, khatm):
     template_type = getattr(khatm, "template_type", KhatmTemplateType.SALAWAT)
     if template_type != KhatmTemplateType.SALAWAT:
         return None, None
-    if not khatm.content_category_id:
+    category_id = getattr(khatm, "content_category_id", None)
+    if not category_id:
         return None, SALAWAT_SLUG
-    category = await category_service.get(session, khatm.content_category_id)
+    category = await category_service.get(session, category_id)
     if category is None:
         return None, None
     slug = category.devotional_slug
@@ -661,7 +662,7 @@ async def add_devotional_video_page(
     slug = slug.strip().lower()
     asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
     if asset is None:
-        title = "خطبه فدکیه حضرت زهرا (س)" if "fadak" in slug else slug
+        title = "خطبه فدکیه حضرت زهرا (س)" if "fadak" in slug else ("خطبه غدیر پیامبر اکرم (ص)" if "ghadir" in slug else slug)
         # Note: In PostgreSQL, legacy ck_devotional_assets_type requires 'DUA', 'ZIYARAT', or 'SALAWAT'.
         # Using 'DUA' guarantees immediate compatibility across all environments even before
         # manual database migrations are run.
@@ -713,16 +714,175 @@ async def add_devotional_video_page(
     return row
 
 
-async def get_devotional_pdf(session: AsyncSession, slug: str, asset_platform: str) -> DevotionalMedia | None:
-    asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug.strip().lower()))
+async def add_devotional_pdf_page(
+    session: AsyncSession,
+    *,
+    slug: str,
+    asset_ref: str,
+    asset_platform: str,
+    page_number: int | None = None,
+    caption: str | None = None,
+) -> DevotionalMedia:
+    """Owner request: register part-specific PDF (e.g. Khutbah Ghadir part 1..8)."""
+    slug = slug.strip().lower()
+    asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
     if asset is None:
-        return None
-    return await session.scalar(
+        title = "خطبه فدکیه حضرت زهرا (س)" if "fadak" in slug else ("خطبه غدیر پیامبر اکرم (ص)" if "ghadir" in slug else slug)
+        asset = DevotionalAsset(
+            id=new_id(), content_type="DUA", slug=slug, title=title, text_body="", enabled=True,
+        )
+        session.add(asset)
+        await session.flush()
+    asset_platform = asset_platform.upper().strip()
+    if asset_platform not in {"TELEGRAM", "BALE"}:
+        raise ValueError("unsupported asset platform")
+    if not asset_ref.strip():
+        raise ValueError("asset_ref is required")
+    if page_number is None:
+        existing_max = await session.scalar(
+            select(func.max(DevotionalMedia.page_number)).where(
+                DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "PDF",
+            )
+        )
+        page_number = (existing_max or 0) + 1
+    clean_caption = (caption or "").strip() or None
+    row = await session.scalar(
         select(DevotionalMedia).where(
+            DevotionalMedia.devotional_asset_id == asset.id,
+            DevotionalMedia.kind == "PDF",
+            DevotionalMedia.page_number == page_number,
+            DevotionalMedia.asset_platform == asset_platform,
+        )
+    )
+    if row is None:
+        row = DevotionalMedia(
+            id=new_id(), devotional_asset_id=asset.id, kind="PDF", reciter_id="",
+            reciter_label=clean_caption,
+            page_number=page_number, asset_ref=asset_ref.strip(), asset_platform=asset_platform,
+        )
+        session.add(row)
+    else:
+        row.asset_ref = asset_ref.strip()
+        if clean_caption is not None:
+            row.reciter_label = clean_caption
+    await session.flush()
+    return row
+
+
+async def add_devotional_audio_page(
+    session: AsyncSession,
+    *,
+    slug: str,
+    asset_ref: str,
+    asset_platform: str,
+    page_number: int | None = None,
+    caption: str | None = None,
+    reciter_id: str = "",
+) -> DevotionalMedia:
+    """Owner request: register part-specific audio (e.g. Khutbah Ghadir part 1..8)."""
+    slug = slug.strip().lower()
+    asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
+    if asset is None:
+        title = "خطبه فدکیه حضرت زهرا (س)" if "fadak" in slug else ("خطبه غدیر پیامبر اکرم (ص)" if "ghadir" in slug else slug)
+        asset = DevotionalAsset(
+            id=new_id(), content_type="DUA", slug=slug, title=title, text_body="", enabled=True,
+        )
+        session.add(asset)
+        await session.flush()
+    asset_platform = asset_platform.upper().strip()
+    if asset_platform not in {"TELEGRAM", "BALE"}:
+        raise ValueError("unsupported asset platform")
+    if not asset_ref.strip():
+        raise ValueError("asset_ref is required")
+    if page_number is None:
+        existing_max = await session.scalar(
+            select(func.max(DevotionalMedia.page_number)).where(
+                DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "AUDIO",
+            )
+        )
+        page_number = (existing_max or 0) + 1
+    clean_caption = (caption or "").strip() or None
+    row = await session.scalar(
+        select(DevotionalMedia).where(
+            DevotionalMedia.devotional_asset_id == asset.id,
+            DevotionalMedia.kind == "AUDIO",
+            DevotionalMedia.page_number == page_number,
+            DevotionalMedia.reciter_id == reciter_id,
+            DevotionalMedia.asset_platform == asset_platform,
+        )
+    )
+    if row is None:
+        row = DevotionalMedia(
+            id=new_id(), devotional_asset_id=asset.id, kind="AUDIO", reciter_id=reciter_id,
+            reciter_label=clean_caption,
+            page_number=page_number, asset_ref=asset_ref.strip(), asset_platform=asset_platform,
+        )
+        session.add(row)
+    else:
+        row.asset_ref = asset_ref.strip()
+        if clean_caption is not None:
+            row.reciter_label = clean_caption
+    await session.flush()
+    return row
+
+
+async def list_devotional_media_for_part(
+    session: AsyncSession,
+    slug: str,
+    page_number: int,
+    asset_platform: str,
+) -> list[DevotionalMedia]:
+    """Return all media (VIDEO, PDF, AUDIO) registered for an exact section page_number."""
+    if session is None or not hasattr(session, "scalar") or not hasattr(session, "execute"):
+        return []
+    import uuid
+    try:
+        asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug.strip().lower()))
+        if asset is None or not isinstance(getattr(asset, "id", None), (str, uuid.UUID)):
+            return []
+        result = await session.execute(
+            select(DevotionalMedia).where(
+                DevotionalMedia.devotional_asset_id == asset.id,
+                DevotionalMedia.page_number == page_number,
+                DevotionalMedia.asset_platform == asset_platform.upper().strip(),
+            ).order_by(
+                case(
+                    (DevotionalMedia.kind == "VIDEO", 1),
+                    (DevotionalMedia.kind == "PDF", 2),
+                    (DevotionalMedia.kind == "AUDIO", 3),
+                    else_=4,
+                )
+            )
+        )
+        if not hasattr(result, "scalars"):
+            return []
+        scalars = result.scalars()
+        items = list(scalars.all() if hasattr(scalars, "all") else scalars)
+        return [m for m in items if isinstance(getattr(m, "asset_ref", None), str)]
+    except Exception:
+        return []
+
+
+async def get_devotional_pdf(
+    session: AsyncSession, slug: str, asset_platform: str, page_number: int | None = None
+) -> DevotionalMedia | None:
+    if session is None or not hasattr(session, "scalar"):
+        return None
+    import uuid
+    try:
+        asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug.strip().lower()))
+        if asset is None or not isinstance(getattr(asset, "id", None), (str, uuid.UUID)):
+            return None
+        query = select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "PDF",
             DevotionalMedia.asset_platform == asset_platform.upper(),
         )
-    )
+        if page_number is not None:
+            query = query.where(DevotionalMedia.page_number == page_number)
+        res = await session.scalar(query)
+        return res if (res is not None and isinstance(getattr(res, "asset_ref", None), str)) else None
+    except Exception:
+        return None
 
 
 async def get_devotional_asset(

@@ -236,9 +236,9 @@ async def create_and_launch_khatm(
             cat = await cat_service.get(session, content_category_id)
             if cat is not None and cat.group == KhatmCategoryGroup.KHUTBAH:
                 if target_val is not None:
-                    # Each round of Khutbah contains 5 sections. The creator specifies rounds,
-                    # so repetition_target in sections = rounds * 5.
-                    target_val = int(target_val) * 5
+                    # Each round of Khutbah contains 5 sections (Fadakiah) or 8 sections (Ghadir).
+                    sections_per_round = 8 if (cat.devotional_slug and "ghadir" in cat.devotional_slug) else 5
+                    target_val = int(target_val) * sections_per_round
         extra["repetition_target"] = target_val
         if khatm_type == KhatmTypeEnum.COMMITMENT:
             # Capacity + waiting list also applies to SALAWAT+COMMITMENT

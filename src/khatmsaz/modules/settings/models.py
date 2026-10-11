@@ -52,6 +52,9 @@ class UserSettings(Base):
     # YYYY-MM of the last closed calendar month processed by the positive
     # monthly-report worker. A string keeps the dedup key timezone-neutral.
     last_monthly_report_period: Mapped[str | None] = mapped_column(String(7), nullable=True)
+    # YYYY-MM-DD of the last delivered creator 12:00 PM daily report.
+    last_creator_daily_report_date: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    creator_daily_report_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

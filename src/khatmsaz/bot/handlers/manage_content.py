@@ -131,21 +131,155 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
         await message.answer(f"⚠️ خطا در ثبت ویدیو: {str(exc)}", parse_mode=None)
 
 
-@router.message(Command("videos", "list_videos"))
-async def list_videos_command(message: Message, command: CommandObject) -> None:
-    """Lists all registered videos for a devotional slug (default: khutbah-fadakiah)."""
-    slug = (command.args or "").strip().lower() or "khutbah-fadakiah"
+@router.message(Command("set_pdf", "add_pdf", "set_file", "add_file"))
+async def set_pdf_direct(message: Message, command: CommandObject) -> None:
+    """Owner shortcut: reply to a document/PDF to directly register a part-specific PDF."""
+    args = (command.args or "").strip().split()
+    if not args:
+        await message.answer(
+            "📖 <b>راهنمای ثبت مستقیم فایل PDF:</b>\n\n"
+            "روی یک فایل PDF ریپلای کنید و بفرستید:\n"
+            "<code>/set_pdf khutbah-ghadir 1</code>"
+        )
+        return
+
+    slug = args[0].strip().lower()
+    page_number = None
+    for arg in args[1:]:
+        if arg.isdigit():
+            page_number = int(arg)
+            break
+
+    target_msg = message.reply_to_message or message
+    platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    pdf_caption = None
+    if message.reply_to_message and message.reply_to_message.caption:
+        pdf_caption = message.reply_to_message.caption.strip()
+    elif target_msg.caption and not (target_msg.caption or "").strip().startswith("/"):
+        pdf_caption = target_msg.caption.strip()
+
+    file_id = None
+    if target_msg.document:
+        file_id = target_msg.document.file_id
+
+    if not file_id:
+        await message.answer("⚠️ فایل سندی (PDF) یافت نشد. لطفاً روی پیام حاوی فایل PDF ریپلای کنید.")
+        return
+
+    try:
+        async with session_scope() as session:
+            media = await content_service.add_devotional_pdf_page(
+                session, slug=slug, asset_ref=file_id, asset_platform=platform_val.value,
+                page_number=page_number, caption=pdf_caption,
+            )
+            await message.answer(f"✅ 📄 فایل PDF بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+    except Exception as exc:
+        await message.answer(f"⚠️ خطا در ثبت فایل PDF: {str(exc)}", parse_mode=None)
+
+
+@router.message(Command("set_audio", "add_audio"))
+async def set_audio_direct(message: Message, command: CommandObject) -> None:
+    """Owner shortcut: reply to an audio or voice message to register a part-specific audio."""
+    args = (command.args or "").strip().split()
+    if not args:
+        await message.answer(
+            "📖 <b>راهنمای ثبت مستقیم صوت:</b>\n\n"
+            "روی یک فایل صوتی ریپلای کنید و بفرستید:\n"
+            "<code>/set_audio khutbah-ghadir 1</code>"
+        )
+        return
+
+    slug = args[0].strip().lower()
+    page_number = None
+    for arg in args[1:]:
+        if arg.isdigit():
+            page_number = int(arg)
+            break
+
+    target_msg = message.reply_to_message or message
+    platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    audio_caption = None
+    if message.reply_to_message and message.reply_to_message.caption:
+        audio_caption = message.reply_to_message.caption.strip()
+    elif target_msg.caption and not (target_msg.caption or "").strip().startswith("/"):
+        audio_caption = target_msg.caption.strip()
+
+    file_id = None
+    if target_msg.audio:
+        file_id = target_msg.audio.file_id
+    elif target_msg.voice:
+        file_id = target_msg.voice.file_id
+
+    if not file_id:
+        await message.answer("⚠️ فایل صوتی یافت نشد. لطفاً روی پیام صوتی ریپلای کنید.")
+        return
+
+    try:
+        async with session_scope() as session:
+            media = await content_service.add_devotional_audio_page(
+                session, slug=slug, asset_ref=file_id, asset_platform=platform_val.value,
+                page_number=page_number, caption=audio_caption,
+            )
+            await message.answer(f"✅ 🔊 صوت بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+    except Exception as exc:
+        await message.answer(f"⚠️ خطا در ثبت صوت: {str(exc)}", parse_mode=None)
+
+
+@router.message(Command("set_media", "add_media"))
+async def set_media_direct(message: Message, command: CommandObject) -> None:
+    """Universal shortcut: auto-detects video, PDF or audio and registers for the part."""
+    target_msg = message.reply_to_message or message
+    if target_msg.video or target_msg.animation or (target_msg.document and (target_msg.document.mime_type or "").startswith("video/")):
+        await set_video_direct(message, command)
+    elif target_msg.document and target_msg.document.mime_type == "application/pdf":
+        await set_pdf_direct(message, command)
+    elif target_msg.audio or target_msg.voice:
+        await set_audio_direct(message, command)
+    else:
+        # Fallback to checking link or video
+        await set_video_direct(message, command)
+
+
+@router.message(Command("media", "list_media", "videos", "list_videos"))
+async def list_media_command(message: Message, command: CommandObject) -> None:
+    """Lists all registered media (Video, PDF, Audio) for a devotional slug."""
+    slug = (command.args or "").strip().lower() or "khutbah-ghadir"
     platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
-        pages = await content_service.list_devotional_video_pages(session, slug, platform_val.value)
-    if not pages:
-        await message.answer(f"ℹ️ هنوز هیچ ویدیویی برای <code>{slug}</code> ثبت نشده است.")
+        from khatmsaz.modules.content.models import DevotionalAsset, DevotionalMedia
+        from sqlalchemy import select
+        asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
+        if asset is None:
+            await message.answer(f"ℹ️ هیچ محتوایی با شناسه <code>{slug}</code> یافت نشد.")
+            return
+        all_media = (await session.execute(
+            select(DevotionalMedia)
+            .where(
+                DevotionalMedia.devotional_asset_id == asset.id,
+                DevotionalMedia.asset_platform == platform_val.value,
+            )
+            .order_by(DevotionalMedia.page_number.asc(), DevotionalMedia.kind.asc())
+        )).scalars().all()
+
+    if not all_media:
+        await message.answer(f"ℹ️ هنوز هیچ رسانه‌ای برای <code>{slug}</code> ثبت نشده است.")
         return
-    lines = [f"🎥 <b>ویدیوهای ثبت‌شده برای <code>{slug}</code>:</b>\n"]
-    for p in sorted(pages, key=lambda x: x.page_number):
-        ref_preview = p.asset_ref[:35] + "..." if len(p.asset_ref) > 35 else p.asset_ref
-        lines.append(f"• <b>بخش {p.page_number}</b>: <code>{ref_preview}</code> ✅")
-    lines.append(f"\nمجموع: <b>{len(pages)} بخش</b> فعال است.")
+
+    # Group by page_number
+    grouped: dict[int, dict[str, str]] = {}
+    for m in all_media:
+        p = m.page_number or 1
+        grouped.setdefault(p, {})[m.kind] = m.asset_ref[:25] + "..."
+
+    lines = [f"📚 <b>رسانه‌های ثبت‌شده برای «{asset.title}» (<code>{slug}</code>):</b>\n"]
+    for p in sorted(grouped.keys()):
+        kinds = grouped[p]
+        v_icon = "🎬 ویدیو ✅" if "VIDEO" in kinds else "🎬 ویدیو ❌"
+        d_icon = "📄 فایل PDF ✅" if "PDF" in kinds else "📄 فایل PDF ❌"
+        a_icon = "🔊 صوت ✅" if "AUDIO" in kinds else "🔊 صوت ❌"
+        lines.append(f"• <b>بخش {p}:</b> {v_icon} | {d_icon} | {a_icon}")
+
+    lines.append(f"\nمجموع: <b>{len(grouped)} بخش</b> در دیتابیس ثبت شده است.")
     await message.answer("\n".join(lines))
 
 

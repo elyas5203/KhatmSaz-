@@ -82,9 +82,11 @@ async def allocate_khutbah_section_range(
     if khatm is not None:
         _, slug = await content_service.resolve_khatm_devotional_source(session, khatm)
         if slug:
+            if "ghadir" in slug:
+                total_sections = 8
             videos = await content_service.list_devotional_video_pages(session, slug, "TELEGRAM")
             if videos:
-                total_sections = max(v.page_number for v in videos) or 5
+                total_sections = max(total_sections, max(v.page_number for v in videos))
 
     rows = []
     if hasattr(session, "execute"):
@@ -266,8 +268,18 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
     from khatmsaz.bot.member_copy import content_family
     fam = await content_family(session, khatm)
     effective_target = khatm.repetition_target
-    if fam == "khutbah" and effective_target is not None and effective_target < 5:
-        effective_target *= 5
+    if fam == "khutbah" and effective_target is not None:
+        sections_per_round = 5
+        khatm_title = getattr(khatm, "title", None) or ""
+        try:
+            _, slug = await content.resolve_khatm_devotional_source(session, khatm)
+            if (slug and "ghadir" in slug) or (khatm_title and "غدیر" in khatm_title):
+                sections_per_round = 8
+        except Exception:
+            if khatm_title and "غدیر" in khatm_title:
+                sections_per_round = 8
+        if effective_target < sections_per_round:
+            effective_target *= sections_per_round
     if effective_target is not None and total >= effective_target:
         return None
     quran = khatm.template_type == "QURAN_PAGE"
@@ -325,10 +337,19 @@ async def record_progress(session, part, occurrence):
         await portions.complete_portion(session, portion_id)
     target = khatm.repetition_target
     fam = await content_family(session, khatm)
-    if fam == "khutbah" and target is not None and target < 5:
-        # 1 round of Khutbah contains 5 sections. If target < 5, it was stored
-        # as rounds and must be multiplied by 5 sections to complete.
-        target = target * 5
+    if fam == "khutbah" and target is not None:
+        from khatmsaz.modules.content import service as content
+        sections_per_round = 5
+        khatm_title = getattr(khatm, "title", None) or ""
+        try:
+            _, slug = await content.resolve_khatm_devotional_source(session, khatm)
+            if (slug and "ghadir" in slug) or (khatm_title and "غدیر" in khatm_title):
+                sections_per_round = 8
+        except Exception:
+            if khatm_title and "غدیر" in khatm_title:
+                sections_per_round = 8
+        if target < sections_per_round:
+            target = target * sections_per_round
     if target is None and khatm.status == "COMPLETED":
         target = await contributions.total_for_khatm(session, khatm.id)
     _, _, total = await progress.log_contribution(session, khatm.id, part.id, occurrence.amount, target)

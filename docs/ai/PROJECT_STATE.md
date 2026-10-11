@@ -1,3 +1,29 @@
+## Current state — 2026-10-11 — Khutbah Ghadir Multi-Media Trio (8 Parts) & Creator Daily 12:00 PM Report Master [Antigravity]
+- **Khutbah Ghadir 8-Part Multi-Media Trio (`khutbah-ghadir`):**
+  - Canonical Seeding: Added idempotent canonical category seeding for `khutbah-ghadir` («خطبه غدیر پیامبر اکرم (ص)») under `KhatmCategoryGroup.KHUTBAH` in `khatm_category/service.py:seed_canonical_categories`. Automatically appears in bot creation wizard under «📜 خطبه‌ها».
+  - Multi-Media Trio Service: Extended `content/service.py` with `add_devotional_pdf_page`, `add_devotional_audio_page`, and `list_devotional_media_for_part`. All 3 kinds (`VIDEO`, `PDF`, `AUDIO`) coexist for each part number (1..8) without schema collision.
+  - Telegram Upload Commands in `manage_content.py`:
+    - `/set_video khutbah-ghadir <1..8>`
+    - `/set_pdf khutbah-ghadir <1..8>` (aliases: `/set_file`, `/add_pdf`, `/add_file`)
+    - `/set_audio khutbah-ghadir <1..8>` (alias: `/add_audio`)
+    - `/set_media khutbah-ghadir <1..8>` (auto-detects video, document/pdf, or audio from replied message)
+    - `/media khutbah-ghadir` (previews registered media matrix across all parts)
+  - Trio Media Delivery: Updated `devotional.py:deliver_devotional_media` so when a part is dispatched, it sends the Video, the PDF, and the Audio for that part sequentially.
+  - 8-Part Khutbah Multiplier: Updated `khatm_workflow/service.py`, `share_occurrence/delivery.py:prepare_numeric`, `delivery.py:record_progress`, and `delivery.py:allocate_khutbah_section_range` so `sections_per_round = 8` for Khutbah Ghadir ($1 \text{ دور} = 8 \text{ بخش}$) while preserving 5 parts for Khutbah Fadakiah.
+- **Creator Daily 12:00 PM Progress Report (`creator_daily_report.py`):**
+  - Created `src/khatmsaz/modules/reporting/creator_daily_report.py` delivering a comprehensive progress status summary at 12:00 PM (Tehran time) to creators with active khatms.
+  - Statistics breakdown:
+    - Progress up to yesterday (before 00:00:00 today).
+    - Today's recitations so far (from midnight up to 12:00 PM).
+    - Total completed and goal progress percentage.
+    - Active members count.
+    - Custom unit formatting per devotional type (صلوات, دور و بخش for khutbah, دور و صفحه for Quran, مرتبه for duas).
+  - Wired into `reminder_engine/service.py:run_once`.
+  - Self-healing schema additions on startup in `bootstrap.py`: `last_creator_daily_report_date` and `creator_daily_report_enabled` in `user_settings`. Idempotent delivery (once per local calendar day).
+  - Authored Master Document `docs/ai/KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md`.
+  - Added test suite `tests/test_khutbah_ghadir_and_daily_report.py` (5 tests, 100% PASS).
+- **Validation:** 387 passed, 230 skipped in pytest (100% green, 0 failures).
+
 ## Current state — 2026-10-11 — Payment Gateway Callback & Verification Architecture (MASTER-06) [Antigravity]
 - **PayPing v3 Callback & In-Bot Verification Safety Net (`MASTER_06`):**
   - Resolved `claim_pending_payment` query bug in `wallet/service.py:verify_payping_callback_and_credit`: PayPing v3 does not return `code`/`authority` in the callback; fallback to `pending.authority` for row claiming so pending records are claimed and updated reliably.
