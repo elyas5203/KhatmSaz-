@@ -166,6 +166,20 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         if key in records:
             continue
         method, kwargs = component["method"], dict(component["kwargs"])
+        if method == "send_video":
+            old_cap = (kwargs.get("caption") or "").strip()
+            if not old_cap or old_cap.startswith("🎬"):
+                ranges = (occurrence.content_spec or {}).get("ranges") or []
+                part_num = index + 1
+                if ranges and isinstance(ranges[0], (list, tuple)) and len(ranges[0]) >= 2:
+                    seq = list(range(int(ranges[0][0]), int(ranges[0][1]) + 1))
+                    if index < len(seq):
+                        part_num = seq[index]
+                if part_num in content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS and (
+                    (occurrence.content_spec or {}).get("family") == "khutbah"
+                    or "فدک" in (getattr(khatm, "title", "") or "")
+                ):
+                    kwargs["caption"] = content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[part_num]
         if kwargs.get("reply_markup"):
             kwargs["reply_markup"] = InlineKeyboardMarkup.model_validate(kwargs["reply_markup"])
         try:

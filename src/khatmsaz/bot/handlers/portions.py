@@ -640,6 +640,7 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
     if (
         khatm is not None and participation is not None
         and khatm.template_type == KhatmTemplateType.QURAN_PAGE
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
         and not participation.open_reading_pages_per_day
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
@@ -647,9 +648,26 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         await safe_answer_callback(callback)
         return
 
-    is_member_choice = khatm is not None and (
-        khatm.khatm_type == KhatmTypeEnum.OPEN
-        or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+    if khatm is not None and participation is not None and khatm.khatm_type == KhatmTypeEnum.OPEN:
+        from khatmsaz.bot.handlers.member_commitment import CommitFlow
+        from khatmsaz.bot.member_copy import content_family
+        fam = await content_family(session, khatm)
+        await state.set_state(CommitFlow.entering_count)
+        await state.update_data(commit_pid=str(participation.id), commit_family=fam.upper())
+        unit = (
+            "بخش" if fam == "khutbah"
+            else "صفحه" if khatm.template_type == KhatmTemplateType.QURAN_PAGE
+            else "صلوات" if fam == "salawat"
+            else "مرتبه"
+        )
+        await callback.message.answer(f"می‌خواهید چند {unit} از این ختم قرائت کنید؟ عدد مورد نظر را بفرستید:")
+        await safe_answer_callback(callback)
+        return
+
+    is_member_choice = (
+        khatm is not None
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     )
     if (
         khatm is not None and participation is not None

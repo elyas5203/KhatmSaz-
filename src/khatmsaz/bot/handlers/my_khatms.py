@@ -313,8 +313,14 @@ async def creator_save_cosmetic_edit(message: Message, state: FSMContext) -> Non
             elif field in {"target", "deadline"}:
                 if not value.isdigit():
                     raise ValueError("numeric setting required")
+                new_target = int(value)
+                if field == "target":
+                    from khatmsaz.bot.member_copy import content_family
+                    fam = await content_family(session, khatm)
+                    if fam == "khutbah":
+                        new_target = new_target * 5
                 kwargs = (
-                    {"repetition_target": int(value)}
+                    {"repetition_target": new_target}
                     if field == "target"
                     else {"daily_deadline_hour": int(value)}
                 )
@@ -1072,12 +1078,13 @@ async def edit_khatm_welcome(message: Message, command: CommandObject) -> None:
 
 
 _BRANCHES = ("created", "joined", "finished")
-_CATEGORY_ORDER = ("quran", "salawat", "dua", "laan")
+_CATEGORY_ORDER = ("quran", "salawat", "dua", "laan", "khutbah")
 _CATEGORY_LABEL_KEYS = {
     "quran": "my_khatms.category.quran",
     "salawat": "my_khatms.category.salawat",
     "dua": "my_khatms.category.dua",
     "laan": "my_khatms.category.laan",
+    "khutbah": "my_khatms.category.khutbah",
 }
 
 # Item shape stored in the tree built by `_build_my_khatms_tree`: one line

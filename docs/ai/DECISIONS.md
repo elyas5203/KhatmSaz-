@@ -5,6 +5,17 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0118 — Ground-up Admin Panel redesign, custom La'an moderation, web media upload, and fixed PRO plan
+
+**Date:** 2026-10-10
+**Owner confirmation:**
+1. **Custom La'an moderation (`pending_lan_approval`):** Custom La'an khatms can be approved, edited, or rejected both in the Web Admin Panel (`/moderation` and `/categories`) and via inline buttons in the Telegram admin bot. Until approved by an admin, the khatm must not be joinable/active, and the invite link is sent to the creator upon approval.
+2. **Devotional & Khutbah media management in Web Admin Panel:** Support both direct file upload from computer/mobile in the web panel (which sends the file via the creator bot to obtain and store `file_id` in `devotional_media`) AND direct entry of `file_id` or URL for large files (>50MB).
+3. **PRO plan model:** Fixed-price `PRO` plan (paid from wallet at the admin-configured `PRO` price to disable ads completely) plus manual admin override to set any user's plan (`FREE` / `BASIC` / `PRO`) from the Web Admin Panel.
+4. **Admin Panel routing & UI:** Rebuild the Admin Panel across the 10 modules with `[؟]` simple-language popup guides and step-by-step instructions while preserving/aliasing legacy URL paths (`/categories`, `/devotionals`, `/bots`, `/operations`, `/broadcasts`, etc.) so existing links and tests continue to work seamlessly.
+
+---
+
 ### DEC-PY-0117 — Quran numeric and scheduled shares
 
 **Date:** 2026-10-05

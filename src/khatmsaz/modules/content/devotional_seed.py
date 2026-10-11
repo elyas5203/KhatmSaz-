@@ -64,17 +64,23 @@ _DEVOTIONAL_TEXTS: list[tuple[str, str, str, str]] = [
 
 
 async def seed_devotional_texts(session: AsyncSession) -> dict[str, object]:
-    """Idempotently upsert every curated devotional text. Safe to run on
-    every startup — returns a small summary for logging."""
+    """Idempotently seed every curated devotional text when missing or empty,
+    without overwriting admin edits or re-enabling disabled assets on restart."""
     seeded: list[str] = []
     for slug, content_type, title, raw_text in _DEVOTIONAL_TEXTS:
+        existing = await content_service.get_devotional_asset(
+            session, slug, enabled_only=False
+        )
+        if existing is not None and (existing.text_body or "").strip():
+            continue
         text_body = _chunk(raw_text)
         await content_service.register_devotional_text(
             session,
             content_type=content_type,
             slug=slug,
-            title=title,
+            title=existing.title if (existing and existing.title) else title,
             text_body=text_body,
         )
         seeded.append(slug)
     return {"seeded": seeded, "count": len(seeded)}
+

@@ -1,10 +1,24 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}تبلیغ خدمتگزاران | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-6">
-  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">تبلیغات سیستمی</p>
-  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">تبلیغ خدمتگزاران</h1>
-  <p class="text-slate-400 text-sm leading-7">این پیام فقط به مخاطبانِ سازنده‌هایی که در «پلن پایه» هستند ارسال می‌شود (پلن رایگانِ زیر سقف و پلن پرو تبلیغ نمی‌گیرند). ارسال فقط با زدن دکمهٔ «ارسال الان» انجام می‌شود — هیچ ارسال خودکاری وجود ندارد.</p>
+<section class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">کمپین‌های سراسری</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white">کمپین تبلیغ خدمتگزاران</h1>
+      {{ help_button(
+        "راهنمای تبلیغ خدمتگزاران",
+        "این تبلیغ فقط به مخاطبان سازندگانی که در پلن پایه هستند ارسال می‌شود. ارسال در پس‌زمینه و از طریق بات عضو هر کاربر انجام می‌گیرد.",
+        [
+          "متن تبلیغ و در صورت تمایل رسانه (عکس، ویدیو یا صوت) را وارد کنید.",
+          "تیک «تبلیغ فعال باشد» را بزنید و ذخیره فرمایید.",
+          "تعداد مخاطبان پلن پایه را بررسی کرده و با زدن «ارسال الان» کمپین را در پس‌زمینه اجرا کنید."
+        ],
+        "نکته: پیام از طریق بات عضو که کاربر با آن وارد شده ارسال می‌شود تا مسدود نگردد."
+      ) }}
+    </div>
+  </div>
 </section>
 
 {% if saved == '1' %}

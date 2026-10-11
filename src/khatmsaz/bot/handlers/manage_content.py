@@ -75,6 +75,11 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
 
     target_msg = message.reply_to_message or message
     platform_val = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    video_caption = None
+    if message.reply_to_message and message.reply_to_message.caption:
+        video_caption = message.reply_to_message.caption.strip()
+    elif target_msg.caption and not (target_msg.caption or "").strip().startswith("/"):
+        video_caption = target_msg.caption.strip()
 
     try:
         async with session_scope() as session:
@@ -86,7 +91,7 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                     ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
                     media = await content_service.add_devotional_video_page(
                         session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
-                        page_number=page_number,
+                        page_number=page_number, caption=video_caption,
                     )
                     await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> از طریق لینک کانال ثبت شد.")
                     return
@@ -102,7 +107,7 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
             if file_id:
                 media = await content_service.add_devotional_video_page(
                     session, slug=slug, asset_ref=file_id, asset_platform=platform_val.value,
-                    page_number=page_number,
+                    page_number=page_number, caption=video_caption,
                 )
                 await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ذخیره شد.")
                 return
@@ -116,7 +121,7 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                     ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
                     media = await content_service.add_devotional_video_page(
                         session, slug=slug, asset_ref=ref, asset_platform=platform_val.value,
-                        page_number=page_number,
+                        page_number=page_number, caption=video_caption,
                     )
                     await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
                     return

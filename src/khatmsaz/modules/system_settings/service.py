@@ -33,6 +33,7 @@ KNOWN_STRING_SETTINGS = {
     "intro_image_salawat",
     "intro_image_dua_ziyarat",
     "intro_image_laan",
+    "intro_image_khutbah",
     "custom_khatm_admin_phone",
 }
 
@@ -60,10 +61,16 @@ async def set_int(session: AsyncSession, key: str, value: int) -> None:
 
 async def list_current(session: AsyncSession) -> dict[str, int]:
     rows = {row.key: row.value for row in await repository.list_all(session)}
-    return {
-        key: (int(rows[key]) if key in rows else meta["default"])
-        for key, meta in KNOWN_SETTINGS.items()
-    }
+    result: dict[str, int] = {}
+    for key, meta in KNOWN_SETTINGS.items():
+        if key in rows:
+            try:
+                result[key] = int(rows[key])
+            except (TypeError, ValueError):
+                result[key] = meta["default"]
+        else:
+            result[key] = meta["default"]
+    return result
 
 
 async def get_str(session: AsyncSession, key: str, default: str = "") -> str:

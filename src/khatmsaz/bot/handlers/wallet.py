@@ -46,26 +46,34 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
-def _topup_keyboard(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
+def _topup_keyboard(lang: str, *, pro_price: int | None = None) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(
+                text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
+                callback_data=f"wallet_topup:{amount}",
+            )
+            for amount in _TOPUP_AMOUNTS[:2]
+        ],
+        [
+            InlineKeyboardButton(
+                text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
+                callback_data=f"wallet_topup:{amount}",
+            )
+            for amount in _TOPUP_AMOUNTS[2:]
+        ],
+        [InlineKeyboardButton(text=t("wallet.topup_custom_button", lang), callback_data="wallet_topup_custom")],
+    ]
+    if pro_price is not None and pro_price > 0:
+        rows.append(
             [
                 InlineKeyboardButton(
-                    text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
-                    callback_data=f"wallet_topup:{amount}",
+                    text=f"⭐ ارتقا به پلن ویژه و حذف تبلیغات ({pro_price:,} تومان)",
+                    callback_data="wallet:buy_pro",
                 )
-                for amount in _TOPUP_AMOUNTS[:2]
-            ],
-            [
-                InlineKeyboardButton(
-                    text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
-                    callback_data=f"wallet_topup:{amount}",
-                )
-                for amount in _TOPUP_AMOUNTS[2:]
-            ],
-            [InlineKeyboardButton(text=t("wallet.topup_custom_button", lang), callback_data="wallet_topup_custom")],
-        ]
-    )
+            ]
+        )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -> None:
@@ -97,18 +105,43 @@ async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -
 
 async def _show_wallet(message: Message) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    pro_price = None
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         balance, credit = await wallet_service.get_balances(session, user.id)
         plan = await plan_service.get_plan(session, user.id)
+        if plan.value != "PRO":
+            pro_price = await plan_service.get_pro_plan_price(session)
 
     plan_label = t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
     await message.answer(
         t("wallet.overview", lang, balance=f"{balance:,}", credit=f"{credit:,}", plan=plan_label),
-        reply_markup=_topup_keyboard(lang),
+        reply_markup=_topup_keyboard(lang, pro_price=pro_price),
     )
+
+
+@router.callback_query(F.data == "wallet:buy_pro")
+async def buy_pro_from_wallet(callback: CallbackQuery) -> None:
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    try:
+        async with session_scope() as session:
+            user = await identity_service.resolve_or_provision_user(
+                session, platform, callback.message.chat.id
+            )
+            await plan_service.purchase_pro_plan(session, user.id)
+    except wallet_service.InsufficientFundsError:
+        await callback.answer(
+            "موجودی کیف پول شما برای خرید پلن ویژه کافی نیست. ابتدا کیف پول خود را شارژ کنید.",
+            show_alert=True,
+        )
+        return
+    except Exception as exc:
+        await callback.answer(str(exc), show_alert=True)
+        return
+    await callback.answer("🎉 پلن شما با موفقیت به ویژه (PRO) ارتقا یافت!", show_alert=True)
+    await _show_wallet(callback.message)
 
 
 @router.message(Command("wallet"))

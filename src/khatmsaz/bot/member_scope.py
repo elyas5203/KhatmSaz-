@@ -56,10 +56,14 @@ async def khatm_matches_bot(session, khatm: Khatm, bot) -> bool:
             if khatm.content_category_id
             else None
         )
-        group = category.group.value if category is not None else None
+        group = category.group.value if category is not None else "SALAWAT"
+        if group == "KHUTBAH" and actual in {BotCategory.DUA_ZIYARAT.value, BotCategory.KHUTBAH.value}:
+            return True
         expected = {
             "SALAWAT": BotCategory.SALAWAT.value,
             "DUA": BotCategory.DUA_ZIYARAT.value,
+            "KHUTBAH": BotCategory.DUA_ZIYARAT.value,
             "LAAN": BotCategory.LAAN.value,
         }.get(group)
     return expected is not None and actual == expected
+

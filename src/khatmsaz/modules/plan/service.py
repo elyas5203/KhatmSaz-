@@ -140,3 +140,46 @@ async def set_definition(
         price_toman=price_toman, unit_price_toman=unit_price_toman,
         entitlements=entitlements,
     )
+
+
+async def get_pro_plan_price(session: AsyncSession) -> int:
+    """Return the admin-configured price for upgrading to PRO (to remove ads)."""
+    definition = await get_definition(session, PlanTier.PRO)
+    if definition is None or not definition.enabled:
+        return 0
+    return max(0, int(definition.price_toman or 0))
+
+
+async def purchase_pro_plan(
+    session: AsyncSession,
+    user_id,
+    *,
+    coupon_code: str | None = None,
+):
+    """Purchase the PRO plan from the user's wallet (DEC-PY-0118).
+
+    Deducts the configured PRO price (or upgrades for free if price is 0) and
+    stores `PlanTier.PRO` for the user, permanently disabling ads on their khatms.
+    """
+    from khatmsaz.modules.wallet.models import InvoiceKind
+
+    current = await get_plan(session, user_id)
+    if current == PlanTier.PRO:
+        raise ValueError("پلن شما هم‌اکنون ویژه (PRO) است.")
+    definition = await get_definition(session, PlanTier.PRO)
+    if definition is None or not definition.enabled:
+        raise PlanFeatureUnavailableError("پلن ویژه (PRO) در حال حاضر غیرفعال است.")
+    price = max(0, int(definition.price_toman or 0))
+    invoice = None
+    if price > 0:
+        invoice = await wallet_service.purchase(
+            session,
+            user_id=user_id,
+            gross_amount_toman=price,
+            description=f"ارتقا به پلن ویژه ({definition.title})",
+            invoice_kind=InvoiceKind.PURCHASE,
+            coupon_code=coupon_code,
+        )
+    await set_plan(session, user_id, PlanTier.PRO)
+    return invoice
+

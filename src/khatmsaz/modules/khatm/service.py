@@ -302,7 +302,7 @@ async def update_creator_runtime_settings(
         except ValueError as exc:
             raise ValueError("invalid reminder tone") from exc
     if daily_deadline_hour is not None:
-        if khatm.khatm_type != KhatmTypeEnum.COMMITMENT or not 0 <= daily_deadline_hour <= 23:
+        if khatm.khatm_type != KhatmTypeEnum.COMMITMENT or not 0 <= daily_deadline_hour <= 24:
             raise ValueError("invalid commitment deadline")
     updated = await repository.update_creator_runtime_settings(
         session,
@@ -372,3 +372,70 @@ async def list_my_created(session: AsyncSession, user_id) -> list[Khatm]:
 
 async def list_public_active(session: AsyncSession, *, limit: int = 20) -> list[Khatm]:
     return await repository.list_public_active(session, limit=limit)
+
+
+async def list_pending_laan_khatms(session: AsyncSession) -> list[Khatm]:
+    return await repository.list_pending_laan_khatms(session)
+
+
+async def review_laan_khatm(
+    session: AsyncSession,
+    *,
+    khatm_id,
+    approved: bool,
+    updated_description: str | None = None,
+) -> Khatm:
+    khatm = await repository.get_by_id(session, khatm_id)
+    if khatm is None or khatm.status != KhatmStatus.DRAFT:
+        raise ValueError("khatm is not pending approval")
+    updated = await repository.review_laan_khatm(
+        session,
+        khatm_id,
+        approved=approved,
+        updated_description=updated_description,
+    )
+    if updated is None:
+        raise ValueError("khatm not found")
+    return updated
+
+
+async def admin_update_khatm(
+    session: AsyncSession,
+    *,
+    khatm_id,
+    title: str | None = None,
+    niyyat: str | None = None,
+    welcome_text: str | None = None,
+    description: str | None = None,
+    repetition_target: int | None = None,
+    visibility: str | None = None,
+    allowed_platforms: str | None = None,
+    reminder_tone: str | None = None,
+    daily_deadline_hour: int | None = None,
+    capacity: int | None = None,
+    status: str | None = None,
+    update_optional_texts: bool = False,
+) -> Khatm:
+    vis_enum = KhatmVisibility(visibility) if visibility else None
+    status_enum = KhatmStatus(status) if status else None
+    tone_val = ReminderTone(reminder_tone).value if reminder_tone else None
+    updated = await repository.admin_update_khatm(
+        session,
+        khatm_id,
+        title=title,
+        niyyat=niyyat,
+        welcome_text=welcome_text,
+        description=description,
+        repetition_target=repetition_target,
+        visibility=vis_enum,
+        allowed_platforms=allowed_platforms,
+        reminder_tone=tone_val,
+        daily_deadline_hour=daily_deadline_hour,
+        capacity=capacity,
+        status=status_enum,
+        update_optional_texts=update_optional_texts,
+    )
+    if updated is None:
+        raise ValueError("khatm not found")
+    return updated
+

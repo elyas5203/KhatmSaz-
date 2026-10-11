@@ -24,22 +24,25 @@
 
   <section class="glass-panel p-5 sm:p-6 rounded-3xl">
     <p class="text-xs font-bold text-emerald-400 mb-3">۱ · {{ t('web.creator.create_kind', lang) }}</p>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {% for value, icon, key in [('quran','📖','web.creator.kind_quran'),('salawat','🕊','web.creator.kind_salawat'),('dua','🤲','web.creator.kind_dua'),('laan','✨','web.creator.kind_laan')] %}
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      {% for value, icon, label in [('quran','📖','قرآن کریم'),('salawat','🕊','صلوات'),('dua','🤲','دعا و زیارت'),('laan','✨','لعن'),('khutbah','🎤','خطبه (فدکیه)')] %}
       <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10">
         <input type="radio" name="content_kind" value="{{ value }}" class="sr-only" {% if loop.first %}checked{% endif %}>
-        <span class="text-2xl block mb-2">{{ icon }}</span><span class="font-bold text-sm">{{ t(key, lang) }}</span>
+        <span class="text-2xl block mb-2">{{ icon }}</span><span class="font-bold text-sm">{{ label }}</span>
       </label>
       {% endfor %}
     </div>
     <div id="category-wrap" class="mt-4 hidden">
       <label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_category', lang) }}</label>
       <select name="category_id" id="category-id" class="input-field mt-1">
-        <optgroup label="{{ t('web.creator.kind_dua', lang) }}" id="dua-options">
+        <optgroup label="دعا و زیارت" id="dua-options">
           {% for item in dua_categories %}<option value="{{ item.id }}" data-kind="dua">{{ item.title }}</option>{% endfor %}
         </optgroup>
-        <optgroup label="{{ t('web.creator.kind_laan', lang) }}" id="laan-options">
+        <optgroup label="لعن" id="laan-options">
           {% for item in laan_categories %}<option value="{{ item.id }}" data-kind="laan">{{ item.title }}</option>{% endfor %}
+        </optgroup>
+        <optgroup label="خطبه‌ها" id="khutbah-options">
+          {% for item in khutbah_categories %}<option value="{{ item.id }}" data-kind="khutbah">{{ item.title }}</option>{% endfor %}
         </optgroup>
       </select>
       <p id="category-empty" class="hidden text-xs text-amber-300 mt-2">{{ t('web.creator.create_category_empty', lang) }}</p>
@@ -61,6 +64,7 @@
   <section class="glass-panel p-5 sm:p-6 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="md:col-span-2"><p class="text-xs font-bold text-emerald-400">۳ · {{ t('web.creator.create_details', lang) }}</p></div>
     <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_optional_title', lang) }}</label><input name="title" maxlength="200" class="input-field mt-1" placeholder="{{ t('web.creator.create_title_placeholder', lang) }}"></div>
+    <div><label class="text-xs font-bold text-slate-400">نیت ختم (اختیاری)</label><input name="niyyat" maxlength="200" class="input-field mt-1" placeholder="مثلاً برای سلامتی امام زمان (عج)"></div>
     <div id="amount-wrap" class="hidden"><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_amount', lang) }}</label><input name="amount" type="number" min="1" class="input-field mt-1" inputmode="numeric"></div>
     <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_visibility', lang) }}</label><select name="visibility" class="input-field mt-1"><option value="UNLISTED">{{ t('web.creator.visibility_unlisted', lang) }}</option><option value="PUBLIC">{{ t('web.creator.visibility_public', lang) }}</option><option value="PRIVATE">{{ t('web.creator.visibility_private', lang) }}</option></select></div>
   </section>
@@ -83,11 +87,11 @@
     const kind = radios.find(r => r.checked).value;
     editionWrap.classList.toggle('hidden', kind !== 'quran');
     amountWrap.classList.toggle('hidden', kind === 'quran');
-    categoryWrap.classList.toggle('hidden', !['dua','laan'].includes(kind));
+    categoryWrap.classList.toggle('hidden', !['dua','laan','khutbah'].includes(kind));
     [...categorySelect.querySelectorAll('option')].forEach(o => o.hidden = o.dataset.kind !== kind);
     const first = [...categorySelect.querySelectorAll('option')].find(o => o.dataset.kind === kind);
     if (first) first.selected = true;
-    categoryEmpty.classList.toggle('hidden', !['dua','laan'].includes(kind) || Boolean(first));
+    categoryEmpty.classList.toggle('hidden', !['dua','laan','khutbah'].includes(kind) || Boolean(first));
   }
   radios.forEach(r => r.addEventListener('change', sync)); sync();
 })();

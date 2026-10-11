@@ -546,7 +546,7 @@ async def resume_join_after_registration(
     # portion silently skipped the question (reported 2026-09-27).
     is_fresh_join = (
         not was_waitlisted
-        and khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN)
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
     )
     # R11/N2 (owner 2026-09-28): for a repetition-based COMMITMENT khatm (Salawat/
     # Dua/Ziyarat/La'an — NOT Quran, which keeps its page/portion + delivery-hour
@@ -560,7 +560,8 @@ async def resume_join_after_registration(
     is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
     if (
         state is not None and not was_waitlisted and is_quran
-        and (khatm.khatm_type == KhatmTypeEnum.OPEN or getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
         await start_commitment_mode_picker(message, state, participation.id, lang, summary=text, family="QURAN")

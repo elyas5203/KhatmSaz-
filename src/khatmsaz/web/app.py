@@ -3,13 +3,14 @@
 import hashlib
 import json
 import secrets
+import time
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, Form, Request
+from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -214,19 +215,27 @@ AUDIT_DETAIL_LABELS = {
 }
 
 
+_PANEL_LOGO_CACHE: dict[str, object] = {"value": "", "expires_at": 0.0}
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     request.state.panel_logo_url = ""
-    if not request.url.path.startswith("/static/"):
-        try:
-            async with session_scope() as session:
-                request.state.panel_logo_url = await system_settings_service.get_str(
-                    session, "panel_logo_url"
-                )
-        except Exception:
-            # The logo is cosmetic; a database/read failure must never take
-            # down the panel or its health endpoint.
-            request.state.panel_logo_url = ""
+    if not request.url.path.startswith("/static/") and request.url.path != "/health":
+        now_ts = time.monotonic()
+        if now_ts < float(_PANEL_LOGO_CACHE.get("expires_at", 0.0)):
+            request.state.panel_logo_url = str(_PANEL_LOGO_CACHE.get("value", ""))
+        else:
+            try:
+                async with session_scope() as session:
+                    logo_val = await system_settings_service.get_str(
+                        session, "panel_logo_url"
+                    )
+                    _PANEL_LOGO_CACHE["value"] = logo_val
+                    _PANEL_LOGO_CACHE["expires_at"] = now_ts + 60.0
+                    request.state.panel_logo_url = logo_val
+            except Exception:
+                request.state.panel_logo_url = ""
     response = await call_next(request)
     # Telegram Web opens Mini Apps inside an iframe served from telegram.org.
     # A blanket X-Frame-Options: SAMEORIGIN blocked them ("refused to connect",
@@ -388,7 +397,6 @@ async def health():
         async with session_scope() as session:
             await session.execute(text("SELECT 1"))
     except Exception:
-        # Do not expose driver, host, credentials, or schema details publicly.
         return JSONResponse(
             status_code=503,
             content={"status": "unavailable", "database": "unavailable"},
@@ -404,8 +412,9 @@ async def operations_page(request: Request):
         return _login_redirect()
     settings = get_settings()
     database_ok = True
-    queue_counts = {"broadcasts": 0, "covers": 0, "phones": 0, "categories": 0}
+    queue_counts = {"broadcasts": 0, "covers": 0, "phones": 0, "categories": 0, "laan": 0}
     custom_khatm_admin_phone = ""
+    system_int_settings: dict[str, int] = {"default_reminder_hour": 20, "inactivity_days": 3}
     try:
         async with session_scope() as session:
             await session.execute(text("SELECT 1"))
@@ -414,10 +423,12 @@ async def operations_page(request: Request):
                 "covers": int(await session.scalar(select(func.count()).select_from(Khatm).where(Khatm.cover_status == "PENDING")) or 0),
                 "phones": int(await session.scalar(select(func.count()).select_from(ManualPhoneVerification).where(ManualPhoneVerification.status == "PENDING")) or 0),
                 "categories": int(await session.scalar(select(func.count()).select_from(KhatmCategoryRequest).where(KhatmCategoryRequest.status == KhatmCategoryRequestStatus.PENDING)) or 0),
+                "laan": int(await session.scalar(select(func.count()).select_from(Khatm).where(Khatm.pending_lan_approval.is_(True))) or 0),
             }
             custom_khatm_admin_phone = await system_settings_service.get_str(
                 session, "custom_khatm_admin_phone"
             )
+            system_int_settings = await system_settings_service.list_all(session)
     except Exception:
         database_ok = False
 
@@ -441,9 +452,44 @@ async def operations_page(request: Request):
             request, admin, raw, services=services, queues=queue_counts,
             worker=runtime_status.snapshot(), scan_interval=settings.reminder_scan_interval_minutes,
             custom_khatm_admin_phone=custom_khatm_admin_phone,
+            system_int_settings=system_int_settings,
             saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/operations/system-settings")
+async def update_system_int_settings(
+    request: Request,
+    default_reminder_hour: int = Form(20),
+    inactivity_days: int = Form(3),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await system_settings_service.set_int(
+                session, "default_reminder_hour", default_reminder_hour
+            )
+            await system_settings_service.set_int(
+                session, "inactivity_days", inactivity_days
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"مقدار نامعتبر است: {exc}", status_code=400)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="SYSTEM_SETTINGS_UPDATE",
+            details={
+                "default_reminder_hour": default_reminder_hour,
+                "inactivity_days": inactivity_days,
+            },
+        )
+    return RedirectResponse("/operations?saved=system_settings", status_code=303)
 
 
 @app.post("/operations/panel-logo")
@@ -459,9 +505,11 @@ async def update_panel_logo(
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     async with session_scope() as session:
         try:
-            await system_settings_service.set_str(
+            saved_logo = await system_settings_service.set_str(
                 session, "panel_logo_url", panel_logo_url
             )
+            _PANEL_LOGO_CACHE["value"] = saved_logo
+            _PANEL_LOGO_CACHE["expires_at"] = time.monotonic() + 60.0
         except ValueError:
             return HTMLResponse(
                 "آدرس لوگو باید یک لینک معتبر http یا https باشد.",
@@ -506,29 +554,92 @@ async def public_join_landing(request: Request, token: str):
     return HTMLResponse("صفحه معرفی ختم فعلاً غیرفعال است.", status_code=404)
 
 
-@app.post("/payments/payping/callback", response_class=HTMLResponse)
+@app.api_route("/payments/payping/callback", methods=["GET", "POST"], response_class=HTMLResponse)
 async def payping_callback(request: Request):
-    """Receive PayPing's form POST and credit the bound wallet exactly once."""
+    """Receive PayPing's GET or POST callback and credit the bound wallet exactly once."""
     try:
-        form = await request.form()
-        status = int(str(form.get("status", "0")))
-        if status != 1:
+        form: Any = {}
+        if request.method == "POST":
+            try:
+                form = await request.form()
+            except Exception:
+                form = {}
+        query = request.query_params
+
+        # 1. Check status (1 is success in PayPing, 0 or missing is unconfirmed/failed)
+        raw_status = str(form.get("status") or query.get("status") or "1").strip()
+        if raw_status == "0":
             return _payment_result_page(
                 "پرداخت کامل نشد",
-                "بانک پرداخت را موفق اعلام نکرد. هیچ مبلغی به کیف پول اضافه نشده است.",
+                "بانک یا کاربر پرداخت را لغو کرد. هیچ مبلغی به کیف پول شما اضافه نشده است.",
+                success=False,
+                status_code=200,
+            )
+
+        # 2. Extract client reference id (the UUID assigned locally)
+        client_ref_id = str(
+            form.get("clientRefId")
+            or form.get("clientrefid")
+            or form.get("ClientRefId")
+            or query.get("clientRefId")
+            or query.get("clientrefid")
+            or query.get("ClientRefId")
+            or ""
+        ).strip()
+
+        # 3. Extract transaction tracking ref
+        transaction_ref = str(
+            form.get("paymentRefId")
+            or form.get("refid")
+            or form.get("refId")
+            or form.get("RefId")
+            or query.get("paymentRefId")
+            or query.get("refid")
+            or query.get("refId")
+            or query.get("RefId")
+            or ""
+        ).strip()
+
+        # 4. Extract authority / paymentCode
+        authority = str(
+            form.get("paymentCode")
+            or form.get("code")
+            or form.get("authority")
+            or query.get("paymentCode")
+            or query.get("code")
+            or query.get("authority")
+            or ""
+        ).strip()
+
+        # 5. Extract amount
+        raw_amount = form.get("amount") or query.get("amount") or "0"
+        try:
+            amount_toman = int(float(str(raw_amount)))
+        except (ValueError, TypeError):
+            amount_toman = 0
+
+        # Backwards compatibility: in case legacy payload sends {"data": JSON_STRING}
+        if (not client_ref_id or not transaction_ref) and form.get("data"):
+            try:
+                legacy_data = json.loads(str(form.get("data")))
+                if isinstance(legacy_data, dict):
+                    client_ref_id = client_ref_id or str(legacy_data.get("clientRefId") or "")
+                    authority = authority or str(legacy_data.get("paymentCode") or "")
+                    transaction_ref = transaction_ref or str(legacy_data.get("paymentRefId") or "")
+                    if amount_toman <= 0 and legacy_data.get("amount"):
+                        amount_toman = int(legacy_data.get("amount"))
+            except Exception:
+                pass
+
+        if not client_ref_id or not transaction_ref:
+            return _payment_result_page(
+                "پاسخ پرداخت نامعتبر است",
+                "اطلاعات ارسالی از بانک کامل نبود (شناسه تراکنش یا فاکتور یافت نشد). کیف پول تغییر نکرد.",
                 success=False,
                 status_code=400,
             )
 
-        raw_data = form.get("data", "")
-        data = json.loads(str(raw_data))
-        if not isinstance(data, dict):
-            raise ValueError("callback data is not an object")
-        client_ref_id = str(data.get("clientRefId") or "")
-        authority = str(data.get("paymentCode") or "")
-        transaction_ref = str(data.get("paymentRefId") or "")
-        amount_toman = int(data.get("amount"))
-    except (TypeError, ValueError, json.JSONDecodeError):
+    except Exception:
         return _payment_result_page(
             "پاسخ پرداخت نامعتبر است",
             "اطلاعات برگشتی بانک کامل یا معتبر نبود. کیف پول تغییر نکرد.",
@@ -548,7 +659,7 @@ async def payping_callback(request: Request):
 
     try:
         async with session_scope() as session:
-            await wallet_service.verify_payping_callback_and_credit(
+            verification = await wallet_service.verify_payping_callback_and_credit(
                 session,
                 gateway,
                 client_ref_id=client_ref_id,
@@ -556,6 +667,30 @@ async def payping_callback(request: Request):
                 amount_toman=amount_toman,
                 transaction_ref=transaction_ref,
             )
+            credited_amount = verification.amount_toman
+            # Proactive bot confirmation to user
+            try:
+                from khatmsaz.modules.wallet import repository as wallet_repo
+                pending_row = await wallet_repo.get_pending_payment_by_id(session, UUID(client_ref_id))
+                if pending_row:
+                    from khatmsaz.modules.identity.models import PlatformIdentity
+                    identities = (
+                        await session.execute(
+                            select(PlatformIdentity).where(PlatformIdentity.user_id == pending_row.user_id)
+                        )
+                    ).scalars().all()
+                    notify_fn = get_notify_fn()
+                    for ident in identities:
+                        try:
+                            await notify_fn(
+                                ident.platform.value,
+                                ident.platform_user_id,
+                                f"💳 کیف پول شما با موفقیت به مبلغ {credited_amount:,} تومان شارژ شد.\nشناسه پیگیری پرداخت: {transaction_ref}",
+                            )
+                        except Exception:
+                            pass
+            except Exception:
+                pass
     except wallet_service.PaymentAlreadyProcessedError:
         return _payment_result_page(
             "پرداخت قبلاً ثبت شده است",
@@ -579,7 +714,7 @@ async def payping_callback(request: Request):
 
     return _payment_result_page(
         "کیف پول شارژ شد",
-        f"پرداخت {amount_toman:,} تومان با موفقیت تأیید و فقط یک بار به کیف پول شما اضافه شد.",
+        f"پرداخت {credited_amount:,} تومان با موفقیت تأیید و فقط یک بار به کیف پول شما اضافه شد.",
         success=True,
     )
 
@@ -639,8 +774,9 @@ async def _authenticate_telegram_mini_app(request: Request, init_data: str, *, p
                 raw_token = await session_service.issue_admin_session(session, user)
                 destination, cookie_name, cookie_path = "/", COOKIE_NAME, "/"
             else:
-                if not await khatm_service.list_my_created(session, user.id):
-                    raise PermissionError
+                if user.role not in {UserRole.CREATOR, UserRole.SUPER_ADMIN}:
+                    user.role = UserRole.CREATOR
+                    await session.flush()
                 raw_token = await session_service.issue_creator_session(session, user)
                 destination, cookie_name, cookie_path = "/creator", CREATOR_COOKIE_NAME, "/creator"
         except PermissionError:
@@ -699,18 +835,27 @@ async def creator_logout(request: Request, csrf: str = Form("")):
 
 _PLAN_LABEL_KEYS = {"FREE": "wallet.plan_label.FREE", "BASIC": "wallet.plan_label.BASIC", "PRO": "wallet.plan_label.PRO"}
 
-# Owner request (2026-09-29): every khatm the creator owns is grouped into one
-# of four parent buckets in the panel (parent/child navigation). Keep this the
-# single source of truth so the dashboard, list and detail stay consistent.
+# Owner request (2026-09-29): every khatm the creator owns is grouped into its
+# family bucket in the panel (parent/child navigation).
 _CREATOR_KHATM_BUCKETS = (
     ("quran", "📖", ("QURAN_PAGE", "QURAN_SURAH", "SURAH"), "web.creator.bucket_quran"),
     ("salawat", "🕊", ("SALAWAT",), "web.creator.bucket_salawat"),
     ("dua", "🤲", ("DUA", "ZIYARAT"), "web.creator.bucket_dua"),
+    ("laan", "🔥", ("LAAN",), "my_khatms.category.laan"),
+    ("khutbah", "📜", ("KHUTBAH",), "my_khatms.category.khutbah"),
     ("other", "✨", ("CUSTOM",), "web.creator.bucket_other"),
 )
 
 
-def _bucket_for_template(template_value: str) -> str:
+def _bucket_for_template(template_value: str, category_group: str | None = None) -> str:
+    if category_group:
+        grp = str(getattr(category_group, "value", category_group)).upper()
+        if grp == "DUA":
+            return "dua"
+        if grp == "LAAN":
+            return "laan"
+        if grp == "KHUTBAH":
+            return "khutbah"
     for key, _emoji, members, _label in _CREATOR_KHATM_BUCKETS:
         if template_value in members:
             return key
@@ -722,13 +867,6 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
     a missing UserPlan means FREE; caps live in the FREE PlanDefinition's
     entitlements and are the only ones the backend actually enforces
     (khatm_workflow._enforce_creation_cap). No expiry/purchase exists yet."""
-    from khatmsaz.modules.khatm_workflow.service import (
-        _QURAN_TEMPLATE_TYPES, _DEVOTIONAL_TEMPLATE_TYPES,
-    )
-
-    # Owner model §A (2026-09-30): real stored tier (FREE/BASIC/PRO). FREE/BASIC
-    # show the total-audience usage vs the admin cap (crossing it moves FREE→BASIC,
-    # which turns on خدمتگزاران ads). PRO = no ads.
     plan = await plan_service.get_plan(session, user_id)
     definition = await plan_service.get_definition(session, plan)
     fallback = web_t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
@@ -744,7 +882,6 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
         "ads_shown": await plan_service.ads_enabled_for_creator(session, user_id),
         "total_members": total_members,
         "total_cap": total_cap,
-        # legacy keys kept so older template branches still render safely
         "caps": None,
     }
     return view
@@ -814,6 +951,14 @@ async def creator_khatms_list(request: Request, branch: str = "active"):
             .order_by(Khatm.created_at.desc())
         )).scalars())
         member_counts = await _creator_member_counts(session, [k.id for k in all_khatms])
+        cat_ids = {k.content_category_id for k in all_khatms if k.content_category_id is not None}
+        cats_by_id = {}
+        if cat_ids:
+            from khatmsaz.modules.khatm_category.models import KhatmCategory
+            cats_by_id = {
+                c.id: c.group
+                for c in (await session.execute(select(KhatmCategory).where(KhatmCategory.id.in_(cat_ids)))).scalars()
+            }
 
     def _in_branch(k, key):
         if key == "active":
@@ -828,7 +973,10 @@ async def creator_khatms_list(request: Request, branch: str = "active"):
             items = [
                 {"khatm": k, "members": member_counts.get(k.id, 0)}
                 for k in members
-                if _bucket_for_template(getattr(k.template_type, "value", k.template_type)) == bkey
+                if _bucket_for_template(
+                    getattr(k.template_type, "value", k.template_type),
+                    cats_by_id.get(k.content_category_id),
+                ) == bkey
             ]
             if items:
                 categories.append({"emoji": emoji, "label": web_t(label_key, lang), "khatms": items})
@@ -855,6 +1003,7 @@ async def _creator_khatm_new_context(session, creator, lang: str) -> dict:
     return {
         "dua_categories": [item for item in categories if item.group == KhatmCategoryGroup.DUA],
         "laan_categories": [item for item in categories if item.group == KhatmCategoryGroup.LAAN],
+        "khutbah_categories": [item for item in categories if item.group == KhatmCategoryGroup.KHUTBAH],
         "creation_price": creation_price,
     }
 
@@ -870,7 +1019,7 @@ async def creator_khatm_new(request: Request, error: str = ""):
         async with session_scope() as session:
             context = await _creator_khatm_new_context(session, creator, lang)
     except plan_service.PlanFeatureUnavailableError:
-        context = {"dua_categories": [], "laan_categories": [], "creation_price": None}
+        context = {"dua_categories": [], "laan_categories": [], "khutbah_categories": [], "creation_price": None}
         error = "plan_unavailable"
     return templates.TemplateResponse(
         request=request,
@@ -903,7 +1052,7 @@ async def creator_khatm_create(
         selected_visibility = KhatmVisibility(visibility)
     except ValueError:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
-    if content_kind not in {"quran", "salawat", "dua", "laan"}:
+    if content_kind not in {"quran", "salawat", "dua", "laan", "khutbah"}:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
     if content_kind != "quran" and (amount is None or amount <= 0):
         return RedirectResponse("/creator/khatms/new?error=amount", status_code=303)
@@ -917,13 +1066,17 @@ async def creator_khatm_create(
             return RedirectResponse("/creator/khatms/new?error=phone", status_code=303)
 
         category = None
-        if content_kind in {"dua", "laan"}:
+        if content_kind in {"dua", "laan", "khutbah"}:
             try:
                 parsed_category_id = UUID(category_id)
             except ValueError:
                 return RedirectResponse("/creator/khatms/new?error=category", status_code=303)
             category = await category_service.get(session, parsed_category_id)
-            expected_group = KhatmCategoryGroup.DUA if content_kind == "dua" else KhatmCategoryGroup.LAAN
+            expected_group = {
+                "dua": KhatmCategoryGroup.DUA,
+                "laan": KhatmCategoryGroup.LAAN,
+                "khutbah": KhatmCategoryGroup.KHUTBAH,
+            }[content_kind]
             if category is None or not category.is_active or category.group != expected_group:
                 return RedirectResponse("/creator/khatms/new?error=category", status_code=303)
 
@@ -963,6 +1116,25 @@ async def creator_khatm_create(
         except InsufficientFundsError:
             return RedirectResponse("/creator/khatms/new?error=wallet", status_code=303)
     return RedirectResponse(f"/creator/khatms/{khatm.id}?saved=created", status_code=303)
+
+
+@app.post("/creator/wallet/buy-pro")
+async def creator_buy_pro(request: Request, csrf: str = Form(...), coupon_code: str = Form("")):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    try:
+        async with session_scope() as session:
+            await plan_service.purchase_pro_plan(
+                session, creator.id, coupon_code=coupon_code.strip() or None
+            )
+    except InsufficientFundsError:
+        return RedirectResponse("/creator/wallet?error=insufficient_funds", status_code=303)
+    except Exception:
+        return RedirectResponse("/creator/wallet?error=pro_upgrade_failed", status_code=303)
+    return RedirectResponse("/creator/wallet?saved=pro_upgraded", status_code=303)
 
 
 @app.get("/creator/wallet", response_class=HTMLResponse)
@@ -1372,6 +1544,7 @@ async def dashboard(request: Request):
     admin, raw = await _admin(request)
     if admin is None:
         return _login_redirect()
+    from khatmsaz.modules.creator_request.models import CreatorRequest, CreatorRequestStatus
     async with session_scope() as session:
         users = await session.scalar(select(func.count()).select_from(User))
         active_khatms = await session.scalar(
@@ -1382,6 +1555,9 @@ async def dashboard(request: Request):
                 Participation.status == ParticipationStatus.ACTIVE
             )
         )
+        pending_laan = await session.scalar(
+            select(func.count()).select_from(Khatm).where(Khatm.pending_lan_approval.is_(True))
+        )
         pending_covers = await session.scalar(
             select(func.count()).select_from(Khatm).where(Khatm.cover_status == "PENDING")
         )
@@ -1390,14 +1566,43 @@ async def dashboard(request: Request):
                 KhatmBroadcast.status == BroadcastStatus.PENDING
             )
         )
+        pending_phones = await session.scalar(
+            select(func.count()).select_from(ManualPhoneVerification).where(
+                ManualPhoneVerification.status == "PENDING"
+            )
+        )
+        pending_creators = await session.scalar(
+            select(func.count()).select_from(CreatorRequest).where(
+                CreatorRequest.status == CreatorRequestStatus.PENDING
+            )
+        )
+        pending_categories = await session.scalar(
+            select(func.count()).select_from(KhatmCategoryRequest).where(
+                KhatmCategoryRequest.status == KhatmCategoryRequestStatus.PENDING
+            )
+        )
         pending_requests = await session.scalar(
             select(func.count()).select_from(KhatmRequest).where(
                 KhatmRequest.status == KhatmRequestStatus.PENDING
             )
         )
+        paid_total = await session.scalar(
+            select(func.coalesce(func.sum(WalletInvoice.net_amount_toman), 0)).where(
+                WalletInvoice.status == "PAID"
+            )
+        )
         recent = list(
             (await session.execute(select(Khatm).order_by(Khatm.created_at.desc()).limit(8))).scalars()
         )
+    pending_map = {
+        "laan": int(pending_laan or 0),
+        "covers": int(pending_covers or 0),
+        "broadcasts": int(pending_broadcasts or 0),
+        "phones": int(pending_phones or 0),
+        "creators": int(pending_creators or 0),
+        "categories": int(pending_categories or 0),
+        "requests": int(pending_requests or 0),
+    }
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
@@ -1409,25 +1614,274 @@ async def dashboard(request: Request):
                 "users": int(users or 0),
                 "active_khatms": int(active_khatms or 0),
                 "active_members": int(active_members or 0),
-                "pending": int(pending_covers or 0) + int(pending_broadcasts or 0) + int(pending_requests or 0),
+                "pending": sum(pending_map.values()),
+                "paid_total": int(paid_total or 0),
             },
-            pending={
-                "covers": int(pending_covers or 0),
-                "broadcasts": int(pending_broadcasts or 0),
-                "requests": int(pending_requests or 0),
-            },
+            pending=pending_map,
             recent=recent,
         ),
     )
 
 
+@app.get("/moderation", response_class=HTMLResponse)
+async def moderation_center(request: Request, tab: str = "laan"):
+    admin, raw = await _admin(
+        request,
+        AdminPermission.MODERATION_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+        AdminPermission.CONTENT_MANAGE,
+        AdminPermission.ADMIN_ROLES_MANAGE,
+    )
+    if admin is None:
+        return _login_redirect()
+    from khatmsaz.modules.khatm_request import service as khatm_request_service
+    async with session_scope() as session:
+        laan_khatms = await khatm_service.list_pending_laan_khatms(session)
+        cover_khatms = await khatm_service.list_pending_covers(session)
+        khatm_requests = await khatm_request_service.list_pending(session)
+        broadcasts_pending = await broadcast_service.list_pending(session)
+        phones_pending = await manual_phone_repository.list_pending(session)
+        creators_pending = await creator_request_service.list_pending(session, limit=100)
+        categories_pending = await category_service.list_pending_requests(session)
+
+        user_ids = (
+            {k.creator_user_id for k in laan_khatms if k.creator_user_id}
+            | {k.creator_user_id for k in cover_khatms if k.creator_user_id}
+            | {r.requester_user_id for r in khatm_requests if r.requester_user_id}
+        )
+        users_by_id = (
+            {
+                u.id: u
+                for u in (
+                    await session.execute(select(User).where(User.id.in_(user_ids)))
+                ).scalars()
+            }
+            if user_ids
+            else {}
+        )
+        laan_rows = [
+            {
+                "khatm": k,
+                "creator": users_by_id.get(k.creator_user_id),
+                "time": _tehran_time(k.created_at),
+            }
+            for k in laan_khatms
+        ]
+        cover_rows = [
+            {
+                "khatm": k,
+                "creator": users_by_id.get(k.creator_user_id),
+                "time": _tehran_time(k.created_at),
+            }
+            for k in cover_khatms
+        ]
+        khatm_req_rows = [
+            {
+                "item": r,
+                "requester": users_by_id.get(r.requester_user_id),
+                "time": _tehran_time(r.created_at),
+            }
+            for r in khatm_requests
+        ]
+        counts = {
+            "laan": len(laan_rows),
+            "covers": len(cover_rows),
+            "requests": len(khatm_req_rows),
+            "broadcasts": len(broadcasts_pending),
+            "phones": len(phones_pending),
+            "creators": len(creators_pending),
+            "categories": len(categories_pending),
+        }
+    return templates.TemplateResponse(
+        request=request,
+        name="moderation.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            active_tab=tab,
+            counts=counts,
+            laan_rows=laan_rows,
+            cover_rows=cover_rows,
+            khatm_req_rows=khatm_req_rows,
+            saved=request.query_params.get("saved", ""),
+        ),
+    )
+
+
+@app.post("/moderation/laan/{khatm_id}/decide")
+async def decide_laan_moderation(
+    request: Request,
+    khatm_id: UUID,
+    decision: str = Form(...),
+    updated_description: str = Form(""),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if decision not in {"approve", "reject"}:
+        return HTMLResponse("تصمیم نامعتبر است.", status_code=400)
+    approved = decision == "approve"
+    invite_token = None
+    identities = []
+    khatm_title = ""
+    async with session_scope() as session:
+        try:
+            khatm = await khatm_service.review_laan_khatm(
+                session,
+                khatm_id=khatm_id,
+                approved=approved,
+                updated_description=updated_description.strip() or None,
+            )
+            khatm_title = khatm.title
+            if approved:
+                invs = await invitation_service.list_for_khatm(session, khatm.id)
+                invite_token = invs[0].token if invs else (await invitation_service.create_invitation(session, khatm.id)).token
+            identities = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_khatm_id=khatm.id,
+                action="LAAN_KHATM_APPROVE" if approved else "LAAN_KHATM_REJECT",
+                details={"khatm_id": str(khatm.id), "approved": approved},
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"امکان بررسی این ختم وجود ندارد: {exc}", status_code=409)
+
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None and identities:
+        if approved and invite_token:
+            link_url = invite_links.build_web_invite_url(invite_token)
+            msg = (
+                f"✅ ختم لعن اختصاصی شما «{khatm_title}» توسط مدیریت بررسی و تأیید شد!\n\n"
+                f"🔗 لینک دعوت و مشارکت در ختم:\n{link_url}"
+            )
+        else:
+            msg = f"⚠️ متن لعن اختصاصی برای ختم «{khatm_title}» مورد تأیید مدیریت قرار نگرفت و ختم لغو شد."
+        for identity in identities:
+            await notify(identity.platform.value, identity.subject, msg)
+    return RedirectResponse(
+        f"/moderation?tab=laan&saved={'laan_approved' if approved else 'laan_rejected'}",
+        status_code=303,
+    )
+
+
+@app.post("/moderation/covers/{khatm_id}/decide")
+async def decide_cover_moderation(
+    request: Request,
+    khatm_id: UUID,
+    decision: str = Form(...),
+    note: str = Form(""),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if decision not in {"approve", "reject"}:
+        return HTMLResponse("تصمیم نامعتبر است.", status_code=400)
+    approved = decision == "approve"
+    async with session_scope() as session:
+        try:
+            khatm = await khatm_service.review_cover(
+                session, khatm_id=khatm_id, approved=approved, note=note.strip() or None
+            )
+            identities = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_khatm_id=khatm.id,
+                action="KHATM_COVER_REVIEW",
+                details={"approved": approved, "note": note.strip()},
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"امکان بررسی کاور وجود ندارد: {exc}", status_code=409)
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None and identities:
+        msg = (
+            f"✅ تصویر کاور ختم «{khatm.title}» تأیید شد."
+            if approved
+            else f"⚠️ تصویر کاور ختم «{khatm.title}» رد شد. {note.strip()}"
+        )
+        for identity in identities:
+            await notify(identity.platform.value, identity.subject, msg)
+    return RedirectResponse(
+        f"/moderation?tab=covers&saved={'cover_approved' if approved else 'cover_rejected'}",
+        status_code=303,
+    )
+
+
+@app.post("/moderation/khatm-requests/{request_id}/decide")
+async def decide_khatm_request_moderation(
+    request: Request,
+    request_id: UUID,
+    decision: str = Form(...),
+    note: str = Form(""),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if decision not in {"approve", "reject"}:
+        return HTMLResponse("تصمیم نامعتبر است.", status_code=400)
+    from khatmsaz.modules.khatm_request import service as khatm_request_service
+    approved = decision == "approve"
+    async with session_scope() as session:
+        req = await khatm_request_service.get(session, request_id)
+        if req is None:
+            return HTMLResponse("درخواست پیدا نشد.", status_code=404)
+        if approved:
+            await khatm_request_service.approve(session, request_id, note.strip() or None)
+        else:
+            await khatm_request_service.reject(session, request_id, note.strip() or None)
+        identities = await identity_service.list_identities_for_user(session, req.requester_user_id)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=req.requester_user_id,
+            action="KHATM_REQUEST_APPROVE" if approved else "KHATM_REQUEST_REJECT",
+            details={"request_id": str(request_id), "note": note.strip()},
+        )
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None and identities:
+        msg = (
+            f"✅ پیشنهاد نوع ختم جدید شما بررسی و تأیید شد. {note.strip()}"
+            if approved
+            else f"ℹ️ پیشنهاد نوع ختم جدید شما بررسی شد و در حال حاضر امکان افزودن آن نبود. {note.strip()}"
+        )
+        for identity in identities:
+            await notify(identity.platform.value, identity.subject, msg)
+    return RedirectResponse(
+        f"/moderation?tab=requests&saved={'req_approved' if approved else 'req_rejected'}",
+        status_code=303,
+    )
+
+
 @app.get("/khatms", response_class=HTMLResponse)
-async def khatms(request: Request, status: str = "", q: str = "", page: int = 1):
+async def khatms(
+    request: Request, status: str = "", family: str = "", q: str = "", page: int = 1
+):
     admin, raw = await _admin(
         request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
     )
     if admin is None:
         return _login_redirect()
+    from khatmsaz.modules.khatm_category.models import KhatmCategory
     creator = aliased(User)
     page = max(1, min(page, 10_000))
     page_size = 25
@@ -1435,16 +1889,40 @@ async def khatms(request: Request, status: str = "", q: str = "", page: int = 1)
         select(
             Khatm,
             func.count(case((Participation.status == ParticipationStatus.ACTIVE, 1))).label("members"),
+            KhatmCategory,
+            creator,
         )
         .outerjoin(creator, creator.id == Khatm.creator_user_id)
+        .outerjoin(KhatmCategory, KhatmCategory.id == Khatm.content_category_id)
         .outerjoin(Participation, Participation.khatm_id == Khatm.id)
-        .group_by(Khatm.id)
+        .group_by(Khatm.id, KhatmCategory.id, creator.id)
         .order_by(Khatm.created_at.desc())
         .offset((page - 1) * page_size)
         .limit(page_size + 1)
     )
     if status in {item.value for item in KhatmStatus}:
         stmt = stmt.where(Khatm.status == KhatmStatus(status))
+    family = family.strip().lower()
+    if family == "quran":
+        stmt = stmt.where(Khatm.template_type == KhatmTemplateType.QURAN_PAGE)
+    elif family == "salawat":
+        stmt = stmt.where(
+            Khatm.template_type == KhatmTemplateType.SALAWAT,
+            Khatm.content_category_id.is_(None),
+            Khatm.pending_lan_approval.is_(False),
+        )
+    elif family == "dua":
+        stmt = stmt.where(KhatmCategory.group == KhatmCategoryGroup.DUA)
+    elif family == "laan":
+        stmt = stmt.where(
+            or_(
+                KhatmCategory.group == KhatmCategoryGroup.LAAN,
+                Khatm.pending_lan_approval.is_(True),
+            )
+        )
+    elif family == "khutbah":
+        stmt = stmt.where(KhatmCategory.group == KhatmCategoryGroup.KHUTBAH)
+
     query = q.strip()[:100]
     if query:
         pattern = f"%{query}%"
@@ -1456,46 +1934,434 @@ async def khatms(request: Request, status: str = "", q: str = "", page: int = 1)
             )
         )
     async with session_scope() as session:
-        rows = list((await session.execute(stmt)).all())
-    has_next = len(rows) > page_size
-    rows = rows[:page_size]
+        raw_rows = list((await session.execute(stmt)).all())
+        categories = await category_service.list_active(session)
+    has_next = len(raw_rows) > page_size
+    raw_rows = raw_rows[:page_size]
+    rows = [(k, m) for k, m, _cat, _cr in raw_rows]
+    enriched_rows = [
+        {
+            "khatm": k,
+            "members": m,
+            "category": cat,
+            "creator": cr,
+            "family_label": (
+                "قرآن کریم"
+                if k.template_type == KhatmTemplateType.QURAN_PAGE
+                else (
+                    "خطبه"
+                    if cat and cat.group == KhatmCategoryGroup.KHUTBAH
+                    else (
+                        "دعا / زیارت"
+                        if cat and cat.group == KhatmCategoryGroup.DUA
+                        else (
+                            "لعن"
+                            if (cat and cat.group == KhatmCategoryGroup.LAAN) or k.pending_lan_approval
+                            else "صلوات"
+                        )
+                    )
+                )
+            ),
+        }
+        for k, m, cat, cr in raw_rows
+    ]
     return templates.TemplateResponse(
         request=request,
         name="khatms.html",
         context=_ctx(
-            request, admin, raw, rows=rows, selected_status=status, query=query,
-            page=page, has_next=has_next,
+            request,
+            admin,
+            raw,
+            rows=rows,
+            enriched_rows=enriched_rows,
+            selected_status=status,
+            selected_family=family,
+            query=query,
+            page=page,
+            has_next=has_next,
+            dua_categories=[c for c in categories if c.group == KhatmCategoryGroup.DUA],
+            laan_categories=[c for c in categories if c.group == KhatmCategoryGroup.LAAN],
+            khutbah_categories=[c for c in categories if c.group == KhatmCategoryGroup.KHUTBAH],
+            saved=request.query_params.get("saved", ""),
         ),
     )
 
 
-@app.get("/khatms/{khatm_id}", response_class=HTMLResponse)
-async def khatm_detail(request: Request, khatm_id: UUID):
+@app.post("/khatms/create")
+async def admin_create_khatm(
+    request: Request,
+    csrf: str = Form(...),
+    content_kind: str = Form(...),
+    khatm_type: str = Form("COMMITMENT"),
+    title: str = Form(""),
+    niyyat: str = Form(""),
+    amount: int = Form(100),
+    category_id: str = Form(""),
+    visibility: str = Form("PUBLIC"),
+    commitment_policy: str = Form("MEMBER_CHOICE"),
+    daily_commitment_amount: int = Form(1),
+):
     admin, raw = await _admin(
         request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
     )
     if admin is None:
         return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    try:
+        mode = KhatmTypeEnum(khatm_type)
+        selected_visibility = KhatmVisibility(visibility)
+    except ValueError:
+        return RedirectResponse("/khatms?saved=error", status_code=303)
+    async with session_scope() as session:
+        category = None
+        if content_kind in {"dua", "laan", "khutbah"} and category_id.strip():
+            try:
+                category = await category_service.get(session, UUID(category_id.strip()))
+            except ValueError:
+                category = None
+        template_type = (
+            KhatmTemplateType.QURAN_PAGE
+            if content_kind == "quran"
+            else KhatmTemplateType.SALAWAT
+        )
+        clean_title = title.strip()
+        if not clean_title:
+            clean_title = (
+                "ختم قرآن کریم"
+                if content_kind == "quran"
+                else (category.title if category else "ختم صلوات")
+            )
+        target_amount = max(1, int(amount or 1))
+        khatm, _token = await workflow_service.create_and_launch_khatm(
+            session,
+            creator_user_id=admin.id,
+            template_type=template_type,
+            khatm_type=mode,
+            title=clean_title,
+            niyyat=niyyat.strip() or None,
+            salawat_open_target=target_amount if mode == KhatmTypeEnum.OPEN else None,
+            salawat_commitment_quantity=target_amount if mode == KhatmTypeEnum.COMMITMENT else None,
+            quran_edition_id=CANONICAL_QURAN_EDITION_ID if content_kind == "quran" else None,
+            visibility=selected_visibility,
+            allowed_platforms="BOTH",
+            creation_price_toman=0,
+            content_category_id=category.id if category else None,
+            commitment_policy=commitment_policy if mode == KhatmTypeEnum.COMMITMENT else "MEMBER_CHOICE",
+            daily_commitment_amount=max(1, daily_commitment_amount) if commitment_policy == "FIXED_DAILY" else None,
+        )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_khatm_id=khatm.id,
+            action="ADMIN_KHATM_CREATE",
+            details={"title": khatm.title, "content_kind": content_kind, "type": mode.value},
+        )
+    return RedirectResponse(f"/khatms/{khatm.id}?saved=created", status_code=303)
+
+
+@app.get("/khatms/{khatm_id}", response_class=HTMLResponse)
+async def khatm_detail(request: Request, khatm_id: UUID, q: str = "", page: int = 1):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    from khatmsaz.modules.waiting_list.models import WaitingList
+    page = max(1, min(page, 10_000))
+    page_size = 25
+    query = q.strip()[:100]
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
         if khatm is None:
             return RedirectResponse("/khatms", status_code=303)
+        creator_user = await identity_service.find_by_id(session, khatm.creator_user_id)
+        category = (
+            await category_service.get(session, khatm.content_category_id)
+            if khatm.content_category_id
+            else None
+        )
         stats = await reporting_service.get_khatm_stats(session, khatm.id)
-        members = list(
+        rows = await _load_creator_member_rows(
+            session,
+            khatm.id,
+            query=query,
+            limit=page_size + 1,
+            offset=(page - 1) * page_size,
+        )
+        has_next = len(rows) > page_size
+        rows = rows[:page_size]
+        members = [(r["membership"], r["user"]) for r in rows]
+        waiting_rows = list(
             (
                 await session.execute(
-                    select(Participation, User)
-                    .join(User, User.id == Participation.user_id)
-                    .where(Participation.khatm_id == khatm.id)
-                    .order_by(Participation.joined_at.desc())
-                    .limit(100)
+                    select(WaitingList, User)
+                    .join(User, User.id == WaitingList.user_id)
+                    .where(WaitingList.khatm_id == khatm.id)
+                    .order_by(WaitingList.position.asc())
                 )
             ).all()
         )
+        invs = await invitation_service.list_for_khatm(session, khatm.id)
+        invite_url = invite_links.build_web_invite_url(invs[0].token) if invs else ""
     return templates.TemplateResponse(
         request=request,
         name="khatm_detail.html",
-        context=_ctx(request, admin, raw, khatm=khatm, stats=stats, members=members),
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            khatm=khatm,
+            creator_user=creator_user,
+            category=category,
+            stats=stats,
+            members=members,
+            rows=rows,
+            waiting_rows=waiting_rows,
+            invite_url=invite_url,
+            query=query,
+            page=page,
+            has_next=has_next,
+            saved=request.query_params.get("saved", ""),
+        ),
+    )
+
+
+@app.post("/khatms/{khatm_id}/update")
+async def admin_update_khatm_route(
+    request: Request,
+    khatm_id: UUID,
+    csrf: str = Form(...),
+    title: str = Form(...),
+    niyyat: str = Form(""),
+    welcome_text: str = Form(""),
+    description: str = Form(""),
+    repetition_target: str = Form(""),
+    visibility: str = Form(""),
+    allowed_platforms: str = Form(""),
+    reminder_tone: str = Form(""),
+    daily_deadline_hour: str = Form(""),
+    capacity: str = Form(""),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await khatm_service.admin_update_khatm(
+                session,
+                khatm_id=khatm_id,
+                title=title.strip(),
+                niyyat=niyyat.strip() or None,
+                welcome_text=welcome_text.strip() or None,
+                description=description.strip() or None,
+                repetition_target=int(repetition_target) if repetition_target.strip() else None,
+                visibility=visibility.strip() or None,
+                allowed_platforms=allowed_platforms.strip() or None,
+                reminder_tone=reminder_tone.strip() or None,
+                daily_deadline_hour=int(daily_deadline_hour) if daily_deadline_hour.strip() else None,
+                capacity=int(capacity) if capacity.strip() else None,
+                update_optional_texts=True,
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_khatm_id=khatm_id,
+                action="ADMIN_KHATM_UPDATE",
+                details={"title": title.strip()},
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"مقادیر واردشده معتبر نیست: {exc}", status_code=400)
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=updated", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/status")
+async def admin_change_khatm_status(
+    request: Request,
+    khatm_id: UUID,
+    csrf: str = Form(...),
+    new_status: str = Form(...),
+    refund_creator: str = Form(""),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if new_status not in {s.value for s in KhatmStatus}:
+        return HTMLResponse("وضعیت نامعتبر است.", status_code=400)
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        if khatm is None:
+            return HTMLResponse("ختم پیدا نشد.", status_code=404)
+        khatm.status = KhatmStatus(new_status)
+        if new_status == KhatmStatus.COMPLETED.value:
+            khatm.completed_at = datetime.now(tz=ZoneInfo("UTC"))
+        elif new_status == KhatmStatus.CANCELLED.value:
+            khatm.cancelled_at = datetime.now(tz=ZoneInfo("UTC"))
+            if refund_creator == "on":
+                from khatmsaz.modules.wallet.models import InvoiceKind
+                try:
+                    await wallet_service.refund_purchase_invoice(
+                        session,
+                        user_id=khatm.creator_user_id,
+                        kind=InvoiceKind.KHATM_CREATION,
+                        resource_ref=str(khatm.id),
+                        description=f"استرداد هزینه ساخت ختم «{khatm.title}» توسط مدیریت",
+                    )
+                except Exception:
+                    pass
+        await session.flush()
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_khatm_id=khatm.id,
+            action="ADMIN_KHATM_STATUS_CHANGE",
+            details={"status": new_status, "refund": refund_creator == "on"},
+        )
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=status", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/members/{participation_id}/complete-share")
+async def admin_complete_member_share(
+    request: Request,
+    khatm_id: UUID,
+    participation_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.share_occurrence import repository as occ_repo, service as occ_service
+    from khatmsaz.modules.allocation import service as allocation_service
+    async with session_scope() as session:
+        part = await session.get(Participation, participation_id)
+        if part is None or part.khatm_id != khatm_id:
+            return HTMLResponse("عضویت پیدا نشد.", status_code=404)
+        open_occs = await occ_repo.list_open_for_participation(session, participation_id)
+        for occ in open_occs:
+            await occ_service.complete_occurrence(
+                session, occ.id, actor_user_id=part.user_id, now=datetime.now(tz=ZoneInfo("UTC"))
+            )
+        await allocation_service.complete_my_portions(session, participation_id)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=part.user_id,
+            target_khatm_id=khatm_id,
+            action="ADMIN_MEMBER_COMPLETE_SHARE",
+            details={"participation_id": str(participation_id)},
+        )
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=share_completed", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/members/{participation_id}/remove")
+async def admin_remove_khatm_member(
+    request: Request,
+    khatm_id: UUID,
+    participation_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        part = await session.get(Participation, participation_id)
+        if part is None or part.khatm_id != khatm_id:
+            return HTMLResponse("عضویت پیدا نشد.", status_code=404)
+        await workflow_service.leave_khatm(session, user_id=part.user_id, khatm_id=khatm_id)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=part.user_id,
+            target_khatm_id=khatm_id,
+            action="ADMIN_MEMBER_REMOVE",
+            details={"participation_id": str(participation_id)},
+        )
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=member_removed", status_code=303)
+
+
+@app.get("/khatms/{khatm_id}/export.xlsx")
+async def admin_khatm_export(request: Request, khatm_id: UUID):
+    admin, _raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        if khatm is None:
+            return HTMLResponse("ختم پیدا نشد.", status_code=404)
+        rows = await _load_creator_member_rows(session, khatm.id, limit=100000)
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "اعضا"
+    sheet.sheet_view.rightToLeft = True
+    headers = [
+        "نام نمایشی",
+        "شماره تماس",
+        "استان",
+        "شهر",
+        "جنسیت",
+        "وضعیت عضویت",
+        "تاریخ عضویت (تهران)",
+        "سهم‌های تکمیل‌شده",
+        "یادآوری‌های ازدست‌رفته",
+        "مبلغ مشارکت",
+        "مازاد مشارکت",
+    ]
+    sheet.append(headers)
+    for row in rows:
+        user = row["user"]
+        settings = row["settings"]
+        membership = row["membership"]
+        gender = "" if settings is None or settings.gender is None else (
+            "آقا" if settings.gender.value == "MALE" else "خانم"
+        )
+        sheet.append(
+            [
+                user.display_name or "",
+                (settings.contact_phone if settings else "") or "",
+                (settings.province if settings else "") or "",
+                (settings.city if settings else "") or "",
+                gender,
+                _fa_label(membership.status),
+                row["joined_at"] or "",
+                row["completed"],
+                row["misses"],
+                row["contribution"],
+                row["surplus"],
+            ]
+        )
+    for index in range(1, len(headers) + 1):
+        sheet.column_dimensions[get_column_letter(index)].width = 20
+
+    buffer = BytesIO()
+    workbook.save(buffer)
+    buffer.seek(0)
+    filename = f"khatm-members-{khatm_id}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
@@ -1506,6 +2372,9 @@ async def users(request: Request, q: str = "", page: int = 1):
     )
     if admin is None:
         return _login_redirect()
+    from khatmsaz.modules.phone.models import PhoneClaim
+    from khatmsaz.modules.plan.models import UserPlan
+    from khatmsaz.modules.wallet.models import Wallet
     page = max(1, min(page, 10_000))
     page_size = 25
     query = q.strip()[:100]
@@ -1513,15 +2382,179 @@ async def users(request: Request, q: str = "", page: int = 1):
         found = await identity_service.search_users(
             session, query, limit=page_size + 1, offset=(page - 1) * page_size
         )
-    has_next = len(found) > page_size
-    found = found[:page_size]
+        has_next = len(found) > page_size
+        found = found[:page_size]
+        uids = [u.id for u in found]
+        settings_map = {}
+        phones_map = {}
+        plans_map = {}
+        wallets_map = {}
+        if uids:
+            settings_map = {
+                s.user_id: s
+                for s in (
+                    await session.execute(select(UserSettings).where(UserSettings.user_id.in_(uids)))
+                ).scalars()
+            }
+            phones_map = {
+                p.user_id: p.phone_e164
+                for p in (
+                    await session.execute(
+                        select(PhoneClaim).where(
+                            PhoneClaim.user_id.in_(uids), PhoneClaim.verified_at.is_not(None)
+                        )
+                    )
+                ).scalars()
+            }
+            plans_map = {
+                up.user_id: up.plan
+                for up in (
+                    await session.execute(select(UserPlan).where(UserPlan.user_id.in_(uids)))
+                ).scalars()
+            }
+            wallets_map = {
+                w.user_id: w
+                for w in (
+                    await session.execute(select(Wallet).where(Wallet.user_id.in_(uids)))
+                ).scalars()
+            }
+        user_rows = [
+            {
+                "user": u,
+                "settings": settings_map.get(u.id),
+                "phone": phones_map.get(u.id)
+                or (settings_map[u.id].contact_phone if u.id in settings_map else "")
+                or "",
+                "plan": plans_map.get(u.id, "FREE"),
+                "balance": wallets_map[u.id].balance_toman if u.id in wallets_map else 0,
+                "credit": wallets_map[u.id].credit_toman if u.id in wallets_map else 0,
+            }
+            for u in found
+        ]
     return templates.TemplateResponse(
         request=request,
         name="users.html",
         context=_ctx(
-            request, admin, raw, users=found, query=query, page=page, has_next=has_next
+            request,
+            admin,
+            raw,
+            users=found,
+            user_rows=user_rows,
+            query=query,
+            page=page,
+            has_next=has_next,
+            saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/users/{user_id}/plan")
+async def admin_set_user_plan(
+    request: Request,
+    user_id: UUID,
+    plan: str = Form(...),
+    csrf: str = Form(...),
+    q: str = Form(""),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.FINANCE_MANAGE, AdminPermission.SUPPORT_USERS
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    try:
+        tier = PlanTier(plan.strip().upper())
+    except ValueError:
+        return HTMLResponse("پلن نامعتبر است.", status_code=400)
+    async with session_scope() as session:
+        await plan_service.assign_plan(session, user_id, tier, assigned_by_user_id=admin.id)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=user_id,
+            action="ADMIN_USER_PLAN_SET",
+            details={"plan": tier.value},
+        )
+    return RedirectResponse(f"/users?q={q}&saved=plan", status_code=303)
+
+
+@app.post("/users/{user_id}/wallet")
+async def admin_adjust_user_wallet(
+    request: Request,
+    user_id: UUID,
+    cash_delta: int = Form(0),
+    credit_delta: int = Form(0),
+    reason: str = Form("تغییر دستی توسط ادمین"),
+    csrf: str = Form(...),
+    q: str = Form(""),
+    redirect_to: str = Form("/users"),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.FINANCE_MANAGE, AdminPermission.SUPPORT_USERS
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await wallet_service.admin_adjust_wallet(
+                session,
+                user_id,
+                cash_delta=cash_delta,
+                credit_delta=credit_delta,
+                description=reason.strip() or "تغییر دستی توسط ادمین",
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_user_id=user_id,
+                action="CREDIT_GRANT",
+                details={"cash_delta": cash_delta, "credit_delta": credit_delta, "reason": reason.strip()},
+            )
+        except (ValueError, InsufficientFundsError) as exc:
+            return HTMLResponse(f"خطا در تغییر کیف پول: {exc}", status_code=400)
+    target_url = f"{redirect_to}?q={q}&saved=wallet" if redirect_to == "/users" else f"/finance?uq={q}&saved=wallet"
+    return RedirectResponse(target_url, status_code=303)
+
+
+@app.post("/users/{user_id}/message")
+async def admin_send_direct_message(
+    request: Request,
+    user_id: UUID,
+    message_text: str = Form(...),
+    csrf: str = Form(...),
+    q: str = Form(""),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    body = message_text.strip()
+    if not body:
+        return RedirectResponse(f"/users?q={q}", status_code=303)
+    async with session_scope() as session:
+        identities = await identity_service.list_identities_for_user(session, user_id)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=user_id,
+            action="ADMIN_DIRECT_MESSAGE",
+            details={"length": len(body)},
+        )
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None and identities:
+        formatted = f"📩 <b>پیام از طرف مدیریت ختم‌ساز:</b>\n\n{body}"
+        for identity in identities:
+            await notify(identity.platform.value, identity.subject, formatted)
+    return RedirectResponse(f"/users?q={q}&saved=messaged", status_code=303)
 
 
 @app.get("/phone-verifications", response_class=HTMLResponse)
@@ -1646,12 +2679,50 @@ async def broadcasts_page(request: Request):
     )
 
 
+async def _dispatch_broadcast_delivery(
+    channel: str,
+    destinations: list,
+    body_with_sender: str,
+    media_type: str | None,
+    media_file_id: str | None,
+):
+    if channel == "SMS":
+        provider = build_sms_provider()
+        for phone in destinations:
+            try:
+                await provider.send(phone=phone, text=body_with_sender)
+            except Exception:
+                pass
+    else:
+        if media_type and media_file_id:
+            from khatmsaz.bot.notify_adapter import send_media
+            for destination in destinations:
+                try:
+                    await send_media(
+                        channel, destination.subject, media_type, media_file_id,
+                        caption=body_with_sender, bot_instance_id=destination.bot_instance_id,
+                    )
+                except Exception:
+                    pass
+        else:
+            notify = get_notify_fn()
+            for destination in destinations:
+                try:
+                    await notify(
+                        channel, destination.subject, body_with_sender,
+                        bot_instance_id=destination.bot_instance_id,
+                    )
+                except Exception:
+                    pass
+
+
 @app.post("/broadcasts/{broadcast_id}/decide")
 async def decide_broadcast(
     request: Request,
     broadcast_id: UUID,
     decision: str = Form(...),
     csrf: str = Form(...),
+    background_tasks: BackgroundTasks = None,
 ):
     admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
     if admin is None:
@@ -1696,29 +2767,21 @@ async def decide_broadcast(
             _sender_name = await broadcast_service.sender_display_name(session, item)
             _prefix = f"📢 پیام از طرف سازندهٔ ختم، {_sender_name}:\n\n"
             body_with_sender = f"{_prefix}{item.body}" if item.body else _prefix.strip()
-            if item.channel == "SMS":
-                provider = build_sms_provider()
-                for phone in destinations:
-                    await provider.send(phone=phone, text=body_with_sender)
-            else:
-                media_file_id = (
-                    item.media_file_id_telegram if item.channel == "TELEGRAM"
-                    else item.media_file_id_bale
+            media_file_id = (
+                item.media_file_id_telegram if item.channel == "TELEGRAM"
+                else item.media_file_id_bale
+            )
+            if background_tasks is not None:
+                background_tasks.add_task(
+                    _dispatch_broadcast_delivery,
+                    item.channel, destinations, body_with_sender,
+                    item.media_type, media_file_id,
                 )
-                if item.media_type and media_file_id:
-                    from khatmsaz.bot.notify_adapter import send_media
-                    for destination in destinations:
-                        await send_media(
-                            item.channel, destination.subject, item.media_type, media_file_id,
-                            caption=body_with_sender, bot_instance_id=destination.bot_instance_id,
-                        )
-                else:
-                    notify = get_notify_fn()
-                    for destination in destinations:
-                        await notify(
-                            item.channel, destination.subject, body_with_sender,
-                            bot_instance_id=destination.bot_instance_id,
-                        )
+            else:
+                await _dispatch_broadcast_delivery(
+                    item.channel, destinations, body_with_sender,
+                    item.media_type, media_file_id,
+                )
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
         f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303
@@ -1776,11 +2839,14 @@ async def servant_ad_send(request: Request, csrf: str = Form(...)):
     from khatmsaz.modules.servant_ad import service as servant_ad_service
     from khatmsaz.bot.notify_adapter import send_media as _send_media, get_notify_fn as _gnf
 
-    async def _send(platform_value, subject, text, media_type, media_file_id):
+    async def _send(platform_value, subject, text, media_type, media_file_id, bot_instance_id=None):
         if media_type and media_file_id:
-            return await _send_media(platform_value, subject, media_type, media_file_id, caption=text or None)
+            return await _send_media(
+                platform_value, subject, media_type, media_file_id,
+                caption=text or None, bot_instance_id=bot_instance_id,
+            )
         try:
-            await _gnf()(platform_value, subject, text)
+            await _gnf()(platform_value, subject, text, bot_instance_id=bot_instance_id)
             return True
         except Exception:
             return False
@@ -2260,7 +3326,7 @@ async def fulfill_category_request(
 # (same rows the startup seed writes and the member bots deliver). The long
 # body is chunked into <=~3500-char pieces joined by \x1e at save time, the
 # same delimiter `portions._send_recitation_content` splits on.
-_DEVOTIONAL_TYPE_LABELS = {"DUA": "دعا", "ZIYARAT": "زیارت"}
+_DEVOTIONAL_TYPE_LABELS = {"DUA": "دعا", "ZIYARAT": "زیارت", "KHUTBAH": "خطبه", "LAAN": "لعن"}
 _DEVOTIONAL_CHUNK_LIMIT = 3500
 _DEVOTIONAL_SEP = "\x1e"
 
@@ -2281,6 +3347,7 @@ def _chunk_devotional(text: str) -> str:
     return _DEVOTIONAL_SEP.join(chunks)
 
 
+@app.get("/content", response_class=HTMLResponse)
 @app.get("/devotionals", response_class=HTMLResponse)
 async def devotionals_page(request: Request):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2289,14 +3356,19 @@ async def devotionals_page(request: Request):
     async with session_scope() as session:
         assets = await content_service.list_all_devotional_assets(session)
         salawat_asset = next((item for item in assets if item.slug == content_service.SALAWAT_SLUG), None)
+        media_by_asset = await content_service.list_all_devotional_media_by_asset(session)
     rows = []
     for a in assets:
         if a.slug == content_service.SALAWAT_SLUG:
             continue
-        # Re-join chunks with blank lines for editing; the separator is a
-        # storage detail the admin never needs to see.
         display_text = (a.text_body or "").replace(_DEVOTIONAL_SEP, "\n\n")
+        media_list = media_by_asset.get(a.id, [])
+        video_parts = sorted([m for m in media_list if m.kind == "VIDEO"], key=lambda m: m.page_number)
+        audio_variants = [m for m in media_list if m.kind == "AUDIO"]
+        image_pages = sorted([m for m in media_list if m.kind == "IMAGE"], key=lambda m: m.page_number)
+        pdf_item = next((m for m in media_list if m.kind == "PDF"), None)
         rows.append({
+            "id": a.id,
             "slug": a.slug,
             "title": a.title,
             "content_type": a.content_type,
@@ -2304,14 +3376,23 @@ async def devotionals_page(request: Request):
             "enabled": a.enabled,
             "text": display_text,
             "char_count": len(a.text_body or ""),
-            "has_image": bool(a.image_ref),
-            "has_audio": bool(a.audio_ref),
+            "has_image": bool(a.image_ref or image_pages),
+            "has_audio": bool(a.audio_ref or audio_variants),
+            "has_video": bool(video_parts),
+            "has_pdf": bool(pdf_item),
             "image_ref": a.image_ref or "",
             "audio_ref": a.audio_ref or "",
+            "video_parts": video_parts,
+            "audio_variants": audio_variants,
+            "image_pages": image_pages,
+            "pdf_item": pdf_item,
+            "media_items": media_list,
         })
     grouped_rows = {
         "DUA": [item for item in rows if item["content_type"] == "DUA"],
         "ZIYARAT": [item for item in rows if item["content_type"] == "ZIYARAT"],
+        "KHUTBAH": [item for item in rows if item["content_type"] == "KHUTBAH"],
+        "LAAN": [item for item in rows if item["content_type"] == "LAAN"],
     }
     return templates.TemplateResponse(
         request=request,
@@ -2410,6 +3491,217 @@ async def toggle_devotional(request: Request, slug: str, csrf: str = Form(...)):
     return RedirectResponse("/devotionals?saved=toggled", status_code=303)
 
 
+@app.post("/devotionals/media/save")
+async def save_devotional_media(
+    request: Request,
+    csrf: str = Form(...),
+    slug: str = Form(...),
+    kind: str = Form(...),
+    platform: str = Form("TELEGRAM"),
+    page_number: int = Form(0),
+    reciter_id: str = Form(""),
+    reciter_label: str = Form(""),
+    asset_ref: str = Form(""),
+    file: UploadFile | None = File(None),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    clean_slug = slug.strip().lower()
+    kind = kind.strip().upper()
+    platform = platform.strip().upper()
+    final_ref = asset_ref.strip()
+
+    if file and file.filename:
+        upload_dir = ROOT / "static" / "uploads" / "devotionals"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = f"{int(time.time())}_{file.filename}"
+        dest_path = upload_dir / safe_name
+        contents = await file.read()
+        dest_path.write_bytes(contents)
+        final_ref = f"/static/uploads/devotionals/{safe_name}"
+
+    if "t.me/" in final_ref:
+        import re
+        m = re.search(r"t\.me/([^/]+)/(\d+)", final_ref)
+        if m:
+            ch, mid = m.groups()
+            final_ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+
+    if not final_ref:
+        return HTMLResponse("آدرس فایل یا فایل آپلودی الزامی است.", status_code=400)
+
+    async with session_scope() as session:
+        try:
+            if kind == "VIDEO":
+                await content_service.add_devotional_video_page(
+                    session,
+                    slug=clean_slug,
+                    asset_ref=final_ref,
+                    asset_platform=platform,
+                    page_number=page_number if page_number > 0 else None,
+                    caption=reciter_label.strip() or None,
+                )
+            elif kind == "AUDIO":
+                await content_service.add_devotional_audio_variant(
+                    session,
+                    slug=clean_slug,
+                    asset_ref=final_ref,
+                    asset_platform=platform,
+                    reciter_id=reciter_id.strip() or "reciter_1",
+                    reciter_label=reciter_label.strip() or None,
+                )
+            elif kind == "IMAGE":
+                await content_service.add_devotional_image_page(
+                    session,
+                    slug=clean_slug,
+                    asset_ref=final_ref,
+                    asset_platform=platform,
+                    page_number=page_number if page_number > 0 else None,
+                )
+            elif kind == "PDF":
+                await content_service.set_devotional_pdf(
+                    session,
+                    slug=clean_slug,
+                    asset_ref=final_ref,
+                    asset_platform=platform,
+                )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                action="DEVOTIONAL_MEDIA_SAVE",
+                details={"slug": clean_slug, "kind": kind, "platform": platform},
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"خطا در ثبت فایل: {exc}", status_code=400)
+    return RedirectResponse("/devotionals?saved=media_saved", status_code=303)
+
+
+@app.post("/devotionals/media/{media_id}/delete")
+async def delete_devotional_media(
+    request: Request,
+    media_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        deleted = await content_service.delete_devotional_media_by_id(session, media_id)
+        if deleted:
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                action="DEVOTIONAL_MEDIA_DELETE",
+                details={"media_id": str(media_id)},
+            )
+    return RedirectResponse("/devotionals?saved=media_deleted", status_code=303)
+
+
+# --- Quran 604 pages management ----------------------------------------------
+@app.get("/quran", response_class=HTMLResponse)
+async def quran_bank_page(request: Request, page_num: int = 1):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    from khatmsaz.modules.content.models import QuranPageAsset
+    page_num = max(1, min(604, page_num))
+    async with session_scope() as session:
+        coverage = await content_service.quran_channel_coverage(session)
+        page_assets = list(
+            (
+                await session.execute(
+                    select(QuranPageAsset)
+                    .where(
+                        QuranPageAsset.edition_id == content_service.CANONICAL_EDITION_ID,
+                        QuranPageAsset.page_number == page_num,
+                    )
+                    .order_by(QuranPageAsset.kind, QuranPageAsset.asset_platform)
+                )
+            ).scalars()
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="quran.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            page_num=page_num,
+            coverage=coverage,
+            page_assets=page_assets,
+            reciters=content_service.list_reciters(),
+            saved=request.query_params.get("saved", ""),
+        ),
+    )
+
+
+@app.post("/quran/seed-channel")
+async def seed_quran_channel(request: Request, csrf: str = Form(...)):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        result = await content_service.seed_verified_quran_channel_map(session)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="QURAN_CHANNEL_SEED",
+            details={"result": result},
+        )
+    return RedirectResponse("/quran?saved=seeded", status_code=303)
+
+
+@app.post("/quran/asset/save")
+async def save_quran_asset(
+    request: Request,
+    csrf: str = Form(...),
+    page_number: int = Form(...),
+    kind: str = Form(...),
+    platform: str = Form("TELEGRAM"),
+    reciter_id: str = Form(""),
+    asset_ref: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    ref = asset_ref.strip()
+    if "t.me/" in ref:
+        import re
+        m = re.search(r"t\.me/([^/]+)/(\d+)", ref)
+        if m:
+            ch, mid = m.groups()
+            ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+    async with session_scope() as session:
+        try:
+            await content_service.register_quran_page_asset(
+                session,
+                edition_id=content_service.CANONICAL_EDITION_ID,
+                page_number=page_number,
+                kind=kind,
+                asset_ref=ref,
+                reciter_id=reciter_id,
+                asset_platform=platform,
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                action="QURAN_ASSET_REGISTER",
+                details={"page": page_number, "kind": kind, "platform": platform},
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"خطا در ثبت فایل قرآن: {exc}", status_code=400)
+    return RedirectResponse(f"/quran?page_num={page_number}&saved=asset_saved", status_code=303)
+
+
 @app.get("/templates", response_class=HTMLResponse)
 async def message_templates(request: Request):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -2432,8 +3724,47 @@ async def message_templates(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="templates.html",
-        context=_ctx(request, admin, raw, items=items),
+        context=_ctx(
+            request, admin, raw, items=items, saved=request.query_params.get("saved", "")
+        ),
     )
+
+
+@app.post("/templates/save")
+async def save_template_content(
+    request: Request,
+    csrf: str = Form(...),
+    key: str = Form(...),
+    locale: str = Form("fa"),
+    body: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    clean_key = key.strip()
+    clean_locale = locale.strip().lower()
+    clean_body = body.strip()
+    if not clean_key or not clean_body:
+        return HTMLResponse("کلید و متن پیام الزامی هستند.", status_code=400)
+    async with session_scope() as session:
+        next_ver = await template_repository.next_version(session, clean_key, clean_locale)
+        tpl = await template_repository.create(
+            session,
+            key=clean_key,
+            locale=clean_locale,
+            body=clean_body,
+            version=next_ver,
+            enabled=True,
+        )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="MESSAGE_TEMPLATE_UPDATE",
+            details={"key": tpl.key, "locale": tpl.locale, "version": tpl.version},
+        )
+    return RedirectResponse("/templates?saved=template_saved", status_code=303)
 
 
 @app.get("/finance", response_class=HTMLResponse)
@@ -2441,6 +3772,9 @@ async def finance(request: Request, uq: str = ""):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
         return _login_redirect()
+    from khatmsaz.modules.advertising import service as advertising_service
+    from khatmsaz.modules.wallet.models import Wallet
+    from khatmsaz.modules.plan.models import UserPlan
     async with session_scope() as session:
         coupons = await wallet_service.list_coupons(session)
         invoice_rows = list(
@@ -2449,7 +3783,7 @@ async def finance(request: Request, uq: str = ""):
                     select(WalletInvoice, User)
                     .join(User, User.id == WalletInvoice.user_id)
                     .order_by(WalletInvoice.issued_at.desc())
-                    .limit(30)
+                    .limit(50)
                 )
             ).all()
         )
@@ -2477,6 +3811,27 @@ async def finance(request: Request, uq: str = ""):
             channel: await broadcast_service.channel_policy(session, channel)
             for channel in broadcast_service.CHANNELS
         }
+        active_ad_rate = await advertising_service.get_active_rate(session)
+        searched_users = []
+        if uq.strip():
+            found_users = await identity_service.search_users(session, uq.strip(), limit=10)
+            uids = [u.id for u in found_users]
+            wallets_map = {
+                w.user_id: w
+                for w in (await session.execute(select(Wallet).where(Wallet.user_id.in_(uids)))).scalars()
+            } if uids else {}
+            plans_map = {
+                up.user_id: up.plan
+                for up in (await session.execute(select(UserPlan).where(UserPlan.user_id.in_(uids)))).scalars()
+            } if uids else {}
+            for u in found_users:
+                w = wallets_map.get(u.id)
+                searched_users.append({
+                    "user": u,
+                    "plan": plans_map.get(u.id, "FREE"),
+                    "balance": w.balance_toman if w else 0,
+                    "credit": w.credit_toman if w else 0,
+                })
     return templates.TemplateResponse(
         request=request,
         name="finance.html",
@@ -2491,9 +3846,102 @@ async def finance(request: Request, uq: str = ""):
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
             broadcast_policies=broadcast_policies,
+            active_ad_rate=active_ad_rate,
+            searched_users=searched_users,
+            uq=uq.strip(),
             saved=request.query_params.get("saved", ""),
         ),
     )
+
+
+@app.post("/finance/wallet/adjust")
+async def finance_wallet_adjust(
+    request: Request,
+    user_id: UUID,
+    cash_delta: int = Form(0),
+    credit_delta: int = Form(0),
+    reason: str = Form("شارژ/کسر دستی توسط ادمین"),
+    csrf: str = Form(...),
+    uq: str = Form(""),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            await wallet_service.admin_adjust_wallet(
+                session,
+                user_id,
+                cash_delta=cash_delta,
+                credit_delta=credit_delta,
+                description=reason.strip() or "شارژ/کسر دستی توسط ادمین",
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_user_id=user_id,
+                action="CREDIT_GRANT",
+                details={"cash_delta": cash_delta, "credit_delta": credit_delta, "reason": reason.strip()},
+            )
+        except (ValueError, InsufficientFundsError) as exc:
+            return HTMLResponse(f"خطا در عملیات کیف پول: {exc}", status_code=400)
+    return RedirectResponse(f"/finance?uq={uq}&saved=wallet_adjusted", status_code=303)
+
+
+@app.post("/finance/invoices/{invoice_id}/refund")
+async def finance_refund_invoice(
+    request: Request,
+    invoice_id: UUID,
+    reason: str = Form("استرداد فاکتور توسط مدیر مالی"),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            marked = await wallet_service.admin_refund_invoice(
+                session, invoice_id, description=reason.strip() or "استرداد وجه توسط ادمین"
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_user_id=marked.user_id,
+                action="INVOICE_REFUND",
+                details={"invoice_id": str(invoice_id), "amount": marked.net_amount_toman},
+            )
+        except Exception as exc:
+            return HTMLResponse(f"امکان استرداد این فاکتور وجود ندارد: {exc}", status_code=400)
+    return RedirectResponse("/finance?saved=refunded", status_code=303)
+
+
+@app.post("/finance/ad-rate")
+async def finance_set_ad_rate(
+    request: Request,
+    amount_toman: int = Form(...),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.advertising import service as advertising_service
+    if amount_toman <= 0:
+        return HTMLResponse("نرخ پاداش باید مثبت باشد.", status_code=400)
+    async with session_scope() as session:
+        rate = await advertising_service.set_reward_rate(session, amount_toman)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="AD_REWARD_RATE_UPDATE",
+            details={"amount_toman": rate.amount_toman},
+        )
+    return RedirectResponse("/finance?saved=ad_rate", status_code=303)
 
 
 @app.post("/finance/broadcast-policy")
@@ -2578,8 +4026,6 @@ async def update_plan_definition(
         entitlements.pop("max_quran_members", None)
         entitlements.update(limits)
         entitlements["khatm.create"] = khatm_create == "on"
-        # Owner model §A1 (2026-09-30): total-audience cap (FREE) + خدمتگزاران
-        # ads flag (BASIC). Empty cap → remove the key (no cap / unlimited).
         entitlements.pop("free_total_member_cap", None)
         if total_cap is not None:
             entitlements["free_total_member_cap"] = total_cap
@@ -2623,7 +4069,6 @@ async def update_sms_plan_option(
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     try:
-        option = None
         async with session_scope() as session:
             option = await sms_subscription_service.set_option(
                 session,
@@ -2657,6 +4102,7 @@ async def create_coupon(
     total_redemption_limit: str = Form(""),
     per_user_limit: int = Form(1),
     max_discount_toman: str = Form(""),
+    is_active: str = Form(""),
 ):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
@@ -2678,16 +4124,17 @@ async def create_coupon(
                 total_redemption_limit=total_limit,
                 per_user_limit=per_user_limit,
                 created_by_user_id=admin.id,
+                enabled=is_active == "on",
             )
             await audit_service.record(
                 session,
                 actor_user_id=admin.id,
                 action="WEB_COUPON_SET",
-                details={"code": coupon.code, "type": coupon.discount_type, "value": coupon.value},
+                details={"code": coupon.code, "type": coupon.discount_type, "value": coupon.value, "enabled": coupon.enabled},
             )
     except (ValueError, TypeError):
         return HTMLResponse("اطلاعات کد تخفیف معتبر نیست.", status_code=400)
-    return RedirectResponse("/finance?saved=1", status_code=303)
+    return RedirectResponse("/finance?saved=coupon_created", status_code=303)
 
 
 @app.post("/finance/coupons/{code}/toggle")

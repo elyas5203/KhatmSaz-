@@ -244,10 +244,13 @@ async def enter_count(message: Message, state: FSMContext) -> None:
                     raise
                 delivered = False
         await state.clear()
-        await message.answer("🌱 سهم شما ثبت شد. " + (
-            "این رزرو ۷ روز اعتبار دارد؛ پس از خواندن، انجام همین سهم را ثبت کنید."
-            if occurrence.reservation_id else "تعهد این سهم تا انجام باقی می‌ماند."
-        ) + ("" if delivered or occurrence.delivered_at else "\nارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم."))
+        msg_note = (
+            "پس از قرائت، دکمهٔ ثبت را بزنید."
+            if not occurrence.committed
+            else "تعهد این سهم تا انجام باقی می‌ماند."
+        )
+        await message.answer(f"🌱 سهم شما آماده شد؛ {msg_note}"
+            + ("" if delivered or occurrence.delivered_at else "\nارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم."))
     except ValueError:
         await message.answer("این مقدار یا برنامه قابل ثبت نیست. عضویت، مقدار سهم و تنظیمات ختم را بررسی کنید.")
 

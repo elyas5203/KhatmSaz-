@@ -159,9 +159,6 @@ async def seed_canonical_categories(session: AsyncSession) -> dict[str, object]:
         )
         session.add(cat)
         await session.flush()
-    elif not cat.is_active:
-        cat.is_active = True
-        await session.flush()
 
     return {"khutbah_fadakiah": str(cat.id)}
 

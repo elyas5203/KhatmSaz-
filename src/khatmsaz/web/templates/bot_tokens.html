@@ -1,11 +1,24 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}مدیریت باتها | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">توکن و وضعیت ۲۶ بات</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">مدیریت باتها {{ tooltip("در این بخش توکن هر بات عضو را وارد کنید. باتهای سازنده از فایل env. بارگذاری می‌شوند.") }}</h1>
-  <p class="text-slate-400 text-sm">هر بات عضو یک دسته‌بندی و یک زبان دارد. توکنها رمزنگاری‌شده در دیتابیس ذخیره می‌شوند.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">توکن و تصاویر معرفی بات‌ها</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیریت بات‌ها (تلگرام و بله)</h1>
+      {{ help_button(
+        "راهنمای مدیریت بات‌ها",
+        "ختم‌ساز از معماری چندرباتی استفاده می‌کند (یک بات سازنده برای ساخت و مدیریت ختم و بات‌های عضو برای ۵ خانواده ختم). در این صفحه می‌توانید تصاویر معرفی خانواده‌ها و توکن بات‌های عضو را در تلگرام و بله تنظیم نمایید.",
+        [
+          "در بخش اول، تصاویر معرفی مشترک ۵ خانواده (قرآن، صلوات، دعا، لعن، خطبه) را وارد و ذخیره کنید.",
+          "از دکمه‌های تلگرام و بله برای سوئیچ بین پلتفرم‌ها استفاده فرمایید.",
+          "توکن هر بات عضو را در کارت مربوط به آن ثبت کنید؛ توکن‌ها رمزنگاری‌شده در دیتابیس نگهداری می‌شوند."
+        ],
+        "نکته: پس از ذخیره توکن جدید، برای فعال‌سازی آن سرویس بات باید یک بار ری‌استارت شود."
+      ) }}
+    </div>
+  </div>
 </section>
 
 {% if saved %}

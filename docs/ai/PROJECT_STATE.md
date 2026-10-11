@@ -1,3 +1,76 @@
+## Current state — 2026-10-10 — PayPing Callback Live Fix, Moderation Hub Integration, Plan Entitlements & Scheduler Workers [Antigravity]
+- **PayPing v3 Callback & Wallet Verification Fix (`BUG-23`):**
+  - Live server diagnosis proved PayPing was returning `405 Method Not Allowed` on browser GET redirects and `400 Bad Request` on form callbacks due to an invalid expectation of a non-existent `form.get("data")` JSON string.
+  - Updated `web/app.py` (`/payments/payping/callback`) to accept both `GET` and `POST`, parsing parameters flexibly and case-insensitively (`clientRefId`/`clientrefid`, `paymentCode`/`code`, `paymentRefId`/`refid`, `amount`).
+  - Added proactive bot notification to the user upon successful wallet credit.
+  - Updated `wallet/service.py` (`verify_payping_callback_and_credit`) to fall back to pending values if omitted in callback.
+- **Admin Panel Moderation Hub & Navigation Integration:**
+  - Added `/moderation` («مرکز نظارت (لعن، کاور، پیشنهادات)») directly to the desktop sidebar navigation under Group 2 in `base.html`.
+  - Added `KHUTBAH` option to `categories.html` form and corrected the accordion header to display «خطبه‌ها» instead of «لعن‌ها» (`BUG-02`).
+  - Added `max_devotional_members` and `max_quran_members` inputs to plan edit forms in `finance.html` so plan limits are not inadvertently dropped on save (`BUG-08`).
+  - Fixed coupon creation in `web/app.py`: unchecked `is_active` correctly registers as disabled (`enabled = False`).
+- **Broadcast Moderation & Non-Blocking Async Dispatch (`BUG-10`):**
+  - Updated `broadcasts.html` to show attached media indicators (`media_type`, `media_file_id_telegram`, `media_file_id_bale`) so admins can preview attachments before approving.
+  - Offloaded broadcast recipient delivery to FastAPI `BackgroundTasks` in `web/app.py` (`decide_broadcast`), preventing HTTP timeouts when sending to large audiences.
+  - Updated `servant_ad/service.py` and `web/app.py` (`servant_ad_send`) to route ads through each recipient's actual member bot (`joined_via_bot_instance_id`).
+- **Scheduler Workers & Multi-Round Wrap-Around (`BUG-11`, `BUG-14`, `BUG-15`):**
+  - In `reminder_engine/service.py` (`run_once`), connected previously dormant background workers (`delegate_inactive_portions`, `_send_open_schedule_reminders`, and `check_share_occurrence_misses`).
+  - Added multi-round wrap-around in `reminder_engine/service.py` open regular reading: when `open_reading_next_page > total_pages`, wraps around to page 1 for multi-round khatms (`repetition_target > 604` or unlimited).
+  - In `monthly_report/service.py` (`deliver_due`), route notifications through the user's active member bot instance.
+- **Test Infrastructure & Validation:**
+  - Added `pythonpath = src` to `pytest.ini`.
+  - 366 unit tests PASS (100% green, 0 failures).
+
+## Current state — 2026-10-10 — Open Khatm Flow Realignment, Khutbah 5-Part Round Multiplier & Video Captions [Antigravity]
+- **Open Khatm Flow Overhaul (Abolition of 7-Day Reservations per V3 Spec):**
+  - Completely removed 7-day reservation creation (`OpenReservation`) and expiration locks from `share_occurrence/delivery.py` (`prepare_numeric`). Open shares are issued immediately (`committed=False`, `reservation_id=None`) with zero capacity locks and zero expiry alerts.
+  - Removed outdated "این رزرو ۷ روز اعتبار دارد" message from `member_commitment.py:enter_count`.
+  - Fixed `portions.py:ask_contribution_amount`: Open khatms no longer display the irrelevant commitment mode picker ("این ختم تعهدی است..."). Members are directly asked for the desired count and portion is issued instantly.
+  - Bypassed delivery hour selection (`AskDeliveryHour`) in `start.py:resume_join_after_registration` for open khatms since open khatms have no daily scheduled delivery or reminders.
+- **Khutbah Fadakiyyah 5-Part Round Engine & Premature Closure Fix:**
+  - In `create_khatm.py` and `khatm_workflow/service.py`, Khutbah target unit is explicitly set to "دور" (Round). Entering target 1 sets `repetition_target = 5` ($1 \times 5 = 5$ parts). Target 2 sets 10 parts ($2 \times 5 = 10$).
+  - In `delivery.py:record_progress` and `prepare_numeric`, added automatic self-healing for legacy Khutbah khatms with target < 5 so reading section 1 does not prematurely mark the khatm `COMPLETED`. The khatm completes only when all 5 parts of the round are completed.
+  - Multi-part allocation in open Khutbah: Requesting 2 parts correctly allocates sections 1 and 2 (`ranges=[[1, 2]]`, `amount=2`) instead of capping to 1 part.
+- **Khutbah Video Captions Preservation:**
+  - Preserved canonical Khutbah Fadakiyyah captions (`KHUTBAH_FADAKIAH_VIDEO_CAPTIONS`) including official links (`https://khedmatgozaran.com/...`) and hashtags across `devotional.py`, `occurrence_adapter.py`, and `content/service.py`.
+- **Master Documentation:**
+  - Updated Section 3 in `docs/ai/masters/MASTER_01_KHATM_ENGINE_AND_MODES.md`.
+  - Created new child master `docs/ai/masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md`.
+  - Documented bugs `BUG-18` to `BUG-22` in `docs/ai/MASTER_BUG_AND_GAP_REPORT.md`.
+- **Validation:** 363 passed, 230 skipped (100% green).
+
+## Current state — 2026-10-10 — Admin Panel Ground-Up Redesign, Master Implementation & BUG-17 Video Caption Preservation [Antigravity]
+- **Admin Panel Full Redesign Implementation:**
+  - Fully overhauled all 10 Admin Panel modules:
+    1. Dashboard: KPI metrics, activity feeds, health indicators, and queue summaries.
+    2. Moderation: Dedicated hub with 8 distinct moderation queues (covers, broadcasts, phone approvals, custom categories, refund requests, creator upgrades, bot token health, audit log).
+    3. Khatms & Detail: Direct web khatm creation (`POST /khatms/create`), Excel export (`GET /khatms/{id}/export`), manual portion marking, waiting list promotion, and live setting adjustments.
+    4. Devotionals: Full media management (`DevotionalMedia`), direct media upload to bot `file_id`, video caption editing, reciter name labels, and group accordions.
+    5. Quran Inspector: Visual inspector for 604 pages, telegram channel registry, and reciter audio/image mapping.
+    6. Finance: 5 unified tabs (3-tier plans, manual wallet topup/deduction, invoice refunds, coupons, SMS & broadcast policies) and plain-language guide cards.
+    7. Users: 360-degree user profiles, plan modification, wallet adjustment, and direct bot message dispatching.
+    8. Message Templates: Template versioning and instant web text editor.
+    9. Bot Fleet & Operations: Bot token management, service restart triggers, panel logo configuration, and system settings.
+    10. Admin Roles & Audit: Role-based permissions, admin invite/management, and audit trail.
+  - Added simple Persian interactive popup guides `[؟]` to all pages and key form sections, explaining how each feature works step-by-step (like turning on a computer).
+- **BUG-17 Fix (Khutbah Fadakiah Video Captions):**
+  - Preserved and delivered full original Persian captions (section descriptions, `#خدمتگزاران` hashtags, and service links). Widened `DevotionalMedia.reciter_label` to `TEXT` with automatic self-healing schema migration in `bootstrap.py`.
+- **BUG-12 Fix (Creator Mini-App 403 Forbidden):**
+  - Updated `_authenticate_telegram_mini_app` in `web/app.py` so users entering through the creator bot are automatically granted `CREATOR` role without 403 error.
+- **Validation:** 361 unit and template render tests PASS (100% green).
+
+## Current state — 2026-10-10 — Complete System Audit, Parent-Child Admin Panel Redesign Master & Bug Report Master [Antigravity]
+- **Parent-Child Master Documentation Architecture (`docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md` & `docs/ai/masters/`):**
+  - Created Parent Master [ADMIN_PANEL_REDESIGN_MASTER.md](ADMIN_PANEL_REDESIGN_MASTER.md) designing a complete ground-up overhaul of the Admin Panel and Creator Panel across 10 core modules so 100% of bot features, content, media, plans, khatms, shares, moderation queues, and system settings are manageable from the web UI, with `[؟]` popup tooltips and step-by-step operational guides.
+  - Created 4 linked Child Masters under `docs/ai/masters/`:
+    1. [MASTER_01_KHATM_ENGINE_AND_MODES.md](masters/MASTER_01_KHATM_ENGINE_AND_MODES.md) — Khatm types, Commitment vs Open, Member-Choice vs Fixed-Daily, Numeric vs Regular schedules, and `ShareOccurrence` lifecycle.
+    2. [MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md](masters/MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md) — Categories, DevotionalAssets, DevotionalMedia (multi-reciter audio, multi-page images, PDFs, Khutbah video sections), Quran 604-page assets, message templates, and direct web file upload to `file_id`.
+    3. [MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md](masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md) — `FREE`/`BASIC`/`PRO` plans, dual-balance Wallet (`balance_toman` vs `credit_toman`), PayPing v3, invoices, coupons, SMS subscriptions, broadcast policies, and `servant_ad`.
+    4. [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet (`bot_instances`), identity, phone verification, account merge, all 8 moderation queues, admin roles, and operations.
+- **Line-by-Line Bug & Gap Report Master ([MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md)):**
+  - Documented 16 runtime bugs/regressions (`BUG-01` through `BUG-16`, including `/bots` 500 crash on `intro_image_khutbah`, missing `KHUTBAH` across 7 web/bot surfaces, unimplemented `pending_lan_approval`, dead `jhour:` callbacks on private join, `NameError` in `/report`, startup seed overwriting admin devotional edits, and wallet credit-to-cash refund issue) plus 11 missing Admin Panel capabilities.
+- **Validation:** Analysis & documentation only (zero runtime code modified per owner instruction).
+
 ## Current state — 2026-10-10 — Continuous Quran-Style Khutbah Section Progression & Duplicate Reply Fix [Antigravity]
 - **Continuous Khutbah Section Progression (`allocate_khutbah_section_range`):**
   - Updated `share_occurrence/delivery.py` (`prepare`, `prepare_numeric`) and `bot/occurrence_adapter.py` (`deliver_occurrence`) to advance Khutbah section ranges (`[[sec_start, sec_end]]`) continuously across every issued `ShareOccurrence` in chronological order, rather than waiting for `completed_at` to be set.

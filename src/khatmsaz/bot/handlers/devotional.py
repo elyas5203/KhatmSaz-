@@ -110,8 +110,7 @@ async def deliver_devotional_media(
             # Multi-part devotional: default to part 1 instead of blasting all parts
             video_pages = [min(video_pages, key=lambda v: v.page_number)]
         for vid in video_pages:
-            part_label = f" — بخش {vid.page_number}" if vid.page_number > 0 else ""
-            caption = f"🎬 <b>{escape(asset.title)}</b>{part_label}"
+            caption = content_service.resolve_devotional_video_caption(slug, asset.title, vid)
             await _send_portable_media(
                 message, kind="VIDEO", asset_ref=vid.asset_ref, platform=platform,
                 filename=f"{slug}-{vid.page_number}.mp4", caption=caption,
@@ -173,8 +172,12 @@ async def send_devotional_reciter_choice(callback) -> None:
     if chosen is None or asset is None:
         await safe_answer_callback(callback, "این صوت دیگر در دسترس نیست.", show_alert=True)
         return
-    await callback.message.answer_audio(
-        chosen.asset_ref,
+    await _send_portable_media(
+        callback.message,
+        kind="AUDIO",
+        asset_ref=chosen.asset_ref,
+        platform=platform,
+        filename=f"{slug}-{reciter_id or 'audio'}.mp3",
         caption=f"🎙 {chosen.reciter_label or chosen.reciter_id} — {escape(asset.title)}",
     )
     await safe_answer_callback(callback)

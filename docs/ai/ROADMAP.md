@@ -1,3 +1,13 @@
+## 2026-10-10 — PayPing Callback, Moderation Hub & System Bug Resolution [Antigravity]
+- [x] Fixed PayPing v3 callback and wallet credit flow (`BUG-23`) on live server and web app (support GET/POST, case-insensitive parameter parsing, proactive user notification).
+- [x] Integrated `/moderation` hub in desktop sidebar navigation under Group 2 (`base.html`).
+- [x] Fixed plan entitlements dropping in `finance.html` and `web/app.py` (`BUG-08`) by exposing devotional and Quran member cap fields.
+- [x] Added media previews to broadcast moderation queue and non-blocking asynchronous dispatch (`BUG-10`).
+- [x] Connected dormant background workers in `reminder_engine/service.py:run_once` (`BUG-11`).
+- [x] Added multi-round wrap-around to page 1 for open regular Quran reading (`BUG-15`).
+- [x] Routed monthly reports through recipient's active member bot instance (`BUG-14`).
+- [x] Full non-integration test suite verified (366 passed, 0 failures).
+
 ## 2026-10-05 — Full share redesign continuation [Codex]
 - [x] Confirm Quran numeric/regular modes with owner (DEC-PY-0117); implement page-aware flows and numeric reservation links.
 - [x] Execute full PostgreSQL-enabled suite: 437 passed; reviewed additive migration and import/diff checks pass locally.

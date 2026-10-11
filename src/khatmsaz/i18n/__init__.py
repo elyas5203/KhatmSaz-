@@ -39,7 +39,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "share.pages": {"fa": "📖 سهم شما از «{title}»: صفحات {pages}", "ar": "📖 حصتك من «{title}»: الصفحات {pages}", "en": "📖 Your share in “{title}”: pages {pages}"},
     "share.amount": {"fa": "🌱 سهم شما از «{title}»: {amount}", "ar": "🌱 حصتك من «{title}»: {amount}", "en": "🌱 Your share in “{title}”: {amount}"},
     "share.followup": {"fa": "⏳ دو ساعت از دریافت این سهم گذشته است. پس از خواندن، انجامش را ثبت کنید؛ تعهد شما تا انجام باقی می‌ماند.", "ar": "⏳ مضت ساعتان على استلام هذه الحصة. سجّل إتمامها بعد القراءة؛ يبقى الالتزام حتى إتمامها.", "en": "⏳ You received this share two hours ago. Confirm it after reading; your commitment remains until completed."},
-    "share.deadline": {"fa": "⏰ کمتر از یک ساعت تا پایان زمان امروز مانده است. لطفاً سهمتان را بخوانید و ثبت کنید تا تعهد انجام‌نشده‌ای باقی نماند.", "ar": "⏰ بقي أقل من ساعة على نهاية وقت اليوم. يرجى قراءة حصتك وتسجيلها كي لا يبقى الالتزام غير مكتمل.", "en": "⏰ Less than an hour remains before today’s deadline. Please read and confirm your share; unfinished commitments remain due."},
+    "share.deadline": {"fa": "🌱 ۲ ساعت تا پایان مهلت امروز باقی مانده است؛ لطفاً در صورت امکان سهم امروز خود را بخوانید و ثبت کنید تا دور ختم با تأخیر مواجه نشود.", "ar": "🌱 بقي ساعتان على نهاية مهلة اليوم؛ يرجى قراءة حصتكم وتسجيلها إن أمكن كي لا يتأخر الختم.", "en": "🌱 2 hours remain before today’s deadline; please read and confirm your share if possible so the khatm round is not delayed."},
     "commit.ask_count.quran": {
         "fa": "چند صفحه می‌خواهید یک‌جا دریافت کنید؟",
         "ar": "كم صفحة تريد استلامها في هذه الحصة؟",
@@ -1324,6 +1324,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.category.salawat": {"fa": "🕊 صلوات", "ar": "🕊 الصلوات", "en": "🕊 Salawat"},
     "my_khatms.category.dua": {"fa": "🤲 دعا و زیارت", "ar": "🤲 الدعاء والزيارة", "en": "🤲 Dua & Ziyarat"},
     "my_khatms.category.laan": {"fa": "⚔️ لعن", "ar": "⚔️ اللعن", "en": "⚔️ La'an"},
+    "my_khatms.category.khutbah": {"fa": "📜 خطبه", "ar": "📜 الخطبة", "en": "📜 Khutbah"},
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
@@ -1711,6 +1712,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "یک سؤال کوتاه دیگه 🌱\n\nچه موقعی از روز دوست دارید سهم هر روزتون خودکار براتون فرستاده بشه؟ یکی از دکمه‌های زیر رو بزنید، یا اگه ساعت دقیق‌تری مدنظرتونه، فقط عددش رو بنویسید (بین 0 تا 23):",
         "ar": "سؤال قصير آخر 🌱\n\nفي أي وقت من اليوم تحب أن تصلك حصتك اليومية تلقائياً؟ اضغط أحد الأزرار أدناه، أو إذا أردت ساعة دقيقة أرسل رقمها (بين 0 و23):",
         "en": "One more quick question 🌱\n\nWhat time of day would you like your daily portion sent automatically? Tap one of the buttons below, or type an exact hour (0 to 23) if you prefer:",
+    },
+    "join.ask_delivery_hour_custom": {
+        "fa": "لطفاً ساعت مدنظر خود را به صورت یک عدد بین 0 تا 23 بنویسید (مثلاً 14 برای ۲ بعدازظهر):",
+        "ar": "يرجى إرسال الساعة المطلوبة كرقم بين 0 و23 (مثلاً: 14 للساعة 2 ظهراً):",
+        "en": "Please send your preferred hour as a number between 0 and 23 (e.g. 14 for 2 PM):",
     },
     "delivery_hour.early_morning": {"fa": "🌅 صبح زود", "ar": "🌅 الفجر", "en": "🌅 Early morning"},
     "delivery_hour.morning": {"fa": "☀️ صبح", "ar": "☀️ الصباح", "en": "☀️ Morning"},

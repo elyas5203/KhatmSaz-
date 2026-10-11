@@ -27,7 +27,7 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.reporting import service as reporting_service
-from khatmsaz.bot.member_scope import ensure_participation_matches_bot
+from khatmsaz.bot.member_scope import ensure_participation_matches_bot, member_instance_id
 
 router = Router(name="report")
 

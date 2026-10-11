@@ -322,15 +322,16 @@ async def main() -> None:
     except Exception:
         logger.warning("Devotional text seed failed — will retry next restart.", exc_info=True)
 
-    # Self-heal database enums on every startup (e.g. KHUTBAH in khatmcategorygroup)
+    # Self-heal database enums and column widths on every startup (e.g. KHUTBAH in khatmcategorygroup, TEXT for reciter_label)
     try:
         from sqlalchemy import text
         from khatmsaz.core.db import get_engine
         async with get_engine().connect() as conn:
             await conn.execution_options(isolation_level="AUTOCOMMIT")
             await conn.execute(text("ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'"))
+            await conn.execute(text("ALTER TABLE devotional_media ALTER COLUMN reciter_label TYPE TEXT"))
     except Exception as exc:
-        logger.debug("Database enum self-heal check: %s", exc)
+        logger.debug("Database schema self-heal check: %s", exc)
 
     # Seed canonical categories (e.g. Khutbah Fadakiah) on every startup
     try:

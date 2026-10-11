@@ -233,11 +233,14 @@ async def test_legacy_debt_has_separate_completion_and_new_share_cannot_be_compl
 
 async def test_reservation_warning_at_sixth_local_noon_once_then_expiry(monkeypatch):
     fake_messenger(monkeypatch)
-    from zoneinfo import ZoneInfo
     from khatmsaz.modules.reminder_engine import service as reminders
     uid,_,pid,bid=await membership(opened=True)
     async with session_scope() as session:
         occurrence=await delivery.prepare_numeric(session,pid,10,user_id=uid,bot_instance_id=bid)
+        assert occurrence.reservation_id is None
+        part=await session.get(Participation, pid)
+        reservation, _ = await reservations.create_reservation(session, part.khatm_id, pid, 10, 100)
+        occurrence.reservation_id = reservation.id
         await delivery.deliver(session,occurrence)
         reservation=await session.get(OpenReservation,occurrence.reservation_id)
         reservation.created_at=datetime(2026,10,5,18,tzinfo=ZoneInfo("Asia/Tehran"))

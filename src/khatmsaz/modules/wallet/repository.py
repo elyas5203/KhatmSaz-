@@ -19,8 +19,12 @@ from khatmsaz.modules.wallet.models import (
 )
 
 
-async def get_by_user(session: AsyncSession, user_id) -> Wallet | None:
+async def get_by_user(
+    session: AsyncSession, user_id, *, for_update: bool = False
+) -> Wallet | None:
     stmt = select(Wallet).where(Wallet.user_id == user_id)
+    if for_update:
+        stmt = stmt.with_for_update()
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -57,6 +61,19 @@ async def record_transaction(
     return tx
 
 
+async def list_spend_transactions_by_ref(
+    session: AsyncSession, wallet_id, ref: str
+) -> list[WalletTransaction]:
+    result = await session.execute(
+        select(WalletTransaction).where(
+            WalletTransaction.wallet_id == wallet_id,
+            WalletTransaction.type == TxType.SPEND,
+            WalletTransaction.ref == ref,
+        )
+    )
+    return list(result.scalars())
+
+
 async def create_paid_invoice(
     session: AsyncSession,
     *,
@@ -84,6 +101,10 @@ async def create_paid_invoice(
     session.add(invoice)
     await session.flush()
     return invoice
+
+
+async def get_invoice_by_id(session: AsyncSession, invoice_id) -> WalletInvoice | None:
+    return await session.get(WalletInvoice, invoice_id)
 
 
 async def bind_invoice_resource(
@@ -173,6 +194,7 @@ async def upsert_coupon(
     total_redemption_limit: int | None,
     per_user_limit: int,
     created_by_user_id=None,
+    enabled: bool = True,
 ) -> DiscountCoupon:
     coupon = await session.get(DiscountCoupon, code)
     if coupon is None:
@@ -184,7 +206,7 @@ async def upsert_coupon(
     coupon.max_discount_toman = max_discount_toman
     coupon.total_redemption_limit = total_redemption_limit
     coupon.per_user_limit = per_user_limit
-    coupon.enabled = True
+    coupon.enabled = bool(enabled)
     coupon.created_by_user_id = created_by_user_id
     await session.flush()
     return coupon

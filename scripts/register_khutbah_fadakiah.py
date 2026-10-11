@@ -163,6 +163,7 @@ async def register() -> None:
 
         # 2. Media slots for parts 1 through 5
         for i, (part_title, _, _) in enumerate(FADAKIAH_PARTS, 1):
+            canonical_caption = content_service.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS.get(i, f"بخش {i}")
             media_stmt = select(DevotionalMedia).where(
                 DevotionalMedia.devotional_asset_id == asset.id,
                 DevotionalMedia.page_number == i,
@@ -175,15 +176,15 @@ async def register() -> None:
                     devotional_asset_id=asset.id,
                     kind="VIDEO",
                     reciter_id="",
-                    reciter_label=f"بخش {i}",
+                    reciter_label=canonical_caption,
                     page_number=i,
                     asset_ref=f"https://khedmatgozaran.com/259789/fadak{i}/",
                     asset_platform="TELEGRAM",
                 )
                 session.add(media)
             else:
-                media.reciter_label = f"بخش {i}"
-        print("✅ Devotional media registered: 5 slots linked.")
+                media.reciter_label = canonical_caption
+        print("✅ Devotional media registered: 5 slots linked with full captions.")
 
         # 3. Category registration in khatm_categories
         cat_stmt = select(KhatmCategory).where(

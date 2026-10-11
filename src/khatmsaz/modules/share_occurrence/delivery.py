@@ -157,6 +157,8 @@ async def prepare(session, participation_id, *, now=None, manual=False):
     part = await memberships.get_by_id_for_update(session, participation_id)
     if khatm is None or not is_managed(part, khatm):
         return None
+    if not manual and str(getattr(khatm.khatm_type, "value", khatm.khatm_type)).upper() == "OPEN":
+        return None
     settings = await settings_service.get_or_create(session, part.user_id)
     local = now.astimezone(timezone_for(settings.timezone))
     key = f"daily:{local.date().isoformat()}"
@@ -204,7 +206,7 @@ async def prepare(session, participation_id, *, now=None, manual=False):
     attempted = next((item for item in pending if item.source_key.startswith("daily:") and item.delivered_at is None), None)
     if attempted is not None:
         attempted.scheduled_for = local.replace(hour=hour, minute=minute, second=0, microsecond=0)
-        attempted.deadline_at = _calc_deadline(local, khatm.daily_deadline_hour)
+        attempted.deadline_at = _calc_deadline(local, khatm.daily_deadline_hour or 24)
         await session.flush()
         return attempted
     spec = {}
@@ -231,7 +233,7 @@ async def prepare(session, participation_id, *, now=None, manual=False):
         if fam == "khutbah":
             sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
             spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
-    deadline = _calc_deadline(local, khatm.daily_deadline_hour)
+    deadline = _calc_deadline(local, khatm.daily_deadline_hour or 24)
     occurrence, _ = await service.create_once(
         session, participation_id=part.id, bot_instance_id=part.joined_via_bot_instance_id,
         source_key=key, amount=amount, unit="PAGE" if quran else "COUNT",
@@ -261,17 +263,26 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
         if old.source_key.startswith(("count:", "reservation:")):
             return old
     total = await contributions.total_for_khatm(session, khatm.id)
-    if khatm.repetition_target is not None and total >= khatm.repetition_target:
+    from khatmsaz.bot.member_copy import content_family
+    fam = await content_family(session, khatm)
+    effective_target = khatm.repetition_target
+    if fam == "khutbah" and effective_target is not None and effective_target < 5:
+        effective_target *= 5
+    if effective_target is not None and total >= effective_target:
         return None
     quran = khatm.template_type == "QURAN_PAGE"
     if quran and amount > content.get_quran_total_pages(khatm):
         raise ValueError("Page amount exceeds the edition")
     reservation = None
     if khatm.khatm_type == "OPEN":
-        reservation, _ = await reservations.create_reservation(session, khatm.id, part.id, amount, khatm.repetition_target)
-        if reservation is None:
-            return None
-        amount = int(reservation.amount)
+        # Owner V3 rule (02_COMMITMENT_VS_FREE_AND_REMINDERS.md lines 31-34):
+        # 7-day reservations are completely abolished. Open shares are issued
+        # immediately and never expire or lock capacity.
+        if effective_target is not None:
+            remaining = max(effective_target - total, 0.0)
+            if remaining <= 0:
+                return None
+            amount = min(amount, int(remaining))
     spec = {}
     if quran:
         if part.is_committed:
@@ -289,16 +300,17 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
                 ranges.append([1,amount-(end-start+1)])
             spec = {"ranges": ranges}
     else:
-        from khatmsaz.bot.member_copy import content_family
-        fam = await content_family(session, khatm)
         if fam == "khutbah":
             sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
+            amount = sec_end - sec_start + 1
             spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
+        else:
+            spec = {"family": fam, "amount": amount}
     part.commitment_mode = "COUNT"
     part.commitment_target = amount
-    key = f"reservation:{reservation.id}" if reservation else f"count:{uuid4()}"
+    key = f"open:{uuid4()}" if khatm.khatm_type == "OPEN" else f"count:{uuid4()}"
     occurrence, _ = await service.create_once(session, participation_id=part.id,
-        bot_instance_id=part.joined_via_bot_instance_id, reservation_id=reservation.id if reservation else None,
+        bot_instance_id=part.joined_via_bot_instance_id, reservation_id=None,
         source_key=key, amount=amount, unit="PAGE" if quran else "COUNT", committed=part.is_committed,
         scheduled_for=now, content_spec=spec)
     return occurrence
@@ -307,10 +319,16 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
 async def record_progress(session, part, occurrence):
     from khatmsaz.modules.open_contribution import service as progress
     from khatmsaz.modules.allocation import repository as portions
+    from khatmsaz.bot.member_copy import content_family
     khatm = await khatms.get_khatm(session, part.khatm_id)
     for portion_id in occurrence.content_spec.get("portion_ids", []):
         await portions.complete_portion(session, portion_id)
     target = khatm.repetition_target
+    fam = await content_family(session, khatm)
+    if fam == "khutbah" and target is not None and target < 5:
+        # 1 round of Khutbah contains 5 sections. If target < 5, it was stored
+        # as rounds and must be multiplied by 5 sections to complete.
+        target = target * 5
     if target is None and khatm.status == "COMPLETED":
         target = await contributions.total_for_khatm(session, khatm.id)
     _, _, total = await progress.log_contribution(session, khatm.id, part.id, occurrence.amount, target)
@@ -357,7 +375,7 @@ async def remind(session, participation_id, *, now=None):
         if not occurrence.committed or occurrence.delivered_at is None:
             continue
         for purpose, due in (("FOLLOWUP", occurrence.delivered_at + timedelta(hours=2)),
-                             ("DEADLINE", occurrence.deadline_at - timedelta(hours=1) if occurrence.deadline_at else None)):
+                             ("DEADLINE", occurrence.deadline_at - timedelta(hours=2) if occurrence.deadline_at else None)):
             if due is None or now < due:
                 continue
             if purpose == "DEADLINE" and now >= occurrence.deadline_at:

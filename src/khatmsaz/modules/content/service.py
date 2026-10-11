@@ -577,12 +577,84 @@ async def list_devotional_video_pages(session: AsyncSession, slug: str, asset_pl
     return list(result.scalars())
 
 
+KHUTBAH_FADAKIAH_VIDEO_CAPTIONS: dict[int, str] = {
+    1: (
+        "📽#کلیپ_تصویری_خطابه_فدک قسمت 1 (بخش 1)\n\n"
+        "🕯طرح ختم خطابه فدک \n\n"
+        "📩 جهت مشاهده و دریافت قسمت اولِ #شرح_خطابه_فدک به همراه متن خطبه، به لینک زیر مراجعه کنید: \n"
+        "https://khedmatgozaran.com/259703/fadak1/"
+    ),
+    2: (
+        "📽#کلیپ_تصویری_خطابه_فدک قسمت 2 (بخش 2)\n\n"
+        "🕯طرح ختم خطابه فدک \n\n"
+        "📩 جهت مشاهده و دریافت قسمت دومِ #شرح_خطابه_فدک به همراه متن خطبه، به لینک زیر مراجعه کنید: \n"
+        "https://khedmatgozaran.com/259770/fadak2/"
+    ),
+    3: (
+        "📽#کلیپ_تصویری_خطابه_فدک قسمت 3 (بخش 3)\n\n"
+        "🕯طرح ختم خطابه فدک \n\n"
+        "📩 جهت مشاهده و دریافت قسمت سومِ #شرح_خطابه_فدک به همراه متن خطبه، به لینک زیر مراجعه کنید: \n"
+        "https://khedmatgozaran.com/fadak3/"
+    ),
+    4: (
+        "📽#کلیپ_تصویری_خطابه_فدک قسمت 4 (بخش 4)\n\n"
+        "🕯طرح ختم خطابه فدک \n\n"
+        "📩 جهت مشاهده و دریافت قسمت چهارم #شرح_خطابه_فدک به همراه متن خطبه، به لینک زیر مراجعه کنید: \n"
+        "https://khedmatgozaran.com/259787/fadak4/"
+    ),
+    5: (
+        "📽#کلیپ_تصویری_خطابه_فدک قسمت 5 (بخش 5)\n\n"
+        "🕯طرح ختم خطابه فدک \n\n"
+        "📩 جهت مشاهده و دریافت قسمت پنجم #شرح_خطابه_فدک به همراه متن خطبه، به لینک زیر مراجعه کنید: \n"
+        "https://khedmatgozaran.com/259789/fadak5/"
+    ),
+}
+
+
+def resolve_devotional_video_caption(
+    slug: str | None, asset_title: str | None, vid: DevotionalMedia
+) -> str:
+    """Resolve the caption to send under a devotional/khutbah video clip (BUG-17).
+    1. If a custom non-placeholder caption is stored in `vid.reciter_label`, return it.
+    2. If the slug belongs to Khutbah Fadakiah and `vid.page_number` is 1..5, return the canonical caption.
+    3. Otherwise fallback to `🎬 <b>{title}</b> — بخش {page_number}`."""
+    from html import escape
+
+    raw_stored = getattr(vid, "reciter_label", None)
+    stored = raw_stored.strip() if isinstance(raw_stored, str) else ""
+    page_num = getattr(vid, "page_number", 0) or 0
+    if not isinstance(page_num, int):
+        try:
+            page_num = int(page_num)
+        except (TypeError, ValueError):
+            page_num = 0
+    is_generic_placeholder = stored in {
+        "",
+        f"بخش {page_num}",
+        f"قسمت {page_num}",
+        f"Part {page_num}",
+    }
+    if stored and not is_generic_placeholder:
+        return stored
+    norm_slug = (slug or "").strip().lower()
+    if "fadak" in norm_slug and page_num in KHUTBAH_FADAKIAH_VIDEO_CAPTIONS:
+        return KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[page_num]
+    part_label = f" — بخش {page_num}" if page_num > 0 else ""
+    return f"🎬 <b>{escape(asset_title or norm_slug or 'ویدیو')}</b>{part_label}"
+
+
 async def list_devotional_videos(session: AsyncSession, slug: str, asset_platform: str) -> list[DevotionalMedia]:
     return await list_devotional_video_pages(session, slug, asset_platform)
 
 
 async def add_devotional_video_page(
-    session: AsyncSession, *, slug: str, asset_ref: str, asset_platform: str, page_number: int | None = None,
+    session: AsyncSession,
+    *,
+    slug: str,
+    asset_ref: str,
+    asset_platform: str,
+    page_number: int | None = None,
+    caption: str | None = None,
 ) -> DevotionalMedia:
     """Owner request: a devotional asset (or khutbah) can have video clips
     (parts 1..5). page_number=None auto-appends after the highest existing page."""
@@ -617,6 +689,9 @@ async def add_devotional_video_page(
             )
         )
         page_number = (existing_max or 0) + 1
+    clean_caption = (caption or "").strip() or None
+    if clean_caption is None and "fadak" in slug and page_number in KHUTBAH_FADAKIAH_VIDEO_CAPTIONS:
+        clean_caption = KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[page_number]
     row = await session.scalar(
         select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "VIDEO",
@@ -626,11 +701,14 @@ async def add_devotional_video_page(
     if row is None:
         row = DevotionalMedia(
             id=new_id(), devotional_asset_id=asset.id, kind="VIDEO", reciter_id="",
+            reciter_label=clean_caption,
             page_number=page_number, asset_ref=asset_ref.strip(), asset_platform=asset_platform,
         )
         session.add(row)
     else:
         row.asset_ref = asset_ref.strip()
+        if clean_caption is not None:
+            row.reciter_label = clean_caption
     await session.flush()
     return row
 
@@ -647,13 +725,13 @@ async def get_devotional_pdf(session: AsyncSession, slug: str, asset_platform: s
     )
 
 
-async def get_devotional_asset(session: AsyncSession, slug: str) -> DevotionalAsset | None:
-    row = await session.scalar(
-        select(DevotionalAsset).where(
-            DevotionalAsset.slug == slug.strip().lower(), DevotionalAsset.enabled.is_(True)
-        )
-    )
-    return row
+async def get_devotional_asset(
+    session: AsyncSession, slug: str, *, enabled_only: bool = True
+) -> DevotionalAsset | None:
+    stmt = select(DevotionalAsset).where(DevotionalAsset.slug == slug.strip().lower())
+    if enabled_only:
+        stmt = stmt.where(DevotionalAsset.enabled.is_(True))
+    return await session.scalar(stmt)
 
 
 async def list_all_devotional_assets(session: AsyncSession) -> list[DevotionalAsset]:
@@ -663,6 +741,33 @@ async def list_all_devotional_assets(session: AsyncSession) -> list[DevotionalAs
         select(DevotionalAsset).order_by(DevotionalAsset.created_at.desc())
     )
     return list(result)
+
+
+async def list_all_devotional_media_by_asset(
+    session: AsyncSession,
+) -> dict[object, list[DevotionalMedia]]:
+    """Return all DevotionalMedia rows grouped by devotional_asset_id."""
+    result = await session.scalars(
+        select(DevotionalMedia).order_by(
+            DevotionalMedia.kind.asc(),
+            DevotionalMedia.page_number.asc(),
+            DevotionalMedia.created_at.asc(),
+        )
+    )
+    grouped: dict[object, list[DevotionalMedia]] = {}
+    for item in result:
+        grouped.setdefault(item.devotional_asset_id, []).append(item)
+    return grouped
+
+
+async def delete_devotional_media_by_id(session: AsyncSession, media_id) -> bool:
+    """Delete a single DevotionalMedia row by ID."""
+    row = await session.get(DevotionalMedia, media_id)
+    if row is None:
+        return False
+    await session.delete(row)
+    await session.flush()
+    return True
 
 
 async def set_devotional_enabled(
@@ -784,21 +889,48 @@ async def append_devotional_media_from_message(
             return "TEXT"
         
     if kind and file_id:
+        if kind == "PDF":
+            await set_devotional_pdf(
+                session, slug=slug, asset_ref=file_id, asset_platform=platform_val
+            )
+            return "PDF"
+        if kind == "AUDIO":
+            existing_audios = await list_devotional_audio_variants(session, slug, platform_val)
+            reciter_id = "" if not existing_audios else f"reciter_{len(existing_audios) + 1}"
+            reciter_label = (
+                getattr(getattr(msg, "audio", None), "performer", None)
+                or getattr(getattr(msg, "audio", None), "title", None)
+                or (f"مداح {len(existing_audios) + 1}" if existing_audios else None)
+            )
+            await add_devotional_audio_variant(
+                session,
+                slug=slug,
+                asset_ref=file_id,
+                asset_platform=platform_val,
+                reciter_id=reciter_id,
+                reciter_label=reciter_label,
+            )
+            return "AUDIO"
         page_num = 0
+        caption_label = (getattr(msg, "caption", None) or "").strip() or None
         if kind in ("IMAGE", "VIDEO"):
             existing_max = await session.scalar(
                 select(func.max(DevotionalMedia.page_number)).where(
                     DevotionalMedia.devotional_asset_id == asset.id,
                     DevotionalMedia.kind == kind,
+                    DevotionalMedia.asset_platform == platform_val,
                 )
             )
             page_num = (existing_max or 0) + 1
+            if kind == "VIDEO" and caption_label is None and "fadak" in slug and page_num in KHUTBAH_FADAKIAH_VIDEO_CAPTIONS:
+                caption_label = KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[page_num]
 
         media = DevotionalMedia(
             id=new_id(),
             devotional_asset_id=asset.id,
             kind=kind,
             reciter_id="",
+            reciter_label=caption_label,
             page_number=page_num,
             asset_ref=file_id,
             asset_platform=platform_val,
@@ -808,3 +940,4 @@ async def append_devotional_media_from_message(
         return f"{kind} (بخش {page_num})" if page_num > 0 else kind
         
     return None
+

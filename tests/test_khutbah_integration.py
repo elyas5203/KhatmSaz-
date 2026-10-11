@@ -453,3 +453,182 @@ async def test_khutbah_self_heals_colliding_uncompleted_occurrences():
             await allocate_khutbah_section_range(session, part_id, khatm, 2)
             assert occ2.content_spec["ranges"] == [[3, 4]]
             assert occ3.content_spec["ranges"] == [[5, 5]]
+
+
+@pytest.mark.asyncio
+async def test_khutbah_open_prepare_numeric_allocates_multiple_sections_without_reservation():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.modules.share_occurrence import delivery
+    from uuid import uuid4
+
+    test_user_id = uuid4()
+    part = SimpleNamespace(
+        id=uuid4(),
+        khatm_id=uuid4(),
+        user_id=test_user_id,
+        is_committed=False,
+        status="ACTIVE",
+        joined_via_bot_instance_id=uuid4(),
+    )
+    khatm = SimpleNamespace(
+        id=part.khatm_id,
+        khatm_type="OPEN",
+        template_type="SALAWAT",
+        repetition_target=5,
+        status="ACTIVE",
+        commitment_policy="MEMBER_CHOICE",
+        title="ختم خطبه فدکیه",
+        content_category_id=uuid4(),
+        starts_at=None,
+    )
+
+    session = MagicMock()
+    with (
+        patch("khatmsaz.modules.khatm.service.has_started", return_value=True),
+        patch("khatmsaz.modules.participation.repository.get_by_id", AsyncMock(return_value=part)),
+        patch("khatmsaz.modules.participation.repository.get_by_id_for_update", AsyncMock(return_value=part)),
+        patch("khatmsaz.modules.khatm.service.get_khatm_for_update", AsyncMock(return_value=khatm)),
+        patch("khatmsaz.modules.share_occurrence.repository.list_outstanding", AsyncMock(return_value=[])),
+        patch("khatmsaz.modules.open_contribution.repository.total_for_khatm", AsyncMock(return_value=0)),
+        patch("khatmsaz.bot.member_copy.content_family", AsyncMock(return_value="khutbah")),
+        patch("khatmsaz.modules.share_occurrence.delivery.allocate_khutbah_section_range", AsyncMock(return_value=(1, 2))),
+        patch("khatmsaz.modules.share_occurrence.service.create_once", AsyncMock(return_value=(
+            SimpleNamespace(
+                id=uuid4(), amount=2, reservation_id=None, committed=False,
+                source_key="open:test", content_spec={"ranges": [[1, 2]], "family": "khutbah"},
+            ), True
+        ))),
+    ):
+        occ = await delivery.prepare_numeric(
+            session, part.id, 2, user_id=test_user_id, bot_instance_id=part.joined_via_bot_instance_id
+        )
+        assert occ is not None
+        assert occ.amount == 2
+        assert occ.reservation_id is None
+        assert occ.committed is False
+        assert occ.content_spec["ranges"] == [[1, 2]]
+
+
+@pytest.mark.asyncio
+async def test_khutbah_record_progress_does_not_close_after_one_section():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, MagicMock, patch
+    from khatmsaz.modules.share_occurrence import delivery
+    from uuid import uuid4
+
+    part = SimpleNamespace(id=uuid4(), khatm_id=uuid4())
+    khatm = SimpleNamespace(
+        id=part.khatm_id,
+        repetition_target=1,  # Legacy target: 1 round stored as 1
+        status="ACTIVE",
+    )
+    occ = SimpleNamespace(
+        id=uuid4(),
+        amount=1,
+        unit="COUNT",
+        content_spec={"ranges": [[1, 1]], "family": "khutbah"},
+    )
+
+    session = MagicMock()
+    with patch("khatmsaz.modules.khatm.service.get_khatm", AsyncMock(return_value=khatm)):
+        with patch("khatmsaz.bot.member_copy.content_family", AsyncMock(return_value="khutbah")):
+            with patch("khatmsaz.modules.allocation.repository.complete_portion", AsyncMock()):
+                # Simulating reading section 1: total becomes 1 out of effective 5
+                with patch("khatmsaz.modules.open_contribution.service.log_contribution", AsyncMock(return_value=(1, 0, 1))):
+                    with patch("khatmsaz.modules.khatm.service.complete_khatm", AsyncMock()) as complete_mock:
+                        with patch("khatmsaz.modules.advertising.service.accrue_first_completed_action", AsyncMock()):
+                            await delivery.record_progress(session, part, occ)
+                            # Khatm must NOT be completed after 1 section!
+                            complete_mock.assert_not_called()
+
+                # Simulating reading section 5: total reaches 5 out of effective 5
+                with patch("khatmsaz.modules.open_contribution.service.log_contribution", AsyncMock(return_value=(1, 0, 5))):
+                    with patch("khatmsaz.modules.khatm.service.complete_khatm", AsyncMock()) as complete_mock:
+                        with patch("khatmsaz.modules.advertising.service.accrue_first_completed_action", AsyncMock()):
+                            await delivery.record_progress(session, part, occ)
+                            # Khatm completes when all 5 sections of the round are done!
+                            complete_mock.assert_awaited_once_with(session, khatm.id)
+
+
+def test_khutbah_video_caption_preserves_official_links():
+    from khatmsaz.modules.content import service
+    from types import SimpleNamespace
+
+    for part_num in range(1, 6):
+        vid = SimpleNamespace(page_number=part_num, reciter_label=None)
+        caption = service.resolve_devotional_video_caption("khutbah-fadakiah", "خطبه فدکیه", vid)
+        assert f"قسمت {part_num}" in caption or f"بخش {part_num}" in caption
+        assert "khedmatgozaran.com" in caption
+        assert "کلیپ_تصویری_خطابه_فدک" in caption
+
+
+@pytest.mark.asyncio
+async def test_open_khatm_prepare_returns_none_in_automated_scan():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, patch
+    from khatmsaz.modules.share_occurrence import delivery
+    from uuid import uuid4
+
+    part = SimpleNamespace(id=uuid4(), khatm_id=uuid4(), commitment_mode="REGULAR", joined_via_bot_instance_id=uuid4())
+    khatm = SimpleNamespace(id=part.khatm_id, khatm_type="OPEN", template_type="SALAWAT")
+
+    session = AsyncMock()
+    with patch("khatmsaz.modules.participation.repository.get_by_id", AsyncMock(return_value=part)):
+        with patch("khatmsaz.modules.khatm.service.get_khatm_for_update", AsyncMock(return_value=khatm)):
+            with patch("khatmsaz.modules.participation.repository.get_by_id_for_update", AsyncMock(return_value=part)):
+                # Automated scan (manual=False) must never auto-prepare daily deliveries for OPEN khatms!
+                result = await delivery.prepare(session, part.id, manual=False)
+                assert result is None
+
+
+@pytest.mark.asyncio
+async def test_deadline_reminder_triggers_two_hours_before_midnight():
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, patch
+    from datetime import datetime, timezone, timedelta
+    from khatmsaz.modules.share_occurrence import delivery
+    from khatmsaz.i18n import t
+    from uuid import uuid4
+
+    part = SimpleNamespace(id=uuid4(), khatm_id=uuid4())
+    khatm = SimpleNamespace(id=part.khatm_id, title="ختم صلوات", template_type="SALAWAT")
+    
+    # Midnight deadline: 2026-10-10 24:00 (i.e. 2026-10-11 00:00)
+    deadline = datetime(2026, 10, 11, 0, 0, tzinfo=timezone.utc)
+    occurrence = SimpleNamespace(
+        id=uuid4(),
+        committed=True,
+        delivered_at=datetime(2026, 10, 10, 9, 0, tzinfo=timezone.utc),
+        deadline_at=deadline,
+        amount=100,
+        unit="COUNT",
+        content_spec={"family": "salawat", "language": "fa"},
+    )
+
+    controls_sent = []
+    async def fake_send_control(session, part, khatm, occ, purpose, *, now):
+        controls_sent.append((purpose, now))
+        return True
+
+    session = AsyncMock()
+    with (
+        patch("khatmsaz.modules.participation.repository.get_by_id", AsyncMock(return_value=part)),
+        patch("khatmsaz.modules.khatm.service.get_khatm", AsyncMock(return_value=khatm)),
+        patch("khatmsaz.modules.notification.service.get_preference", AsyncMock(return_value=None)),
+        patch("khatmsaz.modules.share_occurrence.repository.list_outstanding", AsyncMock(return_value=[occurrence])),
+        patch("khatmsaz.bot.occurrence_adapter.send_control", side_effect=fake_send_control),
+    ):
+        # 3 hours before deadline (21:00) -> DEADLINE should not trigger yet
+        at_21 = deadline - timedelta(hours=3)
+        await delivery.remind(session, part.id, now=at_21)
+        assert len([c for c in controls_sent if c[0] == "DEADLINE"]) == 0
+
+        # Exactly 2 hours before deadline (22:00) -> DEADLINE MUST trigger
+        at_22 = deadline - timedelta(hours=2)
+        await delivery.remind(session, part.id, now=at_22)
+        assert len([c for c in controls_sent if c[0] == "DEADLINE"]) == 1
+
+    # Verify Persian copy contains the friendly 2-hour reminder message
+    text = t("share.deadline", "fa")
+    assert "۲ ساعت تا پایان مهلت امروز باقی مانده است" in text

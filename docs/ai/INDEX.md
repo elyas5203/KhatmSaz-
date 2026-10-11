@@ -1,3 +1,12 @@
+## 2026-10-10 — Admin Panel Redesign Master (Parent-Child Architecture) & Bug Report Master
+- **Parent Master:** [ADMIN_PANEL_REDESIGN_MASTER.md](ADMIN_PANEL_REDESIGN_MASTER.md)
+- **Child Masters (`docs/ai/masters/`):**
+  - [MASTER_01_KHATM_ENGINE_AND_MODES.md](masters/MASTER_01_KHATM_ENGINE_AND_MODES.md) — Khatm types, Commitment vs Open, Fixed vs Member-Choice, Numeric vs Regular, `ShareOccurrence` lifecycle.
+  - [MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md](masters/MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md) — Categories, Devotionals, Khutbah sections, Quran 604 pages, Templates, `DevotionalMedia` & `file_id` uploads.
+  - [MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md](masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md) — `FREE`/`BASIC`/`PRO` plans, Wallet (`balance_toman` vs `credit_toman`), PayPing v3, Coupons, SMS plans, Broadcast pricing, `servant_ad`.
+  - [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet, Identity, Phone verification, Account merge, 8 Moderation queues, Admin roles & Operations.
+- **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
+
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)
 - Sub-specs: [v3_specs/](v3_specs/) (Creator onboarding, commitment vs free, Khutbah cyclic allocation, La'an moderation, Member UI & daily reporting)

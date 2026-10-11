@@ -117,13 +117,7 @@ async def spend(
     from_credit = min(wallet.credit_toman, amount)
     from_balance = amount - from_credit
 
-    if from_credit > 0:
-        await repository.add_credit(session, wallet.id, -from_credit)
-        await repository.record_transaction(session, wallet.id, -from_credit, TxType.SPEND, f"{description} (credit)")
-    if from_balance > 0:
-        await repository.add_balance(session, wallet.id, -from_balance)
-        await repository.record_transaction(session, wallet.id, -from_balance, TxType.SPEND, f"{description} (balance)")
-    return await repository.create_paid_invoice(
+    invoice = await repository.create_paid_invoice(
         session,
         user_id=user_id,
         kind=invoice_kind,
@@ -131,6 +125,28 @@ async def spend(
         discount_amount_toman=discount_amount_toman,
         description=description,
     )
+    invoice_ref = str(invoice.id)
+    if from_credit > 0:
+        await repository.add_credit(session, wallet.id, -from_credit)
+        await repository.record_transaction(
+            session,
+            wallet.id,
+            -from_credit,
+            TxType.SPEND,
+            f"{description} (credit)",
+            ref=invoice_ref,
+        )
+    if from_balance > 0:
+        await repository.add_balance(session, wallet.id, -from_balance)
+        await repository.record_transaction(
+            session,
+            wallet.id,
+            -from_balance,
+            TxType.SPEND,
+            f"{description} (balance)",
+            ref=invoice_ref,
+        )
+    return invoice
 
 
 def _coupon_discount(coupon: DiscountCoupon, gross_amount_toman: int) -> int:
@@ -252,6 +268,7 @@ async def set_coupon(
     total_redemption_limit: int | None = None,
     per_user_limit: int = 1,
     created_by_user_id=None,
+    enabled: bool = True,
 ):
     normalized = code.strip().upper()
     if not (3 <= len(normalized) <= 40) or not all(
@@ -276,6 +293,7 @@ async def set_coupon(
         total_redemption_limit=total_redemption_limit,
         per_user_limit=per_user_limit,
         created_by_user_id=created_by_user_id,
+        enabled=enabled,
     )
 
 
@@ -295,6 +313,44 @@ async def refund_cash(session: AsyncSession, user_id, amount: int, *, descriptio
     wallet = await get_or_create_wallet(session, user_id)
     await repository.add_balance(session, wallet.id, amount)
     await repository.record_transaction(session, wallet.id, amount, TxType.REFUND, description)
+
+
+async def refund_credit(session: AsyncSession, user_id, amount: int, *, description: str) -> None:
+    """Refund the reward-credit portion back into credit_toman."""
+    if amount <= 0:
+        raise ValueError("amount must be positive")
+    wallet = await get_or_create_wallet(session, user_id)
+    await repository.add_credit(session, wallet.id, amount)
+    await repository.record_transaction(
+        session, wallet.id, amount, TxType.REFUND, f"{description} (credit)"
+    )
+
+
+async def _refund_invoice_split(
+    session: AsyncSession, invoice: WalletInvoice, *, description: str
+) -> int:
+    wallet = await get_or_create_wallet(session, invoice.user_id)
+    net = int(invoice.net_amount_toman or 0)
+    if net <= 0:
+        return 0
+    spend_txs = await repository.list_spend_transactions_by_ref(
+        session, wallet.id, str(invoice.id)
+    )
+    credit_part = 0
+    balance_part = 0
+    for tx in spend_txs:
+        tx_abs = abs(int(tx.amount or 0))
+        if tx.description and tx.description.endswith("(credit)"):
+            credit_part += tx_abs
+        else:
+            balance_part += tx_abs
+    if credit_part + balance_part != net:
+        balance_part = max(0, net - credit_part)
+    if credit_part > 0:
+        await refund_credit(session, invoice.user_id, credit_part, description=description)
+    if balance_part > 0:
+        await refund_cash(session, invoice.user_id, balance_part, description=description)
+    return net
 
 
 async def bind_invoice_resource(
@@ -328,10 +384,57 @@ async def refund_purchase_invoice(
     )
     if marked is None:
         raise InvalidPaymentError("invoice was already refunded")
-    await refund_cash(
-        session, user_id, invoice.net_amount_toman, description=description
-    )
+    await _refund_invoice_split(session, invoice, description=description)
     return invoice.net_amount_toman
+
+
+async def admin_refund_invoice(
+    session: AsyncSession, invoice_id, *, description: str
+) -> WalletInvoice:
+    """Admin-triggered refund of any PAID invoice back to the user's wallet."""
+    invoice = await repository.get_invoice_by_id(session, invoice_id)
+    if invoice is None:
+        raise ValueError("فاکتور یافت نشد.")
+    if invoice.status != InvoiceStatus.PAID.value:
+        raise InvalidPaymentError("این فاکتور قبلاً مسترد شده یا قابل استرداد نیست.")
+    marked = await repository.mark_invoice_refunded(
+        session, invoice.id, datetime.now(timezone.utc)
+    )
+    if marked is None:
+        raise InvalidPaymentError("این فاکتور قبلاً مسترد شده است.")
+    await _refund_invoice_split(session, invoice, description=description)
+    return marked
+
+
+async def admin_adjust_wallet(
+    session: AsyncSession,
+    user_id,
+    *,
+    cash_delta: int = 0,
+    credit_delta: int = 0,
+    description: str,
+) -> Wallet:
+    """Admin manual adjustment of a user's cash balance and/or reward credit."""
+    if cash_delta == 0 and credit_delta == 0:
+        raise ValueError("مبلغ تغییر نمی‌تواند صفر باشد.")
+    wallet = await get_or_create_wallet(session, user_id)
+    if cash_delta != 0:
+        if wallet.balance_toman + cash_delta < 0:
+            raise InsufficientFundsError("موجودی نقدی کاربر نمی‌تواند منفی شود.")
+        await repository.add_balance(session, wallet.id, cash_delta)
+        tx_type = TxType.CHARGE if cash_delta > 0 else TxType.SPEND
+        await repository.record_transaction(
+            session, wallet.id, cash_delta, tx_type, f"[ادمین] {description}"
+        )
+    if credit_delta != 0:
+        if wallet.credit_toman + credit_delta < 0:
+            raise InsufficientFundsError("اعتبار هدیهٔ کاربر نمی‌تواند منفی شود.")
+        await repository.add_credit(session, wallet.id, credit_delta)
+        tx_type = TxType.CREDIT if credit_delta > 0 else TxType.SPEND
+        await repository.record_transaction(
+            session, wallet.id, credit_delta, tx_type, f"[ادمین - اعتبار هدیه] {description}"
+        )
+    return wallet
 
 
 async def list_invoices(session: AsyncSession, user_id, *, limit: int = 10):
@@ -460,7 +563,9 @@ async def verify_payping_callback_and_credit(
     pending = await repository.get_pending_payment_by_id(session, payment_id)
     if pending is None:
         raise InvalidPaymentError("payment intent was not found")
-    if pending.authority != authority or pending.amount_toman != amount_toman:
+    effective_authority = authority.strip() if authority and authority.strip() else pending.authority
+    effective_amount = amount_toman if amount_toman > 0 else pending.amount_toman
+    if pending.authority != effective_authority or pending.amount_toman != effective_amount:
         raise InvalidPaymentError("callback does not match the stored payment intent")
     if pending.used:
         raise PaymentAlreadyProcessedError("payment was already credited")
@@ -468,13 +573,13 @@ async def verify_payping_callback_and_credit(
         raise InvalidPaymentError("payment intent expired or has no transaction reference")
 
     verification = await gateway.verify_payment(
-        authority=authority,
+        authority=pending.authority,
         amount_toman=pending.amount_toman,
         transaction_ref=transaction_ref,
         client_ref_id=str(pending.id),
     )
     if (
-        verification.authority != authority
+        verification.authority != pending.authority
         or verification.amount_toman != pending.amount_toman
         or verification.transaction_ref != transaction_ref
     ):

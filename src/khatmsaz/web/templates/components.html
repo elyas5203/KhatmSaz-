@@ -1,10 +1,24 @@
-{% macro tooltip(text) %}
-<div class="relative group inline-block align-middle mr-1">
-  <svg class="w-4 h-4 text-slate-500 hover:text-emerald-400 cursor-help transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-  <div class="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-64 p-3 bg-slate-900/95 backdrop-blur-sm text-slate-300 text-xs leading-relaxed rounded-xl shadow-2xl border border-slate-700 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all z-50 pointer-events-none text-right font-normal">
+{% macro tooltip(text, title='راهنمای این فیلد') %}
+<button type="button"
+  onclick="window.openKhatmHelpModal(this.dataset.title, this.dataset.text, [], '')"
+  data-title="{{ title }}"
+  data-text="{{ text }}"
+  class="relative group inline-flex items-center justify-center align-middle mr-1.5 w-5 h-5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500 hover:text-slate-950 cursor-pointer transition-all"
+  title="برای مشاهده راهنمای کامل کلیک کنید">
+  <span class="text-[0.7rem] font-extrabold leading-none">؟</span>
+  <span class="hidden sm:block absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-64 p-3 bg-slate-900/95 backdrop-blur-md text-slate-200 text-xs leading-relaxed rounded-xl shadow-2xl border border-emerald-500/30 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all z-50 pointer-events-none text-right font-normal">
+    <strong class="block text-emerald-400 mb-1">{{ title }}</strong>
     {{ text }}
-  </div>
-</div>
+    <span class="block mt-1.5 text-[0.65rem] text-emerald-400/80">🖱️ برای باز شدن پنجره راهنما کلیک کنید</span>
+  </span>
+</button>
+{% endmacro %}
+
+{% macro help_button(title, summary, steps=[], tip='', label='راهنمای این بخش') %}
+<button type="button"
+  onclick='window.openKhatmHelpModal({{ title | tojson }}, {{ summary | tojson }}, {{ steps | tojson }}, {{ tip | tojson }})'
+  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all shadow-sm hover:shadow-emerald-500/10 cursor-pointer">
+  <span class="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-500 text-slate-950 font-black text-[0.7rem]">؟</span>
+  <span>{{ label }}</span>
+</button>
 {% endmacro %}
