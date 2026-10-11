@@ -153,13 +153,10 @@ async def build_member_daily_digest_message(
         status_code = await get_member_today_status(session, participation, today_start_utc)
         if status_code == "DONE":
             status_text = "✅ سهم امروز شما ثبت شده است؛ خداقوت 💐"
-            btn_text = f"🤲 مشارکت بیشتر: {khatm.title[:18]}" if len(items) > 1 else "🤲 ثبت مشارکت بیشتر"
         elif status_code == "PENDING":
             status_text = "⏳ سهم امروز شما منتظر قرائت است."
-            btn_text = f"📖 انجام سهم: {khatm.title[:18]}" if len(items) > 1 else "📖 دریافت و انجام سهم امروز"
         else:
             status_text = "✨ آماده ثبت سهم یا مشارکت امروز"
-            btn_text = f"📖 دریافت سهم: {khatm.title[:18]}" if len(items) > 1 else "📖 دریافت سهم امروز"
 
         block = (
             f"🌟 <b>ختم «{khatm.title}»</b>\n"
@@ -170,10 +167,6 @@ async def build_member_daily_digest_message(
         )
         sections.append(block)
 
-        keyboard_rows.append([
-            InlineKeyboardButton(text=btn_text, callback_data=f"today_pick:{participation.id}")
-        ])
-
     sections.append("🌱 <i>از همراهی و دعای خیرتان در این ختم‌های نورانی سپاسگزاریم 🤍</i>")
 
     body = "\n\n".join(sections[:2])
@@ -182,7 +175,7 @@ async def build_member_daily_digest_message(
     if len(sections) >= 3:
         body += "\n\n" + sections[-1]
 
-    return body, InlineKeyboardMarkup(inline_keyboard=keyboard_rows)
+    return body, None
 
 
 async def deliver_member_daily_digests(
@@ -274,25 +267,15 @@ async def deliver_member_daily_digests(
 
             for identity in identities:
                 try:
-                    sent = await send_with_keyboard(
+                    await notify(
                         identity.platform.value,
                         identity.subject,
                         msg_text,
-                        keyboard,
                         bot_instance_id=bot_instance_id,
                     )
-                    if sent:
-                        user_delivered = True
+                    user_delivered = True
                 except Exception:
-                    try:
-                        await notify(
-                            identity.platform.value,
-                            identity.subject,
-                            msg_text,
-                        )
-                        user_delivered = True
-                    except Exception:
-                        logger.warning("Failed to notify member %s via %s", uid, identity.platform.value)
+                    logger.warning("Failed to notify member %s via %s", uid, identity.platform.value)
 
         if user_delivered:
             settings.last_member_daily_digest_date = today_str

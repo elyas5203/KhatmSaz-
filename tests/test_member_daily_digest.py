@@ -1,4 +1,4 @@
-"""Tests for member daily 14:00 progress digest and motivational progress banner."""
+"""Tests for member daily 14:00 progress digest, motivational progress banner, and Bale Markdown formatting."""
 
 from datetime import datetime, timezone
 import uuid
@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from khatmsaz.bot.bale.client import BaleAiohttpSession
+from khatmsaz.bot.bale.formatting import html_to_bale_markdown
 from khatmsaz.bot.member_copy import (
     build_motivational_progress_snippet,
     completion_text,
@@ -47,8 +49,8 @@ async def test_member_today_status_detection():
 
 
 @pytest.mark.asyncio
-async def test_build_member_daily_digest_message():
-    """Verify message formatting and action keyboard generation for members."""
+async def test_build_member_daily_digest_message_is_simple_without_buttons():
+    """Verify message formatting without action buttons (owner requirement)."""
     session = AsyncMock(spec=AsyncSession)
     now_utc = datetime(2026, 10, 11, 10, 30, tzinfo=timezone.utc) # 14:00 Tehran
     local_now = datetime(2026, 10, 11, 14, 0)
@@ -83,10 +85,8 @@ async def test_build_member_daily_digest_message():
         assert "قرائت‌های امروز ختم (تا ساعت ۱۴): ۱ دور" in body
         assert "مجموع قرائت‌شده: <b>۴ دور</b>" in body
         assert "وضعیت سهم شما: ⏳ سهم امروز شما منتظر قرائت است." in body
-        assert len(keyboard.inline_keyboard) == 1
-        btn = keyboard.inline_keyboard[0][0]
-        assert "انجام سهم" in btn.text
-        assert btn.callback_data == f"today_pick:{part.id}"
+        # Owner requirement: simple message without buttons
+        assert keyboard is None
 
 
 @pytest.mark.asyncio
@@ -138,29 +138,25 @@ async def test_deliver_member_daily_digests_before_14_returns_zero():
 
 @pytest.mark.asyncio
 async def test_deliver_member_daily_digests_at_14_and_idempotency():
-    """Delivery at 14:00 local delivers to members and is idempotent for that day."""
+    """Delivery at 14:00 local delivers to members without buttons and is idempotent."""
     session = AsyncMock(spec=AsyncSession)
     notify = AsyncMock()
 
     uid = uuid.uuid4()
     bot_inst_id = uuid.uuid4()
 
-    # Mock user query result
     users_result = MagicMock()
     users_result.scalars.return_value = [uid]
 
-    # Mock user entity
     user = MagicMock(spec=User)
     user.id = uid
     user.status = UserStatus.ACTIVE
     user.deleted_at = None
 
-    # Mock settings
     settings = MagicMock(spec=UserSettings)
     settings.member_daily_digest_enabled = True
     settings.last_member_daily_digest_date = None
 
-    # Mock active participations
     khatm = MagicMock(spec=Khatm)
     khatm.id = uuid.uuid4()
     khatm.title = "ختم قرآن کریم"
@@ -182,7 +178,6 @@ async def test_deliver_member_daily_digests_at_14_and_idempotency():
     identity.platform = Platform.TELEGRAM
     identity.subject = "12345678"
 
-    # 10:35 UTC is 14:05 Tehran
     now_utc = datetime(2026, 10, 11, 10, 35, tzinfo=timezone.utc)
 
     with (
@@ -193,17 +188,15 @@ async def test_deliver_member_daily_digests_at_14_and_idempotency():
         patch("khatmsaz.modules.identity.service.list_identities_for_user",
               new=AsyncMock(return_value=[identity])),
         patch("khatmsaz.modules.reporting.member_daily_digest.build_member_daily_digest_message",
-              new=AsyncMock(return_value=("خلاصه پیشرفت روزانه", MagicMock()))),
-        patch("khatmsaz.modules.reporting.member_daily_digest.send_with_keyboard",
-              new=AsyncMock(return_value=True)) as mock_send,
+              new=AsyncMock(return_value=("خلاصه پیشرفت روزانه", None))),
     ):
         delivered = await deliver_member_daily_digests(
             session, notify, now=now_utc, tz_name="Asia/Tehran"
         )
         assert delivered == 1
         assert settings.last_member_daily_digest_date == "2026-10-11"
-        assert mock_send.call_count == 1
-        args, kwargs = mock_send.call_args
+        assert notify.call_count == 1
+        args, kwargs = notify.call_args
         assert kwargs.get("bot_instance_id") == bot_inst_id
 
         # Second run on the same day must skip (idempotent)
@@ -212,3 +205,71 @@ async def test_deliver_member_daily_digests_at_14_and_idempotency():
             session, notify, now=now_utc, tz_name="Asia/Tehran"
         )
         assert delivered_again == 0
+
+
+def test_html_to_bale_markdown_conversion():
+    """Verify HTML tags (<b>, <i>, <code>, <a>) are converted to clean Bale Markdown."""
+    sample_html = (
+        "<b>گزارش روزانه ختم‌های شما (ساعت ۱۲:۰۰ ظهر)</b>\n"
+        "📅 یکشنبه ۱۹ مهر ۱۴۰۵\n\n"
+        "🌟 <b>ختم «ختم زیارت آل یاسین»</b>\n"
+        "▫️ مجموع قرائت‌شده: <b>۰ مرتبه</b>\n"
+        "🌱 <i>طاعت و خدمت خالصانه‌تان قبول درگاه حق و التماس دعا 🤍</i>\n"
+        "کد رهگیری: <code>12345</code>\n"
+        '<a href="https://example.com">مشاهده جزئیات</a>'
+    )
+    converted = html_to_bale_markdown(sample_html)
+
+    # Must NOT have raw HTML tags
+    assert "<b>" not in converted
+    assert "</b>" not in converted
+    assert "<i>" not in converted
+    assert "</i>" not in converted
+    assert "<code>" not in converted
+    assert "</code>" not in converted
+    assert "<a href=" not in converted
+
+    # Must contain Markdown syntax
+    assert "*گزارش روزانه ختم‌های شما (ساعت ۱۲:۰۰ ظهر)*" in converted
+    assert "*ختم «ختم زیارت آل یاسین»*" in converted
+    assert "*۰ مرتبه*" in converted
+    assert "_طاعت و خدمت خالصانه‌تان قبول درگاه حق و التماس دعا 🤍_" in converted
+    assert "`12345`" in converted
+    assert "[مشاهده جزئیات](https://example.com)" in converted
+
+
+@pytest.mark.asyncio
+async def test_bale_aiohttp_session_transforms_payload():
+    """Verify BaleAiohttpSession transforms method.text and method.caption before sending."""
+    from aiogram.methods import SendMessage, SendPhoto
+    from aiogram import Bot
+
+    from aiogram.client.default import DefaultBotProperties
+
+    session = BaleAiohttpSession()
+    bot = MagicMock(spec=Bot)
+    bot.token = "123:abc"
+    bot.default = DefaultBotProperties(parse_mode=None)
+
+    send_msg = SendMessage(
+        chat_id=123,
+        text="<b>سلام</b> و <i>احترام</i>",
+        parse_mode="HTML",
+    )
+
+    with patch.object(BaleAiohttpSession, "create_session", new=AsyncMock()) as mock_create:
+        mock_http = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.text = AsyncMock(
+            return_value='{"ok": true, "result": {"message_id": 1, "date": 1600000000, "chat": {"id": 123, "type": "private"}}}'
+        )
+        mock_http.post.return_value.__aenter__.return_value = mock_resp
+        mock_create.return_value = mock_http
+
+        await session.make_request(bot, send_msg)
+
+        # send_msg.text must be transformed to Bale Markdown
+        assert send_msg.text == "*سلام* و _احترام_"
+        # parse_mode must be cleared so Bale does not choke on HTML
+        assert send_msg.parse_mode is None

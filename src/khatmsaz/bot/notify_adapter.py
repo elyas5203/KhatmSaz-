@@ -70,6 +70,9 @@ def build_notify_fn(bots_by_platform: dict[Platform, Bot]) -> NotifyFn:
         if not bot:
             logger.warning("No bot for %s/%s", platform_value, bot_instance_id)
             return
+        if Platform(platform_value) == Platform.BALE:
+            from khatmsaz.bot.bale.formatting import html_to_bale_markdown
+            text = html_to_bale_markdown(text)
         try:
             await bot.send_message(chat_id=int(chat_id), text=text)
         except Exception:
@@ -157,6 +160,9 @@ async def send_with_keyboard(
         bot = registry.get_creator_bot(Platform(platform_value))
     if bot is None:
         return False
+    if Platform(platform_value) == Platform.BALE:
+        from khatmsaz.bot.bale.formatting import html_to_bale_markdown
+        text = html_to_bale_markdown(text)
     try:
         await bot.send_message(chat_id=int(chat_id), text=text, reply_markup=reply_markup)
         return True
@@ -184,6 +190,9 @@ async def send_media(
         bot = registry.get_creator_bot(Platform(platform_value))
     if bot is None:
         return False
+    if Platform(platform_value) == Platform.BALE and caption:
+        from khatmsaz.bot.bale.formatting import html_to_bale_markdown
+        caption = html_to_bale_markdown(caption)
     async def _send(media) -> None:
         cid = int(chat_id)
         if media_type == "photo":
