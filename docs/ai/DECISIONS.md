@@ -5,6 +5,19 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0119 — Creator Web Panel ground-up redesign, Mobile-First navigation, bot invite link generation, and zero-confusion UX
+
+**Date:** 2026-10-11
+**Context & Scope:** Comprehensive ground-up rebuild of the Creator / Organizer Web Panel (`/creator`) across all 7 views in `src/khatmsaz/web/templates/` (`creator_base.html`, `creator_dashboard.html`, `creator_khatms.html`, `creator_khatm_detail.html`, `creator_khatm_new.html`, `creator_wallet.html`, `creator_broadcasts.html`, `creator_login.html`).
+**Decisions:**
+1. **Mobile-First Architecture for Mini-Apps:** Implemented responsive Estedad 5.3.0 layout with a fixed bottom dock (home, khatms, new, wallet, broadcasts) optimized for Telegram and Bale in-bot WebApps.
+2. **First-Class Invite Links:** The web panel resolves the khatm's domain/bot category and renders 1-click copyable Telegram (`t.me/...`) and Bale (`ble.ir/...`) deep invite links directly on the detail page, with Web Share API native sharing.
+3. **Dynamic Visual Progress Bars:** Dashboards and khatm cards calculate `progress_pct` against completed portions or repetition targets.
+4. **Organizer Lifecycle Actions:** Direct status toggle (pause/resume) and member removal from the web interface.
+5. **Niyyat Persistence:** Form field `niyyat` parsed and passed to `workflow_service.create_and_launch_khatm`.
+
+---
+
 ### DEC-PY-0118 — Ground-up Admin Panel redesign, custom La'an moderation, web media upload, and fixed PRO plan
 
 **Date:** 2026-10-10

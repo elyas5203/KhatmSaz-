@@ -17,6 +17,7 @@
     - `creator_wallet.html`: Glowing balance hero card, quick top-up preset packages (50k, 100k, 200k, 500k Toman) + custom input, transparent plan comparison (Free vs Basic vs Pro) using standard i18n keys and audience usage.
     - `creator_broadcasts.html`: Free quota indicator (2 free messages), audience selector, demographic filters, channel picker, character counter, and content approval notice (`برای تأیید محتوا`).
     - `creator_login.html`: Pinned Estedad font and modern glass styling.
+  - **Architecture Decision:** Added `DEC-PY-0119` in `docs/ai/DECISIONS.md`.
   - **Test Suite:**
     - Authored `tests/test_creator_panel_all_routes.py` (8 new tests, 100% green).
     - Validated all 9 template rendering tests in `tests/test_admin_template_render.py` (100% green).
