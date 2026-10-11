@@ -1,5 +1,8 @@
+## 2026-10-11 — Bale Native Markdown Adapter & Clean Tag Rendering Master
+- [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale messenger HTML-to-Markdown conversion engine, low-level `BaleAiohttpSession` request interceptor, removal of unrendered HTML tags across Bale fleet & simplified button-free member daily 14:00 digest.
+
 ## 2026-10-11 — Member Daily Progress Digest at 14:00 & Motivational Progress Master
-- [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 Tehran daily progress digest to active members via member bots, post-completion motivational progress snippet & quick-action buttons.
+- [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 Tehran daily progress digest to active members via member bots, post-completion motivational progress snippet & button-free clean layout.
 
 ## 2026-10-11 — Khutbah Ghadir 8-Part Trio & Creator Daily 12:00 PM Report Master
 - [KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md](KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md) — 8-part Khutbah Ghadir multi-media trio (Video+PDF+Audio), canonical seeding, Telegram commands & 12:00 PM creator daily report.
@@ -16,7 +19,9 @@
   - [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet, Identity, Phone verification, Account merge, 8 Moderation queues, Admin roles & Operations.
   - [MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md](masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md) — Open Khatm engine, Khutbah 5-section sequential rollover, video captions & ephemeral store.
   - [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 callback, ERR_TIMED_OUT resolution, Apache proxy, In-bot verification.
+  - [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 member daily progress digest & post-completion motivational progress.
   - [MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md) — Creator panel & web mini-app ground-up redesign, invite link generation, khatm detail tabs, progress bars, zero-error UX.
+  - [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale native Markdown engine, `BaleAiohttpSession` interceptor & clean tag rendering.
 - **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master

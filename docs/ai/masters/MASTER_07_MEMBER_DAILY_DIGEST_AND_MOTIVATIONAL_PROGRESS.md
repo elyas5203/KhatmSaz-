@@ -12,6 +12,7 @@
 >   - **[مستر فرزند ۰۶](MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md):** معماری پرداخت، کال‌بک بانکی و پورت‌های سرور
 >   - **[مستر فرزند ۰۷ (همین فایل)](MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md):** تفکیک پیام تأیید (همراه لینک دعوت) و پیام گزارش پیشرفت بلافاصله پس از ثبت سهم توسط عضو
 >   - **[مستر فرزند ۰۸](MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md):** بازطراحی کامل پنل کاربری سازندگان ختم (وب‌اپ)
+>   - **[مستر فرزند ۰۹](MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md):** مبدل مارک‌داون بله و سازگاری پیام‌رسان بله در ناوگان ربات‌ها
 
 ---
 

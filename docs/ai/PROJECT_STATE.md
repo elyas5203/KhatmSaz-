@@ -7,7 +7,21 @@
   - Completely removed `[📖 خواندن یک سهم دیگر]` (`today_pick:{part.id}`) inline keyboard from `complete_share` and `confirm_regular_occurrence` in `src/khatmsaz/bot/handlers/member_commitment.py` (also fixing an undefined `part` reference in `confirm_regular_occurrence`).
 - **Removed 14:00 Scheduled Broadcast to Members:**
   - Disconnected `deliver_member_daily_digests` from `src/khatmsaz/modules/reminder_engine/service.py:run_once` so members do not receive an unsolicited broadcast at 14:00; instead, progress reports are delivered on-demand right after portion completion.
-- **Validation:** 6 passed in `tests/test_member_daily_digest.py` (including `test_complete_share_sends_two_separate_messages_without_extra_button`), full test suite 100% green.
+- **Validation:** 8 passed in `tests/test_member_daily_digest.py` (including `test_complete_share_sends_two_separate_messages_without_extra_button`), full test suite 100% green.
+
+## Current state — 2026-10-11 — Bale Native Markdown Adapter, Session Interceptor & Clean Tag Rendering (MASTER-09) [Antigravity]
+- **Bale Messenger HTML Tag Fix (`src/khatmsaz/bot/bale/formatting.py` & `client.py`):**
+  - Problem: Bale messenger Bot API (`tapi.bale.ai`) does not support `parse_mode="HTML"`, causing raw tags like `<b>...</b>`, `<i>...</i>` to appear literally in chat messages on Bale.
+  - Native Markdown Engine: Implemented `html_to_bale_markdown(text: str) -> str` supporting `<b>`/`<strong>` to `*bold*`, `<i>`/`<em>` to `_italic_`, `<code>` to `` `code` ``, `<pre>` to ````pre````, `<a href="url">text</a>` to `[text](url)`, linebreaks, unescaping HTML entities, and cleanly stripping unsupported tags.
+  - Session-Level Interceptor: Implemented `BaleAiohttpSession(AiohttpSession)` intercepting all `SendMessage`, `EditMessageText`, and media caption methods, converting HTML to Bale markdown and setting `parse_mode = None`.
+  - Initialized all Bale bots in `build_bale_bot` with `BaleAiohttpSession` and `DefaultBotProperties(parse_mode=None)`.
+  - Added defensive conversion layer in `src/khatmsaz/bot/notify_adapter.py` for direct notify/media dispatches.
+- **Member Daily 14:00 Digest Simplification:**
+  - Removed inline action buttons from `build_member_daily_digest_message` and `deliver_member_daily_digests` in `src/khatmsaz/modules/reporting/member_daily_digest.py`. The daily progress digest is now delivered as a clean, clutter-free, informative notification without buttons.
+- **Documentation & Validation:**
+  - Authored Master Document `docs/ai/masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md`.
+  - Updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md` and `docs/ai/INDEX.md`.
+  - 405 unit tests passed green (including dedicated test cases in `tests/test_member_daily_digest.py`).
 
 ## Current state — 2026-10-11 — Ground-Up Redesign of Creator Panel & Master-08 Implementation [Antigravity]
 - **Creator Panel Ground-Up Redesign (MASTER-08):**
