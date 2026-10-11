@@ -1,3 +1,6 @@
+## 2026-10-11 — Payment Gateway Architecture Master & In-Bot Verification
+- [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 lifecycle, `ERR_TIMED_OUT` mobile carrier analysis, Apache 443 reverse proxy hardening, Port stability guarantees, In-bot self-healing verification (`wallet_check`).
+
 ## 2026-10-10 — Admin Panel Redesign Master (Parent-Child Architecture) & Bug Report Master
 - **Parent Master:** [ADMIN_PANEL_REDESIGN_MASTER.md](ADMIN_PANEL_REDESIGN_MASTER.md)
 - **Child Masters (`docs/ai/masters/`):**
@@ -5,6 +8,8 @@
   - [MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md](masters/MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md) — Categories, Devotionals, Khutbah sections, Quran 604 pages, Templates, `DevotionalMedia` & `file_id` uploads.
   - [MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md](masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md) — `FREE`/`BASIC`/`PRO` plans, Wallet (`balance_toman` vs `credit_toman`), PayPing v3, Coupons, SMS plans, Broadcast pricing, `servant_ad`.
   - [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet, Identity, Phone verification, Account merge, 8 Moderation queues, Admin roles & Operations.
+  - [MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md](masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md) — Open Khatm engine, Khutbah 5-section sequential rollover, video captions & ephemeral store.
+  - [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 callback, ERR_TIMED_OUT resolution, Apache proxy, In-bot verification.
 - **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master

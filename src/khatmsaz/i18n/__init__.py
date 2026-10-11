@@ -2088,6 +2088,36 @@ _STRINGS: dict[str, dict[str, str]] = {
     "wallet.link_created": {
         "fa": "لینک پرداخت ساخته شد ✅", "ar": "تم إنشاء رابط الدفع ✅", "en": "Payment link created ✅",
     },
+    "wallet.check_button": {
+        "fa": "🔄 استعلام و ثبت پرداخت (در صورت کسر وجه)",
+        "ar": "🔄 التحقق وتأكيد الدفع (في حال الخصم)",
+        "en": "🔄 Verify & Confirm Payment (if charged)",
+    },
+    "wallet.check_already_credited": {
+        "fa": "✅ این پرداخت قبلاً با موفقیت تأیید شده و کیف پول شما شارژ شده است.",
+        "ar": "✅ تم تأكيد هذا الدفع مسبقاً وشحن محفظتك.",
+        "en": "✅ This payment was already verified and your wallet has been credited.",
+    },
+    "wallet.check_expired": {
+        "fa": "⏳ مهلت زمانی این پرداخت گذشته است. اگر مبلغی از حسابتان کسر شده و برگشت نخورده، حداکثر ظرف ۷۲ ساعت توسط بانک عودت می‌گردد.",
+        "ar": "⏳ انتهت صلاحية هذا الدفع. إذا تم خصم المبلغ ولم يُسترد، سيعاد تلقائياً من البنك.",
+        "en": "⏳ This payment intent has expired. If charged, it will be refunded by the bank.",
+    },
+    "wallet.check_ask_ref": {
+        "fa": "💳 اگر مبلغ از حساب بانکی شما کسر شده اما صفحه بانک تایم‌اوت داد، لطفاً «شماره پیگیری بانک / کد مرجع (RefId)» که در پیامک بانکتان آمده را ارسال فرمایید تا پرداخت شما فوراً در سرور استعلام و کیف پول شارژ شود:\n\n(برای انصراف /cancel را ارسال کنید)",
+        "ar": "💳 إذا تم خصم المبلغ من حسابك، يرجى إرسال رقم التتبع البنكي (RefId) لتأكيد الدفع فوراً:\n\n(للإلغاء أرسل /cancel)",
+        "en": "💳 If you were charged but the callback page timed out, please send the bank tracking number (RefId) from your bank SMS to verify and credit your wallet immediately:\n\n(Send /cancel to cancel)",
+    },
+    "wallet.check_success": {
+        "fa": "🎉 پرداخت شما با موفقیت تأیید شد!\nمبلغ {amount} تومان به موجودی کیف پول افزوده شد.\nشناسه پیگیری: {ref}",
+        "ar": "🎉 تم تأكيد الدفع بنجاح!\nتمت إضافة {amount} تومان إلى محفظتك.\nرقم التتبع: {ref}",
+        "en": "🎉 Payment confirmed successfully!\n{amount} toman has been credited to your wallet.\nTracking ref: {ref}",
+    },
+    "wallet.check_failed": {
+        "fa": "⚠️ بانک یا پی‌پینگ هنوز این شماره پیگیری را تأیید نکرده است. لطفاً دقت فرمایید که شماره پیگیری را به درستی وارد کرده باشید. در صورت کسر وجه و عدم تأیید، مبلغ ظرف ۱۵ الی ۶۰ دقیقه آینده خودکار توسط بانک به حسابتان برگشت داده می‌شود.",
+        "ar": "⚠️ لم يتم تأكيد هذا الرقم بعد من البنك أو بوابة الدفع. في حال الخصم، سيعود المبلغ تلقائياً لحسابك.",
+        "en": "⚠️ The bank or gateway has not confirmed this tracking reference yet. If deducted, it will be automatically refunded by the bank.",
+    },
 
     # --- change_phone.py (2026-09-20) ---
     "change_phone.complete_profile_first": {

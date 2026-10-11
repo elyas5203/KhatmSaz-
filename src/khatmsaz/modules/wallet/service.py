@@ -586,7 +586,7 @@ async def verify_payping_callback_and_credit(
         raise InvalidPaymentError("gateway verification does not match the payment intent")
 
     claimed = await repository.claim_pending_payment(
-        session, authority=authority, user_id=pending.user_id, now=current
+        session, authority=pending.authority, user_id=pending.user_id, now=current
     )
     if claimed is None:
         raise PaymentAlreadyProcessedError("payment was already credited or expired")

@@ -31,7 +31,8 @@ flowchart TD
 3. 📙 **[مستر فرزند ۰۳ — پلن‌های پولی و رایگان، کیف پول، درگاه پرداخت، کد تخفیف و تبلیغات](masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md)**
 4. 📕 **[مستر فرزند ۰۴ — معماری مولتی‌بات، کاربران، احراز شماره، ۸ صف تأیید و عملیات سرور](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md)**
 5. 📜 **[مستر فرزند ۰۵ — جریان ختم آزاد، موتور دورهای ۵ بخشی خطبه فدکیه و سامانهٔ کپشن ویدیوها](masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md)**
-6. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
+6. 💳 **[مستر فرزند ۰۶ — معماری جامع درگاه پرداخت، کال‌بک بانکی، ریورس‌پروکسی آپاچی و ثبات پورت‌ها](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md)**
+7. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
 
 ---
 

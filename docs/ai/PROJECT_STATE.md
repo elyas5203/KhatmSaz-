@@ -1,3 +1,22 @@
+## Current state — 2026-10-11 — Payment Gateway Callback & Verification Architecture (MASTER-06) [Antigravity]
+- **PayPing v3 Callback & In-Bot Verification Safety Net (`MASTER_06`):**
+  - Resolved `claim_pending_payment` query bug in `wallet/service.py:verify_payping_callback_and_credit`: PayPing v3 does not return `code`/`authority` in the callback; fallback to `pending.authority` for row claiming so pending records are claimed and updated reliably.
+  - Added in-bot verification fallback in `bot/handlers/wallet.py`:
+    - Generated secondary button `[🔄 استعلام و ثبت پرداخت (در صورت کسر وجه)]` with callback `wallet_check:<pending_id>`.
+    - Added state `entering_ref_id` under `WalletTopup`.
+    - Allows user to submit bank RefId (شماره پیگیری / ارجاع بانک) directly inside Telegram / Bale if browser redirect fails (`ERR_TIMED_OUT`).
+    - Normalized Persian/Arabic digits, queried PayPing `POST /v3/pay/verify` server-to-server, and credited wallet atomically with zero reliance on client browser redirect.
+  - Added localized strings across FA, AR, and EN in `i18n/__init__.py`.
+  - Added dedicated unit test suite `tests/test_wallet_check_button.py` (all tests passing).
+- **Live Server Apache Reverse-Proxy & Port Safety:**
+  - Audited and preserved 100% of existing server ports on Hetzner VPS (`91.107.137.22`): port 8000 (`aiBOT`), 8080 (`khatmsaz`), 81/443 (`apache2`), 2053/2096 (`x-ui`), 8443/8444 (`xray`), MySQL 3306, Postgres 5432, Redis 6379 without touching or disrupting any existing bot or service.
+  - Updated `/etc/apache2/sites-available/khedmatgozaran-api.conf` with modern TLS options (`/etc/letsencrypt/options-ssl-apache.conf`), `ProxyPreserveHost On`, forwarded headers (`X-Forwarded-Proto https`, `X-Forwarded-Port 443`), proxying `/` to `http://127.0.0.1:8080/`, and separate access/error logs.
+  - Identified root cause of `ERR_TIMED_OUT` on mobile devices without VPN: mobile carriers (MCI/Irancell) packet drop direct connections to foreign IPs while Shaparak banking forbids VPN. Formulated CDN proxying recommendation (`api.khedmatgozaran.com` on ArvanCloud/Derak edge) in master documentation.
+- **Master Documentation:**
+  - Authored comprehensive Master Document `docs/ai/masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md`.
+  - Updated `MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md`, `ADMIN_PANEL_REDESIGN_MASTER.md`, and `INDEX.md`.
+- **Validation:** 385 passed, 230 skipped in pytest (100% green, 0 failures).
+
 ## Current state — 2026-10-11 — Admin Panel Line-by-Line Debug, Invitation Service Extensions & Stability Master [Antigravity]
 - **Admin Web Panel Stability & ASGI Exception Fix (`BUG-W01` to `BUG-W20`):**
   - Resolved production crash `AttributeError: module 'khatmsaz.modules.invitation.service' has no attribute 'list_for_khatm'` at `app.py:2105` inside `khatm_detail` and `decide_laan_moderation`.

@@ -36,6 +36,7 @@ def _localized_amount(amount: int, lang: str) -> str:
 
 class WalletTopup(StatesGroup):
     entering_amount = State()
+    entering_ref_id = State()
 
 
 async def _lang_for(chat_id, bot) -> str:
@@ -86,7 +87,7 @@ async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -
     try:
         async with session_scope() as session:
             user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-            _, request = await wallet_service.create_payment_intent(
+            pending, request = await wallet_service.create_payment_intent(
                 session,
                 PayPingGateway(settings.payping_api_token),
                 user.id,
@@ -98,7 +99,10 @@ async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -
         await message.answer(t("wallet.gateway_unreachable", lang))
         return
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)],
+            [InlineKeyboardButton(text=t("wallet.check_button", lang), callback_data=f"wallet_check:{pending.id}")],
+        ]
     )
     await message.answer(t("wallet.final_topup_step", lang, amount=f"{amount:,}"), reply_markup=keyboard)
 
@@ -225,7 +229,7 @@ async def create_topup(callback: CallbackQuery) -> None:
             user = await identity_service.resolve_or_provision_user(
                 session, platform, callback.message.chat.id
             )
-            _, request = await wallet_service.create_payment_intent(
+            pending, request = await wallet_service.create_payment_intent(
                 session,
                 PayPingGateway(settings.payping_api_token),
                 user.id,
@@ -240,7 +244,8 @@ async def create_topup(callback: CallbackQuery) -> None:
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)]
+            [InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)],
+            [InlineKeyboardButton(text=t("wallet.check_button", lang), callback_data=f"wallet_check:{pending.id}")],
         ]
     )
     await callback.message.answer(
@@ -281,3 +286,101 @@ async def receive_custom_topup(message: Message, state: FSMContext) -> None:
         return
     await state.clear()
     await _create_topup_payment(message, message.bot, amount, lang)
+
+
+@router.callback_query(F.data.startswith("wallet_check:"))
+async def handle_wallet_check(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    try:
+        payment_id_str = callback.data.split(":", 1)[1]
+        from uuid import UUID
+        payment_id = UUID(payment_id_str)
+    except Exception:
+        await callback.answer(t("wallet.invalid_amount", lang), show_alert=True)
+        return
+
+    from datetime import datetime, timezone
+    from khatmsaz.modules.wallet import repository as wallet_repo
+    async with session_scope() as session:
+        pending = await wallet_repo.get_pending_payment_by_id(session, payment_id)
+        if pending is None:
+            await callback.answer(t("wallet.check_expired", lang), show_alert=True)
+            return
+        if pending.used:
+            await callback.answer(t("wallet.check_already_credited", lang), show_alert=True)
+            return
+        if pending.expires_at <= datetime.now(timezone.utc):
+            await callback.answer(t("wallet.check_expired", lang), show_alert=True)
+            return
+
+    await state.set_state(WalletTopup.entering_ref_id)
+    await state.update_data(payment_id=payment_id_str, lang=lang)
+    await callback.message.answer(t("wallet.check_ask_ref", lang))
+    await callback.answer()
+
+
+@router.message(WalletTopup.entering_ref_id)
+async def receive_ref_id_for_verification(message: Message, state: FSMContext) -> None:
+    from khatmsaz.bot.keyboards import bail_if_menu_button
+    if await bail_if_menu_button(message, state):
+        return
+
+    text = (message.text or "").strip()
+    if text.lower() in ("/cancel", "cancel", "انصراف"):
+        await state.clear()
+        await message.answer("عملیات استعلام لغو شد.")
+        return
+
+    data = await state.get_data()
+    lang = data.get("lang", "fa")
+    payment_id_str = data.get("payment_id", "")
+    from uuid import UUID
+    from datetime import datetime, timezone
+
+    # Tolerate Persian/Arabic digits
+    normalized_ref = text.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧۸۹", "01234567890123456789")).strip()
+    if not normalized_ref or not normalized_ref.isdigit():
+        await message.answer("لطفاً شماره پیگیری را فقط به صورت عدد (ارقام) ارسال فرمایید، یا برای انصراف /cancel بزنید.")
+        return
+
+    settings = get_settings()
+    gateway = PayPingGateway(settings.payping_api_token)
+
+    from khatmsaz.modules.wallet import repository as wallet_repo
+    try:
+        async with session_scope() as session:
+            pending = await wallet_repo.get_pending_payment_by_id(session, UUID(payment_id_str))
+            if not pending or pending.expires_at <= datetime.now(timezone.utc):
+                await state.clear()
+                await message.answer(t("wallet.check_expired", lang))
+                return
+            if pending.used:
+                await state.clear()
+                await message.answer(t("wallet.check_already_credited", lang))
+                await _show_wallet(message)
+                return
+
+            verification = await wallet_service.verify_payping_callback_and_credit(
+                session,
+                gateway,
+                client_ref_id=payment_id_str,
+                authority=pending.authority,
+                amount_toman=pending.amount_toman,
+                transaction_ref=normalized_ref,
+            )
+            credited_amount = verification.amount_toman
+    except wallet_service.PaymentAlreadyProcessedError:
+        await state.clear()
+        await message.answer(t("wallet.check_already_credited", lang))
+        await _show_wallet(message)
+        return
+    except (wallet_service.InvalidPaymentError, GatewayError):
+        await message.answer(t("wallet.check_failed", lang))
+        return
+
+    await state.clear()
+    await message.answer(
+        t("wallet.check_success", lang, amount=f"{credited_amount:,}", ref=normalized_ref)
+    )
+    await _show_wallet(message)
+
