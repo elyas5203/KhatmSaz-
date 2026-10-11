@@ -1,209 +1,455 @@
 {% extends "creator_base.html" %}
-{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
+{% block title %}{{ khatm.title }} | مدیریت ختم{% endblock %}
 {% block content %}
-<!-- Back button -->
-<div class="mb-6">
-  <a href="/creator/khatms" class="inline-flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 transition-colors group">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-    {{ t('web.creator.back_to_my_khatms', lang) }}
+
+<!-- Back Navigation & Top Status -->
+<div class="mb-4 flex items-center justify-between">
+  <a href="/creator/khatms" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-400 hover:text-emerald-400 transition-colors">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span>بازگشت به فهرست ختم‌ها</span>
   </a>
-</div>
 
-<!-- Header -->
-<section class="mb-8">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_member_report', lang) }}</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">{{ khatm.title }}</h1>
-  <p class="text-slate-400 text-sm">{{ t('web.creator.member_report_notice', lang) }}</p>
-</section>
-
-{% if saved == 'settings' %}
-<div class="mb-6 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm font-bold text-emerald-300">
-  {{ t('web.creator.settings_saved', lang) }}
-</div>
-{% endif %}
-
-<!-- Metrics -->
-<section class="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
-  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
-    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.active_members }}</strong>
-    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_active_members', lang) }}</span>
-  </article>
-  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
-    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.completed_portions }}<span class="text-slate-500 text-lg">/{{ stats.total_portions }}</span></strong>
-    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_completed_portions', lang) }}</span>
-  </article>
-  <article class="glass-card p-4 sm:p-5 rounded-2xl text-center sm:text-right flex flex-col justify-center">
-    <strong class="text-2xl sm:text-3xl font-bold text-emerald-400 mb-1">{{ stats.contribution_total|int }}</strong>
-    <span class="text-[0.65rem] sm:text-xs text-slate-400 uppercase tracking-wide">{{ t('web.creator.metric_open_contribution', lang) }}</span>
-  </article>
-</section>
-
-<!-- Khatm settings -->
-<details class="glass-panel rounded-2xl mb-8 overflow-hidden" {% if saved == 'settings' %}open{% endif %}>
-  <summary class="cursor-pointer select-none px-5 py-4 font-bold text-white hover:bg-white/5 transition-colors">
-    {{ t('web.creator.settings_title', lang) }}
-    <span class="block mt-1 text-xs font-normal text-slate-400">{{ t('web.creator.settings_hint', lang) }}</span>
-  </summary>
-  <form method="post" action="/creator/khatms/{{ khatm.id }}/settings" class="border-t border-white/5 p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+  <!-- Status / Pause Action -->
+  <form method="post" action="/creator/khatms/{{ khatm.id }}/toggle-status" class="m-0" onsubmit="return confirm('آیا از تغییر وضعیت این ختم اطمینان دارید؟');">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label class="space-y-2 md:col-span-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_khatm_name', lang) }}</span>
-      <input name="title" value="{{ khatm.title }}" required maxlength="200" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">
-    </label>
-
-    {% if khatm.template_type.value not in ['QURAN_PAGE', 'QURAN_SURAH'] %}
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_target', lang) }}</span>
-      <input name="repetition_target" type="number" min="{{ khatm.repetition_target or 1 }}" value="{{ khatm.repetition_target or '' }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_target_hint', lang) }}</span>
-    </label>
-    {% else %}
-    <input type="hidden" name="repetition_target" value="">
+    {% if khatm.status.value == 'ACTIVE' %}
+    <button type="submit" class="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all">
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span>توقف موقت ختم</span>
+    </button>
+    {% elif khatm.status.value == 'CANCELLED' %}
+    <button type="submit" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition-all">
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+      <span>فعال‌سازی مجدد ختم</span>
+    </button>
     {% endif %}
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_visibility', lang) }}</span>
-      <select name="visibility" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-        {% for value in ['PUBLIC', 'UNLISTED', 'PRIVATE'] %}<option value="{{ value }}" {% if khatm.visibility.value == value %}selected{% endif %}>{{ t('create_khatm.visibility_label.' ~ value, lang) }}</option>{% endfor %}
-      </select>
-    </label>
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_platforms', lang) }}</span>
-      <select name="allowed_platforms" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-        <option value="BOTH" {% if khatm.allowed_platforms == 'BOTH' %}selected{% endif %}>{{ t('web.creator.platform_both', lang) }}</option>
-        <option value="TELEGRAM" {% if khatm.allowed_platforms == 'TELEGRAM' %}selected{% endif %}>{{ t('web.creator.platform_telegram', lang) }}</option>
-        <option value="BALE" {% if khatm.allowed_platforms == 'BALE' %}selected{% endif %}>{{ t('web.creator.platform_bale', lang) }}</option>
-      </select>
-    </label>
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_tone', lang) }}</span>
-      <select name="reminder_tone" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-        {% for value in ['FRIENDLY', 'FORMAL', 'DEVOTIONAL', 'SHORT'] %}<option value="{{ value }}" {% if khatm.reminder_tone == value %}selected{% endif %}>{{ t('create_khatm.tone_label.' ~ value, lang) }}</option>{% endfor %}
-      </select>
-    </label>
-    <label class="space-y-2 md:col-span-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_welcome', lang) }}</span>
-      <textarea name="welcome_text" rows="3" maxlength="500" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white focus:border-emerald-500 focus:outline-none">{{ editable_welcome_text }}</textarea>
-      <span class="block text-xs text-slate-500">{{ t('web.creator.settings_welcome_hint', lang) }} شناسهٔ ارتباط با سازنده جداگانه نگه‌داری می‌شود و قابل حذف نیست.</span>
-    </label>
-
-    {% if khatm.khatm_type.value == 'COMMITMENT' %}
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_deadline_hour', lang) }}</span>
-      <input name="daily_deadline_hour" type="number" min="0" max="23" value="{{ khatm.daily_deadline_hour if khatm.daily_deadline_hour is not none else '' }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-    </label>
-    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4">
-      <input name="allow_pause" type="checkbox" {% if khatm.allow_pause %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
-      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_pause', lang) }}</span>
-    </label>
-    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4">
-      <input name="allow_snooze" type="checkbox" {% if khatm.allow_snooze %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
-      <span class="text-sm text-slate-200">{{ t('web.creator.settings_allow_snooze', lang) }}</span>
-    </label>
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_miss_threshold', lang) }}</span>
-      <input name="miss_threshold" type="number" min="1" max="20" value="{{ khatm.miss_notice_threshold }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-    </label>
-    <label class="space-y-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_miss_window', lang) }}</span>
-      <input name="miss_window_days" type="number" min="1" max="90" value="{{ khatm.miss_notice_window_days }}" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-    </label>
-    {% else %}
-    <label class="space-y-2 md:col-span-2">
-      <span class="text-xs font-bold text-slate-300">{{ t('web.creator.settings_schedule', lang) }}</span>
-      <select name="schedule" class="w-full rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-3 text-white">
-        <option value="off" {% if khatm.schedule_kind == 'NONE' %}selected{% endif %}>{{ t('web.creator.schedule_off', lang) }}</option>
-        <option value="daily" {% if khatm.schedule_kind == 'DAILY' %}selected{% endif %}>{{ t('web.creator.schedule_daily', lang) }}</option>
-        <option value="weekly:0,1,2,3,4" {% if khatm.schedule_kind == 'WEEKLY' and khatm.schedule_value == '0,1,2,3,4' %}selected{% endif %}>{{ t('web.creator.schedule_workdays', lang) }}</option>
-        <option value="weekly:5,6" {% if khatm.schedule_kind == 'WEEKLY' and khatm.schedule_value == '5,6' %}selected{% endif %}>{{ t('web.creator.schedule_weekend', lang) }}</option>
-        <option value="every:3" {% if khatm.schedule_kind == 'INTERVAL' and khatm.schedule_value == '3' %}selected{% endif %}>{{ t('web.creator.schedule_every_three', lang) }}</option>
-      </select>
-    </label>
-    {% endif %}
-
-    <label class="flex items-center gap-3 rounded-xl bg-slate-900/40 p-4 md:col-span-2">
-      <input name="completion_announcement" type="checkbox" {% if khatm.completion_announcement_enabled %}checked{% endif %} class="h-5 w-5 accent-emerald-500">
-      <span class="text-sm text-slate-200">{{ t('web.creator.settings_completion_announcement', lang) }}</span>
-    </label>
-    <div class="md:col-span-2 flex justify-end">
-      <button type="submit" class="rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white hover:bg-emerald-500 transition-colors">{{ t('web.creator.settings_save', lang) }}</button>
-    </div>
   </form>
-</details>
-
-<!-- Actions & Search -->
-<div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-4 mb-8">
-  <form class="flex-1 flex gap-2" method="get">
-    <input name="q" value="{{ query }}" placeholder="{{ t('web.creator.search_placeholder', lang) }}" class="flex-1 bg-slate-800/50 border border-slate-700 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder:text-slate-500">
-    <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-emerald-900/20">{{ t('web.creator.search_button', lang) }}</button>
-  </form>
-  <a href="/creator/khatms/{{ khatm.id }}/export.xlsx" class="glass-panel text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 px-5 py-2.5 rounded-xl font-medium transition-all text-center flex items-center justify-center gap-2">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-    {{ t('web.creator.download_full_xlsx', lang) }}
-  </a>
 </div>
 
-<!-- Member List -->
-<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-  {% for row in rows %}
-  <article class="glass-card p-5 sm:p-6 rounded-2xl flex flex-col group">
-    <header class="flex justify-between items-start mb-5">
+<!-- Khatm Header Card -->
+<section class="glass-panel p-5 sm:p-6 rounded-3xl mb-6 relative overflow-hidden">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="status-badge {% if khatm.status.value == 'ACTIVE' %}status-active{% elif khatm.status.value == 'COMPLETED' %}status-completed{% elif khatm.status.value == 'CANCELLED' %}status-cancelled{% else %}status-draft{% endif %}">
+          {% if khatm.status.value == 'ACTIVE' %}🟢 در جریان
+          {% elif khatm.status.value == 'COMPLETED' %}🔵 تکمیل‌شده
+          {% elif khatm.status.value == 'CANCELLED' %}🔴 متوقف موقت
+          {% else %}پیش‌نویس{% endif %}
+        </span>
+        <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold border border-white/5">
+          {% if khatm.khatm_type.value == 'COMMITMENT' %}تعهدی روزانه{% else %}آزاد همگانی{% endif %}
+        </span>
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-black text-white">{{ khatm.title }}</h1>
+      {% if khatm.niyyat %}
+      <p class="text-xs sm:text-sm text-slate-300 mt-2 flex items-center gap-1.5">
+        <span class="text-emerald-400 font-bold">نیت:</span>
+        <span>{{ khatm.niyyat }}</span>
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Quick Excel Export Shortcut -->
+    <a href="/creator/khatms/{{ khatm.id }}/export.xlsx" class="btn-ghost text-xs self-start sm:self-auto flex items-center gap-2">
+      <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
+      <span>خروجی اکسل اعضا (XLSX)</span>
+    </a>
+  </div>
+</section>
+
+<!-- Hero Invite Links Section (بخش ویژه لینک‌های اختصاصی دعوت) -->
+<section class="glass-panel p-5 sm:p-6 rounded-3xl mb-8 border border-emerald-500/30 bg-gradient-to-br from-emerald-950/30 to-slate-900/60 shadow-xl shadow-emerald-950/20">
+  <div class="flex items-center justify-between gap-3 mb-4">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+        🔗
+      </div>
       <div>
-        <h2 class="text-lg font-bold text-white mb-2">{{ row.user.display_name or t('web.creator.no_name', lang) }}</h2>
-        <span class="status {{ row.membership.status.value|lower }}">{{ label(row.membership.status) }}</span>
+        <h2 class="text-sm sm:text-base font-black text-white">لینک‌های اختصاصی دعوت به این ختم</h2>
+        <p class="text-xs text-slate-400">شرکت‌کنندگان با زدن این لینک‌ها مستقیماً وارد ربات شده و در این ختم عضو می‌شوند:</p>
       </div>
-      <small class="text-xs text-slate-500 font-mono bg-slate-800/50 px-2 py-1 rounded-md">{{ row.joined_at }}</small>
-    </header>
-    <dl class="grid grid-cols-2 gap-x-4 gap-y-3 mt-auto">
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_mobile', lang) }}</dt>
-        <dd class="text-sm text-slate-200 font-mono">{{ row.settings.contact_phone if row.settings and row.settings.contact_phone else t('web.creator.not_registered', lang) }}</dd>
+    </div>
+
+    <!-- Share Button -->
+    <button type="button" onclick="shareKhatm()" class="btn-primary text-xs flex items-center gap-1.5">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+      <span class="hidden sm:inline">اشتراک‌گذاری متن دعوت</span>
+      <span class="sm:hidden">اشتراک</span>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+    <!-- Telegram Link -->
+    <div class="p-4 rounded-2xl bg-slate-900/80 border border-sky-500/25 flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-black text-sky-400 flex items-center gap-1.5">
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/></svg>
+          <span>لینک ربات تلگرام</span>
+        </span>
+        <button type="button" onclick="copyToClipboard('{{ telegram_invite_url }}', 'لینک تلگرام کپی شد ✅')" class="text-xs text-sky-300 hover:text-white px-2.5 py-1 rounded-lg bg-sky-500/15 hover:bg-sky-500/30 transition-all font-bold">
+          📋 کپی لینک
+        </button>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_province_city', lang) }}</dt>
-        <dd class="text-sm text-slate-200 truncate" title="{% if row.settings %}{{ row.settings.province or '—' }} / {{ row.settings.city or '—' }}{% else %}—{% endif %}">{% if row.settings %}{{ row.settings.province or '—' }} / {{ row.settings.city or '—' }}{% else %}—{% endif %}</dd>
+      <p class="font-mono text-xs text-slate-300 truncate direction-ltr select-all bg-slate-950/60 p-2.5 rounded-xl border border-white/5" dir="ltr">
+        {{ telegram_invite_url }}
+      </p>
+    </div>
+
+    <!-- Bale Link -->
+    <div class="p-4 rounded-2xl bg-slate-900/80 border border-emerald-500/25 flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+          <span>🌿</span>
+          <span>لینک پیام‌رسان بله</span>
+        </span>
+        <button type="button" onclick="copyToClipboard('{{ bale_invite_url }}', 'لینک بله کپی شد ✅')" class="text-xs text-emerald-300 hover:text-white px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 transition-all font-bold">
+          📋 کپی لینک
+        </button>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_gender', lang) }}</dt>
-        <dd class="text-sm text-slate-200">{{ label(row.settings.gender) if row.settings and row.settings.gender else t('web.creator.not_registered', lang) }}</dd>
+      <p class="font-mono text-xs text-slate-300 truncate direction-ltr select-all bg-slate-950/60 p-2.5 rounded-xl border border-white/5" dir="ltr">
+        {{ bale_invite_url }}
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Tabs Navigation Header -->
+<div class="flex gap-2 p-1.5 rounded-2xl glass-panel mb-6 max-w-xl">
+  <button type="button" onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-950/30">
+    📊 آمار و کارنامه
+  </button>
+  <button type="button" onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+    ⚙️ تنظیمات این ختم
+  </button>
+  <button type="button" onclick="switchTab('members')" id="tab-btn-members" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center transition-all text-slate-400 hover:text-white hover:bg-slate-800/50">
+    👥 اعضا و شرکت‌کنندگان
+  </button>
+</div>
+
+<!-- ========================================== -->
+<!-- TAB 1: STATS & OVERVIEW                    -->
+<!-- ========================================== -->
+<div id="tab-pane-stats" class="space-y-6">
+  <!-- Progress & Big KPIs -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-4">
+    <div class="glass-card p-5 rounded-2xl md:col-span-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs sm:text-sm font-bold text-slate-300">درصد پیشرفت کل ختم</span>
+        <span class="text-xl sm:text-2xl font-black text-emerald-400 font-mono" dir="ltr">{{ progress_pct }}%</span>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_membership_type', lang) }}</dt>
-        <dd class="text-sm text-slate-200">{% if row.membership.is_committed %}{{ t('web.label.COMMITMENT', lang) }}{% else %}{{ t('web.creator.open_companion', lang) }}{% endif %}{% if row.membership.backup_reader_opt_in %}{{ t('web.creator.backup_reader_suffix', lang) }}{% endif %}</dd>
+      <div class="w-full h-3.5 rounded-full bg-slate-800 overflow-hidden p-0.5 border border-white/5">
+        <div class="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-700" style="width: {{ progress_pct }}%;"></div>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_completed_portion', lang) }}</dt>
-        <dd class="text-sm text-emerald-400 font-bold">{{ row.completed }}</dd>
+      <p class="text-xs text-slate-400 mt-2">
+        تاکنون <strong class="text-white">{{ stats.completed_portions }}</strong> سهم از مجموع <strong class="text-white">{{ stats.total_portions if stats.total_portions else (khatm.repetition_target or '—') }}</strong> قرائت شده است.
+      </p>
+    </div>
+
+    <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+      <span class="text-xs text-slate-400 mb-1">اعضای فعال در ختم</span>
+      <p class="text-3xl font-black text-white" dir="ltr">{{ stats.active_members }}</p>
+      <span class="text-[0.7rem] text-slate-500 mt-2">همراهان ثبت‌نام‌شده</span>
+    </div>
+
+    <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+      <span class="text-xs text-slate-400 mb-1">سهم‌های خوانده‌شده</span>
+      <p class="text-3xl font-black text-emerald-300" dir="ltr">{{ stats.completed_portions }}</p>
+      <span class="text-[0.7rem] text-slate-500 mt-2">کل قرائت‌های ثبت‌شده</span>
+    </div>
+
+    <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+      <span class="text-xs text-slate-400 mb-1">مشارکت‌های آزاد / مازاد</span>
+      <p class="text-3xl font-black text-sky-300" dir="ltr">{{ stats.contribution_total|int }}</p>
+      <span class="text-[0.7rem] text-slate-500 mt-2">ذکر یا صفحه مازاد</span>
+    </div>
+  </div>
+
+  <!-- Technical Details Panel -->
+  <div class="glass-panel p-5 sm:p-6 rounded-2xl">
+    <h3 class="text-sm font-black text-white mb-4 flex items-center gap-2">
+      <span>مشخصات فنی و الگوی ختم</span>
+      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+    </h3>
+    <dl class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+      <div>
+        <dt class="text-slate-400 mb-1">نوع محتوا</dt>
+        <dd class="font-bold text-white">{{ label(khatm.template_type) }}</dd>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_recorded_misses', lang) }}</dt>
-        <dd class="text-sm {% if row.misses > 0 %}text-rose-400 font-bold{% else %}text-slate-200{% endif %}">{{ row.misses }}</dd>
+      <div>
+        <dt class="text-slate-400 mb-1">شیوه مشارکت</dt>
+        <dd class="font-bold text-white">{{ label(khatm.khatm_type) }}</dd>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_contribution', lang) }}</dt>
-        <dd class="text-sm text-slate-200">{{ row.contribution|int }}</dd>
+      <div>
+        <dt class="text-slate-400 mb-1">مهلت روزانه</dt>
+        <dd class="font-bold text-white">ساعت {{ khatm.daily_deadline_hour if khatm.daily_deadline_hour is not none else '۲۴:۰۰' }}</dd>
       </div>
-      <div class="border-t border-slate-700/50 pt-2">
-        <dt class="text-[0.65rem] text-slate-400 uppercase tracking-wider mb-0.5">{{ t('web.creator.field_surplus', lang) }}</dt>
-        <dd class="text-sm text-slate-200">{{ row.surplus|int }}</dd>
+      <div>
+        <dt class="text-slate-400 mb-1">سطح انتشار</dt>
+        <dd class="font-bold text-white">{{ label(khatm.visibility) }}</dd>
       </div>
     </dl>
-  </article>
-  {% else %}
-  <div class="col-span-full glass-panel p-10 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
-    <p>{{ t('web.creator.no_member_found', lang) }}</p>
   </div>
-  {% endfor %}
-</section>
+</div>
 
-{% if page > 1 or has_next %}
-<nav class="flex items-center justify-center gap-4 mt-10" aria-label="{{ t('web.creator.member_pagination_aria', lang) }}">
-  {% if page > 1 %}
-  <form method="get" class="m-0"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page - 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.prev_page', lang) }}</button></form>
+<!-- ========================================== -->
+<!-- TAB 2: SETTINGS & EDIT                     -->
+<!-- ========================================== -->
+<div id="tab-pane-settings" class="hidden space-y-6">
+  <div class="glass-panel p-5 sm:p-7 rounded-3xl">
+    <div class="mb-6">
+      <h3 class="text-base font-black text-white">تنظیمات این ختم</h3>
+      <p class="text-xs text-slate-400 mt-1">ویرایش نام، نیت، زمان یادآوری و قوانین مشارکت برای همراهان</p>
+    </div>
+
+    <form method="post" action="/creator/khatms/{{ khatm.id }}/settings" class="space-y-6">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <!-- Basic Info -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان ختم</label>
+          <input name="title" value="{{ khatm.title }}" required maxlength="200" class="input-field">
+        </div>
+
+        {% if khatm.template_type.value not in ['QURAN_PAGE', 'QURAN_SURAH'] %}
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">سقف تعداد یا دور (هدف نهایی)</label>
+          <input name="repetition_target" type="number" min="{{ khatm.repetition_target or 1 }}" value="{{ khatm.repetition_target or '' }}" class="input-field">
+          <span class="text-[0.68rem] text-slate-400 mt-1 block">فقط امکان افزایش تعداد وجود دارد تا سهم اعضا مخدوش نشود.</span>
+        </div>
+        {% else %}
+        <input type="hidden" name="repetition_target" value="">
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">سطح دسترسی و مشاهده</label>
+          <select name="visibility" class="input-field">
+            {% for value in ['UNLISTED', 'PUBLIC', 'PRIVATE'] %}
+            <option value="{{ value }}" {% if khatm.visibility.value == value %}selected{% endif %}>
+              {{ t('create_khatm.visibility_label.' ~ value, lang) }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">پیام‌رسان‌های مجاز</label>
+          <select name="allowed_platforms" class="input-field">
+            <option value="BOTH" {% if khatm.allowed_platforms == 'BOTH' %}selected{% endif %}>هر دو (تلگرام و بله)</option>
+            <option value="TELEGRAM" {% if khatm.allowed_platforms == 'TELEGRAM' %}selected{% endif %}>فقط تلگرام</option>
+            <option value="BALE" {% if khatm.allowed_platforms == 'BALE' %}selected{% endif %}>فقط بله</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">لحن پیام‌های یادآوری</label>
+          <select name="reminder_tone" class="input-field">
+            {% for value in ['FRIENDLY', 'FORMAL', 'DEVOTIONAL', 'SHORT'] %}
+            <option value="{{ value }}" {% if khatm.reminder_tone == value %}selected{% endif %}>
+              {{ t('create_khatm.tone_label.' ~ value, lang) }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">متن پیام خوش‌آمد به اعضای جدید</label>
+          <textarea name="welcome_text" rows="3" maxlength="500" class="input-field">{{ editable_welcome_text }}</textarea>
+          <span class="text-[0.68rem] text-slate-400 mt-1 block">راه ارتباطی شما به صورت خودکار در انتهای پیام نمایش داده می‌شود.</span>
+        </div>
+      </div>
+
+      <!-- Commitment Rules (if commitment) -->
+      {% if khatm.khatm_type.value == 'COMMITMENT' %}
+      <div class="border-t border-white/5 pt-5 space-y-4">
+        <h4 class="text-xs font-black text-emerald-400 uppercase tracking-wider">قوانین و انضباط تعهد</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">ساعت مهلت انجام سهم در روز</label>
+            <input name="daily_deadline_hour" type="number" min="0" max="23" value="{{ khatm.daily_deadline_hour if khatm.daily_deadline_hour is not none else '' }}" class="input-field" placeholder="مثلاً ۲۲">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">آستانه غیبت (تعداد روز)</label>
+            <input name="miss_threshold" type="number" min="1" max="20" value="{{ khatm.miss_notice_threshold }}" class="input-field">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">پنجره محاسبه غیبت (روز)</label>
+            <input name="miss_window_days" type="number" min="1" max="90" value="{{ khatm.miss_notice_window_days }}" class="input-field">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/50 border border-white/5 cursor-pointer">
+            <input name="allow_pause" type="checkbox" {% if khatm.allow_pause %}checked{% endif %} class="h-4 w-4 rounded accent-emerald-500">
+            <span class="text-xs font-bold text-slate-200">امکان ثبت مرخصی / توقف موقت برای اعضا</span>
+          </label>
+          <label class="flex items-center gap-3 p-3.5 rounded-xl bg-slate-900/50 border border-white/5 cursor-pointer">
+            <input name="allow_snooze" type="checkbox" {% if khatm.allow_snooze %}checked{% endif %} class="h-4 w-4 rounded accent-emerald-500">
+            <span class="text-xs font-bold text-slate-200">امکان تعویق چندساعتهٔ یادآوری روزانه</span>
+          </label>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="border-t border-white/5 pt-5 flex items-center justify-between">
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input name="completion_announcement" type="checkbox" {% if khatm.completion_announcement_enabled %}checked{% endif %} class="h-4 w-4 rounded accent-emerald-500">
+          <span class="text-xs font-bold text-slate-200">ارسال پیام تبریک به اعضا پس از تکمیل ختم</span>
+        </label>
+
+        <button type="submit" class="btn-primary">
+          <span>ذخیره تغییرات</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- TAB 3: MEMBERS & ATTENDANCE                -->
+<!-- ========================================== -->
+<div id="tab-pane-members" class="hidden space-y-6">
+  <!-- Search & Excel Export Bar -->
+  <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+    <form class="flex-1 flex gap-2" method="get">
+      <input name="q" value="{{ query }}" placeholder="جستجوی نام یا شماره تماس..." class="input-field flex-1 text-xs sm:text-sm">
+      <button type="submit" class="btn-ghost text-xs">
+        <span>جستجو</span>
+      </button>
+    </form>
+
+    <a href="/creator/khatms/{{ khatm.id }}/export.xlsx" class="btn-primary text-xs flex items-center justify-center gap-2">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <span>دریافت اکسل کامل اعضا</span>
+    </a>
+  </div>
+
+  <!-- Members Cards / Table Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+    {% for row in rows %}
+    <div class="glass-card p-5 rounded-2xl flex flex-col justify-between">
+      <div>
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div>
+            <h4 class="text-base font-black text-white">{{ row.user.display_name or 'شرکت‌کننده محترم' }}</h4>
+            <span class="text-[0.7rem] text-slate-400 font-mono">عضویت: {{ row.joined_at }}</span>
+          </div>
+          <span class="status-badge {% if row.membership.status.value == 'ACTIVE' %}status-active{% else %}status-cancelled{% endif %}">
+            {{ label(row.membership.status) }}
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs py-3 border-y border-white/5 my-2">
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_membership_type', lang) }}:</span>
+            <span class="font-bold text-slate-200">
+              {% if row.membership.is_committed %}{{ t('web.label.COMMITMENT', lang) }}{% else %}{{ t('web.creator.open_companion', lang) }}{% endif %}
+              {% if row.membership.backup_reader_opt_in %} ({{ t('web.creator.backup_reader_suffix', lang) }}){% endif %}
+            </span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_mobile', lang) }}:</span>
+            <span class="font-mono text-slate-200" dir="ltr">{{ row.settings.contact_phone if row.settings and row.settings.contact_phone else '—' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_gender', lang) }}:</span>
+            <span class="text-slate-200">{{ label(row.settings.gender) if row.settings and row.settings.gender else '—' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_province_city', lang) }}:</span>
+            <span class="text-slate-200">{{ row.settings.province if row.settings and row.settings.province else '—' }}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_completed_portion', lang) }}:</span>
+            <span class="font-bold text-emerald-400 font-mono" dir="ltr">&gt;{{ row.completed }}&lt;</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_recorded_misses', lang) }}:</span>
+            <span class="font-bold {% if row.misses > 0 %}text-rose-400{% else %}text-slate-300{% endif %} font-mono" dir="ltr">&gt;{{ row.misses }}&lt;</span>
+          </div>
+          {% if row.surplus > 0 %}
+          <div>
+            <span class="text-slate-400 block text-[0.7rem]">{{ t('web.creator.field_surplus', lang) }}:</span>
+            <span class="font-bold text-sky-400 font-mono" dir="ltr">&gt;{{ row.surplus|int }}&lt;</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Action Footer (e.g. remove member) -->
+      <div class="flex items-center justify-between pt-2 text-xs">
+        <span class="text-[0.7rem] text-slate-500">
+          {% if row.settings and row.settings.province %}{{ row.settings.province }} / {{ row.settings.city or '' }}{% endif %}
+        </span>
+
+        <form method="post" action="/creator/khatms/{{ khatm.id }}/members/{{ row.membership.id }}/remove" class="m-0" onsubmit="return confirm('آیا از حذف این عضو از ختم اطمینان دارید؟');">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="text-rose-400 hover:text-rose-300 font-bold text-[0.75rem] transition-colors">
+            حذف از ختم
+          </button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-span-full glass-panel p-10 rounded-3xl text-center border border-dashed border-slate-700">
+      <p class="text-sm text-slate-400">عضوی با این جست‌وجو پیدا نشد.</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page > 1 or has_next %}
+  <div class="flex items-center justify-center gap-4 pt-4">
+    {% if page > 1 %}
+    <a href="?q={{ query }}&page={{ page - 1 }}" class="btn-ghost text-xs">صفحه قبل</a>
+    {% endif %}
+    <span class="text-xs text-slate-400 font-mono">صفحه {{ page }}</span>
+    {% if has_next %}
+    <a href="?q={{ query }}&page={{ page + 1 }}" class="btn-ghost text-xs">صفحه بعد</a>
+    {% endif %}
+  </div>
   {% endif %}
-  <span class="text-slate-400 text-sm font-medium">{{ t('web.creator.page_label', lang, page=page) }}</span>
-  {% if has_next %}
-  <form method="get" class="m-0"><input type="hidden" name="q" value="{{ query }}"><input type="hidden" name="page" value="{{ page + 1 }}"><button type="submit" class="glass-panel px-4 py-2 rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">{{ t('web.creator.next_page', lang) }}</button></form>
-  {% endif %}
-</nav>
-{% endif %}
+</div>
+
+<!-- Tab Switching & Sharing Script -->
+<script>
+  function switchTab(tabId) {
+    ['stats', 'settings', 'members'].forEach(t => {
+      const pane = document.getElementById('tab-pane-' + t);
+      const btn = document.getElementById('tab-btn-' + t);
+      if (t === tabId) {
+        pane.classList.remove('hidden');
+        btn.classList.add('bg-emerald-500', 'text-white', 'shadow-lg');
+        btn.classList.remove('text-slate-400');
+      } else {
+        pane.classList.add('hidden');
+        btn.classList.remove('bg-emerald-500', 'text-white', 'shadow-lg');
+        btn.classList.add('text-slate-400');
+      }
+    });
+  }
+
+  function shareKhatm() {
+    const shareText = `{{ share_text | replace('`', '') | safe }}`;
+    if (navigator.share) {
+      navigator.share({
+        title: "{{ khatm.title }}",
+        text: shareText
+      }).catch(() => {
+        copyToClipboard(shareText, "متن و لینک دعوت کپی شد ✅");
+      });
+    } else {
+      copyToClipboard(shareText, "متن و لینک دعوت کپی شد ✅");
+    }
+  }
+
+  // Auto-open settings tab if saved settings
+  if (new URLSearchParams(window.location.search).get('saved') === 'settings') {
+    switchTab('settings');
+  }
+</script>
+
 {% endblock %}

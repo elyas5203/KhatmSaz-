@@ -1,3 +1,28 @@
+## Current state — 2026-10-11 — Ground-Up Redesign of Creator Panel & Master-08 Implementation [Antigravity]
+- **Creator Panel Ground-Up Redesign (MASTER-08):**
+  - Authored Master Document `docs/ai/masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md` covering Creator persona, complete architecture, audit gap analysis, 7-page UI/UX specifications, endpoints, and regression safeguards.
+  - Linked `MASTER_08` into `ADMIN_PANEL_REDESIGN_MASTER.md` and `INDEX.md`.
+  - **Backend Endpoints Enhanced (`src/khatmsaz/web/app.py`):**
+    - `creator_dashboard` (`GET /creator`): Injected visual progress calculations (`progress_pct`) and member cards alongside recent khatms.
+    - `creator_khatm_create` (`POST /creator/khatms/create`): Added `niyyat` form parsing and passed `clean_niyyat` to `workflow_service.create_and_launch_khatm`.
+    - `creator_khatm_detail` (`GET /creator/khatms/{khatm_id}`): Generated bot-specific invite deep links (Telegram and Bale) via `invitation_service` and `bot/invite_links`, injected `progress_pct`, and generated rich share text for mobile/web share APIs.
+    - Added `POST /creator/khatms/{khatm_id}/toggle-status`: Allows organizers to pause (`CANCELLED`) and resume (`ACTIVE`) their khatms directly from the web panel.
+    - Added `POST /creator/khatms/{khatm_id}/members/{part_id}/remove`: Allows organizers to safely remove members via `workflow_service.leave_khatm`.
+  - **Templates Redesigned (`src/khatmsaz/web/templates/`):**
+    - `creator_base.html`: Modern Estedad 5.3.0 font, brand glowing dark theme, responsive topbar with user avatar and wallet pill, clean desktop sidebar, fixed mobile bottom dock (thumb-friendly for Telegram/Bale WebApp), logo fallback `>خ</div>`, and global clipboard toast.
+    - `creator_dashboard.html`: Warm personalized greeting, 4 KPI cards (active khatms, total members, wallet balance, plan), quick actions grid, and recent khatms list with visual progress bars.
+    - `creator_khatms.html`: Clean status branch tabs (Active vs Completed), category grouping (Quran, Salawat, Dua, Laan, Khutbah), rich cards with member counts and badges, and graceful empty states.
+    - `creator_khatm_detail.html`: Hero invite section with 1-click copy buttons for Telegram & Bale invite links, Web Share API integration, 3 clean tabs (📊 آمار و کارنامه, ⚙️ تنظیمات این ختم, 👥 اعضا و شرکت‌کنندگان), member search, Excel export (`export.xlsx`), and member removal action.
+    - `creator_khatm_new.html`: Intuitive 4-step creation wizard (Content Type -> Sub-category -> Mode -> Details & Launch) with dynamic category filtering and accurate Quran edition text.
+    - `creator_wallet.html`: Glowing balance hero card, quick top-up preset packages (50k, 100k, 200k, 500k Toman) + custom input, transparent plan comparison (Free vs Basic vs Pro) using standard i18n keys and audience usage.
+    - `creator_broadcasts.html`: Free quota indicator (2 free messages), audience selector, demographic filters, channel picker, character counter, and content approval notice (`برای تأیید محتوا`).
+    - `creator_login.html`: Pinned Estedad font and modern glass styling.
+  - **Test Suite:**
+    - Authored `tests/test_creator_panel_all_routes.py` (8 new tests, 100% green).
+    - Validated all 9 template rendering tests in `tests/test_admin_template_render.py` (100% green).
+    - Preserved 100% test pass rate across the whole project (393 passed, 230 skipped, 0 failures).
+- **Validation:** 393 passed, 230 skipped in pytest (100% green, 0 failures).
+
 ## Current state — 2026-10-11 — Member Daily 14:00 Progress Digest & Motivational Banner Master (MASTER-07) [Antigravity]
 - **Member Daily 14:00 Progress Digest (`member_daily_digest.py`):**
   - Scheduled automated progress digest delivered daily at 14:00 (Tehran time) to active members participating in active khatms.

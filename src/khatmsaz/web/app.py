@@ -950,17 +950,35 @@ async def creator_dashboard(request: Request):
         balance, credit = await wallet_service.get_balances(session, creator.id)
         plan_view = await _creator_plan_view(session, creator.id, lang)
 
-    active_khatms = sum(1 for k in all_khatms if k.status == KhatmStatus.ACTIVE)
-    total_members = sum(member_counts.values())
-    plan_label = plan_view["title"]
-    recent = all_khatms[:6]
+        active_khatms = sum(1 for k in all_khatms if k.status == KhatmStatus.ACTIVE)
+        total_members = sum(member_counts.values())
+        plan_label = plan_view["title"]
+        recent = all_khatms[:6]
+
+        recent_cards = []
+        for k in recent:
+            st = await reporting_service.get_khatm_stats(session, k.id)
+            if k.repetition_target and k.repetition_target > 0:
+                c_val = st.completed_portions if k.khatm_type == KhatmTypeEnum.COMMITMENT else st.contribution_total
+                p_pct = min(100.0, round((c_val / k.repetition_target) * 100, 1))
+            elif st.total_portions > 0:
+                p_pct = min(100.0, round((st.completed_portions / st.total_portions) * 100, 1))
+            else:
+                p_pct = 0.0
+            recent_cards.append({
+                "khatm": k,
+                "stats": st,
+                "progress_pct": p_pct,
+                "members": member_counts.get(k.id, 0),
+            })
+
     return templates.TemplateResponse(
         request=request,
         name="creator_dashboard.html",
         context=_creator_ctx(
-            request, creator, raw, lang=lang, khatms=recent, member_counts=member_counts,
+            request, creator, raw, lang=lang, khatms=recent, recent_cards=recent_cards, member_counts=member_counts,
             active_khatms=active_khatms, total_members=total_members,
-            balance=f"{balance:,}", plan_label=plan_label,
+            balance=f"{balance:,}", credit=f"{credit:,}", plan_label=plan_label,
         ),
     )
 
@@ -1065,6 +1083,7 @@ async def creator_khatm_create(
     content_kind: str = Form(...),
     khatm_type: str = Form(...),
     title: str = Form(""),
+    niyyat: str = Form(""),
     amount: int | None = Form(None),
     category_id: str = Form(""),
     visibility: str = Form("UNLISTED"),
@@ -1089,6 +1108,9 @@ async def creator_khatm_create(
     clean_title = title.strip()
     if len(clean_title) > 200:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
+    clean_niyyat = niyyat.strip() or None
+    if clean_niyyat and len(clean_niyyat) > 200:
+        clean_niyyat = clean_niyyat[:200]
 
     async with session_scope() as session:
         verified_phone = await phone_repository.verified_claim_for_user(session, creator.id)
@@ -1130,7 +1152,7 @@ async def creator_khatm_create(
                 template_type=template_type,
                 khatm_type=mode,
                 title=clean_title,
-                niyyat=None,
+                niyyat=clean_niyyat,
                 salawat_open_target=amount if mode == KhatmTypeEnum.OPEN else None,
                 salawat_commitment_quantity=amount if mode == KhatmTypeEnum.COMMITMENT else None,
                 quran_edition_id=CANONICAL_QURAN_EDITION_ID if content_kind == "quran" else None,
@@ -1404,6 +1426,35 @@ async def creator_khatm_detail(
         )
         has_next = len(rows) > page_size
         rows = rows[:page_size]
+
+        # Resolve invite links for Telegram & Bale
+        from khatmsaz.modules.invitation import service as invitation_service
+        from khatmsaz.bot.invite_links import build_member_invite_links, resolve_khatm_category_value
+
+        invitation = await invitation_service.get_or_create_for_khatm(session, khatm.id)
+        token_str = getattr(invitation, "token", str(invitation.id))
+        bot_cat = await resolve_khatm_category_value(session, khatm)
+        invite_links_map = build_member_invite_links(bot_cat, token_str, langs=["fa"])
+        fa_links = invite_links_map.get("fa", {})
+        telegram_invite_url = fa_links.get("telegram") or f"/join/{token_str}"
+        bale_invite_url = fa_links.get("bale") or f"https://ble.ir/join/{token_str}"
+
+        # Compute progress percentage safely
+        if khatm.repetition_target and khatm.repetition_target > 0:
+            completed_val = stats.completed_portions if khatm.khatm_type == KhatmTypeEnum.COMMITMENT else stats.contribution_total
+            progress_pct = min(100.0, round((completed_val / khatm.repetition_target) * 100, 1))
+        elif stats.total_portions > 0:
+            progress_pct = min(100.0, round((stats.completed_portions / stats.total_portions) * 100, 1))
+        else:
+            progress_pct = 0.0
+
+        share_text = f"✨ شما به «{khatm.title}» دعوت شده‌اید.\n"
+        if khatm.niyyat:
+            share_text += f"نیت: {khatm.niyyat}\n"
+        share_text += f"🔗 ورود در تلگرام:\n{telegram_invite_url}\n"
+        if bale_invite_url and not bale_invite_url.startswith("/join/"):
+            share_text += f"🔗 ورود در بله:\n{bale_invite_url}"
+
     return templates.TemplateResponse(
         request=request,
         name="creator_khatm_detail.html",
@@ -1412,8 +1463,60 @@ async def creator_khatm_detail(
             query=query, page=page, has_next=has_next,
             editable_welcome_text=khatm_service.welcome_body_without_contact(khatm.welcome_text),
             saved=request.query_params.get("saved", ""),
+            telegram_invite_url=telegram_invite_url,
+            bale_invite_url=bale_invite_url,
+            progress_pct=progress_pct,
+            share_text=share_text,
+            token=token_str,
         ),
     )
+
+
+@app.post("/creator/khatms/{khatm_id}/toggle-status")
+async def creator_khatm_toggle_status(request: Request, khatm_id: UUID, csrf: str = Form(...)):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        if khatm is None or khatm.creator_user_id != creator.id:
+            return HTMLResponse(web_t("web.creator.khatm_not_found", lang), status_code=404)
+        if khatm.status == KhatmStatus.ACTIVE:
+            khatm.status = KhatmStatus.CANCELLED
+            action_desc = "PAUSE"
+        elif khatm.status == KhatmStatus.CANCELLED:
+            khatm.status = KhatmStatus.ACTIVE
+            action_desc = "RESUME"
+        else:
+            action_desc = "NOOP"
+        await audit_service.record(
+            session, actor_user_id=creator.id, target_user_id=creator.id,
+            action=f"CREATOR_WEB_KHATM_{action_desc}", details={"khatm_id": str(khatm.id)},
+        )
+    return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=status", status_code=303)
+
+
+@app.post("/creator/khatms/{khatm_id}/members/{part_id}/remove")
+async def creator_khatm_remove_member(
+    request: Request, khatm_id: UUID, part_id: UUID, csrf: str = Form(...)
+):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    async with session_scope() as session:
+        khatm = await session.get(Khatm, khatm_id)
+        if khatm is None or khatm.creator_user_id != creator.id:
+            return HTMLResponse(web_t("web.creator.khatm_not_found", lang), status_code=404)
+        await workflow_service.leave_khatm(session, participation_id=part_id)
+        await audit_service.record(
+            session, actor_user_id=creator.id, target_user_id=creator.id,
+            action="CREATOR_WEB_MEMBER_REMOVE", details={"khatm_id": str(khatm.id), "part_id": str(part_id)},
+        )
+    return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=member_removed", status_code=303)
 
 
 @app.post("/creator/khatms/{khatm_id}/settings")

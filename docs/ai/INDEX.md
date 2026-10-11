@@ -16,6 +16,7 @@
   - [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet, Identity, Phone verification, Account merge, 8 Moderation queues, Admin roles & Operations.
   - [MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md](masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md) — Open Khatm engine, Khutbah 5-section sequential rollover, video captions & ephemeral store.
   - [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 callback, ERR_TIMED_OUT resolution, Apache proxy, In-bot verification.
+  - [MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md) — Creator panel & web mini-app ground-up redesign, invite link generation, khatm detail tabs, progress bars, zero-error UX.
 - **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master

@@ -1,134 +1,242 @@
 {% extends "creator_base.html" %}
-{% block title %}{{ t('menu.creator.wallet', lang) }} | ختم‌ساز{% endblock %}
+{% block title %}کیف پول و پلن کاربری | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-6">
-  <p class="text-xs font-bold text-amber-500 tracking-wider uppercase mb-1">{{ t('web.creator.wallet_eyebrow', lang) }}</p>
-  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">{{ t('menu.creator.wallet', lang) }}</h1>
-  <p class="text-slate-400 text-sm">{{ t('web.creator.wallet_subtitle', lang) }}</p>
-</section>
 
-<!-- Balance hero -->
-<section class="glass-panel p-6 rounded-2xl mb-6 relative overflow-hidden">
-  <div class="absolute -top-8 -left-8 w-40 h-40 rounded-full bg-amber-500/10 blur-2xl pointer-events-none"></div>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 relative z-10">
-    <div>
-      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.wallet_balance', lang) }}</p>
-      <p class="text-3xl font-extrabold text-white" dir="ltr" style="text-align:start">{{ balance }} <span class="text-base font-medium text-slate-400">{{ t('web.creator.toman', lang) }}</span></p>
-    </div>
-    <div>
-      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.wallet_credit', lang) }}</p>
-      <p class="text-2xl font-bold text-emerald-300" dir="ltr" style="text-align:start">{{ credit }} <span class="text-sm font-medium text-slate-400">{{ t('web.creator.toman', lang) }}</span></p>
-    </div>
-    <div>
-      <p class="text-xs text-slate-400 mb-1">{{ t('web.creator.kpi_plan', lang) }}</p>
-      <p class="text-2xl font-bold text-fuchsia-300">{{ plan_label }}</p>
-    </div>
+<!-- Header -->
+<section class="mb-6">
+  <div class="flex items-center gap-2 mb-1">
+    <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+      امور مالی و اشتراک
+    </span>
+    <span class="text-xs text-slate-400">مدیریت اعتبار و خدمات ویژه سازندگان</span>
   </div>
+  <h1 class="text-2xl sm:text-3xl font-black text-white">کیف پول و ارتقای پلن</h1>
 </section>
 
-<!-- Current plan (read-only) -->
-<section class="mb-6">
-  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.plan_section_title', lang) }}</h2>
-  <div class="glass-panel p-5 rounded-2xl">
-    <div class="flex items-center justify-between mb-3">
-      <div class="flex items-center gap-2">
-        <span class="w-9 h-9 rounded-xl bg-fuchsia-500/15 text-fuchsia-300 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-        </span>
-        <div>
-          <p class="text-base font-bold text-white">{{ plan_view.title }}</p>
-          <p class="text-[0.7rem] text-slate-500" dir="ltr">{{ plan_view.tier }}</p>
+<!-- Error / Feedback Messages -->
+{% if request.query_params.get('error') == 'insufficient_funds' %}
+<div class="mb-6 p-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs sm:text-sm font-bold flex items-center gap-2">
+  <svg class="h-5 w-5 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <span>موجودی کیف پول شما برای این عملیات کافی نیست. لطفاً ابتدا حساب خود را شارژ کنید.</span>
+</div>
+{% elif request.query_params.get('saved') == 'pro_purchased' %}
+<div class="mb-6 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-xs sm:text-sm font-bold flex items-center gap-2">
+  <svg class="h-5 w-5 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+  <span>پلن حرفه‌ای (PRO) با موفقیت برای حساب شما فعال گردید 🎉</span>
+</div>
+{% endif %}
+
+<!-- Hero Balance Card -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 relative overflow-hidden bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-amber-950/20 border border-amber-500/25 shadow-2xl">
+  <div class="absolute -top-16 -left-16 w-52 h-52 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 relative z-10">
+    <!-- Main Balance -->
+    <div class="sm:border-l sm:border-white/10 sm:pl-6">
+      <span class="text-xs font-bold text-slate-400 block mb-1">موجودی نقدی قابل استفاده</span>
+      <div class="flex items-baseline gap-2 mt-1">
+        <span class="text-3xl sm:text-4xl font-black text-white font-mono" dir="ltr">{{ balance }}</span>
+        <span class="text-xs sm:text-sm text-slate-400 font-bold">تومان</span>
+      </div>
+      <p class="text-[0.7rem] text-slate-500 mt-2">شارژ مستقیم از طریق درگاه شاپرک</p>
+    </div>
+
+    <!-- Promotional Credit -->
+    <div class="sm:border-l sm:border-white/10 sm:pl-6">
+      <span class="text-xs font-bold text-slate-400 block mb-1">اعتبار هدیه و پاداش</span>
+      <div class="flex items-baseline gap-2 mt-1">
+        <span class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono" dir="ltr">{{ credit }}</span>
+        <span class="text-xs sm:text-sm text-slate-400 font-bold">تومان</span>
+      </div>
+      <p class="text-[0.7rem] text-slate-500 mt-2">جهت خدمات سیستم و ارسال‌ها</p>
+    </div>
+
+    <!-- Active Tier -->
+    <div class="flex flex-col justify-between">
+      <div>
+        <span class="text-xs font-bold text-slate-400 block mb-1">پلن کاربری فعلی</span>
+        <div class="flex items-center gap-2 mt-1">
+          <span class="text-2xl font-black text-fuchsia-300">{{ plan_label }}</span>
         </div>
       </div>
-    </div>
-
-    <!-- Total audience vs the free cap (the number that drives FREE→BASIC) -->
-    <div class="rounded-xl bg-slate-900/40 border border-slate-700/40 p-3 mb-3">
-      <p class="text-[0.7rem] text-slate-400 mb-1">{{ t('web.creator.plan_total_audience', lang) }}</p>
-      <p class="text-lg font-bold text-white" dir="ltr">{{ plan_view.total_members }}{% if plan_view.total_cap is not none %} / {{ plan_view.total_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}</p>
-    </div>
-    {% if plan_view.ads_shown %}
-    <p class="text-xs text-amber-300 leading-6 mb-4">{{ t('web.creator.plan_ads_on', lang) }}</p>
-    {% else %}
-    <p class="text-xs text-emerald-300 leading-6 mb-4">{{ t('web.creator.plan_ads_off', lang) }}</p>
-    {% endif %}
-
-    <!-- Three-tier comparison -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
-      <div class="rounded-xl border {% if plan_view.is_free %}border-emerald-500/40 bg-emerald-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
-        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_free_name', lang) }}{% if plan_view.is_free %} <span class="text-[0.65rem] text-emerald-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
-        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_free_desc', lang) }}</p>
+      <div class="rounded-xl bg-slate-900/50 border border-white/5 p-2 mt-2">
+        <p class="text-[0.7rem] text-slate-400 mb-0.5">{{ t('web.creator.plan_total_audience', lang) }}</p>
+        <p class="text-sm font-bold text-white font-mono" dir="ltr">
+          {{ plan_view.total_members }}{% if plan_view.total_cap is not none %} / {{ plan_view.total_cap }}{% else %} <span class="text-xs text-emerald-400">∞</span>{% endif %}
+        </p>
       </div>
-      <div class="rounded-xl border {% if plan_view.is_basic %}border-amber-500/40 bg-amber-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
-        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_basic_name', lang) }}{% if plan_view.is_basic %} <span class="text-[0.65rem] text-amber-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
-        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_basic_desc', lang) }}</p>
-      </div>
-      <div class="rounded-xl border {% if plan_view.is_pro %}border-fuchsia-500/40 bg-fuchsia-500/5{% else %}border-slate-700/40 bg-slate-900/30{% endif %} p-3">
-        <p class="text-sm font-bold text-white mb-2">{{ t('web.creator.plan_pro_name', lang) }}{% if plan_view.is_pro %} <span class="text-[0.65rem] text-fuchsia-400">({{ t('web.creator.plan_current_badge', lang) }})</span>{% endif %}</p>
-        <p class="text-[0.72rem] text-slate-300 leading-6">{{ t('web.creator.plan_pro_desc', lang) }}</p>
-      </div>
+      {% if plan_view.ads_shown %}
+      <p class="text-[0.7rem] text-amber-300 leading-snug mt-1.5">{{ t('web.creator.plan_ads_on', lang) }}</p>
+      {% else %}
+      <p class="text-[0.7rem] text-emerald-300 leading-snug mt-1.5">{{ t('web.creator.plan_ads_off', lang) }}</p>
+      {% endif %}
     </div>
   </div>
 </section>
 
-<!-- Top up (separate from plan upgrade) -->
-<section class="mb-6" id="topup">
-  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.wallet_topup_title', lang) }}</h2>
+<!-- Quick Topup Section -->
+<section class="mb-8" id="topup">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="text-base font-black text-white">افزایش موجودی کیف پول</h2>
+      <p class="text-xs text-slate-400">مبلغ مورد نظر را انتخاب کنید یا مبلغ دلخواه را وارد نمایید:</p>
+    </div>
+    <span class="text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 font-bold border border-emerald-500/25">
+      🔒 اتصال امن شاپرک
+    </span>
+  </div>
+
   {% if gateway_ready %}
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+  <!-- Preset Quick Packages -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
     {% for amount in topup_amounts %}
     <form method="post" action="/creator/wallet/topup" class="m-0">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="amount" value="{{ amount }}">
-      <button type="submit" class="w-full glass-card p-4 rounded-2xl text-center hover:border-amber-500/40 group">
-        <p class="text-xl font-extrabold text-white group-hover:text-amber-300" dir="ltr">{{ '{:,}'.format(amount // 1000) }}</p>
-        <p class="text-[0.7rem] text-slate-400">{{ t('web.creator.toman_thousand', lang) }}</p>
+      <button type="submit" class="w-full glass-card p-4 sm:p-5 rounded-2xl text-center hover:border-amber-500/50 hover:bg-amber-500/10 group transition-all">
+        <p class="text-2xl font-black text-white group-hover:text-amber-300 font-mono" dir="ltr">
+          {{ '{:,}'.format(amount // 1000) }}
+        </p>
+        <p class="text-xs text-slate-400 mt-1">هزار تومان</p>
       </button>
     </form>
     {% endfor %}
   </div>
-  <form method="post" action="/creator/wallet/topup" class="mt-3 flex gap-2">
+
+  <!-- Custom Amount Input Form -->
+  <form method="post" action="/creator/wallet/topup" class="glass-panel p-4 rounded-2xl flex flex-col sm:flex-row gap-3">
     <input type="hidden" name="csrf" value="{{ csrf }}">
-    <input type="number" name="amount" min="10000" max="50000000" step="1000" required
-           placeholder="{{ t('web.creator.wallet_custom_placeholder', lang) }}"
-           class="input-field flex-1" dir="ltr">
-    <button type="submit" class="btn">{{ t('web.creator.wallet_custom_button', lang) }}</button>
+    <div class="flex-1 relative">
+      <input type="number" name="amount" min="10000" max="50000000" step="1000" required
+             placeholder="مبلغ دلخواه به تومان (حداقل ۱۰,۰۰۰ تومان)..."
+             class="input-field text-left pl-14" dir="ltr">
+      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500 pointer-events-none">تومان</span>
+    </div>
+    <button type="submit" class="btn-primary text-xs sm:text-sm justify-center whitespace-nowrap">
+      <span>پرداخت و اتصال به درگاه</span>
+    </button>
   </form>
-  <p class="text-xs text-slate-500 mt-3">{{ t('web.creator.wallet_topup_hint', lang) }}</p>
   {% else %}
-  <div class="glass-panel p-5 rounded-2xl text-sm text-slate-300 border border-amber-500/20">
-    {{ t('web.creator.wallet_gateway_off', lang) }}
+  <div class="glass-panel p-5 rounded-2xl text-xs sm:text-sm text-slate-300 border border-amber-500/20">
+    درگاه پرداخت اینترنتی در حال حاضر در دسترس نیست. لطفاً بعداً مراجعه نمایید.
   </div>
   {% endif %}
 </section>
 
-<!-- Invoices -->
-<section>
-  <h2 class="text-sm font-bold text-slate-300 mb-3">{{ t('web.creator.wallet_invoices_title', lang) }}</h2>
-  {% if invoices %}
-  <div class="glass-panel rounded-2xl overflow-hidden divide-y divide-white/5">
-    {% for inv in invoices %}
-    <div class="flex items-center justify-between px-4 py-3">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="w-9 h-9 rounded-xl flex-none flex items-center justify-center {% if inv.kind == 'TOPUP' %}bg-emerald-500/15 text-emerald-400{% else %}bg-slate-600/30 text-slate-300{% endif %}">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 0v6m0-6l-8 8" /></svg>
+<!-- Plan Comparison & Upgrade -->
+<section class="mb-8">
+  <div class="mb-4">
+    <h2 class="text-base font-black text-white">مقایسه و ارتقای سطح پلن کاربری</h2>
+    <p class="text-xs text-slate-400">با ارتقای پلن به سقف مخاطب بالاتر و ابزارهای ارتباطی حرفه‌ای دسترسی پیدا کنید:</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Free -->
+    <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border {% if plan_view.is_free %}border-emerald-500/50 bg-emerald-500/5{% else %}border-white/5{% endif %}">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-base font-black text-white">{{ t('web.creator.plan_free_name', lang) }}</h3>
+          {% if plan_view.is_free %}
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">پلن فعلی شما</span>
+          {% endif %}
         </div>
-        <div class="min-w-0">
-          <p class="text-sm font-semibold text-slate-100 truncate">{{ inv.kind_label }}</p>
-          <p class="text-[0.7rem] text-slate-500" dir="ltr">#{{ inv.number }}</p>
-        </div>
+        <p class="text-xs text-slate-400 mb-4">{{ t('web.creator.plan_free_desc', lang) }}</p>
+
+        <ul class="space-y-2.5 text-xs text-slate-300 border-t border-white/5 pt-4">
+          <li class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>مجموع مخاطبان تا ۱۰۰۰ نفر</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>بدون نمایش تبلیغات</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>۲ پیام گروهی رایگان</span>
+          </li>
+        </ul>
       </div>
-      <div class="text-left flex-none">
-        <p class="text-sm font-bold text-white" dir="ltr">{{ inv.amount }} {{ t('web.creator.toman', lang) }}</p>
-        <p class="text-[0.7rem] {% if inv.status == 'PAID' %}text-emerald-400{% else %}text-amber-400{% endif %}">{{ inv.status_label }}</p>
+      <div class="pt-6">
+        <span class="text-xs text-slate-500 block text-center">پیش‌فرض برای تمام سازندگان</span>
       </div>
     </div>
-    {% endfor %}
+
+    <!-- Basic -->
+    <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border {% if plan_view.is_basic %}border-amber-500/50 bg-amber-500/5{% else %}border-white/5{% endif %}">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-base font-black text-white">{{ t('web.creator.plan_basic_name', lang) }}</h3>
+          {% if plan_view.is_basic %}
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-bold">پلن فعلی شما</span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-slate-400 mb-4">{{ t('web.creator.plan_basic_desc', lang) }}</p>
+
+        <ul class="space-y-2.5 text-xs text-slate-300 border-t border-white/5 pt-4">
+          <li class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>مخاطبان بالای ۱۰۰۰ نفر بدون توقف</span>
+          </li>
+          <li class="flex items-center gap-2 text-slate-400">
+            <span class="text-amber-400 font-bold">•</span>
+            <span>نمایش پیام‌های فرهنگی خدمتگزاران</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-emerald-400 font-bold">✓</span>
+            <span>امکان ارسال پیام گروهی</span>
+          </li>
+        </ul>
+      </div>
+      <div class="pt-6">
+        <span class="text-xs text-slate-500 block text-center">ارتقای خودکار پس از ۱۰۰۰ مخاطب</span>
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div class="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border border-fuchsia-500/30 bg-gradient-to-b from-fuchsia-950/20 to-slate-900/60 shadow-xl">
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-base font-black text-white">{{ t('web.creator.plan_pro_name', lang) }}</h3>
+          {% if plan_view.is_pro %}
+          <span class="text-xs px-2.5 py-0.5 rounded-full bg-fuchsia-500/20 text-fuchsia-300 font-bold">پلن فعلی شما</span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-fuchsia-300/80 mb-4">{{ t('web.creator.plan_pro_desc', lang) }}</p>
+
+        <ul class="space-y-2.5 text-xs text-slate-300 border-t border-white/5 pt-4">
+          <li class="flex items-center gap-2">
+            <span class="text-fuchsia-400 font-bold">✓</span>
+            <span class="font-bold text-white">مخاطبان کاملاً نامحدود</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-fuchsia-400 font-bold">✓</span>
+            <span>بدون نمایش هرگونه تبلیغ به اعضا</span>
+          </li>
+          <li class="flex items-center gap-2">
+            <span class="text-fuchsia-400 font-bold">✓</span>
+            <span>ارسال نامحدود پیام گروهی تلگرام و بله</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="pt-6">
+        {% if not plan_view.is_pro %}
+        <form method="post" action="/creator/wallet/buy-pro" class="space-y-2 m-0" onsubmit="return confirm('آیا از خرید پلن حرفه‌ای اطمینان دارید؟ هزینه از موجودی کیف پول کسر می‌گردد.');">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="text" name="coupon_code" placeholder="کد تخفیف (اختیاری)" class="input-field text-xs py-1.5 text-center">
+          <button type="submit" class="btn-primary w-full justify-center text-xs py-2.5 bg-gradient-to-r from-fuchsia-600 to-pink-600">
+            <span>ارتقا به پلن حرفه‌ای</span>
+          </button>
+        </form>
+        {% else %}
+        <div class="p-2.5 rounded-xl bg-fuchsia-500/15 text-center text-xs font-bold text-fuchsia-300 border border-fuchsia-500/20">
+          پلن حرفه‌ای برای شما فعال است ✨
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
-  {% else %}
-  <div class="glass-panel p-8 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
-    <p>{{ t('web.creator.wallet_no_invoices', lang) }}</p>
-  </div>
-  {% endif %}
 </section>
+
 {% endblock %}
