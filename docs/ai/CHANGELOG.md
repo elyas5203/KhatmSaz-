@@ -1,3 +1,7 @@
+## 2026-10-11 — Antigravity — PhoneClaim e164 Attribute Fix & None-Safe Session Queries
+- **Users 360-Degree View AttributeError Fix (`/users`):** Fixed `AttributeError: 'PhoneClaim' object has no attribute 'phone_e164'` in `src/khatmsaz/web/app.py:2400` when listing users with verified phone claims. Correct attribute on `PhoneClaim` is `e164`. Added None checks on `session.get` calls in `phone_verifications`, `broadcasts_page`, and `creator_requests_page`, eliminating SQLAlchemy `SAWarning: fully NULL primary key identity cannot load any object`.
+- **Validation:** 372 passed, 230 skipped (100% green, 0 failures).
+
 ## 2026-10-11 — Antigravity — Khatm Model pending_lan_approval Column & Self-Healing Migration
 - **Khatm Model pending_lan_approval Fix (`BUG-03` / Web App 500 Crash):** Fixed `AttributeError: type object 'Khatm' has no attribute 'pending_lan_approval'` when loading `/` (dashboard) and `/khatms` in the Admin Panel / Mini-App. Added `pending_lan_approval: Mapped[bool]` to `Khatm` model in `models.py`, added Alembic revision `laan2026101101_add_pending_lan_approval.py`, added self-healing DDL in `bootstrap.py` on startup (`ALTER TABLE khatms ADD COLUMN IF NOT EXISTS pending_lan_approval BOOLEAN DEFAULT FALSE;`), wired it into `repository.py` and `khatm_workflow.service.py`, and added comprehensive unit tests in `tests/test_laan_moderation_flow.py`.
 - **Validation:** 371 passed, 230 skipped (100% green, 0 failures).

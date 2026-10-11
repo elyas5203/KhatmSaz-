@@ -1,3 +1,11 @@
+## Current state — 2026-10-11 — PhoneClaim e164 Attribute Fix & None-Safe Session Queries [Antigravity]
+- **Users 360-Degree View AttributeError Fix (`/users`):**
+  - Resolved `AttributeError: 'PhoneClaim' object has no attribute 'phone_e164'` in `src/khatmsaz/web/app.py:2400` which crashed the `/users` tab when loading users with verified phone claims. Correct attribute on `PhoneClaim` is `e164`.
+  - Added string-safe plan resolution in `user_rows` (`getattr(plans_map.get(u.id, "FREE"), "value", str(plans_map.get(u.id, "FREE")))`).
+  - Added None-safety checks for primary/foreign keys in `phone_verifications`, `broadcasts_page`, and `creator_requests_page` (`session.get` / `find_by_id` only if ID is not None), eliminating SQLAlchemy `SAWarning: fully NULL primary key identity cannot load any object`.
+  - Added unit test in `tests/test_panel_redesign.py` and updated integration test in `tests/test_admin_web_integration.py`.
+- **Validation:** 372 passed, 230 skipped (100% green, 0 failures).
+
 ## Current state — 2026-10-11 — Khatm Model pending_lan_approval Column & Self-Healing Migration [Antigravity]
 - **Khatm Model pending_lan_approval Fix (`BUG-03` / Web App 500 Crash):**
   - Resolved `AttributeError: type object 'Khatm' has no attribute 'pending_lan_approval'` which crashed `/` (dashboard) and `/khatms` when opening the Web Admin / Mini-App.

@@ -2397,7 +2397,7 @@ async def users(request: Request, q: str = "", page: int = 1):
                 ).scalars()
             }
             phones_map = {
-                p.user_id: p.phone_e164
+                p.user_id: p.e164
                 for p in (
                     await session.execute(
                         select(PhoneClaim).where(
@@ -2425,7 +2425,7 @@ async def users(request: Request, q: str = "", page: int = 1):
                 "phone": phones_map.get(u.id)
                 or (settings_map[u.id].contact_phone if u.id in settings_map else "")
                 or "",
-                "plan": plans_map.get(u.id, "FREE"),
+                "plan": getattr(plans_map.get(u.id, "FREE"), "value", str(plans_map.get(u.id, "FREE"))),
                 "balance": wallets_map[u.id].balance_toman if u.id in wallets_map else 0,
                 "credit": wallets_map[u.id].credit_toman if u.id in wallets_map else 0,
             }
@@ -2566,8 +2566,8 @@ async def phone_verifications(request: Request):
         pending = await manual_phone_repository.list_pending(session)
         rows = []
         for item in pending:
-            user = await identity_service.find_by_id(session, item.user_id)
-            profile = await session.get(UserSettings, item.user_id)
+            user = await identity_service.find_by_id(session, item.user_id) if item.user_id else None
+            profile = await session.get(UserSettings, item.user_id) if item.user_id else None
             rows.append(
                 {
                     "item": item,
@@ -2659,8 +2659,8 @@ async def broadcasts_page(request: Request):
             pending = [item for item in pending if query in str(item.id).lower()]
         rows = []
         for item in pending:
-            khatm = await session.get(Khatm, item.khatm_id)
-            creator = await identity_service.find_by_id(session, item.creator_user_id)
+            khatm = await session.get(Khatm, item.khatm_id) if item.khatm_id else None
+            creator = await identity_service.find_by_id(session, item.creator_user_id) if item.creator_user_id else None
             rows.append(
                 {
                     "item": item,
@@ -2909,8 +2909,8 @@ async def creator_requests_page(request: Request):
         pending = await creator_request_service.list_pending(session, limit=100)
         rows = []
         for item in pending:
-            user = await identity_service.find_by_id(session, item.user_id)
-            profile = await session.get(UserSettings, item.user_id)
+            user = await identity_service.find_by_id(session, item.user_id) if item.user_id else None
+            profile = await session.get(UserSettings, item.user_id) if item.user_id else None
             rows.append({
                 "item": item,
                 "user": user,
