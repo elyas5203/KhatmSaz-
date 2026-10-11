@@ -43,6 +43,7 @@ from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.notification.models import NotificationKind
 from khatmsaz.modules.participation import repository as participation_repository
 from khatmsaz.modules.participation import service as participation_service
+from khatmsaz.modules.participation.models import ParticipationStatus
 from khatmsaz.modules.settings import service as settings_service
 
 
