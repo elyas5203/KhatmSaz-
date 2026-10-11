@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.core.ids import new_id
@@ -45,6 +45,7 @@ async def create(
     schedule_kind: str = "NONE",
     schedule_value: str | None = None,
     content_category_id=None,
+    pending_lan_approval: bool = False,
 ) -> Khatm:
     khatm = Khatm(
         id=new_id(),
@@ -82,6 +83,7 @@ async def create(
         schedule_kind=schedule_kind,
         schedule_value=schedule_value,
         content_category_id=content_category_id,
+        pending_lan_approval=pending_lan_approval,
     )
     session.add(khatm)
     await session.flush()
@@ -322,8 +324,13 @@ async def list_pending_laan_khatms(session: AsyncSession) -> list[Khatm]:
     stmt = (
         select(Khatm)
         .where(
-            Khatm.status == KhatmStatus.DRAFT,
-            Khatm.description.is_not(None),
+            or_(
+                Khatm.pending_lan_approval.is_(True),
+                and_(
+                    Khatm.status == KhatmStatus.DRAFT,
+                    Khatm.description.is_not(None),
+                ),
+            )
         )
         .order_by(Khatm.created_at.asc())
     )
@@ -344,6 +351,7 @@ async def review_laan_khatm(
     if updated_description is not None and updated_description.strip():
         khatm.description = updated_description.strip()
     khatm.status = KhatmStatus.ACTIVE if approved else KhatmStatus.CANCELLED
+    khatm.pending_lan_approval = False
     await session.flush()
     return khatm
 

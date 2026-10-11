@@ -1,3 +1,13 @@
+## Current state — 2026-10-11 — Khatm Model pending_lan_approval Column & Self-Healing Migration [Antigravity]
+- **Khatm Model pending_lan_approval Fix (`BUG-03` / Web App 500 Crash):**
+  - Resolved `AttributeError: type object 'Khatm' has no attribute 'pending_lan_approval'` which crashed `/` (dashboard) and `/khatms` when opening the Web Admin / Mini-App.
+  - Added `pending_lan_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")` to `Khatm` model in `src/khatmsaz/modules/khatm/models.py`.
+  - Added migration `migrations/versions/laan2026101101_add_pending_lan_approval.py` linked to `khutbah2026100801`.
+  - Added startup self-healing schema migration in `src/khatmsaz/bootstrap.py` (`ALTER TABLE khatms ADD COLUMN IF NOT EXISTS pending_lan_approval BOOLEAN DEFAULT FALSE;`) ensuring the column exists automatically without downtime.
+  - Wired `pending_lan_approval` throughout `repository.create`, `repository.list_pending_laan_khatms`, `repository.review_laan_khatm`, and `khatm_workflow.service.create_khatm`.
+  - Verified with 4 comprehensive unit tests in `tests/test_laan_moderation_flow.py` and updated `tests/test_migration_graph.py`.
+- **Validation:** 371 passed, 230 skipped (100% green, 0 failures).
+
 ## Current state — 2026-10-10 — PayPing Callback Live Fix, Moderation Hub Integration, Plan Entitlements & Scheduler Workers [Antigravity]
 - **PayPing v3 Callback & Wallet Verification Fix (`BUG-23`):**
   - Live server diagnosis proved PayPing was returning `405 Method Not Allowed` on browser GET redirects and `400 Bad Request` on form callbacks due to an invalid expectation of a non-existent `form.get("data")` JSON string.

@@ -285,6 +285,7 @@ async def create_and_launch_khatm(
         schedule_value=schedule_value,
         visibility=visibility,
         allowed_platforms=allowed_platforms,
+        pending_lan_approval=require_admin_approval,
         **extra,
         start_at=start_at,
         end_at=end_at,

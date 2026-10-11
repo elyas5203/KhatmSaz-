@@ -2178,7 +2178,10 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     target_msg = message if isinstance(message, Message) else message.message
     
     # DEC-PY-0118 (BUG-03): Custom La'an khatms stay DRAFT until approved by an admin.
-    if khatm is not None and khatm.status == KhatmStatus.DRAFT:
+    if khatm is not None and (
+        khatm.status == KhatmStatus.DRAFT
+        or getattr(khatm, "pending_lan_approval", False) is True
+    ):
         await target_msg.answer(
             f"⏳ ختم «{khatm.title}» شما ثبت شد و متن ذکر لعن سفارشی برای بررسی و تأیید مدیر ارسال گردید.\n\n"
             "تا پیش از تأیید مدیر، عضوگیری در این ختم غیرفعال است و به‌محض تأیید، کارت و لینک دعوت همین‌جا برایتان ارسال خواهد شد 🌱",

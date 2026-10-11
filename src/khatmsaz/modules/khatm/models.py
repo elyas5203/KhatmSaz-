@@ -142,6 +142,9 @@ class Khatm(Base):
     # PUBLIC khatms appear in /public_khatms.
     visibility: Mapped[KhatmVisibility] = mapped_column(default=KhatmVisibility.UNLISTED)
     
+    # DEC-PY-0118 (BUG-03): Custom La'an khatms pending admin moderation
+    pending_lan_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    
     # "BOTH" (default), "TELEGRAM", or "BALE"
     allowed_platforms: Mapped[str] = mapped_column(String(16), default="BOTH")
     

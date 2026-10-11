@@ -55,4 +55,8 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     assert khutbah is not None
     assert khutbah.down_revision == "share2026100501"
 
-    assert script.get_heads() == ["khutbah2026100801"]
+    laan = script.get_revision("laan2026101101")
+    assert laan is not None
+    assert laan.down_revision == "khutbah2026100801"
+
+    assert script.get_heads() == ["laan2026101101"]
