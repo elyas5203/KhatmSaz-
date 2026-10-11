@@ -528,7 +528,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     confirmation = completion_text(
         khatm, family,
         label,
-        invite_line=invite_line, progress_snippet=snippet, lang=lang,
+        invite_line=invite_line, lang=lang,
     )
     if plan_completed:
         await callback.message.answer(
@@ -563,6 +563,8 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
                 khatm_id, allow_snooze=allow_snooze, undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
             ),
         )
+    if snippet:
+        await callback.message.answer(snippet)
     await safe_answer_callback(callback)
 
 

@@ -1,3 +1,14 @@
+## Current state — 2026-10-11 — Post-Completion Two-Message Flow (Confirmation + Invite Link & Progress Report) & MASTER-07 Update [Antigravity]
+- **Two Separate Post-Completion Messages (`DEC-PY-0120`):**
+  - Updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md` to specify two distinct messages upon completing a portion:
+    - **Message 1 (Confirmation + Invite Link):** Sends `completion_text(..., invite_line=invite_line)` thanking the member, logging the portion under the khatm's niyyat, and including the direct member-bot invitation link (`_invite_friends_line`) so members can invite friends to share in the reward.
+    - **Message 2 (Progress Report):** Sent immediately after Message 1 as a separate standalone message containing `build_motivational_progress_snippet` (progress before today, today's recitations, total completed, and percentage).
+- **Removed "Read Another Portion" Button:**
+  - Completely removed `[📖 خواندن یک سهم دیگر]` (`today_pick:{part.id}`) inline keyboard from `complete_share` and `confirm_regular_occurrence` in `src/khatmsaz/bot/handlers/member_commitment.py` (also fixing an undefined `part` reference in `confirm_regular_occurrence`).
+- **Removed 14:00 Scheduled Broadcast to Members:**
+  - Disconnected `deliver_member_daily_digests` from `src/khatmsaz/modules/reminder_engine/service.py:run_once` so members do not receive an unsolicited broadcast at 14:00; instead, progress reports are delivered on-demand right after portion completion.
+- **Validation:** 6 passed in `tests/test_member_daily_digest.py` (including `test_complete_share_sends_two_separate_messages_without_extra_button`), full test suite 100% green.
+
 ## Current state — 2026-10-11 — Ground-Up Redesign of Creator Panel & Master-08 Implementation [Antigravity]
 - **Creator Panel Ground-Up Redesign (MASTER-08):**
   - Authored Master Document `docs/ai/masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md` covering Creator persona, complete architecture, audit gap analysis, 7-page UI/UX specifications, endpoints, and regression safeguards.

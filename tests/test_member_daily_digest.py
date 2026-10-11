@@ -113,12 +113,91 @@ async def test_motivational_progress_snippet_and_completion_text():
         assert "مجموع قرائت‌شده: <b>۷،۰۰۰ صلوات</b> از <b>۱۴،۰۰۰ صلوات</b>" in snippet
         assert "۵۰.۰٪" in snippet
 
-        full_msg = completion_text(
-            khatm, "salawat", "۱۰۰ صلوات", progress_snippet=snippet, lang="fa"
+        invite_line = "\n\nبا ارسال این لینک برای دوستانتون، اون‌ها رو هم به مشارکت در همین ثواب دعوت کنید:\nhttps://t.me/salawat_Khatm_fa_bot?start=join_abc"
+        msg1 = completion_text(
+            khatm, "salawat", "۱۰۰ صلوات", invite_line=invite_line, lang="fa"
         )
-        assert "✅ ۱۰۰ صلوات انجام شد." in full_msg
-        assert "روند پیشرفت کلی این ختم" in full_msg
-        assert "خداوند از شما قبول فرماید. با تشکر." in full_msg
+        assert "✅ ۱۰۰ صلوات انجام شد." in msg1
+        assert "خداوند از شما قبول فرماید. با تشکر." in msg1
+        assert "https://t.me/salawat_Khatm_fa_bot?start=join_abc" in msg1
+        assert "روند پیشرفت کلی این ختم" not in msg1
+
+
+@pytest.mark.asyncio
+async def test_complete_share_sends_two_separate_messages_without_extra_button():
+    """Verify complete_share sends Message 1 (Confirmation + Invite Link) and Message 2 (Progress Report) separately without 'read another portion' button."""
+    from khatmsaz.bot.handlers.member_commitment import complete_share
+
+    oid = uuid.uuid4()
+    uid = uuid.uuid4()
+    pid = uuid.uuid4()
+    kid = uuid.uuid4()
+    bid = uuid.uuid4()
+
+    callback = MagicMock()
+    callback.data = f"share_done:{oid}"
+    callback.from_user.id = 123456
+    callback.message.bot.khatmsaz_platform = Platform.TELEGRAM
+    callback.message.bot.khatmsaz_role = "MEMBER"
+    callback.message.bot.khatmsaz_instance_id = bid
+    callback.message.answer = AsyncMock()
+
+    user = MagicMock(id=uid)
+    part = MagicMock(id=pid, user_id=uid, khatm_id=kid)
+    khatm = MagicMock(spec=Khatm)
+    khatm.id = kid
+    khatm.creator_user_id = uid
+    khatm.title = "آزمایشی"
+    khatm.niyyat = "سلامتی و فرج امام عصر علیه السلام"
+    khatm.template_type = KhatmTemplateType.SALAWAT
+    khatm.repetition_target = 14
+    khatm.content_category_id = None
+
+    occurrence = MagicMock()
+    occurrence.id = oid
+    occurrence.participation_id = pid
+    occurrence.bot_instance_id = bid
+    occurrence.amount = 1
+    occurrence.unit = "COUNT"
+    occurrence.content_spec = {"family": "salawat", "language": "fa"}
+
+    mock_session = AsyncMock(spec=AsyncSession)
+    mock_cm = AsyncMock()
+    mock_cm.__aenter__.return_value = mock_session
+    mock_cm.__aexit__.return_value = False
+
+    with (
+        patch("khatmsaz.bot.handlers.member_commitment.session_scope", return_value=mock_cm),
+        patch("khatmsaz.bot.handlers.member_commitment.identity_service.resolve_or_provision_user", new=AsyncMock(return_value=user)),
+        patch("khatmsaz.modules.share_occurrence.repository.get", new=AsyncMock(return_value=occurrence)),
+        patch("khatmsaz.bot.handlers.member_commitment.participation_service.get_by_id", new=AsyncMock(return_value=part)),
+        patch("khatmsaz.bot.handlers.member_commitment.khatm_service.get_khatm_for_update", new=AsyncMock(return_value=khatm)),
+        patch("khatmsaz.modules.share_occurrence.service.complete", new=AsyncMock(return_value=(occurrence, True))),
+        patch("khatmsaz.bot.occurrence_adapter.cleanup", new=AsyncMock()),
+        patch("khatmsaz.bot.handlers.member_commitment.safe_answer_callback", new=AsyncMock()),
+        patch("khatmsaz.bot.handlers.portions._invite_friends_line", new=AsyncMock(return_value="\n\nبا ارسال این لینک برای دوستانتون، اون‌ها رو هم به مشارکت در همین ثواب دعوت کنید:\nhttps://t.me/test_bot?start=join_tok")),
+        patch("khatmsaz.bot.member_copy.build_motivational_progress_snippet", new=AsyncMock(return_value="📊 <b>روند پیشرفت کلی این ختم:</b>\n▫️ قرائت تا دیروز: ۰ صلوات\n▫️ قرائت‌های امروز: ۱ صلوات\n▫️ مجموع قرائت‌شده: <b>۱ صلوات</b> از <b>۱۴ صلوات</b> (پیشرفت: <b>۷.۱٪</b>)")),
+    ):
+        await complete_share(callback)
+
+    assert callback.message.answer.call_count == 2
+    first_call_args, first_call_kwargs = callback.message.answer.call_args_list[0]
+    second_call_args, second_call_kwargs = callback.message.answer.call_args_list[1]
+
+    msg1_text = first_call_args[0]
+    msg2_text = second_call_args[0]
+
+    # Message 1: Confirmation + Invite link, NO progress snippet, NO button
+    assert "با سلام 🌱" in msg1_text
+    assert "اعلام شما در سیستم ثبت شد" in msg1_text
+    assert "https://t.me/test_bot?start=join_tok" in msg1_text
+    assert "روند پیشرفت کلی این ختم" not in msg1_text
+    assert first_call_kwargs.get("reply_markup") is None
+
+    # Message 2: Progress report snippet, NO button
+    assert "📊 <b>روند پیشرفت کلی این ختم:</b>" in msg2_text
+    assert "مجموع قرائت‌شده" in msg2_text
+    assert second_call_kwargs.get("reply_markup") is None
 
 
 @pytest.mark.asyncio

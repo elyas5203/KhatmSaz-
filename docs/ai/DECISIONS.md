@@ -5,6 +5,18 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0120 — Post-completion two-message flow (Confirmation + Invite Link, then separate Progress Report), removal of 'read another portion' button, and removal of 14:00 member broadcast
+
+**Date:** 2026-10-11
+**Owner confirmation:**
+1. **Separate Confirmation & Progress Report Messages:** Upon clicking the share completion button (`share_done:`, `regular_done:`, `regular_early_done:`, `done:`), the bot must send **two separate messages** in sequence:
+   - **Message 1 (Confirmation + Invite Link):** Thanks the member, confirms the portion is logged in the khatm and niyyat, and includes the direct member-bot invitation link (`_invite_friends_line`) encouraging the member to invite friends to share in the reward.
+   - **Message 2 (Progress Report):** Sent immediately after Message 1 as a standalone message displaying overall khatm progress (`build_motivational_progress_snippet`: before today, today's recitations, total completed, and percentage).
+2. **Remove "Read Another Portion" Button:** The inline button `[📖 خواندن یک سهم دیگر]` (`today_pick:{part.id}`) is completely removed from post-completion messages.
+3. **No 14:00 Scheduled Broadcast to Members:** The automatic 14:00 daily digest broadcast to members (`deliver_member_daily_digests`) is disconnected from `reminder_engine/service.py:run_once`. Members receive the progress report on-demand immediately upon completing their portion rather than at 14:00.
+
+---
+
 ### DEC-PY-0119 — Creator Web Panel ground-up redesign, Mobile-First navigation, bot invite link generation, and zero-confusion UX
 
 **Date:** 2026-10-11
