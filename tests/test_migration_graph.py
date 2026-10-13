@@ -59,4 +59,12 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     assert laan is not None
     assert laan.down_revision == "khutbah2026100801"
 
-    assert script.get_heads() == ["laan2026101101"]
+    receipt = script.get_revision("receipt2026101301")
+    assert receipt is not None
+    assert receipt.down_revision == "laan2026101101"
+
+    proplan = script.get_revision("proplan2026101302")
+    assert proplan is not None
+    assert proplan.down_revision == "receipt2026101301"
+
+    assert script.get_heads() == ["proplan2026101302"]

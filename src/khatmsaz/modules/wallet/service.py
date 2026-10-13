@@ -45,8 +45,8 @@ class InvalidCouponError(Exception):
     """A coupon is missing, inactive, out of range, or over its limit."""
 
 
-async def get_or_create_wallet(session: AsyncSession, user_id) -> Wallet:
-    wallet = await repository.get_by_user(session, user_id)
+async def get_or_create_wallet(session: AsyncSession, user_id, *, for_update: bool = False) -> Wallet:
+    wallet = await repository.get_by_user(session, user_id, for_update=for_update)
     if wallet is not None:
         return wallet
     return await repository.create_for_user(session, user_id)
@@ -109,7 +109,7 @@ async def spend(
     if gross <= 0 or discount_amount_toman < 0 or gross - discount_amount_toman != amount:
         raise ValueError("invoice amounts do not reconcile")
 
-    wallet = await get_or_create_wallet(session, user_id)
+    wallet = await get_or_create_wallet(session, user_id, for_update=True)
     total_available = wallet.balance_toman + wallet.credit_toman
     if total_available < amount:
         raise InsufficientFundsError(

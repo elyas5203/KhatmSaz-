@@ -371,6 +371,7 @@ async def main() -> None:
 
     async def _run_reminder_scan() -> None:
         runtime_status.mark_scan_started()
+        errors = []
         try:
             async with session_scope() as session:
                 await reminder_engine.run_once(
@@ -381,16 +382,34 @@ async def main() -> None:
                     monthly_report_hour=settings.monthly_report_hour,
                     send_quran_pages=send_quran_pages,
                 )
+        except Exception as exc:
+            logger.exception("Error in reminder_engine scan: %s", exc)
+            errors.append(exc)
+
+        try:
             async with session_scope() as session:
                 await sms_subscription_service.process_expired(session, notify)
+        except Exception as exc:
+            logger.exception("Error in sms_subscription_service scan: %s", exc)
+            errors.append(exc)
+
+        try:
             async with session_scope() as session:
                 await wallet_service.cleanup_expired_pending_payments(session)
+        except Exception as exc:
+            logger.exception("Error in cleanup_expired_pending_payments scan: %s", exc)
+            errors.append(exc)
+
+        try:
             async with session_scope() as session:
                 from khatmsaz.modules.plan import service as plan_service
                 await plan_service.process_plan_expirations_and_reminders(session, notify)
         except Exception as exc:
-            runtime_status.mark_scan_failed(exc)
-            raise
+            logger.exception("Error in plan expirations/reminders scan: %s", exc)
+            errors.append(exc)
+
+        if errors:
+            runtime_status.mark_scan_failed(errors[0])
         else:
             runtime_status.mark_scan_succeeded()
 

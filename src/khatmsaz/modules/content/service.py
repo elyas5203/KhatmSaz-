@@ -144,6 +144,18 @@ async def register_quran_page_asset(
     if not asset_ref.strip():
         raise ValueError("asset_ref is required")
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await register_quran_page_asset(
+            session, edition_id=edition_id, page_number=page_number,
+            kind=kind, asset_ref=asset_ref, reciter_id=reciter_id,
+            asset_platform="TELEGRAM",
+        )
+        await register_quran_page_asset(
+            session, edition_id=edition_id, page_number=page_number,
+            kind=kind, asset_ref=asset_ref, reciter_id=reciter_id,
+            asset_platform="BALE",
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     row = QuranPageAsset(
@@ -393,6 +405,9 @@ async def register_devotional_audio(
 ) -> DevotionalAsset:
     slug = slug.strip().lower()
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        await register_devotional_audio(session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM")
+        return await register_devotional_audio(session, slug=slug, asset_ref=asset_ref, asset_platform="BALE")
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     row = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
@@ -413,6 +428,9 @@ async def register_devotional_image(
     text (owner request, 2026-09-22)."""
     slug = slug.strip().lower()
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        await register_devotional_image(session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM")
+        return await register_devotional_image(session, slug=slug, asset_ref=asset_ref, asset_platform="BALE")
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     row = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
@@ -446,6 +464,16 @@ async def add_devotional_audio_variant(
     audio ever needs."""
     asset = await _get_enabled_devotional_asset(session, slug)
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await add_devotional_audio_variant(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM",
+            reciter_id=reciter_id, reciter_label=reciter_label,
+        )
+        await add_devotional_audio_variant(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE",
+            reciter_id=reciter_id, reciter_label=reciter_label,
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -479,6 +507,14 @@ async def add_devotional_image_page(
     highest existing page (1 if there are none yet)."""
     asset = await _get_enabled_devotional_asset(session, slug)
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await add_devotional_image_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM", page_number=page_number,
+        )
+        await add_devotional_image_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE", page_number=page_number,
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -515,6 +551,14 @@ async def set_devotional_pdf(
     one slot per (asset, platform), replaced on re-upload."""
     asset = await _get_enabled_devotional_asset(session, slug)
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await set_devotional_pdf(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM",
+        )
+        await set_devotional_pdf(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE",
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -544,7 +588,7 @@ async def list_devotional_audio_variants(session: AsyncSession, slug: str, asset
     result = await session.execute(
         select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "AUDIO",
-            DevotionalMedia.asset_platform == asset_platform.upper(),
+            DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"]),
         ).order_by(DevotionalMedia.created_at)
     )
     return list(result.scalars())
@@ -557,7 +601,7 @@ async def list_devotional_image_pages(session: AsyncSession, slug: str, asset_pl
     result = await session.execute(
         select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "IMAGE",
-            DevotionalMedia.asset_platform == asset_platform.upper(),
+            DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"]),
         ).order_by(DevotionalMedia.page_number)
     )
     return list(result.scalars())
@@ -572,7 +616,7 @@ async def list_devotional_video_pages(session: AsyncSession, slug: str, asset_pl
     result = await session.execute(
         select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "VIDEO",
-            DevotionalMedia.asset_platform == asset_platform.upper(),
+            DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"]),
         ).order_by(DevotionalMedia.page_number)
     )
     return list(result.scalars())
@@ -679,6 +723,16 @@ async def add_devotional_video_page(
         await session.flush()
 
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await add_devotional_video_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM",
+            page_number=page_number, caption=caption,
+        )
+        await add_devotional_video_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE",
+            page_number=page_number, caption=caption,
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -734,6 +788,16 @@ async def add_devotional_pdf_page(
         session.add(asset)
         await session.flush()
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await add_devotional_pdf_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM",
+            page_number=page_number, caption=caption,
+        )
+        await add_devotional_pdf_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE",
+            page_number=page_number, caption=caption,
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -790,6 +854,16 @@ async def add_devotional_audio_page(
         session.add(asset)
         await session.flush()
     asset_platform = asset_platform.upper().strip()
+    if asset_platform in {"BOTH", "ALL"}:
+        row_tg = await add_devotional_audio_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="TELEGRAM",
+            page_number=page_number, caption=caption, reciter_id=reciter_id,
+        )
+        await add_devotional_audio_page(
+            session, slug=slug, asset_ref=asset_ref, asset_platform="BALE",
+            page_number=page_number, caption=caption, reciter_id=reciter_id,
+        )
+        return row_tg
     if asset_platform not in {"TELEGRAM", "BALE"}:
         raise ValueError("unsupported asset platform")
     if not asset_ref.strip():
@@ -844,7 +918,7 @@ async def list_devotional_media_for_part(
             select(DevotionalMedia).where(
                 DevotionalMedia.devotional_asset_id == asset.id,
                 DevotionalMedia.page_number == page_number,
-                DevotionalMedia.asset_platform == asset_platform.upper().strip(),
+                DevotionalMedia.asset_platform.in_([asset_platform.upper().strip(), "BOTH"]),
             ).order_by(
                 case(
                     (DevotionalMedia.kind == "VIDEO", 1),
@@ -875,7 +949,7 @@ async def get_devotional_pdf(
             return None
         query = select(DevotionalMedia).where(
             DevotionalMedia.devotional_asset_id == asset.id, DevotionalMedia.kind == "PDF",
-            DevotionalMedia.asset_platform == asset_platform.upper(),
+            DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"]),
         )
         if page_number is not None:
             query = query.where(DevotionalMedia.page_number == page_number)

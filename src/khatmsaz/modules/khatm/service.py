@@ -176,6 +176,10 @@ async def set_schedule(session: AsyncSession, *, khatm_id, creator_user_id, raw:
         kind, stored = "NONE", None
     elif value == "daily":
         kind, stored = "DAILY", None
+    elif value == "workdays":
+        kind, stored = "WEEKLY", "0,1,2,3,4"
+    elif value == "weekend":
+        kind, stored = "WEEKLY", "5,6"
     elif value.startswith("weekly:"):
         days = value.removeprefix("weekly:").split(",")
         if not days or any(not d.isdigit() or not 0 <= int(d) <= 6 for d in days):

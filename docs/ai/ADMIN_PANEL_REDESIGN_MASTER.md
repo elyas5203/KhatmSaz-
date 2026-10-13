@@ -7,21 +7,33 @@
 
 ## 🌳 ۱. نقشهٔ درختی اسناد «والد و ولید» (مادر و فرزندی)
 
-این سند **ریشه و مادر (Parent Master)** کل معماری پنل مدیریت جدید و مستندات سیستم است. تمام جزئیات تخصصی هر زیرسیستم در **۴ مستر فرزند (Child Masters)** و **۱ مستر گزارش باگ‌ها** تفکیک و لینک‌دهی شده‌اند:
+این سند **ریشه و مادر (Parent Master)** کل معماری پنل مدیریت جدید و مستندات سیستم است. تمام جزئیات تخصصی هر زیرسیستم در **۱۰ مستر فرزند (Child Masters)** و **۱ مستر گزارش باگ‌ها** تفکیک و لینک‌دهی شده‌اند:
 
 ```mermaid
 flowchart TD
     P["🏛 مستر مادر (همین سند)\ndocs/ai/ADMIN_PANEL_REDESIGN_MASTER.md\nمعماری کلان کوبیدن و نوسازی ۱۰۰٪ پنل ادمین و پنل سازنده"]
-    C1["📘 مستر فرزند ۰۱\ndocs/ai/masters/MASTER_01_KHATM_ENGINE_AND_MODES.md\nموتور ختم‌ها، انواع ختم، تعهدی/آزاد و سهم‌بندی"]
-    C2["📗 مستر فرزند ۰۲\ndocs/ai/masters/MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md\nمدیریت محتوا، ادعیه، خطبه، صفحات قرآن، قالب‌ها و آپلود رسانه"]
-    C3["📙 مستر فرزند ۰۳\ndocs/ai/masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md\nپلن‌های پولی/رایگان، کیف پول، درگاه پرداخت، کد تخفیف و تبلیغات"]
-    C4["📕 مستر فرزند ۰۴\ndocs/ai/masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md\nمعماری ۱۴ بات، کاربران، احراز شماره، ۸ صف نظارت و عملیات سرور"]
-    B["🐛 مستر جامع گزارش باگ‌ها و شکاف‌ها\ndocs/ai/MASTER_BUG_AND_GAP_REPORT.md\nلیست خط‌به‌خط ۱۶ باگ بحرانی/مهم و ۱۱ شکاف پنل ادمین"]
+    C1["📘 مستر فرزند ۰۱\nMASTER_01_KHATM_ENGINE_AND_MODES.md\nموتور ختم‌ها، انواع ختم، تعهدی/آزاد و سهم‌بندی"]
+    C2["📗 مستر فرزند ۰۲\nMASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md\nمدیریت محتوا، ادعیه، خطبه، صفحات قرآن و رسانه"]
+    C3["📙 مستر فرزند ۰۳\nMASTER_03_PLANS_BILLING_WALLET_AND_ADS.md\nپلن‌های پولی/رایگان، کیف پول، درگاه و تبلیغات"]
+    C4["📕 مستر فرزند ۰۴\nMASTER_04_BOTS_USERS_MODERATION_AND_OPS.md\nمعماری مولتی‌بات، کاربران و عملیات سرور"]
+    C5["📜 مستر فرزند ۰۵\nMASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md\nختم آزاد، خطبه‌های تدریجی و کپشن ویدیوها"]
+    C6["💳 مستر فرزند ۰۶\nMASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md\nدرگاه پرداخت، پورت‌ها و ریورس‌پروکسی"]
+    C7["📙 مستر فرزند ۰۷\nMASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md\nتفکیک پیام تأیید، لینک دعوت و پیشرفت روزانه"]
+    C8["🎛 مستر فرزند ۰۸\nMASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md\nبازطراحی کامل پنل سازندگان و مینی‌اپ"]
+    C9["📱 مستر فرزند ۰۹\nMASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md\nمبدل مارک‌داون بله و سازگاری پیام‌رسان بله"]
+    C10["💰 مستر فرزند ۱۰\nMASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md\nپیام ۱۰۰۰ تایی، فیش بانکی، دوره ۳۰ روزه پرو و هشدارهای انقضا"]
+    B["🐛 مستر گزارش باگ‌ها\nMASTER_BUG_AND_GAP_REPORT.md\nلیست خط‌به‌خط باگ‌ها و شکاف‌ها"]
 
     P --> C1
     P --> C2
     P --> C3
     P --> C4
+    P --> C5
+    P --> C6
+    P --> C7
+    P --> C8
+    P --> C9
+    P --> C10
     P --> B
 ```
 

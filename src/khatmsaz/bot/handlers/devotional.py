@@ -2,6 +2,7 @@
 
 from html import escape
 from io import BytesIO
+from uuid import UUID
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -24,7 +25,7 @@ def _reciter_picker_keyboard(slug: str, variants: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=f"🎙 {variant.reciter_label or variant.reciter_id or 'قاری'}",
-            callback_data=f"devotional_reciter:{slug}:{variant.reciter_id}",
+            callback_data=f"drec:{variant.id}",
         )]
         for variant in variants
     ])
@@ -181,10 +182,32 @@ async def deliver_devotional_media(
     return has_reading_media
 
 
-@router.callback_query(F.data.startswith("devotional_reciter:"))
+@router.callback_query(F.data.startswith("drec:") | F.data.startswith("devotional_reciter:"))
 async def send_devotional_reciter_choice(callback) -> None:
-    _, slug, reciter_id = callback.data.split(":", 2)
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if callback.data.startswith("drec:"):
+        media_id_str = callback.data.split(":", 1)[1]
+        async with session_scope() as session:
+            try:
+                media = await session.get(content_service.DevotionalMedia, UUID(media_id_str))
+            except (ValueError, TypeError):
+                media = None
+            asset = await session.get(content_service.DevotionalAsset, media.devotional_asset_id) if media else None
+        if media is None or asset is None:
+            await safe_answer_callback(callback, "این صوت دیگر در دسترس نیست.", show_alert=True)
+            return
+        await _send_portable_media(
+            callback.message,
+            kind="AUDIO",
+            asset_ref=media.asset_ref,
+            platform=platform,
+            filename=f"{asset.slug}-{media.reciter_id or 'audio'}.mp3",
+            caption=f"🎙 {media.reciter_label or media.reciter_id} — {escape(asset.title)}",
+        )
+        await safe_answer_callback(callback)
+        return
+
+    _, slug, reciter_id = callback.data.split(":", 2)
     async with session_scope() as session:
         variants = await content_service.list_devotional_audio_variants(session, slug, platform.value)
         asset = await content_service.get_devotional_asset(session, slug)

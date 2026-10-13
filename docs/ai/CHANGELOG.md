@@ -1,3 +1,25 @@
+## 2026-10-13 — Antigravity — Production Stability, Multiplatform Devotionals & Codebase Audit
+- **Multiplatform Devotional Media Registration Fix («ثبت برای هر دو پلتفرم»):**
+  - Resolved `خطا در ثبت فایل: unsupported asset platform` when choosing «هر دو پلتفرم» (`BOTH`) in devotional media uploads (`/devotionals`).
+  - Extended all content registration methods in `src/khatmsaz/modules/content/service.py` (`add_devotional_audio_variant`, `add_devotional_image_page`, `set_devotional_pdf`, `add_devotional_video_page`, `add_devotional_pdf_page`, `add_devotional_audio_page`, `register_devotional_audio`, `register_devotional_image`, `register_quran_page_asset`) to support `BOTH` and `ALL` by registering for both `TELEGRAM` and `BALE`.
+  - Updated lookup queries to match `DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"])`.
+- **Production Crash Fix (`PlanTier` NameError in `wallet.py`):**
+  - Fixed runtime crash `NameError: name 'PlanTier' is not defined` in `src/khatmsaz/bot/handlers/wallet.py:143` by importing `PlanTier` from `khatmsaz.modules.plan.models`.
+- **Telegram 64-Byte Callback Overflows Shortened & Synced:**
+  - `creator_schedule_keyboard`: Shortened `weekly:0,1,2,3,4` to `workdays` and `weekly:5,6` to `weekend`; added handler parsing in `khatm_service.set_schedule`.
+  - `portion_done_keyboard` & `post_completion_keyboard`: Shortened `undo:{undo_completed_id}:{next_id}` to `undo:{undo_completed_id}`; updated handler to safely unpack 2-part and 3-part callbacks.
+  - `devotional._reciter_picker_keyboard`: Shortened `devotional_reciter:{slug}:{variant.reciter_id}` to `drec:{variant.id}`; updated handler to resolve via `DevotionalMedia.id`.
+- **Domain Concurrency & Financial Integrity:**
+  - `wallet_service.spend`: Added `for_update=True` row locking to prevent race conditions on balance deduction.
+  - `broadcast_service`: Bound invoice resource to `broadcast.id` upon submission and invoked `wallet_service.refund_purchase_invoice` on admin rejection, preventing non-cash promotional credits from being converted to real cash.
+  - `plan_repository`: Added `UserPlan.expires_at > now + timedelta(hours=24)` lower bound to `list_needing_7d_reminder`, preventing duplicate 7d and 24h reminders.
+  - `completion_service` & `bootstrap.py`: Wrapped notifications in error handling and isolated the 4 scheduler jobs in independent `try...except` blocks.
+- **Web Form & Route Alignment:**
+  - Handled `new_status or status` and `refund_creator or refund_wallet` in `admin_change_khatm_status`.
+  - Handled `remote_file_id or asset_ref` in `save_quran_asset`.
+  - Fixed Bale invite URL fallback in `app.py` to use `https://ble.ir/{settings.bale_bot_username}?start=join_{token_str}`.
+- **Validation:** Tests passed (`test_mini_app_entry.py`, `test_migration_graph.py`, `test_keyboards.py`, `test_devotional_media_delivery.py`). All files pass syntax compilation.
+
 ## 2026-10-13 — Antigravity — Broadcast Tier Pricing, Bank Receipt Flow, Creator Panel Guard & 30-Day Pro Plan Lifecycle (MASTER-10)
 - **30-Day PRO Plan Lifecycle & Additive Renewal (`DEC-PY-0122`):**
   1. Configured PRO plan duration to 30 days (`_PRO_PLAN_DURATION_DAYS = 30`).

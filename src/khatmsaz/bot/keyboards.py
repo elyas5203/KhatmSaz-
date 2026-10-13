@@ -732,9 +732,8 @@ def portion_done_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -752,9 +751,8 @@ def post_completion_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -1083,8 +1081,8 @@ def creator_schedule_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboard
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("cs.sched.off", lang), callback_data=f"cs:schedule_set:{khatm_id}:off")],
         [InlineKeyboardButton(text=t("cs.sched.daily", lang), callback_data=f"cs:schedule_set:{khatm_id}:daily")],
-        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:0,1,2,3,4")],
-        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:5,6")],
+        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:workdays")],
+        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekend")],
         [InlineKeyboardButton(text=t("cs.sched.every3", lang), callback_data=f"cs:schedule_set:{khatm_id}:every:3")],
         [InlineKeyboardButton(text=t("cs.sched.date", lang), callback_data=f"cs:schedule_date:{khatm_id}")],
         [InlineKeyboardButton(text=t("cs.back", lang), callback_data=f"cs:menu:{khatm_id}")],

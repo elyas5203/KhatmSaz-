@@ -110,9 +110,9 @@ async def submit(
     packages_count = math.ceil(len(users) / 1000)
     cost = packages_count * unit_price
 
-    # Deduct cost from wallet before submitting to moderation queue
+    invoice = None
     if cost > 0:
-        await wallet_service.spend(
+        invoice = await wallet_service.spend(
             session,
             user_id=creator_user_id,
             amount=cost,
@@ -121,7 +121,7 @@ async def submit(
         )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
     bale_media = media_file_id if (has_media and channel == "BALE") else None
-    return await repository.create(
+    broadcast = await repository.create(
         session, khatm_id=khatm_id, creator_user_id=creator_user_id, body=body,
         target_scope="KHATM" if khatm_id else "ALL", channel=channel,
         audience_count=len(users), cost_toman=cost,
@@ -129,6 +129,9 @@ async def submit(
         media_type=media_type if has_media else None,
         media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
+    if invoice is not None:
+        await wallet_service.bind_invoice_resource(session, invoice.id, str(broadcast.id))
+    return broadcast
 
 
 async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
@@ -204,13 +207,21 @@ async def reject(session: AsyncSession, broadcast_id, note: str | None = None) -
     await repository.mark_reviewed(session, item, BroadcastStatus.REJECTED, note)
     # DEC-PY-0121 / MASTER-10: Refund wallet if message is rejected by admin
     if item.cost_toman > 0:
-        await wallet_service.add_cash(
+        refunded = await wallet_service.refund_purchase_invoice(
             session,
             user_id=item.creator_user_id,
-            amount=item.cost_toman,
+            kind=InvoiceKind.PURCHASE,
+            resource_ref=str(item.id),
             description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
-            ref=f"REFUND-BC-{str(item.id)[:8]}",
         )
+        if refunded is None:
+            await wallet_service.add_cash(
+                session,
+                user_id=item.creator_user_id,
+                amount=item.cost_toman,
+                description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
+                ref=f"REFUND-BC-{str(item.id)[:8]}",
+            )
     return item
 
 

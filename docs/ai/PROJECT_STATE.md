@@ -1,3 +1,24 @@
+## Current state — 2026-10-13 — Production Stability, Multiplatform Devotionals & Codebase Audit [Antigravity]
+- **Multiplatform Devotional Media Registration Fix («ثبت برای هر دو پلتفرم»):**
+  - Problem: Uploading devotional media (Ziyarat Ashura, Dua, Khutbah) selecting «هر دو پلتفرم» (`BOTH`) crashed with `خطا در ثبت فایل: unsupported asset platform` because `content_service` strictly validated against `{"TELEGRAM", "BALE"}` and rejected `BOTH`.
+  - Fix: Updated `content_service` across all media registration methods (`add_devotional_audio_variant`, `add_devotional_image_page`, `set_devotional_pdf`, `add_devotional_video_page`, `add_devotional_pdf_page`, `add_devotional_audio_page`, `register_devotional_audio`, `register_devotional_image`, `register_quran_page_asset`) and the web controller `save_devotional_media` in `app.py` to seamlessly handle `BOTH` and `ALL` by registering for both `TELEGRAM` and `BALE`. Updated lookup queries to match `DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"])`.
+- **Production Crash Fix (`PlanTier` NameError in `wallet.py`):**
+  - Fixed runtime crash `NameError: name 'PlanTier' is not defined` in `src/khatmsaz/bot/handlers/wallet.py:143` by adding top-level import `from khatmsaz.modules.plan.models import PlanTier`.
+- **Telegram 64-Byte Callback Overflows Shortened & Synced:**
+  - `creator_schedule_keyboard`: Shortened `weekly:0,1,2,3,4` to `workdays` and `weekly:5,6` to `weekend`; added handler parsing in `khatm_service.set_schedule`.
+  - `portion_done_keyboard` & `post_completion_keyboard`: Shortened `undo:{undo_completed_id}:{next_id}` to `undo:{undo_completed_id}`; updated handler to safely unpack 2-part and 3-part callbacks.
+  - `devotional._reciter_picker_keyboard`: Shortened `devotional_reciter:{slug}:{variant.reciter_id}` (which reached 84+ bytes) to `drec:{variant.id}` (41 bytes); updated handler to resolve via `DevotionalMedia.id`.
+- **Domain Concurrency & Financial Integrity:**
+  - `wallet_service.spend`: Added `for_update=True` row locking via `repository.get_by_user` to prevent double-spending race conditions.
+  - `broadcast_service`: Bound invoice resource to `broadcast.id` upon submission and invoked `wallet_service.refund_purchase_invoice` on admin rejection, preventing non-cash promotional credits from being converted to real cash.
+  - `plan_repository`: Added `UserPlan.expires_at > now + timedelta(hours=24)` lower bound to `list_needing_7d_reminder`, preventing simultaneous duplicate 7d and 24h reminders.
+  - `completion_service` & `bootstrap.py`: Wrapped notifications in error handling and isolated the 4 scheduler jobs in independent `try...except` blocks to prevent external communication errors from halting reminder/plan scans.
+- **Web Form & Route Alignment:**
+  - Handled `new_status or status` and `refund_creator or refund_wallet` in `admin_change_khatm_status`.
+  - Handled `remote_file_id or asset_ref` in `save_quran_asset`.
+  - Fixed Bale invite URL fallback in `app.py` to use `https://ble.ir/{settings.bale_bot_username}?start=join_{token_str}`.
+- **Validation:** Tests passed (`test_mini_app_entry.py`, `test_migration_graph.py`, `test_keyboards.py`, `test_devotional_media_delivery.py`). All files pass syntax compilation.
+
 ## Current state — 2026-10-13 — Broadcast Tier Pricing, Bank Receipt Flow, Creator Panel Guard & 30-Day Pro Plan Lifecycle (MASTER-10) [Antigravity]
 - **30-Day PRO Plan Lifecycle & Additive Renewal (`DEC-PY-0122`):**
   - Configured PRO plan to have a 30-day duration (`_PRO_PLAN_DURATION_DAYS = 30`).

@@ -571,7 +571,9 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("undo:"))
 async def undo_last_completion(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
-    _, completed_id, next_id = callback.data.split(":", 2)
+    parts = callback.data.split(":")
+    completed_id = parts[1]
+    next_id = parts[2] if len(parts) > 2 else "none"
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)

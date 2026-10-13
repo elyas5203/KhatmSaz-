@@ -15,6 +15,7 @@ from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.plan import service as plan_service
+from khatmsaz.modules.plan.models import PlanTier
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import ReceiptClaimStatus

@@ -54,6 +54,9 @@ def test_panel_buttons_request_chat_entry_before_opening_mini_app():
     assert admin_inline.inline_keyboard[0][0].callback_data == "admin:web_login"
     assert admin_inline.inline_keyboard[0][0].web_app is None
 
-    creator_inline = panel.creator_panel_keyboard("fa")
+    creator_inline = panel.creator_panel_keyboard("fa", is_admin=True)
     assert creator_inline.inline_keyboard[0][0].callback_data == "creator:web_login"
     assert creator_inline.inline_keyboard[0][0].web_app is None
+
+    creator_non_admin = panel.creator_panel_keyboard("fa", is_admin=False)
+    assert creator_non_admin.inline_keyboard[0][0].callback_data != "creator:web_login"

@@ -1449,7 +1449,8 @@ async def creator_khatm_detail(
         invite_links_map = build_member_invite_links(bot_cat, token_str, langs=["fa"])
         fa_links = invite_links_map.get("fa", {})
         telegram_invite_url = fa_links.get("telegram") or f"/join/{token_str}"
-        bale_invite_url = fa_links.get("bale") or f"https://ble.ir/join/{token_str}"
+        bale_uname = getattr(settings, "bale_bot_username", None) or "khatmsaz_bot"
+        bale_invite_url = fa_links.get("bale") or f"https://ble.ir/{bale_uname}?start=join_{token_str}"
 
         # Compute progress percentage safely
         if khatm.repetition_target and khatm.repetition_target > 0:
@@ -2339,8 +2340,10 @@ async def admin_change_khatm_status(
     request: Request,
     khatm_id: UUID,
     csrf: str = Form(...),
-    new_status: str = Form(...),
+    new_status: str = Form(""),
+    status: str = Form(""),
     refund_creator: str = Form(""),
+    refund_wallet: str = Form(""),
 ):
     admin, raw = await _admin(
         request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
@@ -2349,18 +2352,20 @@ async def admin_change_khatm_status(
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    if new_status not in {s.value for s in KhatmStatus}:
+    target_status = (new_status or status or "").strip()
+    if target_status not in {s.value for s in KhatmStatus}:
         return HTMLResponse("وضعیت نامعتبر است.", status_code=400)
+    should_refund = (refund_creator == "on") or (refund_wallet == "on")
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
         if khatm is None:
             return HTMLResponse("ختم پیدا نشد.", status_code=404)
-        khatm.status = KhatmStatus(new_status)
-        if new_status == KhatmStatus.COMPLETED.value:
+        khatm.status = KhatmStatus(target_status)
+        if target_status == KhatmStatus.COMPLETED.value:
             khatm.completed_at = datetime.now(tz=ZoneInfo("UTC"))
-        elif new_status == KhatmStatus.CANCELLED.value:
+        elif target_status == KhatmStatus.CANCELLED.value:
             khatm.cancelled_at = datetime.now(tz=ZoneInfo("UTC"))
-            if refund_creator == "on":
+            if should_refund:
                 from khatmsaz.modules.wallet.models import InvoiceKind
                 try:
                     await wallet_service.refund_purchase_invoice(
@@ -3693,41 +3698,44 @@ async def save_devotional_media(
     if not final_ref:
         return HTMLResponse("آدرس فایل یا فایل آپلودی الزامی است.", status_code=400)
 
+    platforms_to_register = ["TELEGRAM", "BALE"] if platform in {"BOTH", "ALL"} else [platform]
+
     async with session_scope() as session:
         try:
-            if kind == "VIDEO":
-                await content_service.add_devotional_video_page(
-                    session,
-                    slug=clean_slug,
-                    asset_ref=final_ref,
-                    asset_platform=platform,
-                    page_number=page_number if page_number > 0 else None,
-                    caption=reciter_label.strip() or None,
-                )
-            elif kind == "AUDIO":
-                await content_service.add_devotional_audio_variant(
-                    session,
-                    slug=clean_slug,
-                    asset_ref=final_ref,
-                    asset_platform=platform,
-                    reciter_id=reciter_id.strip() or "reciter_1",
-                    reciter_label=reciter_label.strip() or None,
-                )
-            elif kind == "IMAGE":
-                await content_service.add_devotional_image_page(
-                    session,
-                    slug=clean_slug,
-                    asset_ref=final_ref,
-                    asset_platform=platform,
-                    page_number=page_number if page_number > 0 else None,
-                )
-            elif kind == "PDF":
-                await content_service.set_devotional_pdf(
-                    session,
-                    slug=clean_slug,
-                    asset_ref=final_ref,
-                    asset_platform=platform,
-                )
+            for p in platforms_to_register:
+                if kind == "VIDEO":
+                    await content_service.add_devotional_video_page(
+                        session,
+                        slug=clean_slug,
+                        asset_ref=final_ref,
+                        asset_platform=p,
+                        page_number=page_number if page_number > 0 else None,
+                        caption=reciter_label.strip() or None,
+                    )
+                elif kind == "AUDIO":
+                    await content_service.add_devotional_audio_variant(
+                        session,
+                        slug=clean_slug,
+                        asset_ref=final_ref,
+                        asset_platform=p,
+                        reciter_id=reciter_id.strip() or "reciter_1",
+                        reciter_label=reciter_label.strip() or None,
+                    )
+                elif kind == "IMAGE":
+                    await content_service.add_devotional_image_page(
+                        session,
+                        slug=clean_slug,
+                        asset_ref=final_ref,
+                        asset_platform=p,
+                        page_number=page_number if page_number > 0 else None,
+                    )
+                elif kind == "PDF":
+                    await content_service.set_devotional_pdf(
+                        session,
+                        slug=clean_slug,
+                        asset_ref=final_ref,
+                        asset_platform=p,
+                    )
             await audit_service.record(
                 session,
                 actor_user_id=admin.id,
@@ -3825,15 +3833,21 @@ async def save_quran_asset(
     page_number: int = Form(...),
     kind: str = Form(...),
     platform: str = Form("TELEGRAM"),
+    asset_platform: str = Form(""),
     reciter_id: str = Form(""),
-    asset_ref: str = Form(...),
+    asset_ref: str = Form(""),
+    remote_file_id: str = Form(""),
+    channel_post_id: str = Form(""),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    ref = asset_ref.strip()
+    ref = (remote_file_id or asset_ref or "").strip()
+    target_platform = (asset_platform or platform or "TELEGRAM").strip().upper()
+    if not ref:
+        return HTMLResponse("شناسه یا آدرس فایل الزامی است.", status_code=400)
     if "t.me/" in ref:
         import re
         m = re.search(r"t\.me/([^/]+)/(\d+)", ref)
@@ -3849,13 +3863,13 @@ async def save_quran_asset(
                 kind=kind,
                 asset_ref=ref,
                 reciter_id=reciter_id,
-                asset_platform=platform,
+                asset_platform=target_platform,
             )
             await audit_service.record(
                 session,
                 actor_user_id=admin.id,
                 action="QURAN_ASSET_REGISTER",
-                details={"page": page_number, "kind": kind, "platform": platform},
+                details={"page": page_number, "kind": kind, "platform": target_platform},
             )
         except ValueError as exc:
             return HTMLResponse(f"خطا در ثبت فایل قرآن: {exc}", status_code=400)

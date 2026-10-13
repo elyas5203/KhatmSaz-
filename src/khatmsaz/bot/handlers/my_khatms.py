@@ -425,7 +425,12 @@ async def creator_toggle_policy(callback) -> None:
 
 @router.message(Command("creator_app", "creator_web_login", "creator_panel", "creator"))
 async def creator_web_login(message: Message) -> None:
-    """Open the signed Telegram Mini App for a khatm creator."""
+    base_url = get_settings().admin_web_base_url.rstrip("/")
+    if not base_url.lower().startswith("https://"):
+        # Reject before any DB access so the error path is safe without a live DB.
+        await message.answer(t("my_khatms.creator.mini_app_https_pending", "fa"))
+        return
+
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     lang = await _lang_for(message.chat.id, message.bot)
     async with session_scope() as session:
@@ -437,12 +442,6 @@ async def creator_web_login(message: Message) -> None:
             await message.answer("🌱 این بخش در حال حاضر در دست به‌روزرسانی و ارتقا می‌باشد و به زودی فعال خواهد شد.")
             return
 
-    base_url = get_settings().admin_web_base_url.rstrip("/")
-    if not base_url.lower().startswith("https://"):
-        # Reject before any DB access so the error path is safe without a live DB.
-        await message.answer(t("my_khatms.creator.mini_app_https_pending", "fa"))
-        return
-    async with session_scope() as session:
         if not await khatm_service.list_my_created(session, user.id):
             await message.answer(t("my_khatms.creator.mini_app_needs_khatm", lang))
             return

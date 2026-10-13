@@ -116,3 +116,14 @@ async def test_member_bot_reuploads_creator_bot_file_id(monkeypatch):
 
     assert isinstance(sent[-1], BufferedInputFile)
     assert sent[-1].filename == "dua-ahd.pdf"
+
+
+def test_reciter_picker_keyboard_uses_short_callback():
+    from uuid import uuid4
+    media_id = uuid4()
+    variant = SimpleNamespace(id=media_id, reciter_label="فرهمند", reciter_id="farahmand")
+    kb = devotional._reciter_picker_keyboard("ziyarat-ashura", [variant])
+    button = kb.inline_keyboard[0][0]
+    assert button.callback_data == f"drec:{media_id}"
+    assert len(button.callback_data.encode("utf-8")) <= 64
+

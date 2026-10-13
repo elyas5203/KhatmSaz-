@@ -74,7 +74,7 @@ async def list_needing_7d_reminder(session: AsyncSession, *, now: datetime) -> l
         .where(
             UserPlan.plan == PlanTier.PRO,
             UserPlan.expires_at.is_not(None),
-            UserPlan.expires_at > now,
+            UserPlan.expires_at > now + timedelta(hours=24),
             UserPlan.expires_at <= now + timedelta(days=7),
             UserPlan.reminded_7d.is_(False),
         )

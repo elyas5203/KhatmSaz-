@@ -193,16 +193,70 @@ sequenceDiagram
 
 ---
 
+### ۳.۳. چرخهٔ حیات پلن حرفه‌ای (PRO)، تمدید افزایشی و هشدارهای خودکار
+
+```mermaid
+stateDiagram-v2
+    [*] --> FREE: کاربر جدید
+    FREE --> PRO: خرید پلن پرو ۳۰ روزه
+    BASIC --> PRO: خرید پلن پرو ۳۰ روزه
+
+    state PRO {
+        [*] --> Active: starts_at = now, expires_at = now + 30d
+        Active --> Active: تمدید مجدد (+30 روز به مهلت فعلی)
+        Active --> Warning_7d: 7 روز مانده تا انقضا
+        Warning_7d --> Active: تمدید مجدد (+30 روز افزایشی)
+        Warning_7d --> Warning_24h: 24 ساعت مانده تا انقضا
+        Warning_24h --> Active: تمدید مجدد (+30 روز افزایشی)
+        Warning_24h --> Expired: سررسید expires_at
+    }
+
+    Expired --> BASIC: اعضای فعال بیش از سقف رایگان
+    Expired --> FREE: اعضای فعال کمتر از سقف رایگان
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Scheduler as اسکلولر دوره‌ای (AsyncIOScheduler)
+    participant PlanSvc as سرویس پلن (plan_service)
+    participant DB as دیتابیس (PostgreSQL)
+    participant Bot as ربات (Telegram / Bale)
+    actor Creator as سازنده ختم
+
+    loop هر یک دقیقه
+        Scheduler->>PlanSvc: فراخوانی process_plan_expirations_and_reminders()
+        PlanSvc->>DB: جستجوی کاربران در آستانه انقضا و منقضی‌شده
+
+        alt ۷ روز مانده تا انقضا (reminded_7d == False)
+            PlanSvc->>Bot: ارسال پیام یادآوری ۷ روزه
+            Bot-->>Creator: 🌱 یادآوری: ۷ روز تا پایان اعتبار پلن پرو باقی مانده است
+            PlanSvc->>DB: تنظیم reminded_7d = True
+        else ۲۴ ساعت مانده تا انقضا (reminded_24h == False)
+            PlanSvc->>Bot: ارسال پیام هشدار ۲۴ ساعته
+            Bot-->>Creator: ⚠️ هشدار: تنها ۲۴ ساعت تا پایان اعتبار پلن پرو باقی است
+            PlanSvc->>DB: تنظیم reminded_24h = True
+        else سررسید انقضا (expires_at <= now)
+            PlanSvc->>DB: تغییر پلن به FREE یا BASIC و expired_notified = True
+            PlanSvc->>Bot: ارسال اعلان پایان اعتبار
+            Bot-->>Creator: ⏳ مهلت ۳۰ روزه پلن پرو به پایان رسید و به پلن عادی بازگشتید
+        end
+    end
+```
+
+---
+
 ## ۴. ماتریس و بسته‌های کاری (Work Packages Ledger)
 
 | بسته | عنوان | وضعیت | شرح اقدامات فنی |
 |:---:|:---|:---:|:---|
 | **WP-01** | ثبت مستر فرزند ۱۰ و بروزرسانی اسناد | COMPLETED | تدوین سند مستر ۱۰، ثبت تصمیمات فنی در `DECISIONS.md` و ارجاع در `INDEX.md` |
-| **WP-02** | قفل دسترسی پنل سازندگان برای ادمین | PENDING | اصلاح `web/app.py`، `keyboards.py` و `my_khatms.py` جهت محدودسازی منحصربه‌فرد به `SUPER_ADMIN` |
-| **WP-03** | اصلاح پلن‌ها و هزینه‌گذاری بسته‌ای پیام | PENDING | حذف پیام رایگان، پیاده‌سازی فرمول بسته‌های ۱۰۰۰ نفری در `broadcast/service.py`، اصلاح متون و جداول پلن |
-| **WP-04** | ماژول فیش بانکی و پرداخت مستقیم | PENDING | افزودن مدل `WalletReceiptClaim`، ایجاد مایگریشن، پیاده‌سازی FSM ارسال فیش در ربات و اطلاع‌رسانی به ادمین‌ها |
-| **WP-05** | دکمه‌های تأیید و رد فیش توسط ادمین | PENDING | پیاده‌سازی هندلرهای تلگرام برای تأیید/رد فیش با یک کلیک و شارژ خودکار کیف پول کاربر |
-| **WP-06** | آزمون‌های واحد و استقرار زنده | PENDING | افزودن تست‌های خودکار در `tests/`، اجرای کامل `pytest`، پوش به گیت و استقرار روی سرور `91.107.137.22` |
+| **WP-02** | قفل دسترسی پنل سازندگان برای ادمین | COMPLETED | اصلاح `web/app.py`، `keyboards.py` و `my_khatms.py` جهت محدودسازی منحصربه‌فرد به `SUPER_ADMIN` |
+| **WP-03** | اصلاح پلن‌ها و هزینه‌گذاری بسته‌ای پیام | COMPLETED | حذف پیام رایگان، پیاده‌سازی فرمول بسته‌های ۱۰۰۰ نفری در `broadcast/service.py`، اصلاح متون و جداول پلن |
+| **WP-04** | ماژول فیش بانکی و پرداخت مستقیم | COMPLETED | افزودن مدل `WalletReceiptClaim`، ایجاد مایگریشن، پیاده‌سازی FSM ارسال فیش در ربات و اطلاع‌رسانی به ادمین‌ها |
+| **WP-05** | دکمه‌های تأیید و رد فیش توسط ادمین | COMPLETED | پیاده‌سازی هندلرهای تلگرام برای تأیید/رد فیش با یک کلیک و شارژ خودکار کیف پول کاربر |
+| **WP-06** | دوره ۳۰ روزه پرو، تمدید و یادآوری‌ها | COMPLETED | افزودن `expires_at`، تمدید افزایشی ۳۰ روزه، هشدارهای ۷ روز و ۲۴ ساعت، مایگریشن و استقرار لایو |
+| **WP-07** | آزمون‌های واحد و استقرار زنده | COMPLETED | تدوین ۳۵ تست خودکار در `tests/`، اجرای کامل `pytest`، پوش به گیت و استقرار روی سرور `91.107.137.22` |
 
 ---
 
