@@ -129,8 +129,21 @@ async def _require_admin(
     platform: Platform,
     permission: AdminPermission = AdminPermission.DASHBOARD_ACCESS,
 ) -> bool:
+    settings = get_settings()
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    if platform == Platform.TELEGRAM:
+        super_admin_ids = [
+            int(x.strip())
+            for x in settings.super_admin_telegram_chat_ids.split(",")
+            if x.strip().isdigit()
+        ]
+        if user_id in super_admin_ids or message.chat.id in super_admin_ids:
+            return True
+
     async with session_scope() as session:
-        user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
+        user = await identity_service.find_by_platform(session, platform, str(user_id))
+        if not user and message.chat:
+            user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
         return await authorization_service.has_permission(session, user, permission)
 
 

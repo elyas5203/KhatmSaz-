@@ -261,6 +261,9 @@ async def main() -> None:
         spec.loader.exec_module(fresh)
         return getattr(fresh, "router")
 
+    # Super Admin commands also available on creator bot for authorized super admins
+    dp_creator.include_router(_fresh_router("khatmsaz.bot.handlers.admin"))
+
     _shared_module_paths = [
         "khatmsaz.bot.handlers.manage_content",
         "khatmsaz.bot.handlers.public_khatms",
