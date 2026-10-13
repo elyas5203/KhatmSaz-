@@ -48,7 +48,15 @@ flowchart TD
 8. 🎛 **[مستر فرزند ۰۸ — معماری، بازطراحی و تجربهٔ کاربری پنل سازندگان ختم](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md)**
 9. 📱 **[مستر فرزند ۰۹ — مبدل مارک‌داون بله و سازگاری پیام‌رسان بله در ناوگان ربات‌ها](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md)**
 10. 💰 **[مستر فرزند ۱۰ — مهندسی مجدد پیام‌های گروهی، بسته‌های ۱۰۰۰ نفری، شارژ با فیش بانکی/پی‌پینگ مستقیم و قفل پنل سازندگان](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md)**
-11. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
+11. 🕌 **[مستر فرزند ۱۱ — جریان لعن در ویزارد، پرداخت مستقیم پی‌پینگ و دیسپچ بات ادمین](masters/MASTER_11_LAAN_WIZARD_DIRECT_PAYPING_AND_ADMIN_BOT_DISPATCH.md)**
+12. 🛡 **[مستر فرزند ۱۲ — بات اختصاصی ادمین و سیستم مانیتورینگ زنده خطاها](masters/MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md)**
+13. ⚡️ **[مستر فرزند ۱۳ — ثبت فوری سهم و حذف زمان‌بندی در ختم آزاد](masters/MASTER_13_OPEN_KHATM_IMMEDIATE_CONTRIBUTION_AND_RECITATION_RECORDING.md)**
+14. 🔄 **[مستر فرزند ۱۴ — موتور پیشرفت دسته‌جمعی ختم‌های آزاد (قرآن و خطبه)](masters/MASTER_14_OPEN_KHATM_COLLECTIVE_PROGRESSION_ENGINE.md)**
+15. 🏷 **[مستر فرزند ۱۵ — دریافت سهم قرائت و نمایش عنوان ختم در همه ربات‌ها](masters/MASTER_15_MEMBER_PORTION_RECEIPT_AND_KHATM_IDENTIFICATION.md)**
+16. 🇮🇷 **[مستر فرزند ۱۶ — محدودسازی لینک‌های دعوت به زبان فارسی](masters/MASTER_16_RESTRICT_INVITE_LINKS_TO_PERSIAN_ONLY.md)**
+17. 📜 **[مستر فرزند ۱۷ — ممیزی و کالبدشکافی جامع موتورهای پیشرفت و تخصیص سهم در تمامی انواع ختم‌ها](masters/MASTER_17_KHATM_PROGRESSION_AND_ALLOCATION_AUDIT.md)**
+18. 🚀 **[مستر فرزند ۱۸ — طرح معماری، تصمیم‌گیری دامنه‌ای و نقشه راه یکپارچه‌سازی پیشرفت دسته‌جمعی](masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md)**
+19. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
 
 ---
 

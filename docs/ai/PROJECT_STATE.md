@@ -1,3 +1,25 @@
+## Current state — 2026-10-13 — Admin Bot Receipt Handling & Unified Progression Audit (MASTER-17 & 18) [Antigravity]
+- **Admin Bot Receipt Approval/Rejection Bug Fix:**
+  - Diagnosed: Callback data `receipt:approve:` and `receipt:reject:` on receipt claim cards sent to `@khatmsaz_admin_bot` were not registered in `dp_admin`, resulting in unhandled button taps when pressed by head admin. Additionally, if the admin account was not yet persisted in the current session, accessing `admin_user.id` raised `AttributeError`.
+  - Fix in `src/khatmsaz/bot/handlers/admin_bot/handlers.py`:
+    - Added dedicated handlers `approve_receipt_admin_bot` and `reject_receipt_admin_bot` on `admin_bot_router`.
+    - Integrated safe admin identity resolution via `resolve_or_provision_user`.
+    - Approved/rejected receipts via `wallet_service`, updated message caption dynamically in Telegram/Bale, triggered informative alert popups, and immediately dispatched multi-channel notifications to the member via `notify` & creator bot.
+    - Updated `src/khatmsaz/bot/handlers/wallet.py` with identical fallback provisioning safety.
+    - Added test suite `tests/test_admin_bot_receipt_approval.py` (all tests passing).
+- **Comprehensive Progression Audit & Architectural Roadmap (`MASTER-17` & `MASTER-18`):**
+  - Responded in depth to owner's core question regarding whether all khatms (commitment vs open across Quran, Khutbah, Salawat, La'an, Dua) progress sequentially handoff-style (User X then User Y).
+  - Authored `docs/ai/masters/MASTER_17_KHATM_PROGRESSION_AND_ALLOCATION_AUDIT.md`:
+    - Documented the 3 co-existing paradigms in the codebase: Global Relay Cursor (open Quran & Khutbah), Personal Journey Rotation (commitment Quran), and Cumulative Count Pool (Salawat, La'an, Dua).
+    - Detailed 10-state matrix mapping all combinations to exact code paths in `delivery.py`, `allocation/service.py`, and `open_contributions`.
+    - Explained historical rationale of `DEC-PY-0092` (why committed readers historically had personal continuous tracks).
+  - Authored `docs/ai/masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md`:
+    - Architected the Unified Collective Progression model across all devotional categories.
+    - Addressed critical edge cases: missed/expired shares and the Reclaim Pool mechanism, morning rush scheduled deliveries, and multi-round completions.
+    - Provided technical blueprint for `delivery.py` unification and 3 clear strategic options for final owner confirmation.
+  - Updated parent index in `docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`.
+- **Validation:** 450 passed, 230 skipped in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Restrict Invite Links to Persian Only (MASTER-16) [Antigravity]
 - **Persian-Only Invite Links & Language Step Skip (`MASTER-16`):**
   - Problem diagnosed: When requesting invitation cards (via «🔲 دعوت QR» or wizard finish), Arabic and English member bots were listed under «🇸🇦 :عربی» and «🇬🇧 :انگلیسی», and the creation wizard asked creators to pick languages. The owner requested hiding Arabic and English while active development is focused on Persian.

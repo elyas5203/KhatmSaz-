@@ -1,3 +1,16 @@
+## 2026-10-13 — Antigravity — Admin Bot Receipt Handling & Unified Progression Audit (MASTER-17 & 18)
+- **Admin Bot Receipt Approval/Rejection Bug Fix:**
+  - Diagnosed unhandled callback data `receipt:approve:` and `receipt:reject:` on `@khatmsaz_admin_bot` dispatcher.
+  - Implemented `approve_receipt_admin_bot` and `reject_receipt_admin_bot` handlers in `src/khatmsaz/bot/handlers/admin_bot/handlers.py`.
+  - Added safe admin provisioning, updated message caption in-place, and dispatched instant notifications to the user.
+  - Created test suite `tests/test_admin_bot_receipt_approval.py` (2 tests passing).
+- **Progression Engine Audit & Roadmap (`MASTER-17` & `MASTER-18`):**
+  - Audited all 10 combinations of devotional types (Quran, Khutbah, Salawat, La'an, Dua) and modes (Commitment vs Open).
+  - Authored `docs/ai/masters/MASTER_17_KHATM_PROGRESSION_AND_ALLOCATION_AUDIT.md` mapping current paradigms: Global Relay Cursor vs Personal Journey Rotation vs Cumulative Count Pool.
+  - Authored `docs/ai/masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md` designing the unified collective progression model, edge cases (reclaim queue, morning rush), and strategic decision options for the owner.
+  - Updated parent master index in `docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`.
+- **Validation:** 450 passed, 230 skipped in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Restrict Invite Links to Persian Only (MASTER-16)
 - **Persian-Only Invite Links & Language Step Skip (`MASTER-16`):**
   - **Single Source of Truth (`invite_links.py`):**
