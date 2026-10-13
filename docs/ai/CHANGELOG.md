@@ -1,3 +1,12 @@
+## 2026-10-13 — Antigravity — Full Unified Collective Progression Across All Khatms (MASTER-18)
+- **Unified Collective Progression Implemented (`MASTER-18`):**
+  - Eliminated the Personal Journey Rotation model per owner's explicit mandate.
+  - In `src/khatmsaz/modules/allocation/repository.py`: modified `allocate_page_amount` and `create_next_rotating_portion` to advance portions collectively across the whole plan (`plan_id`) rather than per-participant tracks.
+  - In `src/khatmsaz/modules/share_occurrence/delivery.py`: unified `prepare` and `prepare_numeric` to use the collective cursor for both committed and open Quran participants, with KhatmPortion fallback in `get_next_open_quran_page`.
+  - In `src/khatmsaz/bot/handlers/report.py`: wired `today_deliver_callback` to `get_next_open_quran_page`.
+  - Created test suite `tests/test_master_18_unified_collective_progression.py` and updated `docs/ai/masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md`.
+- **Validation:** 453 passed, 230 skipped in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Admin Bot Receipt Handling & Unified Progression Audit (MASTER-17 & 18)
 - **Admin Bot Receipt Approval/Rejection Bug Fix:**
   - Diagnosed unhandled callback data `receipt:approve:` and `receipt:reject:` on `@khatmsaz_admin_bot` dispatcher.

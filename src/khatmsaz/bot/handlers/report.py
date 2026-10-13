@@ -227,16 +227,12 @@ async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None 
                 await safe_answer_callback(callback, t("report.today_already_delivered", lang), show_alert=True)
                 return
             from khatmsaz.modules.content import service as content_service
+            from khatmsaz.modules.share_occurrence import delivery
             total_pages = content_service.get_quran_total_pages(khatm)
-            pages = min(
-                participation.open_reading_pages_per_day,
-                total_pages - participation.open_reading_next_page + 1,
-            )
-            if pages <= 0:
-                await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
-                return
-            start = participation.open_reading_next_page
-            end = start + pages - 1
+            default_start = (participation.open_reading_next_page - 1) % total_pages + 1
+            start = await delivery.get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+            pages = participation.open_reading_pages_per_day
+            end = min(total_pages, start + pages - 1)
             from khatmsaz.bot.handlers.portions import _deliver_quran_pages
             delivered = await _deliver_quran_pages(
                 session, callback.message, khatm=khatm, user_id=user.id,
@@ -249,6 +245,7 @@ async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None 
             if reserved is None:
                 await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
                 return
+            participation.open_reading_next_page = (end % total_pages) + 1
             await participation_service.mark_open_reading_sent_now(session, participation.id)
             await callback.message.answer(
                 t("report.today_page_label", lang, title=khatm.title, start=start, end=end),

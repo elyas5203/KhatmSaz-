@@ -102,6 +102,25 @@ async def get_next_open_quran_page(
                         last_end = last_range[1]
                         if isinstance(last_end, int):
                             return (last_end % total_pages) + 1
+            else:
+                try:
+                    from khatmsaz.modules.allocation.models import KhatmPortion, PortionUnitKind
+                    port_stmt = (
+                        select(KhatmPortion)
+                        .where(
+                            KhatmPortion.khatm_id == khatm_id,
+                            KhatmPortion.unit_kind == PortionUnitKind.POSITIONAL,
+                        )
+                        .order_by(KhatmPortion.sequence.desc(), KhatmPortion.id.desc())
+                        .limit(1)
+                    )
+                    port_res = await session.execute(port_stmt)
+                    if port_res is not None and hasattr(port_res, "scalars"):
+                        last_p = port_res.scalars().first()
+                        if last_p is not None and getattr(last_p, "unit_end", None) is not None:
+                            return (last_p.unit_end % total_pages) + 1
+                except Exception:
+                    pass
     except Exception:
         pass
     return default_start
@@ -276,17 +295,26 @@ async def prepare(session, participation_id, *, now=None, manual=False):
         if part.is_committed:
             from khatmsaz.modules.allocation import service as allocation
             ranges = await allocation.allocate_page_amount(session, khatm.id, part.id, amount)
-            if not ranges:
-                return None
-            spec = {"ranges": [[p.unit_start, p.unit_end] for p in ranges],
-                    "portion_ids": [str(p.id) for p in ranges]}
-            amount = sum(b - a + 1 for a, b in spec["ranges"])
+            if ranges:
+                spec = {"ranges": [[p.unit_start, p.unit_end] for p in ranges],
+                        "portion_ids": [str(p.id) for p in ranges]}
+                amount = sum(b - a + 1 for a, b in spec["ranges"])
+            else:
+                default_start = (part.open_reading_next_page - 1) % total_pages + 1
+                start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+                end = min(total_pages, start + amount - 1)
+                ranges_list = [[start, end]]
+                if end - start + 1 < amount:
+                    ranges_list.append([1, amount - (end - start + 1)])
+                spec = {"ranges": ranges_list}
         else:
-            start = part.open_reading_next_page
-            amount = min(amount, total_pages - start + 1)
-            if amount <= 0:
-                return None
-            spec = {"ranges": [[start, start + amount - 1]]}
+            default_start = (part.open_reading_next_page - 1) % total_pages + 1
+            start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+            end = min(total_pages, start + amount - 1)
+            ranges_list = [[start, end]]
+            if end - start + 1 < amount:
+                ranges_list.append([1, amount - (end - start + 1)])
+            spec = {"ranges": ranges_list}
     else:
         from khatmsaz.bot.member_copy import content_family
         fam = await content_family(session, khatm)
@@ -355,14 +383,21 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
             amount = min(amount, int(remaining))
     spec = {}
     if quran:
+        total_pages = content.get_quran_total_pages(khatm)
         if part.is_committed:
             portions = await allocation.allocate_page_amount(session, khatm.id, part.id, amount)
-            if not portions:
-                raise ValueError("No Quran pages available")
-            spec = {"ranges": [[p.unit_start,p.unit_end] for p in portions], "portion_ids": [str(p.id) for p in portions]}
-            amount = sum(b-a+1 for a,b in spec["ranges"])
+            if portions:
+                spec = {"ranges": [[p.unit_start, p.unit_end] for p in portions], "portion_ids": [str(p.id) for p in portions]}
+                amount = sum(b - a + 1 for a, b in spec["ranges"])
+            else:
+                default_start = (part.open_reading_next_page - 1) % total_pages + 1
+                start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+                end = min(total_pages, start + amount - 1)
+                ranges = [[start, end]]
+                if end - start + 1 < amount:
+                    ranges.append([1, amount - (end - start + 1)])
+                spec = {"ranges": ranges}
         else:
-            total_pages = content.get_quran_total_pages(khatm)
             default_start = (part.open_reading_next_page - 1) % total_pages + 1
             start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
             end = min(total_pages, start + amount - 1)

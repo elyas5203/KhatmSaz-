@@ -1,3 +1,20 @@
+## Current state — 2026-10-13 — Full Unified Collective Progression Across All Khatms (MASTER-18 Implementation) [Antigravity]
+- **Unified Collective Progression Implemented (`MASTER-18`):**
+  - **Owner Mandate:** The owner formally rejected the legacy Personal Journey Rotation model ("این مدل اشتباهه باید همشون ی ختم رو ببرن جلو عین همون قبلی؛ خطبه بخش میگیرن، قران صفحه میگیرن اینطوریه").
+  - **Commitment Quran Unification (`allocation/repository.py`):**
+    - Updated `allocate_page_amount` and `create_next_rotating_portion` to query the latest portion across the whole plan (`KhatmPortion.plan_id == plan.id`), removing per-participant offsets.
+    - Multiple participants in commitment Quran now take consecutive pages sequentially (User 1 takes 1..2, User 2 takes 3..4, User 3 takes 5..6, User 1 takes 7..8).
+  - **Delivery Engine (`share_occurrence/delivery.py`):**
+    - Updated `prepare` and `prepare_numeric` to seamlessly advance Quran pages collectively for both committed and open participants.
+    - Enhanced `get_next_open_quran_page` with fallback to `KhatmPortion` if no `ShareOccurrence` exists yet.
+    - Verified Khutbah section relay progression remains 100% collective.
+  - **Member Portion Receipt (`report.py`):**
+    - Connected `open_reading` handling in `today_deliver_callback` to `get_next_open_quran_page`.
+  - **Documentation & Tests:**
+    - Updated `docs/ai/masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md` documenting completed implementation.
+    - Added test suite `tests/test_master_18_unified_collective_progression.py` (3 tests passing).
+- **Validation:** 453 passed, 230 skipped in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Admin Bot Receipt Handling & Unified Progression Audit (MASTER-17 & 18) [Antigravity]
 - **Admin Bot Receipt Approval/Rejection Bug Fix:**
   - Diagnosed: Callback data `receipt:approve:` and `receipt:reject:` on receipt claim cards sent to `@khatmsaz_admin_bot` were not registered in `dp_admin`, resulting in unhandled button taps when pressed by head admin. Additionally, if the admin account was not yet persisted in the current session, accessing `admin_user.id` raised `AttributeError`.
