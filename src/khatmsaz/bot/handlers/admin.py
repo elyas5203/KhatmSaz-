@@ -286,24 +286,131 @@ async def admin_bale_media_status(message: Message) -> None:
     )
 
 
+_bale_sync_running = False
+
+
+async def _run_bale_sync_task(
+    bot: Message,
+    admin_chat_id: int,
+    bale_storage_chat_id: int,
+    scratch_chat_id: int,
+) -> None:
+    global _bale_sync_running
+    try:
+        from khatmsaz.bot.bale.client import build_bale_bot
+        from khatmsaz.bot.telegram.client import build_telegram_bot
+        from khatmsaz.core.bot_registry import get_registry
+        from khatmsaz.modules.content.migrator import TelegramToBaleMigrator
+
+        reg = get_registry()
+        tg_bot = reg.get_creator_bot(Platform.TELEGRAM) if reg else None
+        if not tg_bot:
+            tg_bot = build_telegram_bot()
+
+        bale_bot = reg.get_creator_bot(Platform.BALE) if reg else None
+        if not bale_bot:
+            bale_bot = build_bale_bot()
+
+        last_progress_pct = [0]
+
+        def progress_cb(stage: str, cur: int, total: int):
+            if total > 0 and cur % 100 == 0:
+                pct = int(cur / total * 100)
+                if pct != last_progress_pct[0]:
+                    last_progress_pct[0] = pct
+                    asyncio.create_task(
+                        bot.send_message(
+                            chat_id=admin_chat_id,
+                            text=f"⏳ در حال پیشرفت ({stage}): {cur} از {total} ({pct}%)",
+                        )
+                    )
+
+        migrator = TelegramToBaleMigrator(
+            tg_bot=tg_bot,
+            bale_bot=bale_bot,
+            bale_storage_chat_id=bale_storage_chat_id,
+            tg_scratch_chat_id=scratch_chat_id,
+            delay_seconds=0.5,
+            progress_callback=progress_cb,
+        )
+
+        async with session_scope() as session:
+            res = await migrator.migrate_all(session)
+            cov = await get_bale_quran_coverage(session)
+
+        img_stats = res["quran_images"]
+        audio_stats = res["quran_audio"]
+        dev_stats = res["devotionals"]
+
+        await bot.send_message(
+            chat_id=admin_chat_id,
+            text=(
+                "✅ <b>همگام‌سازی رسانه‌های بله با موفقیت پایان یافت!</b>\n\n"
+                f"📖 <b>تصاویر قرآن:</b> {img_stats.migrated} منتقل‌شده، {img_stats.skipped} از قبل موجود\n"
+                f"🎙 <b>صوت‌های ترتیل:</b> {audio_stats.migrated} منتقل‌شده، {audio_stats.skipped} از قبل موجود\n"
+                f"📿 <b>ادعیه و زیارات:</b> {dev_stats.migrated} منتقل‌شده، {dev_stats.skipped} از قبل موجود\n\n"
+                f"وضعیت نهایی قرآن بله: {cov['image_count']}/604 تصویر و {cov['audio_count']}/604 صوت آماده است."
+            ),
+        )
+    except Exception as exc:
+        logger.error("Error in background Bale sync", exc_info=True)
+        await bot.send_message(
+            chat_id=admin_chat_id,
+            text=f"❌ خطا در حین اجرای همگام‌سازی بله:\n<code>{exc}</code>",
+        )
+    finally:
+        _bale_sync_running = False
+
+
 @router.message(Command("admin_sync_bale"))
 async def admin_sync_bale(message: Message, command: CommandObject) -> None:
     """Trigger or check Bale sync prerequisite."""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     if not await _require_admin(message, platform, AdminPermission.CONTENT_MANAGE):
         return
+
+    global _bale_sync_running
+    if _bale_sync_running:
+        await message.answer("⚠️ در حال حاضر یک عملیات همگام‌سازی در پس‌زمینه در حال اجرا است. لطفاً تا اتمام آن صبر کنید.")
+        return
+
     settings = get_settings()
-    if not settings.bale_media_storage_chat_id:
+    target_chat_raw = command.args.strip() if command.args else None
+    storage_chat_id = None
+    if target_chat_raw:
+        try:
+            storage_chat_id = int(target_chat_raw)
+        except ValueError:
+            await message.answer("شناسه چت مقصد بله باید یک عدد معتبر باشد (مثلاً <code>-1001234567890</code>).")
+            return
+    elif settings.bale_media_storage_chat_id:
+        storage_chat_id = settings.bale_media_storage_chat_id
+
+    if not storage_chat_id:
         await message.answer(
-            "⚠️ شناسه کانال مخزن رسانه بله (<code>BALE_MEDIA_STORAGE_CHAT_ID</code>) در تنظیمات یا <code>.env</code> مشخص نشده است.\n\n"
-            "ابتدا یک کانال یا گروه در بله ایجاد کنید، ربات بله را در آن ادمین کنید و شناسه‌اش را در فایل تنظیمات ثبت فرمایید."
+            "⚠️ <b>شناسه کانال یا گروه مخزن بله مشخص نشده است.</b>\n\n"
+            "برای شروع همگام‌سازی، شناسه کانال بله را به عنوان آرگومان به دستور اضافه کنید:\n"
+            "<code>/admin_sync_bale -1001234567890</code>\n\n"
+            "یا مقدار <code>BALE_MEDIA_STORAGE_CHAT_ID</code> را در تنظیمات (.env) سرور ثبت فرمایید.\n"
+            "<i>(توجه: ربات بله باید در این کانال یا گروه، عضو و ادمین باشد تا بتواند فایل‌ها را ذخیره کند.)</i>"
         )
         return
+
+    scratch_id = settings.telegram_scratch_chat_id or message.chat.id
+    _bale_sync_running = True
+    asyncio.create_task(
+        _run_bale_sync_task(
+            bot=message.bot,
+            admin_chat_id=message.chat.id,
+            bale_storage_chat_id=storage_chat_id,
+            scratch_chat_id=scratch_id,
+        )
+    )
     await message.answer(
-        "ℹ️ برای اجرای پایدار و بهینهٔ مهاجرت کامل (با نظارت بر پیشرفت و کنترل ترافیک)، "
-        "دستور زیر را در ترمینال سرور اجرا کنید:\n\n"
-        "<code>python scripts/migrate_telegram_to_bale.py --target all</code>\n\n"
-        "وضعیت پیشرفت را می‌توانید از دستور /admin_bale_media_status نیز مشاهده کنید."
+        "🚀 <b>عملیات همگام‌سازی رسانه‌ها به بله در پس‌زمینه آغاز شد!</b>\n\n"
+        f"🎯 مقصد بله: <code>{storage_chat_id}</code>\n"
+        "فایل‌ها به صورت خودکار از کانال تلگرام استریم شده و در مخزن بله ذخیره و ثبت می‌شوند.\n"
+        "گزارش‌های پیشرفت و اتمام عملیات در همین گفتگو برای شما ارسال خواهد شد."
     )
 
 
