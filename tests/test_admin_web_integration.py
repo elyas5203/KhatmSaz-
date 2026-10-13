@@ -17,6 +17,9 @@ from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.audit_log.models import AuditLog
 from khatmsaz.modules.wallet.models import DiscountCoupon
 from khatmsaz.modules.khatm_category import service as category_service
+from datetime import datetime, timezone
+
+from khatmsaz.modules.phone.models import PhoneClaim, PhoneClaimStatus
 from khatmsaz.modules.khatm_category.models import KhatmCategory, KhatmCategoryRequest
 from khatmsaz.web.app import COOKIE_NAME, app
 
@@ -28,6 +31,14 @@ async def test_admin_session_opens_mobile_dashboard_routes():
     async with session_scope() as session:
         admin = User(id=admin_id, role=UserRole.SUPER_ADMIN, display_name="مدیر تست")
         session.add(admin)
+        claim = PhoneClaim(
+            id=new_id(),
+            user_id=admin_id,
+            e164="+989123456789",
+            status=PhoneClaimStatus.VERIFIED,
+            verified_at=datetime.now(timezone.utc),
+        )
+        session.add(claim)
         await session.flush()
         token = await session_service.issue_admin_session(session, admin)
 

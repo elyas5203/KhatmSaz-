@@ -263,3 +263,35 @@ async def test_nonregular_clock_uses_worker_default_not_account_default(monkeypa
     monkeypatch.setattr(notifications.repository, "get_preference", AsyncMock(return_value=None))
     monkeypatch.setattr("khatmsaz.modules.system_settings.service.get_int", AsyncMock(return_value=11))
     assert await notifications.get_reminder_time(object(), SimpleNamespace(id=uuid4())) == (11, 0)
+
+
+@pytest.mark.asyncio
+async def test_check_share_occurrence_misses_handles_participation_status(monkeypatch):
+    from khatmsaz.modules.reminder_engine.service import check_share_occurrence_misses
+    from khatmsaz.modules.participation.models import ParticipationStatus
+    from khatmsaz.modules.khatm.models import KhatmStatus
+
+    occ = SimpleNamespace(
+        id=uuid4(),
+        participation_id=uuid4(),
+        completed_at=None,
+        deadline_at=datetime.now(ZoneInfo("Asia/Tehran")),
+    )
+    part_active = SimpleNamespace(id=occ.participation_id, khatm_id=uuid4(), status=ParticipationStatus.ACTIVE)
+    khatm = SimpleNamespace(id=part_active.khatm_id, status=KhatmStatus.ACTIVE)
+
+    session = SimpleNamespace(
+        execute=AsyncMock(return_value=SimpleNamespace(scalars=lambda: [occ])),
+    )
+    notify = AsyncMock()
+
+    get_part = AsyncMock(return_value=part_active)
+    get_khatm = AsyncMock(return_value=khatm)
+    maybe_record = AsyncMock()
+
+    monkeypatch.setattr("khatmsaz.modules.participation.repository.get_by_id", get_part)
+    monkeypatch.setattr("khatmsaz.modules.khatm.service.get_khatm", get_khatm)
+    monkeypatch.setattr("khatmsaz.modules.reminder_engine.service._maybe_record_miss_and_notify_creator", maybe_record)
+
+    await check_share_occurrence_misses(session, notify)
+    maybe_record.assert_awaited_once_with(session, notify, part_active, khatm)

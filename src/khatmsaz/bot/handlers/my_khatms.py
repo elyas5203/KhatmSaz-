@@ -29,7 +29,7 @@ from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
@@ -313,8 +313,14 @@ async def creator_save_cosmetic_edit(message: Message, state: FSMContext) -> Non
             elif field in {"target", "deadline"}:
                 if not value.isdigit():
                     raise ValueError("numeric setting required")
+                new_target = int(value)
+                if field == "target":
+                    from khatmsaz.bot.member_copy import content_family
+                    fam = await content_family(session, khatm)
+                    if fam == "khutbah":
+                        new_target = new_target * 5
                 kwargs = (
-                    {"repetition_target": int(value)}
+                    {"repetition_target": new_target}
                     if field == "target"
                     else {"daily_deadline_hour": int(value)}
                 )
@@ -417,21 +423,26 @@ async def creator_toggle_policy(callback) -> None:
     )
 
 
-@router.message(Command("creator_app", "creator_web_login"))
+@router.message(Command("creator_app", "creator_web_login", "creator_panel", "creator"))
 async def creator_web_login(message: Message) -> None:
-    """Open the signed Telegram Mini App for a khatm creator."""
-    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     base_url = get_settings().admin_web_base_url.rstrip("/")
     if not base_url.lower().startswith("https://"):
         # Reject before any DB access so the error path is safe without a live DB.
         await message.answer(t("my_khatms.creator.mini_app_https_pending", "fa"))
         return
+
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     lang = await _lang_for(message.chat.id, message.bot)
     async with session_scope() as session:
         user = await identity_service.find_by_platform(
             session, platform, str(message.chat.id)
         )
-        if user is None or not await khatm_service.list_my_created(session, user.id):
+        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+        if user is None or user.role != UserRole.SUPER_ADMIN:
+            await message.answer("🌱 این بخش در حال حاضر در دست به‌روزرسانی و ارتقا می‌باشد و به زودی فعال خواهد شد.")
+            return
+
+        if not await khatm_service.list_my_created(session, user.id):
             await message.answer(t("my_khatms.creator.mini_app_needs_khatm", lang))
             return
     if platform != Platform.TELEGRAM:
@@ -1072,12 +1083,13 @@ async def edit_khatm_welcome(message: Message, command: CommandObject) -> None:
 
 
 _BRANCHES = ("created", "joined", "finished")
-_CATEGORY_ORDER = ("quran", "salawat", "dua", "laan")
+_CATEGORY_ORDER = ("quran", "salawat", "dua", "laan", "khutbah")
 _CATEGORY_LABEL_KEYS = {
     "quran": "my_khatms.category.quran",
     "salawat": "my_khatms.category.salawat",
     "dua": "my_khatms.category.dua",
     "laan": "my_khatms.category.laan",
+    "khutbah": "my_khatms.category.khutbah",
 }
 
 # Item shape stored in the tree built by `_build_my_khatms_tree`: one line

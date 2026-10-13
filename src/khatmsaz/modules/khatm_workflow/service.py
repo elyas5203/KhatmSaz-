@@ -182,6 +182,7 @@ async def create_and_launch_khatm(
     coupon_code: str | None = None,
     content_category_id=None,
     description: str | None = None,
+    require_admin_approval: bool = False,
 ) -> tuple[Khatm, str]:
     """`creation_price_toman` (DOMAIN_MODEL.md §7: creating a khatm costs
     money, joining is free) is charged from the creator's wallet — credit
@@ -224,14 +225,22 @@ async def create_and_launch_khatm(
         extra["daily_commitment_amount"] = daily_commitment_amount
 
     if template_type == KhatmTemplateType.SALAWAT:
-        if khatm_type == KhatmTypeEnum.OPEN:
-            extra["repetition_target"] = salawat_open_target
-        else:
-            # Reused field for the other meaning: the fixed amount every
-            # committed participant is assigned, not a shared pool target.
-            extra["repetition_target"] = (
+        target_val = (
+            salawat_open_target if khatm_type == KhatmTypeEnum.OPEN else (
                 salawat_open_target if salawat_open_target is not None else salawat_commitment_quantity
             )
+        )
+        if content_category_id:
+            from khatmsaz.modules.khatm_category import service as cat_service
+            from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+            cat = await cat_service.get(session, content_category_id)
+            if cat is not None and cat.group == KhatmCategoryGroup.KHUTBAH:
+                if target_val is not None:
+                    # Each round of Khutbah contains 5 sections (Fadakiah) or 8 sections (Ghadir).
+                    sections_per_round = 8 if (cat.devotional_slug and "ghadir" in cat.devotional_slug) else 5
+                    target_val = int(target_val) * sections_per_round
+        extra["repetition_target"] = target_val
+        if khatm_type == KhatmTypeEnum.COMMITMENT:
             # Capacity + waiting list also applies to SALAWAT+COMMITMENT
             # (owner decision, 2026-09-20): a waitlisted participant reads
             # along freely via the open contribution pool, same as
@@ -276,6 +285,7 @@ async def create_and_launch_khatm(
         schedule_value=schedule_value,
         visibility=visibility,
         allowed_platforms=allowed_platforms,
+        pending_lan_approval=require_admin_approval,
         **extra,
         start_at=start_at,
         end_at=end_at,
@@ -301,10 +311,52 @@ async def create_and_launch_khatm(
             total_pages = QURAN_EDITIONS[quran_edition_id]["total_pages"]
             await allocation_service.generate_quran_page_plan(session, khatm.id, total_pages, pages_per_portion)
 
-    await khatm_service.activate_khatm(session, khatm.id)
+    if not require_admin_approval:
+        await khatm_service.activate_khatm(session, khatm.id)
 
     token = await invitation_service.create_invitation(session, khatm.id, creator_user_id)
     return khatm, token
+
+
+async def review_laan_khatm_workflow(
+    session: AsyncSession,
+    *,
+    khatm_id,
+    approved: bool,
+    updated_description: str | None = None,
+) -> tuple[Khatm, str | None, int]:
+    """Approve or reject a pending custom La'an khatm (DEC-PY-0118).
+    Returns (khatm, invite_token, refunded_amount_toman)."""
+    khatm = await khatm_service.review_laan_khatm(
+        session,
+        khatm_id=khatm_id,
+        approved=approved,
+        updated_description=updated_description,
+    )
+    refunded_amount = 0
+    if not approved and int(khatm.creation_price_toman or 0) > 0:
+        amount = max(0, int(khatm.creation_price_toman))
+        invoiced_refund = await wallet_service.refund_purchase_invoice(
+            session,
+            user_id=khatm.creator_user_id,
+            kind=InvoiceKind.KHATM_CREATION,
+            resource_ref=str(khatm.id),
+            description=f"بازپرداخت رد ختم لعن سفارشی: {khatm.title}",
+        )
+        if invoiced_refund is not None:
+            refunded_amount = invoiced_refund
+        else:
+            await wallet_service.refund_cash(
+                session,
+                khatm.creator_user_id,
+                amount,
+                description=f"بازپرداخت رد ختم لعن سفارشی: {khatm.title}",
+            )
+            refunded_amount = amount
+    token = await invitation_service.get_or_create_for_khatm(
+        session, khatm.id, khatm.creator_user_id
+    )
+    return khatm, token, refunded_amount
 
 
 async def join_via_token(
@@ -353,7 +405,10 @@ async def _complete_join(
     # done/snooze lifecycle and no capacity/waiting-list slot.
     is_member_controlled_quran = (khatm.khatm_type == KhatmTypeEnum.OPEN)
     capacity = None
-    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.SALAWAT:
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type in (
+        KhatmTemplateType.SALAWAT,
+        KhatmTemplateType.QURAN_PAGE,
+    ):
         capacity = khatm.capacity
 
     participation, was_waitlisted = await participation_service.join(

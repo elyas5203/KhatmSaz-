@@ -130,3 +130,65 @@ async def decline_request(session: AsyncSession, request_id) -> KhatmCategoryReq
     if request.status != KhatmCategoryRequestStatus.PENDING:
         raise ValueError("request is not pending")
     return await repository.mark_request_declined(session, request)
+
+
+async def seed_canonical_categories(session: AsyncSession) -> dict[str, object]:
+    """Idempotently ensure canonical categories (e.g. Khutbah Fadakiah) exist.
+    Runs on startup so `git pull && systemctl restart khatmsaz` makes them live
+    without requiring any manual script or CLI intervention."""
+    from sqlalchemy import select
+    from khatmsaz.core.ids import new_id
+
+    # 1. Khutbah Fadakiah
+    cat = await session.scalar(
+        select(KhatmCategory).where(
+            KhatmCategory.group == KhatmCategoryGroup.KHUTBAH,
+            KhatmCategory.devotional_slug == "khutbah-fadakiah",
+        )
+    )
+    if cat is None:
+        cat = KhatmCategory(
+            id=new_id(),
+            group=KhatmCategoryGroup.KHUTBAH,
+            title="خطبه فدکیه حضرت فاطمه زهرا (س)",
+            body_text="خطبه شریف فدکیه در ۵ بخش مجزا به همراه ویدیو و ترجمه فارسی.",
+            source_note="احتجاج طبرسی / بحارالانوار",
+            devotional_slug="khutbah-fadakiah",
+            is_active=True,
+            sort_order=1,
+        )
+        session.add(cat)
+        await session.flush()
+
+    # 2. Khutbah Ghadir
+    cat_ghadir = await session.scalar(
+        select(KhatmCategory).where(
+            KhatmCategory.group == KhatmCategoryGroup.KHUTBAH,
+            KhatmCategory.devotional_slug == "khutbah-ghadir",
+        )
+    )
+    if cat_ghadir is None:
+        cat_ghadir = KhatmCategory(
+            id=new_id(),
+            group=KhatmCategoryGroup.KHUTBAH,
+            title="خطبه غدیر پیامبر اکرم (ص)",
+            body_text="خطبه شریف غدیر خم در ۸ بخش به همراه ویدیو، متن و صوت.",
+            source_note="احتجاج طبرسی / روضة الواعظین",
+            devotional_slug="khutbah-ghadir",
+            is_active=True,
+            sort_order=2,
+        )
+        session.add(cat_ghadir)
+        await session.flush()
+
+    # 3. Deactivate legacy preset LAAN categories (DEC-PY-0123 / MASTER-11)
+    if hasattr(session, "execute"):
+        from sqlalchemy import update
+        await session.execute(
+            update(KhatmCategory)
+            .where(KhatmCategory.group == KhatmCategoryGroup.LAAN)
+            .values(is_active=False)
+        )
+
+    return {"khutbah_fadakiah": str(cat.id), "khutbah_ghadir": str(cat_ghadir.id)}
+

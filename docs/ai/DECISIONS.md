@@ -5,10 +5,118 @@ new entry that says so and link back.
 
 ---
 
-### DEC-PY-0118 — Automated cross-platform Telegram-to-Bale media migration pipeline
+### DEC-PY-0127 — Automated cross-platform Telegram-to-Bale media migration pipeline
 
 **Date:** 2026-10-13
-**Owner confirmation:** An automated, memory-efficient migration pipeline streams Quran pages (604 images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) from Telegram to a dedicated Bale storage chat. Captured Bale `file_id` values are registered in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`. Delivery on Bale uses these pre-registered `file_id`s for zero-bandwidth instant delivery. The process is strictly idempotent, throttled for rate-limits, and manageable via CLI (`scripts/migrate_telegram_to_bale.py`) and admin command (`/admin_bale_media_status`). See `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md`.
+**Owner confirmation:** An automated, memory-efficient migration pipeline streams Quran pages (604 images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) from Telegram to a dedicated Bale storage chat. Captured Bale `file_id` values are registered in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`. Delivery on Bale uses these pre-registered `file_id`s for zero-bandwidth instant delivery. The process is strictly idempotent, throttled for rate-limits, and manageable via CLI (`scripts/migrate_telegram_to_bale.py`) and admin command (`/admin_bale_media_status`, `/admin_sync_bale`). See `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md`.
+
+---
+### DEC-PY-0126 — Live Continuous File Logging, Error Crash Alert System & Telegram Real-Time Error Dispatch (MASTER-12)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Continuous Moment-by-Moment File Logging:** Added rotating file logger writing to `logs/khatmsaz.log` (level INFO) and `logs/errors.log` (level ERROR/CRITICAL with full tracebacks).
+2. **Real-Time Telegram Crash Alerting:** Implemented `TelegramErrorAlertHandler` that hooks into the logging engine. Whenever an unhandled exception, critical error, or dangerous bug occurs, an alert is formatted with module name, line number, exception type, error message, and stack trace, and immediately sent to the Super Admin via `@khatmsaz_admin_bot`. Includes debounce rate-limiting (max 1 alert per unique error type/module per 60s) to prevent flood.
+3. **Asyncio & Sys Exception Hooks:** Integrated `sys.excepthook` and `asyncio.get_running_loop().set_exception_handler` so silent background task failures are surfaced and dispatched to the admin.
+4. **Interactive In-Bot Log Commands:** Super Admins can query `/logs`, `/errors`, and download log files directly in `@khatmsaz_admin_bot`.
+
+---
+
+### DEC-PY-0125 — Dedicated Admin Bot (@khatmsaz_admin_bot) and Complete Isolation of Admin Functions from Creator Bot (MASTER-12)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Dedicated Admin Bot:** Token `8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`, username `@khatmsaz_admin_bot`. All administrative operations, settings, stats, and moderation workflows are hosted exclusively on this bot.
+2. **Creator Bot (`Khatm_Saz_bot`) Isolation:** `Khatm_Saz_bot` is strictly and exclusively dedicated to creating and managing khatms for creators. Even the Super Admin using `Khatm_Saz_bot` sees only the creator menus. All admin push notifications, receipt moderation, La'n khatm reviews, and crash alerts are diverted to `@khatmsaz_admin_bot`. (Supersedes the admin dispatch channel in `DEC-PY-0124`).
+3. **Strict Role-Gating:** Access to `@khatmsaz_admin_bot` is restricted to Super Admins (`5490508090` and `UserRole.SUPER_ADMIN`). Non-admins receive an explicit unauthorized notice.
+
+---
+
+### DEC-PY-0124 — Direct PayPing link (ppng.ir/d/VFBD), removal of card numbers, 8-digit numeric tracking code (MASTER-11, partially superseded by DEC-PY-0125 for dispatch bot)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Elimination of Card Numbers:** Bank card number and holder name are completely removed from the wallet recharge screen.
+2. **Dedicated PayPing Direct Link:** The wallet top-up message provides the dedicated open-amount Shaparak link `https://ppng.ir/d/VFBD`.
+3. **Clean 8-Digit Numeric Tracking Code:** Replaced the hexadecimal UUID slice (e.g. `01a134f0`) with an 8-digit numeric tracking code (e.g. `83491205`) for clear display in Persian RTL chat and clean banking reconciliation.
+4. **Centralized Admin Dispatch via `Khatm_Saz_bot`:** All admin push notifications (receipt approval requests, custom La'an moderation) are dispatched exclusively through the creator bot `@Khatm_Saz_bot`. Super admin chat IDs are resolved both from `.env` and by querying `role == 'SUPER_ADMIN'` in the database. Media uploaded to member bots is cross-downloaded and re-uploaded via `Khatm_Saz_bot` to prevent Telegram file_id authorization errors.
+
+---
+
+### DEC-PY-0123 — La'an Khatm Wizard Redesign: Elimination of preset options, custom title & dhikr prompt, moderation queue, and automated invite delivery (MASTER-11)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Elimination of Preset La'an Categories:** Removed all preset buttons («لعن عمر», «لعن ابوبکر», «لعن عایشه», «لعن هشت‌گانه امام رضا») from the wizard and deleted them from `khatm_categories` and admin panel.
+2. **Interactive Wizard Prompts:** Selecting "لعن" immediately asks:
+   - Question 1: «عنوان ختم لعنتون چیه؟» (Creator enters custom title)
+   - Question 2: «متن ذکر لعن را وارد کنید:» (Creator enters custom dhikr / recitation text)
+   - Followed by the regular wizard steps (Commitment vs Free, count/goal, schedule, deadline hour, niyyat).
+3. **Pending Moderation Queue:** Upon completion, the khatm is created in `status = DRAFT` / `pending_lan_approval = True`. The creator is informed that member recruitment is inactive until admin approval.
+4. **Super Admin Dispatch & Inline Review:** The request is dispatched to `@Khatm_Saz_bot` for super admins with `[✅ تأیید و فعال‌سازی]` and `[❌ رد کردن]` buttons.
+5. **Automated Invite Card Delivery upon Approval:** Upon admin approval, the khatm status becomes `ACTIVE` and the invitation card along with member invite links is immediately sent to the creator in `@Khatm_Saz_bot`.
+
+---
+
+### DEC-PY-0122 — 30-day PRO Plan duration, additive renewal, pre-lapse warnings (7-day and 24-hour), and automatic downgrade
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **30-Day PRO Plan Duration:** The PRO plan duration is strictly 30 days (1 month).
+2. **Additive Renewal:** Renewing an active PRO plan adds 30 days additively to the current expiration date (`current_expires_at + 30 days`), preserving remaining time. If renewed when expired, it starts 30 days from now.
+3. **Pre-Lapse Automated Warnings:**
+   - **7 days before expiration:** Bot sends a friendly reminder highlighting remaining days and prompt to renew without interruption.
+   - **24 hours before expiration:** Bot sends a final alert that only 24 hours remain before returning to standard tier.
+4. **Automatic Downgrade & Notification upon Lapse:** If not renewed by `expires_at`, the user automatically lapses out of PRO (to BASIC if active members exceed cap, else FREE), and receives an expiration notification.
+5. **Periodic Scheduler & Lazy Check:** Checked every minute by `plan_service.process_plan_expirations_and_reminders` via AsyncIOScheduler, with lazy expiration fallback in `get_plan`.
+
+---
+
+### DEC-PY-0121 — Broadcast 1,000-recipient tier pricing, removal of free messages, bank receipt upload / PayPing direct link top-up, and admin-only creator panel guard (MASTER-10)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Broadcast 1000-Recipient Tier Pricing:** Pro plan does not include unlimited broadcasts. Every broadcast charges `ceil(audience_count / 1000) * price_per_1000` from the user's wallet. Even for an audience of 1 to 1000, 1 package fee is charged. For 6000 recipients, 6 package units are charged. Free broadcast quotas (e.g. 2 free messages) are completely abolished.
+2. **Basic Plan Broadcast Exclusion:** Basic plan users do not have broadcast messaging entitlements.
+3. **Creator Panel Restricted to Admin Only:** Until fully refined and approved, access to the Creator Panel (`/creator/*`, `/mini/creator/*`, and in-bot button `creator:web_login`) is strictly restricted to `SUPER_ADMIN` users. Regular users receive a friendly Persian upgrade notice.
+4. **Bank Receipt Upload Flow & PayPing Direct Link:** Automated redirect/callback payment is bypassed. Users recharge via card-to-card or PayPing direct open-amount link (`payping.ir/d/...` or `payping.ir/@Username`), upload a receipt screenshot in the bot, which is dispatched to super admins with inline approve/reject buttons. Approving credits the user's wallet immediately and issues an invoice.
+
+---
+
+### DEC-PY-0120 — Post-completion two-message flow (Confirmation + Invite Link, then separate Progress Report), removal of 'read another portion' button, and removal of 14:00 member broadcast
+
+**Date:** 2026-10-11
+**Owner confirmation:**
+1. **Separate Confirmation & Progress Report Messages:** Upon clicking the share completion button (`share_done:`, `regular_done:`, `regular_early_done:`, `done:`), the bot must send **two separate messages** in sequence:
+   - **Message 1 (Confirmation + Invite Link):** Thanks the member, confirms the portion is logged in the khatm and niyyat, and includes the direct member-bot invitation link (`_invite_friends_line`) encouraging the member to invite friends to share in the reward.
+   - **Message 2 (Progress Report):** Sent immediately after Message 1 as a standalone message displaying overall khatm progress (`build_motivational_progress_snippet`: before today, today's recitations, total completed, and percentage).
+2. **Remove "Read Another Portion" Button:** The inline button `[📖 خواندن یک سهم دیگر]` (`today_pick:{part.id}`) is completely removed from post-completion messages.
+3. **No 14:00 Scheduled Broadcast to Members:** The automatic 14:00 daily digest broadcast to members (`deliver_member_daily_digests`) is disconnected from `reminder_engine/service.py:run_once`. Members receive the progress report on-demand immediately upon completing their portion rather than at 14:00.
+
+---
+
+### DEC-PY-0119 — Creator Web Panel ground-up redesign, Mobile-First navigation, bot invite link generation, and zero-confusion UX
+
+**Date:** 2026-10-11
+**Context & Scope:** Comprehensive ground-up rebuild of the Creator / Organizer Web Panel (`/creator`) across all 7 views in `src/khatmsaz/web/templates/` (`creator_base.html`, `creator_dashboard.html`, `creator_khatms.html`, `creator_khatm_detail.html`, `creator_khatm_new.html`, `creator_wallet.html`, `creator_broadcasts.html`, `creator_login.html`).
+**Decisions:**
+1. **Mobile-First Architecture for Mini-Apps:** Implemented responsive Estedad 5.3.0 layout with a fixed bottom dock (home, khatms, new, wallet, broadcasts) optimized for Telegram and Bale in-bot WebApps.
+2. **First-Class Invite Links:** The web panel resolves the khatm's domain/bot category and renders 1-click copyable Telegram (`t.me/...`) and Bale (`ble.ir/...`) deep invite links directly on the detail page, with Web Share API native sharing.
+3. **Dynamic Visual Progress Bars:** Dashboards and khatm cards calculate `progress_pct` against completed portions or repetition targets.
+4. **Organizer Lifecycle Actions:** Direct status toggle (pause/resume) and member removal from the web interface.
+5. **Niyyat Persistence:** Form field `niyyat` parsed and passed to `workflow_service.create_and_launch_khatm`.
+
+---
+
+### DEC-PY-0118 — Ground-up Admin Panel redesign, custom La'an moderation, web media upload, and fixed PRO plan
+
+**Date:** 2026-10-10
+**Owner confirmation:**
+1. **Custom La'an moderation (`pending_lan_approval`):** Custom La'an khatms can be approved, edited, or rejected both in the Web Admin Panel (`/moderation` and `/categories`) and via inline buttons in the Telegram admin bot. Until approved by an admin, the khatm must not be joinable/active, and the invite link is sent to the creator upon approval.
+2. **Devotional & Khutbah media management in Web Admin Panel:** Support both direct file upload from computer/mobile in the web panel (which sends the file via the creator bot to obtain and store `file_id` in `devotional_media`) AND direct entry of `file_id` or URL for large files (>50MB).
+3. **PRO plan model:** Fixed-price `PRO` plan (paid from wallet at the admin-configured `PRO` price to disable ads completely) plus manual admin override to set any user's plan (`FREE` / `BASIC` / `PRO`) from the Web Admin Panel.
+4. **Admin Panel routing & UI:** Rebuild the Admin Panel across the 10 modules with `[؟]` simple-language popup guides and step-by-step instructions while preserving/aliasing legacy URL paths (`/categories`, `/devotionals`, `/bots`, `/operations`, `/broadcasts`, etc.) so existing links and tests continue to work seamlessly.
+>>>>>>> update_khatm_wizard_flow
 
 ---
 

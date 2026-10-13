@@ -12,15 +12,21 @@ from khatmsaz.modules.wallet.models import (
     CouponRedemption,
     DiscountCoupon,
     PendingPayment,
+    ReceiptClaimStatus,
     TxType,
     Wallet,
     WalletInvoice,
+    WalletReceiptClaim,
     WalletTransaction,
 )
 
 
-async def get_by_user(session: AsyncSession, user_id) -> Wallet | None:
+async def get_by_user(
+    session: AsyncSession, user_id, *, for_update: bool = False
+) -> Wallet | None:
     stmt = select(Wallet).where(Wallet.user_id == user_id)
+    if for_update:
+        stmt = stmt.with_for_update()
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -57,6 +63,19 @@ async def record_transaction(
     return tx
 
 
+async def list_spend_transactions_by_ref(
+    session: AsyncSession, wallet_id, ref: str
+) -> list[WalletTransaction]:
+    result = await session.execute(
+        select(WalletTransaction).where(
+            WalletTransaction.wallet_id == wallet_id,
+            WalletTransaction.type == TxType.SPEND,
+            WalletTransaction.ref == ref,
+        )
+    )
+    return list(result.scalars())
+
+
 async def create_paid_invoice(
     session: AsyncSession,
     *,
@@ -84,6 +103,10 @@ async def create_paid_invoice(
     session.add(invoice)
     await session.flush()
     return invoice
+
+
+async def get_invoice_by_id(session: AsyncSession, invoice_id) -> WalletInvoice | None:
+    return await session.get(WalletInvoice, invoice_id)
 
 
 async def bind_invoice_resource(
@@ -173,6 +196,7 @@ async def upsert_coupon(
     total_redemption_limit: int | None,
     per_user_limit: int,
     created_by_user_id=None,
+    enabled: bool = True,
 ) -> DiscountCoupon:
     coupon = await session.get(DiscountCoupon, code)
     if coupon is None:
@@ -184,7 +208,7 @@ async def upsert_coupon(
     coupon.max_discount_toman = max_discount_toman
     coupon.total_redemption_limit = total_redemption_limit
     coupon.per_user_limit = per_user_limit
-    coupon.enabled = True
+    coupon.enabled = bool(enabled)
     coupon.created_by_user_id = created_by_user_id
     await session.flush()
     return coupon
@@ -286,3 +310,71 @@ async def delete_expired_unused_payments(session: AsyncSession, *, now: datetime
         )
     )
     return int(result.rowcount or 0)
+
+
+async def create_receipt_claim(
+    session: AsyncSession,
+    *,
+    user_id,
+    amount_toman: int,
+    photo_file_id: str,
+    photo_file_id_bale: str | None = None,
+) -> WalletReceiptClaim:
+    claim = WalletReceiptClaim(
+        id=new_id(),
+        user_id=user_id,
+        amount_toman=amount_toman,
+        photo_file_id=photo_file_id,
+        photo_file_id_bale=photo_file_id_bale,
+        status=ReceiptClaimStatus.PENDING.value,
+    )
+    session.add(claim)
+    await session.flush()
+    return claim
+
+
+async def get_receipt_claim_by_id(
+    session: AsyncSession, claim_id
+) -> WalletReceiptClaim | None:
+    result = await session.execute(
+        select(WalletReceiptClaim).where(WalletReceiptClaim.id == claim_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def list_pending_receipt_claims(
+    session: AsyncSession, limit: int = 50
+) -> list[WalletReceiptClaim]:
+    result = await session.execute(
+        select(WalletReceiptClaim)
+        .where(WalletReceiptClaim.status == ReceiptClaimStatus.PENDING.value)
+        .order_by(WalletReceiptClaim.created_at.asc())
+        .limit(limit)
+    )
+    return list(result.scalars())
+
+
+async def review_receipt_claim(
+    session: AsyncSession,
+    *,
+    claim_id,
+    admin_user_id,
+    status: ReceiptClaimStatus,
+    admin_note: str | None = None,
+    now: datetime,
+) -> WalletReceiptClaim | None:
+    result = await session.execute(
+        update(WalletReceiptClaim)
+        .where(
+            WalletReceiptClaim.id == claim_id,
+            WalletReceiptClaim.status == ReceiptClaimStatus.PENDING.value,
+        )
+        .values(
+            status=status.value if hasattr(status, "value") else str(status),
+            admin_user_id=admin_user_id,
+            admin_note=admin_note,
+            reviewed_at=now,
+        )
+        .returning(WalletReceiptClaim)
+    )
+    return result.scalar_one_or_none()

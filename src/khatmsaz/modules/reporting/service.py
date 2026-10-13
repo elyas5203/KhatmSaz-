@@ -108,6 +108,8 @@ async def get_closed_month_report(
     session: AsyncSession, user_id, *, start: datetime, end: datetime
 ) -> ClosedMonthReport:
     """Aggregate one already-closed calendar month; never includes misses."""
+    from khatmsaz.modules.khatm_category.models import KhatmCategory
+
     portion_result = await session.execute(
         select(
             func.coalesce(
@@ -125,7 +127,37 @@ async def get_closed_month_report(
             func.coalesce(
                 func.sum(
                     case(
-                        (Khatm.template_type == KhatmTemplateType.SALAWAT, KhatmPortion.completed_quantity),
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group.is_(None)),
+                            KhatmPortion.completed_quantity,
+                        ),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group.in_(("DUA", "KHUTBAH"))),
+                            KhatmPortion.completed_quantity,
+                        ),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group == "LAAN"),
+                            KhatmPortion.completed_quantity,
+                        ),
                         else_=0,
                     )
                 ),
@@ -135,6 +167,7 @@ async def get_closed_month_report(
         .select_from(KhatmPortion)
         .join(Participation, Participation.id == KhatmPortion.participation_id)
         .join(Khatm, Khatm.id == KhatmPortion.khatm_id)
+        .outerjoin(KhatmCategory, KhatmCategory.id == Khatm.content_category_id)
         .where(
             Participation.user_id == user_id,
             KhatmPortion.status == PortionStatus.COMPLETED,
@@ -142,7 +175,7 @@ async def get_closed_month_report(
             KhatmPortion.completed_at < end,
         )
     )
-    committed_quran, committed_salawat = portion_result.one()
+    committed_quran, committed_salawat, committed_dua, committed_laan = portion_result.one()
     open_result = await session.execute(
         select(
             func.coalesce(
@@ -150,20 +183,56 @@ async def get_closed_month_report(
                 0,
             ),
             func.coalesce(
-                func.sum(case((Khatm.template_type == KhatmTemplateType.SALAWAT, OpenContribution.amount), else_=0)),
+                func.sum(
+                    case(
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group.is_(None)),
+                            OpenContribution.amount,
+                        ),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group.in_(("DUA", "KHUTBAH"))),
+                            OpenContribution.amount,
+                        ),
+                        else_=0,
+                    )
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    case(
+                        (
+                            (Khatm.template_type == KhatmTemplateType.SALAWAT)
+                            & (KhatmCategory.group == "LAAN"),
+                            OpenContribution.amount,
+                        ),
+                        else_=0,
+                    )
+                ),
                 0,
             ),
         )
         .select_from(OpenContribution)
         .join(Participation, Participation.id == OpenContribution.participation_id)
         .join(Khatm, Khatm.id == OpenContribution.khatm_id)
+        .outerjoin(KhatmCategory, KhatmCategory.id == Khatm.content_category_id)
         .where(
             Participation.user_id == user_id,
             OpenContribution.recorded_at >= start,
             OpenContribution.recorded_at < end,
         )
     )
-    open_quran, open_salawat = open_result.one()
+    open_quran, open_salawat, open_dua, open_laan = open_result.one()
     completed_khatms = await session.scalar(
         select(func.count(func.distinct(Khatm.id)))
         .select_from(Khatm)
@@ -178,6 +247,8 @@ async def get_closed_month_report(
         quran_pages=int(float(committed_quran or 0) + float(open_quran or 0)),
         salawat_count=int(float(committed_salawat or 0) + float(open_salawat or 0)),
         completed_khatms=int(completed_khatms or 0),
+        dua_count=int(float(committed_dua or 0) + float(open_dua or 0)),
+        laan_count=int(float(committed_laan or 0) + float(open_laan or 0)),
     )
 
 

@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.core.ids import new_id
@@ -45,6 +45,7 @@ async def create(
     schedule_kind: str = "NONE",
     schedule_value: str | None = None,
     content_category_id=None,
+    pending_lan_approval: bool = False,
 ) -> Khatm:
     khatm = Khatm(
         id=new_id(),
@@ -82,6 +83,7 @@ async def create(
         schedule_kind=schedule_kind,
         schedule_value=schedule_value,
         content_category_id=content_category_id,
+        pending_lan_approval=pending_lan_approval,
     )
     session.add(khatm)
     await session.flush()
@@ -315,3 +317,89 @@ async def list_public_active(session: AsyncSession, *, limit: int = 20) -> list[
     )
     result = await session.execute(stmt)
     return list(result.scalars())
+
+
+async def list_pending_laan_khatms(session: AsyncSession) -> list[Khatm]:
+    """Return DRAFT khatms that have a custom recitation text awaiting admin approval."""
+    stmt = (
+        select(Khatm)
+        .where(
+            or_(
+                Khatm.pending_lan_approval.is_(True),
+                and_(
+                    Khatm.status == KhatmStatus.DRAFT,
+                    Khatm.description.is_not(None),
+                ),
+            )
+        )
+        .order_by(Khatm.created_at.asc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars())
+
+
+async def review_laan_khatm(
+    session: AsyncSession,
+    khatm_id,
+    *,
+    approved: bool,
+    updated_description: str | None = None,
+) -> Khatm | None:
+    khatm = await session.get(Khatm, khatm_id)
+    if khatm is None:
+        return None
+    if updated_description is not None and updated_description.strip():
+        khatm.description = updated_description.strip()
+    khatm.status = KhatmStatus.ACTIVE if approved else KhatmStatus.CANCELLED
+    khatm.pending_lan_approval = False
+    await session.flush()
+    return khatm
+
+
+async def admin_update_khatm(
+    session: AsyncSession,
+    khatm_id,
+    *,
+    title: str | None = None,
+    niyyat: str | None = None,
+    welcome_text: str | None = None,
+    description: str | None = None,
+    repetition_target: int | None = None,
+    visibility: KhatmVisibility | None = None,
+    allowed_platforms: str | None = None,
+    reminder_tone: str | None = None,
+    daily_deadline_hour: int | None = None,
+    capacity: int | None = None,
+    status: KhatmStatus | None = None,
+    update_optional_texts: bool = False,
+) -> Khatm | None:
+    khatm = await session.get(Khatm, khatm_id)
+    if khatm is None:
+        return None
+    if title is not None and title.strip():
+        khatm.title = title.strip()
+    if update_optional_texts:
+        khatm.niyyat = (niyyat or "").strip() or None
+        khatm.welcome_text = (welcome_text or "").strip() or None
+        if description is not None:
+            khatm.description = description.strip() or None
+    if repetition_target is not None:
+        khatm.repetition_target = repetition_target if repetition_target > 0 else None
+    if visibility is not None:
+        khatm.visibility = visibility
+    if allowed_platforms is not None and allowed_platforms in {"BOTH", "TELEGRAM", "BALE"}:
+        khatm.allowed_platforms = allowed_platforms
+    if reminder_tone is not None:
+        khatm.reminder_tone = reminder_tone
+    if daily_deadline_hour is not None:
+        khatm.daily_deadline_hour = daily_deadline_hour
+    if capacity is not None:
+        khatm.capacity = capacity if capacity > 0 else None
+    if status is not None:
+        previous = khatm.status
+        khatm.status = status
+        if status == KhatmStatus.COMPLETED and previous != KhatmStatus.COMPLETED:
+            khatm.completed_at = datetime.now(timezone.utc)
+    await session.flush()
+    return khatm
+

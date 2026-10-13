@@ -473,7 +473,7 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
 
         from khatmsaz.modules.share_occurrence import repository as shares
         if await shares.has_any(session, participation.id):
-            await safe_answer_callback(callback, "از دکمهٔ انجام زیر همان سهم استفاده کنید. سهم‌های باقی‌مانده در «انجام قرائت امروز» نمایش داده می‌شوند.", show_alert=True)
+            await safe_answer_callback(callback, "از دکمهٔ انجام زیر همان سهم استفاده کنید. سهم‌های باقی‌مانده در «اعلام انجام قرائت امروز» نمایش داده می‌شوند.", show_alert=True)
             return
         completed, _ = await allocation_service.complete_current_portion_and_advance(
             session, khatm_id, participation.id
@@ -521,6 +521,10 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
     else:
         label = share_label(family, start=completed.unit_start, end=completed.unit_end, lang=lang)
         
+    async with session_scope() as session:
+        from khatmsaz.bot.member_copy import build_motivational_progress_snippet
+        snippet = await build_motivational_progress_snippet(session, khatm)
+
     confirmation = completion_text(
         khatm, family,
         label,
@@ -559,13 +563,17 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
                 khatm_id, allow_snooze=allow_snooze, undo_completed_id=str(completed.id), undo_next_id=None, lang=lang,
             ),
         )
+    if snippet:
+        await callback.message.answer(snippet)
     await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data.startswith("undo:"))
 async def undo_last_completion(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
-    _, completed_id, next_id = callback.data.split(":", 2)
+    parts = callback.data.split(":")
+    completed_id = parts[1]
+    next_id = parts[2] if len(parts) > 2 else "none"
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
@@ -601,6 +609,18 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         khatm = await khatm_service.get_khatm(session, khatm_id)
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
+
+    if khatm is not None and participation is not None:
+        ktype = getattr(khatm, "khatm_type", None)
+        is_open = (
+            ktype == KhatmTypeEnum.OPEN
+            or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+        )
+        if is_open:
+            from khatmsaz.bot.handlers.report import _deliver_open_khatm_flow
+            await _deliver_open_khatm_flow(callback.message, state, participation, khatm, lang, platform)
+            await safe_answer_callback(callback)
+            return
 
     if khatm is not None and participation is not None and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
         from khatmsaz.bot.handlers.start import AskDeliveryHour
@@ -640,6 +660,7 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
     if (
         khatm is not None and participation is not None
         and khatm.template_type == KhatmTemplateType.QURAN_PAGE
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
         and not participation.open_reading_pages_per_day
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
@@ -647,9 +668,26 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         await safe_answer_callback(callback)
         return
 
-    is_member_choice = khatm is not None and (
-        khatm.khatm_type == KhatmTypeEnum.OPEN
-        or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+    if khatm is not None and participation is not None and khatm.khatm_type == KhatmTypeEnum.OPEN:
+        from khatmsaz.bot.handlers.member_commitment import CommitFlow
+        from khatmsaz.bot.member_copy import content_family
+        fam = await content_family(session, khatm)
+        await state.set_state(CommitFlow.entering_count)
+        await state.update_data(commit_pid=str(participation.id), commit_family=fam.upper())
+        unit = (
+            "بخش" if fam == "khutbah"
+            else "صفحه" if khatm.template_type == KhatmTemplateType.QURAN_PAGE
+            else "صلوات" if fam == "salawat"
+            else "مرتبه"
+        )
+        await callback.message.answer(f"می‌خواهید چند {unit} از این ختم قرائت کنید؟ عدد مورد نظر را بفرستید:")
+        await safe_answer_callback(callback)
+        return
+
+    is_member_choice = (
+        khatm is not None
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     )
     if (
         khatm is not None and participation is not None

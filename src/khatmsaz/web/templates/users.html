@@ -1,73 +1,196 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
-{% block title %}کاربران | ختم‌ساز{% endblock %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}کاربران ۳۶۰ درجه | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">هویت و دسترسی</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-6">جست‌وجوی کاربران {{ tooltip("لیست کاربرانی که وارد ربات شده‌اند. می‌توانید روی آن‌ها مدیریت داشته باشید (اخطار، تعلیق، بن).") }}</h1>
-  
-  <form class="flex gap-2 w-full max-w-2xl relative" method="get">
-    <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">هویت و دسترسی</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیریت کاربران ۳۶۰ درجه</h1>
+      {{ help_button(
+        "راهنمای مدیریت کاربران ۳۶۰ درجه",
+        "در این صفحه اطلاعات جامع کاربران سامانه شامل شماره موبایل تأییدشده، پلتفرم‌های متصل (تلگرام و بله)، شهر/استان، سطح پلن سازنده، موجودی کیف پول و وضعیت دسترسی نمایش داده می‌شود و می‌توانید حساب آن‌ها را مدیریت فرمایید.",
+        [
+          "با وارد کردن نام، شماره موبایل، آیدی یا UUID کاربر را در کادر جستجو پیدا کنید.",
+          "اطلاعات ۳۶۰ درجه کاربر را بررسی کنید: نقش، شماره موبایل، کیف پول نقدی/اعتباری و پلن جاری.",
+          "برای اخطار، تعلیق، فعال‌سازی، بن یا ارتقا به سازنده از دکمه‌های مدیریتی کارت استفاده کنید.",
+          "برای تغییر سطح پلن به رایگان/پایه/پرو روی «تغییر پلن» و برای شارژ/کسر وجه روی «کیف پول» و برای ارسال پیام به چت او روی «ارسال پیام مستقیم» کلیک فرمایید."
+        ],
+        "نکته: پیام مستقیم ارسالی از پنل با عنوان رسمی «پیام از طرف مدیریت ختم‌ساز» به چت خصوصی کاربر در ربات ارسال می‌شود."
+      ) }}
     </div>
-    <input name="q" value="{{ query }}" placeholder="نام، شماره یا شناسه پیام‌رسان" autocomplete="off" class="input-field pl-4 pr-10 py-3 text-lg">
-    <button type="submit" class="btn px-6 whitespace-nowrap">جست‌وجو</button>
-  </form>
+  </div>
 </section>
 
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span>
+    {% if saved == 'plan' %}پلن کاربر با موفقیت تغییر کرد ✅
+    {% elif saved == 'wallet' %}موجودی کیف پول کاربر با موفقیت به‌روزرسانی شد ✅
+    {% elif saved == 'messaged' %}پیام مستقیم با موفقیت به چت کاربر ارسال شد ✅
+    {% else %}عملیات با موفقیت انجام شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+<!-- Search Form -->
+<form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get">
+  <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+  </div>
+  <input name="q" value="{{ query }}" placeholder="جستجو بر اساس نام، شماره موبایل، آیدی یا UUID..." autocomplete="off" class="input-field pl-4 pr-10 py-3 text-sm focus:border-emerald-500">
+  <button type="submit" class="btn px-6 whitespace-nowrap text-xs font-bold">جست‌وجوی کاربر</button>
+</form>
+
+<!-- Users Cards Grid -->
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-  {% for user in users %}
-  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
-    <div class="mb-6">
-      <div class="flex justify-between items-start mb-2">
-        <h2 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
+  {% for row in user_rows %}
+  {% set user = row.user %}
+  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group border border-white/5 space-y-4">
+    <div>
+      <!-- Header & Badges -->
+      <div class="flex justify-between items-start gap-2 mb-2">
+        <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors truncate">
           {{ user.display_name or 'کاربر بدون نام' }}
-          {% if user.role.value == 'CREATOR' %}
-            <span class="ml-2 text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">سازنده</span>
-          {% elif user.role.value == 'SUPER_ADMIN' %}
-            <span class="ml-2 text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">مدیر کل</span>
-          {% else %}
-            <span class="ml-2 text-xs bg-slate-500/20 text-slate-300 px-2 py-0.5 rounded-full border border-slate-500/30">کاربر عادی</span>
-          {% endif %}
         </h2>
-        <span class="status {{ user.status.value|lower }}">{{ fa_label(user.status) }}</span>
+        <span class="status {{ user.status.value|lower }} whitespace-nowrap">{{ fa_label(user.status) }}</span>
       </div>
-      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all mt-1" dir="ltr">UUID: {{ user.id }}</p>
-      {% if user.platform_identities %}
-        <p class="text-xs text-sky-400 font-mono bg-sky-900/30 inline-block px-2 py-1 rounded select-all mt-1" dir="ltr">
-          ID: {{ user.platform_identities[0].subject }}
-          {% if user.platform_identities[0].username %}
-            | @{{ user.platform_identities[0].username }}
-          {% endif %}
+
+      <div class="flex flex-wrap items-center gap-1.5 mb-3">
+        {% if user.role.value == 'CREATOR' %}
+          <span class="text-[0.65rem] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold">⭐️ سازنده</span>
+        {% elif user.role.value == 'SUPER_ADMIN' %}
+          <span class="text-[0.65rem] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30 font-bold">🛡 مدیر کل</span>
+        {% else %}
+          <span class="text-[0.65rem] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full font-bold">عضو عادی</span>
+        {% endif %}
+
+        <span class="text-[0.65rem] bg-sky-500/15 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/20 font-bold">
+          پلن: {{ row.plan }}
+        </span>
+
+        {% if row.phone %}
+        <span class="text-[0.65rem] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-mono" dir="ltr">
+          📱 {{ row.phone }}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Identity Details -->
+      <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs">
+        <p class="text-[0.65rem] text-slate-500 font-mono truncate" dir="ltr" title="{{ user.id }}">UUID: {{ user.id }}</p>
+        {% for ident in user.platform_identities %}
+        <p class="text-slate-300 font-mono text-[0.7rem] flex items-center justify-between" dir="ltr">
+          <span class="text-sky-400 font-bold">{{ ident.platform.value }}: {{ ident.subject }}</span>
+          {% if ident.username %}<span class="text-slate-400">@{{ ident.username }}</span>{% endif %}
         </p>
-      {% endif %}
+        {% endfor %}
+
+        {% if row.settings and (row.settings.province or row.settings.city) %}
+        <p class="text-slate-400 text-[0.7rem] pt-1 border-t border-slate-800">
+          محل سکونت: {{ row.settings.province or '' }} {{ row.settings.city or '' }}
+        </p>
+        {% endif %}
+
+        <!-- Wallet balances -->
+        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800 text-[0.7rem]">
+          <div>
+            <span class="text-slate-500 block">نقدی:</span>
+            <strong class="text-emerald-400 font-mono">{{ "{:,}".format(row.balance) }} ت</strong>
+          </div>
+          <div>
+            <span class="text-slate-500 block">اعتبار هدیه:</span>
+            <strong class="text-amber-400 font-mono">{{ "{:,}".format(row.credit) }} ت</strong>
+          </div>
+        </div>
+      </div>
     </div>
-    
-    <div class="border-t border-slate-700/50 pt-4 mt-auto">
-      <form method="post" action="/users/{{ user.id }}/moderate" class="grid grid-cols-2 gap-2">
+
+    <!-- Actions & Modals Triggers -->
+    <div class="border-t border-slate-700/50 pt-3 space-y-2">
+      <!-- Moderate Form -->
+      <form method="post" action="/users/{{ user.id }}/moderate" class="grid grid-cols-2 gap-1.5">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <input type="hidden" name="q" value="{{ query }}">
-        <button name="action" value="warn" class="bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-amber-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">اخطار</button>
-        <button name="action" value="suspend" class="bg-orange-500/10 text-orange-500 hover:bg-orange-500 hover:text-orange-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">تعلیق</button>
-        <button name="action" value="reactivate" class="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-emerald-950 px-3 py-2 rounded-xl text-sm font-bold transition-colors">فعال</button>
-        <button name="action" value="ban" onclick="return confirm('این کاربر به‌طور نهایی مسدود شود؟')" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors">بن نهایی</button>
+        <button name="action" value="warn" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">اخطار</button>
+        <button name="action" value="suspend" class="bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">تعلیق</button>
+        <button name="action" value="reactivate" class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">فعال‌سازی</button>
+        <button name="action" value="ban" onclick="return confirm('آیا از مسدودسازی نهایی این کاربر مطمئن هستید؟')" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all">بن نهایی</button>
+        
         {% if user.role.value == 'USER' %}
-          <button name="action" value="promote" class="bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors col-span-2 mt-2">ارتقا به سازنده ⭐️</button>
+          <button name="action" value="promote" class="bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">⭐️ ارتقا به سازنده</button>
         {% elif user.role.value == 'CREATOR' %}
-          <button name="action" value="demote" onclick="return confirm('آیا از حذف دسترسی سازنده این کاربر مطمئن هستید؟')" class="bg-slate-500/10 text-slate-400 hover:bg-slate-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors col-span-2 mt-2">حذف از سازندگان</button>
+          <button name="action" value="demote" onclick="return confirm('آیا از خلع نقش سازنده مطمئن هستید؟')" class="bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">حذف نقش سازنده</button>
         {% endif %}
       </form>
+
+      <!-- Advanced Management Popups (Plan, Wallet, Message) -->
+      <div class="grid grid-cols-3 gap-1.5 pt-1">
+        <details class="relative">
+          <summary class="list-none text-center bg-slate-800 hover:bg-slate-700 text-slate-200 py-1 rounded-lg text-[0.7rem] font-bold cursor-pointer">
+            پلن 💎
+          </summary>
+          <div class="absolute bottom-full right-0 mb-2 w-56 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20">
+            <h4 class="text-xs font-bold text-white mb-2">تغییر پلن کاربر</h4>
+            <form method="post" action="/users/{{ user.id }}/plan" class="space-y-2">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="q" value="{{ query }}">
+              <select name="plan" class="input-field py-1 px-2 text-xs">
+                <option value="FREE" {% if row.plan == 'FREE' %}selected{% endif %}>رایگان (FREE)</option>
+                <option value="BASIC" {% if row.plan == 'BASIC' %}selected{% endif %}>پایه (BASIC)</option>
+                <option value="PRO" {% if row.plan == 'PRO' %}selected{% endif %}>پرو (PRO)</option>
+              </select>
+              <button type="submit" class="btn w-full py-1 text-xs">ثبت پلن</button>
+            </form>
+          </div>
+        </details>
+
+        <details class="relative">
+          <summary class="list-none text-center bg-slate-800 hover:bg-slate-700 text-slate-200 py-1 rounded-lg text-[0.7rem] font-bold cursor-pointer">
+            کیف پول 👛
+          </summary>
+          <div class="absolute bottom-full right-1/2 translate-x-1/2 mb-2 w-64 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20">
+            <h4 class="text-xs font-bold text-white mb-2">شارژ/کسر کیف پول</h4>
+            <form method="post" action="/users/{{ user.id }}/wallet" class="space-y-2 text-right">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="q" value="{{ query }}">
+              <input type="hidden" name="redirect_to" value="/users">
+              <div>
+                <label class="block text-[0.65rem] text-slate-400">تغییر نقدی (تومان):</label>
+                <input name="cash_delta" type="number" value="0" class="input-field py-1 px-2 text-xs font-mono">
+              </div>
+              <div>
+                <label class="block text-[0.65rem] text-slate-400">تغییر هدیه (تومان):</label>
+                <input name="credit_delta" type="number" value="0" class="input-field py-1 px-2 text-xs font-mono">
+              </div>
+              <input name="reason" placeholder="علت تغییر..." class="input-field py-1 px-2 text-xs">
+              <button type="submit" class="btn w-full py-1 text-xs">اعمال</button>
+            </form>
+          </div>
+        </details>
+
+        <details class="relative">
+          <summary class="list-none text-center bg-slate-800 hover:bg-slate-700 text-slate-200 py-1 rounded-lg text-[0.7rem] font-bold cursor-pointer">
+            پیام 📲
+          </summary>
+          <div class="absolute bottom-full left-0 mb-2 w-64 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20">
+            <h4 class="text-xs font-bold text-white mb-2">ارسال پیام به کاربر</h4>
+            <form method="post" action="/users/{{ user.id }}/message" class="space-y-2">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              <input type="hidden" name="q" value="{{ query }}">
+              <textarea name="message_text" rows="3" required placeholder="متن پیام را وارد کنید..." class="input-field py-1 px-2 text-xs"></textarea>
+              <button type="submit" class="btn w-full py-1 text-xs">ارسال پیام</button>
+            </form>
+          </div>
+        </details>
+      </div>
     </div>
   </article>
   {% else %}
   <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-700">
-    {% if query %}
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-    <p class="text-slate-400 font-medium">کاربری پیدا نشد.</p>
-    {% else %}
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-emerald-500/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-    <p class="text-slate-400 font-medium">برای شروع، نام، شماره یا شناسه کاربری را جست‌وجو کنید.</p>
-    {% endif %}
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+    <p class="text-slate-400 font-medium">کاربری یافت نشد. نام، شماره یا آیدی کاربر را در کادر بالا جستجو کنید.</p>
   </div>
   {% endfor %}
 </section>
@@ -75,11 +198,7 @@
 {% if page > 1 or has_next %}
 <nav class="flex items-center justify-center gap-4 my-8" aria-label="صفحه‌بندی کاربران">
   {% if page > 1 %}
-  <form method="get">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="page" value="{{ page - 1 }}">
-    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه قبل</button>
-  </form>
+  <a href="/users?q={{ query }}&page={{ page - 1 }}" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه قبل</a>
   {% else %}
   <div class="px-4 py-2 w-24"></div>
   {% endif %}
@@ -87,11 +206,7 @@
   <span class="text-slate-400 font-mono bg-slate-800/50 px-4 py-2 rounded-xl">صفحه {{ page }}</span>
   
   {% if has_next %}
-  <form method="get">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="page" value="{{ page + 1 }}">
-    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه بعد</button>
-  </form>
+  <a href="/users?q={{ query }}&page={{ page + 1 }}" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors">صفحه بعد</a>
   {% else %}
   <div class="px-4 py-2 w-24"></div>
   {% endif %}

@@ -38,7 +38,14 @@ ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
 
 CREATE_BUTTON_TEXTS = variants("menu.create")
 MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
-TODAY_BUTTON_TEXTS = variants("menu.today")
+TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
+    "📖 انجام قرائت امروز",
+    "📖 اعلام انجام قرائت امروز",
+    "📖 اعلام انجام قرائت",
+    "انجام قرائت امروز",
+    "اعلام انجام قرائت امروز",
+    "اعلام انجام قرائت",
+}
 REPORT_BUTTON_TEXTS = variants("menu.report")
 SETTINGS_BUTTON_TEXTS = variants("menu.settings")
 HELP_BUTTON_TEXTS = variants("menu.help")
@@ -489,8 +496,9 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     buttons = []
     if is_creator or is_admin:
         buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
-        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
     if is_admin:
+        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
         buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
     buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -526,12 +534,13 @@ def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tpl.salawat", lang), callback_data="ck:group:SALAWAT")],
             [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
             [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
+            [InlineKeyboardButton(text=t("ck.tpl.khutbah", lang), callback_data="ck:group:KHUTBAH")],
             _ck_cancel_row(lang),
         ]
     )
 
 
-_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲"}
+_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲", "KHUTBAH": "📜"}
 
 
 def category_choice_keyboard(
@@ -696,10 +705,14 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def portion_done_keyboard(
     khatm_id: str, *, family: str | None = None, allow_snooze: bool = True, undo_completed_id: str | None = None,
     undo_next_id: str | None = None, lang: str = "fa",
+    start: int | None = None, end: int | None = None, count: int | None = None, title: str | None = None,
 ) -> InlineKeyboardMarkup:
     """For a portion that's still PENDING (not completed yet) — shows the
     content + "done" buttons. Tailors the "done" label to the devotional family."""
-    if family == "salawat":
+    if start is not None or end is not None or count is not None or title is not None:
+        from khatmsaz.bot.member_copy import done_button_label
+        done_text = done_button_label(family or "quran", lang, count=count, start=start, end=end, title=title)
+    elif family == "salawat":
         done_text = t("portions.button.done.salawat", lang)
     elif family in ("dua", "ziyarat"):
         done_text = t("portions.button.done.dua", lang)
@@ -719,9 +732,8 @@ def portion_done_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -739,9 +751,8 @@ def post_completion_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -881,10 +892,18 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
     )
 
 
-def regular_commitment_done_keyboard(pid: str, lang: str = "fa", family: str | None = None) -> InlineKeyboardMarkup:
+def regular_commitment_done_keyboard(
+    pid: str, lang: str = "fa", family: str | None = None,
+    *, count: int | None = None, start: int | None = None, end: int | None = None, title: str | None = None,
+) -> InlineKeyboardMarkup:
     """One-tap completion for the concrete REGULAR occurrence just sent."""
     from khatmsaz.bot.member_copy import done_button_label
-    btn_text = done_button_label(family, lang) if family else t("commit.regular.done_button", lang)
+    has_details = any(x is not None for x in (count, start, end)) or bool(title)
+    btn_text = (
+        done_button_label(family, lang, count=count, start=start, end=end, title=title)
+        if (family or has_details)
+        else t("commit.regular.done_button", lang)
+    )
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
         text=btn_text, callback_data=f"regular_done:{pid}"
     )]])
@@ -1062,8 +1081,8 @@ def creator_schedule_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboard
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("cs.sched.off", lang), callback_data=f"cs:schedule_set:{khatm_id}:off")],
         [InlineKeyboardButton(text=t("cs.sched.daily", lang), callback_data=f"cs:schedule_set:{khatm_id}:daily")],
-        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:0,1,2,3,4")],
-        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:5,6")],
+        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:workdays")],
+        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekend")],
         [InlineKeyboardButton(text=t("cs.sched.every3", lang), callback_data=f"cs:schedule_set:{khatm_id}:every:3")],
         [InlineKeyboardButton(text=t("cs.sched.date", lang), callback_data=f"cs:schedule_date:{khatm_id}")],
         [InlineKeyboardButton(text=t("cs.back", lang), callback_data=f"cs:menu:{khatm_id}")],
@@ -1102,7 +1121,7 @@ import base64
 import uuid
 
 _JOIN_ROUTE_PLATFORMS = ("TELEGRAM", "BALE")
-_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN")
+_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN", "KHUTBAH")
 _JOIN_ROUTE_LANGUAGES = ("fa", "ar", "en")
 
 
@@ -1114,9 +1133,11 @@ def _join_route_byte(bot) -> int | None:
     language = getattr(bot, "khatmsaz_language", None)
     if platform not in _JOIN_ROUTE_PLATFORMS or category not in _JOIN_ROUTE_CATEGORIES or language not in _JOIN_ROUTE_LANGUAGES:
         return None
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
     index = (
-        _JOIN_ROUTE_PLATFORMS.index(platform) * 12
-        + _JOIN_ROUTE_CATEGORIES.index(category) * 3
+        _JOIN_ROUTE_PLATFORMS.index(platform) * stride_platform
+        + _JOIN_ROUTE_CATEGORIES.index(category) * stride_category
         + _JOIN_ROUTE_LANGUAGES.index(language)
     )
     return index + 1
@@ -1147,10 +1168,13 @@ def unpack_join_callback_route(data: str) -> tuple[str, str, str] | None:
     if len(raw) < 33 or raw[32] == 0:
         return None
     index = raw[32] - 1
-    if index >= len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES):
+    total_slots = len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    if index >= total_slots:
         return None
-    platform_index, remainder = divmod(index, 12)
-    category_index, language_index = divmod(remainder, 3)
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
+    platform_index, remainder = divmod(index, stride_platform)
+    category_index, language_index = divmod(remainder, stride_category)
     return (
         _JOIN_ROUTE_PLATFORMS[platform_index],
         _JOIN_ROUTE_CATEGORIES[category_index],

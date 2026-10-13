@@ -1,53 +1,131 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
-{% block title %}قالب پیام | ختم‌ساز{% endblock %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}قالب‌های پیام و متون بات | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">متن‌های سامانه</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">نسخه‌های پیام {{ tooltip("متن تمام پیام‌های پیش‌فرض ربات در این بخش قرار دارد. سیستم همیشه جدیدترین نسخه فعال برای هر کلید (Key) را انتخاب می‌کند.") }}</h1>
-  <p class="text-slate-400 text-sm">متن قالب‌های مختلف سامانه در اینجا قابل مشاهده و تغییر وضعیت است.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">شخصی‌سازی متون ربات</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">ویرایشگر قالب‌های پیام سیستم</h1>
+      {{ help_button(
+        "راهنمای ویرایشگر قالب‌های پیام",
+        "متن تمام پیام‌های ارسالی ربات‌های تلگرام و بله به صورت قالب‌های ۳ زبانه (fa / ar / en) با شماره نسخه ذخیره شده‌اند. برای تغییر هر متن، کافی است کلید آن را انتخاب و متن جدید را ثبت کنید.",
+        [
+          "برای تغییر یک پیام موجود یا افزودن قالب تازه، از فرم «ثبت نسخه جدید قالب» در بالای صفحه استفاده کنید.",
+          "کلید قالب (مانند welcome یا share_reminder)، زبان (fa، ar، en) و متن جدید را وارد کنید.",
+          "با زدن «ذخیره و انتشار»، نسخه جدید ساخته شده و ربات بلافاصله از متن جدید استفاده می‌کند."
+        ],
+        "نکته: نسخه‌های قدیمی پیام‌ها حذف نمی‌شوند و همیشه تاریخچه کامل تغییرات در سیستم باقی می‌ماند."
+      ) }}
+    </div>
+  </div>
 </section>
 
-<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-  {% for item in items %}
-  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
-    <div class="mb-6">
-      <div class="flex justify-between items-start mb-4">
-        <div>
-          <h2 class="text-lg font-bold text-white font-mono bg-slate-800/50 px-2 py-1 rounded inline-block select-all mb-1">{{ item.key }}</h2>
-          <div class="flex items-center gap-2 mt-2">
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400" dir="ltr">{{ item.locale }}</span>
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-500" dir="ltr">v{{ item.version }}</span>
-            {% if item.enabled %}
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">فعال</span>
-            {% else %}
-            <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">غیرفعال</span>
-            {% endif %}
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span>
+    {% if saved == 'template_saved' %}نسخه جدید قالب با موفقیت ثبت شد و بلافاصله در بات فعال گردید ✅
+    {% else %}تغییر وضعیت قالب با موفقیت انجام شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+<!-- Add / Edit Template Form -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+    <div>
+      <h2 class="text-xl font-extrabold text-white">➕ ثبت نسخه جدید قالب پیام</h2>
+      <p class="text-xs text-slate-400 mt-1">با ثبت نسخه جدید، شماره نسخه به طور خودکار افزایش یافته و بلافاصله به عنوان متن پیش‌فرض سیستم فعال می‌شود.</p>
+    </div>
+    {{ tooltip("سیستم همیشه از بالاترین شماره نسخه فعال برای هر کلید و زبان استفاده می‌کند.") }}
+  </div>
+
+  <form method="post" action="/templates/save" class="space-y-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="sm:col-span-2">
+        <label class="block text-xs font-bold text-slate-300 mb-1">کلید قالب (Key)</label>
+        <input name="key" id="templateKeyInput" required placeholder="مثلاً: share_reminder یا welcome یا daily_digest" class="input-field font-mono text-sm" dir="ltr">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">زبان پیام (Locale)</label>
+        <select name="locale" id="templateLocaleSelect" class="input-field text-sm">
+          <option value="fa" selected>فارسی (fa)</option>
+          <option value="ar">عربی (ar)</option>
+          <option value="en">انگلیسی (en)</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold text-slate-300 mb-1">متن کامل پیام {{ tooltip("می‌توانید از تگ‌های مجاز HTML تلگرام/بله مانند <b>، <i> و متغیرهای پویا مثل {name} استفاده کنید.") }}</label>
+      <textarea name="body" id="templateBodyTextarea" rows="5" required placeholder="متن پیام را وارد کنید..." class="input-field text-sm leading-relaxed"></textarea>
+    </div>
+
+    <div class="flex justify-end pt-2">
+      <button type="submit" class="btn px-8 text-xs font-bold shadow-lg shadow-emerald-500/20">
+        ذخیره و انتشار نسخه جدید
+      </button>
+    </div>
+  </form>
+</section>
+
+<!-- Existing Templates Grid -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+  <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+    <h2 class="text-xl font-extrabold text-white">قالب‌های فعال و تاریخچه نسخه‌ها</h2>
+    <span class="text-xs font-bold text-slate-400">{{ items|length }} قالب ثبت‌شده</span>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for item in items %}
+    <article class="p-5 rounded-2xl bg-slate-800/40 border border-slate-700/60 flex flex-col justify-between group space-y-4">
+      <div>
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <span class="font-mono text-xs font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded select-all" dir="ltr">{{ item.key }}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-slate-900 text-slate-400 uppercase font-mono">{{ item.locale }}</span>
+            <span class="text-[0.65rem] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono">v{{ item.version }}</span>
           </div>
         </div>
+
+        <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 whitespace-pre-wrap leading-relaxed max-h-40 overflow-y-auto">
+          {{ item.body }}
+        </div>
       </div>
-      
-      <div class="bg-slate-900/40 rounded-xl p-4 mb-4">
-        <p class="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{{ item.body }}</p>
+
+      <div class="border-t border-slate-700/50 pt-3 flex items-center justify-between gap-2">
+        <button type="button"
+          onclick="populateTemplateForm({{ item.key | tojson }}, {{ item.locale | tojson }}, {{ item.body | tojson }})"
+          class="text-xs font-bold text-slate-300 hover:text-emerald-400 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+          ✏️ ویرایش
+        </button>
+
+        <form method="post" action="/templates/{{ item.id }}/toggle">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          {% if item.enabled %}
+          <button type="submit" class="text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg transition-colors">غیرفعال کردن</button>
+          {% else %}
+          <button type="submit" class="text-xs font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-3 py-1.5 rounded-lg transition-colors">فعال کردن</button>
+          {% endif %}
+        </form>
       </div>
-    </div>
-    
-    <div class="border-t border-slate-700/50 pt-4 mt-auto">
-      <form method="post" action="/templates/{{ item.id }}/toggle" class="flex flex-col">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        {% if item.enabled %}
-        <button type="submit" class="w-full bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">غیرفعال کردن</button>
-        {% else %}
-        <button type="submit" class="w-full bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">فعال کردن</button>
-        {% endif %}
-      </form>
-    </div>
-  </article>
-  {% else %}
-  <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-700">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-    <p class="text-slate-400 font-medium">قالبی ثبت نشده است.</p>
+    </article>
+    {% else %}
+    <div class="col-span-full p-8 text-center text-slate-500">قالبی ثبت نشده است.</div>
+    {% endfor %}
   </div>
-  {% endfor %}
 </section>
+
+<script>
+function populateTemplateForm(key, locale, body) {
+  document.getElementById('templateKeyInput').value = key;
+  document.getElementById('templateLocaleSelect').value = locale;
+  document.getElementById('templateBodyTextarea').value = body;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
 {% endblock %}

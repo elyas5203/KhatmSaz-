@@ -1,11 +1,24 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}پیام‌های گروهی | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">ارتباط با اعضا</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">پیام‌های گروهی سازنده‌ها {{ tooltip("پیام‌های انبوهی که سازندگان ختم برای مشارکت‌کنندگانشان نوشته‌اند و برای ارسال نیاز به تایید شما دارند.") }}</h1>
-  <p class="text-slate-400 text-sm">هر سازنده می‌تواند برای اعضای فعال ختم خودش پیام بفرستد؛ پیام فقط بعد از تأیید شما برای همه ارسال می‌شود.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">صف نظارت بر ارتباط با اعضا</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">تأیید پیام‌های گروهی سازنده‌ها</h1>
+      {{ help_button(
+        "راهنمای تأیید پیام‌های گروهی",
+        "سازندگان ختم‌ها می‌توانند برای اطلاع‌رسانی به اعضای ختم خود پیام متنی، عکس، ویدیو یا صوت ارسال کنند. برای جلوگیری از اسپم، پیام‌ها در این صف منتظر تأیید شما می‌مانند.",
+        [
+          "متن پیام، فایل ضمیمه (عکس/ویدیو/صوت) و نام ختم هدف را بررسی فرمایید.",
+          "اگر پیام تایید شد، دکمه «تأیید و ارسال» را بزنید تا در پس‌زمینه برای تمام اعضا فرستاده شود.",
+          "اگر نامناسب بود، با زدن دکمه «رد درخواست»، پیام متوقف شده و به سازنده اطلاع داده می‌شود."
+        ],
+        "نکته: ارسال پیام‌ها در پس‌زمینه پردازش می‌شود تا سرور دچار تایم‌اوت نشود."
+      ) }}
+    </div>
+  </div>
 </section>
 
 <form method="get" action="/broadcasts" class="glass-card p-4 rounded-2xl mb-6 flex flex-col sm:flex-row gap-3">
@@ -51,6 +64,18 @@
         
         <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">متن پیام</dt>
         <dd class="text-sm text-slate-300 whitespace-pre-wrap">{{ row.item.body }}</dd>
+        {% if row.item.media_type %}
+        <div class="mt-3 p-2.5 bg-slate-800/80 rounded-lg border border-slate-700/60 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400">📎</span>
+            <span class="text-xs font-bold text-slate-200">فایل پیوست: {{ row.item.media_type }}</span>
+          </div>
+          <div class="text-[0.65rem] font-mono text-slate-400">
+            {% if row.item.media_file_id_telegram %}تلگرام دارد{% endif %}
+            {% if row.item.media_file_id_bale %} · بله دارد{% endif %}
+          </div>
+        </div>
+        {% endif %}
       </div>
     </div>
     

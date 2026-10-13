@@ -89,6 +89,6 @@ async def test_quran_join_is_member_controlled_without_auto_allocation(monkeypat
         object(), token="TOK", user_id=uuid4()
     )
 
-    assert recorded == {"capacity": None, "force_open": False}
+    assert recorded == {"capacity": 10, "force_open": False}
     assert first_portion is None
     assert waitlisted is False

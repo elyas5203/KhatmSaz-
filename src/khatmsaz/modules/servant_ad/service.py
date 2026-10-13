@@ -63,8 +63,8 @@ async def _basic_creator_ids(session: AsyncSession) -> set:
     }
 
 
-async def _targets(session: AsyncSession) -> list[tuple[str, str]]:
-    """Distinct (platform_value, subject) for every audience member of a
+async def _targets(session: AsyncSession) -> list[tuple]:
+    """Distinct (platform_value, subject, bot_instance_id) for every audience member of a
     BASIC-tier creator. Deduped so one person is messaged once even if they
     belong to several such creators' khatms."""
     basic = await _basic_creator_ids(session)
@@ -84,18 +84,27 @@ async def _targets(session: AsyncSession) -> list[tuple[str, str]]:
     if not user_ids:
         return []
     rows = (await session.execute(
-        select(PlatformIdentity.platform, PlatformIdentity.subject)
-        .where(PlatformIdentity.user_id.in_(user_ids))
+        select(
+            PlatformIdentity.platform,
+            PlatformIdentity.subject,
+            Participation.joined_via_bot_instance_id,
+        )
+        .join(Participation, Participation.user_id == PlatformIdentity.user_id)
+        .join(Khatm, Khatm.id == Participation.khatm_id)
+        .where(
+            Khatm.creator_user_id.in_(basic),
+            Participation.status == ParticipationStatus.ACTIVE,
+        )
     )).all()
     seen: set[tuple[str, str]] = set()
-    out: list[tuple[str, str]] = []
-    for platform, subject in rows:
+    out: list[tuple] = []
+    for platform, subject, bot_instance_id in rows:
         pv = platform.value if isinstance(platform, Platform) else str(platform)
         key = (pv, subject)
         if key in seen:
             continue
         seen.add(key)
-        out.append(key)
+        out.append((pv, subject, bot_instance_id))
     return out
 
 
@@ -112,12 +121,22 @@ async def send_now(session: AsyncSession, send: SendFn) -> int:
     if not ad["text"] and not ad["media_type"]:
         raise ValueError("servant ad is empty")
     delivered = 0
-    for platform_value, subject in await _targets(session):
+    for target in await _targets(session):
+        platform_value = target[0]
+        subject = target[1]
+        bot_instance_id = target[2] if len(target) > 2 else None
         media_file_id = ad["media_telegram"] if platform_value == "TELEGRAM" else ad["media_bale"]
-        ok = await send(
-            platform_value, subject, ad["text"],
-            ad["media_type"] or None, media_file_id or None,
-        )
+        try:
+            ok = await send(
+                platform_value, subject, ad["text"],
+                ad["media_type"] or None, media_file_id or None,
+                bot_instance_id=bot_instance_id,
+            )
+        except TypeError:
+            ok = await send(
+                platform_value, subject, ad["text"],
+                ad["media_type"] or None, media_file_id or None,
+            )
         if ok:
             delivered += 1
     return delivered

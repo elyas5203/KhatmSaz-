@@ -1,61 +1,130 @@
 {% extends "creator_base.html" %}
-{% block title %}{{ t('web.creator.nav_my_khatms', lang) }} | ختم‌ساز{% endblock %}
+{% block title %}ختم‌های من | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-6 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+
+<!-- Header & Create Action -->
+<section class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
   <div>
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">{{ t('web.creator.eyebrow_private_report', lang) }}</p>
-  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">{{ t('web.creator.nav_my_khatms', lang) }}</h1>
-  <p class="text-slate-400 text-sm">{{ t('web.creator.khatms_subtitle', lang) }}</p>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+        فهرست اختصاصی
+      </span>
+      <span class="text-xs text-slate-400">تمام ختم‌های ایجاد شده توسط شما</span>
+    </div>
+    <h1 class="text-2xl sm:text-3xl font-black text-white">ختم‌های من</h1>
   </div>
-  <a href="/creator/khatms/new" class="btn">{{ t('web.creator.create_button', lang) }}</a>
+
+  <a href="/creator/khatms/new" class="btn-primary text-xs sm:text-sm self-start sm:self-auto">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+    </svg>
+    <span>➕ ساخت ختم جدید</span>
+  </a>
 </section>
 
-<!-- Level 1: parent branches (status) -->
-<nav class="flex gap-2 mb-6 flex-wrap" aria-label="{{ t('web.creator.branch_aria', lang) }}">
+<!-- Level 1: Status Branch Filter (Active vs Completed) -->
+<nav class="flex gap-2.5 mb-6 p-1.5 rounded-2xl glass-panel max-w-md" aria-label="فیلتر وضعیت ختم‌ها">
   {% for b in branches %}
   <a href="/creator/khatms?branch={{ b.key }}"
-     class="px-4 py-2 rounded-xl text-sm font-bold border transition-colors flex items-center gap-2
-     {% if b.key == active_branch %}bg-emerald-500/15 text-emerald-300 border-emerald-500/30{% else %}glass-card text-slate-300 border-white/5{% endif %}">
+     class="flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all text-center flex items-center justify-center gap-2
+     {% if b.key == active_branch %}bg-emerald-500 text-white shadow-lg shadow-emerald-900/40{% else %}text-slate-400 hover:text-white hover:bg-slate-800/50{% endif %}">
     <span>{{ b.label }}</span>
-    <span class="text-xs px-1.5 py-0.5 rounded-full {% if b.key == active_branch %}bg-emerald-500/20{% else %}bg-slate-700/60{% endif %}" dir="ltr">{{ b.count }}</span>
+    <span class="text-xs px-2 py-0.5 rounded-full {% if b.key == active_branch %}bg-emerald-700 text-white{% else %}bg-slate-700 text-slate-300{% endif %}" dir="ltr">
+      {{ b.count }}
+    </span>
   </a>
   {% endfor %}
 </nav>
 
-<!-- Level 2 + 3: categories → khatms -->
+<!-- Level 2 + 3: Categories & Khatm Cards -->
 {% set current = (branches | selectattr('key', 'equalto', active_branch) | list | first) %}
 {% if current and current.count > 0 %}
   {% for cat in current.categories %}
-  <section class="mb-6">
-    <div class="flex items-center gap-2 mb-3">
-      <span class="text-lg">{{ cat.emoji }}</span>
-      <h2 class="text-sm font-bold text-slate-200">{{ cat.label }}</h2>
-      <span class="text-xs text-slate-500" dir="ltr">({{ cat.khatms | length }})</span>
-      <div class="flex-1 h-px bg-white/5 mr-2"></div>
+  <section class="mb-8">
+    <!-- Category Header -->
+    <div class="flex items-center gap-2.5 mb-4">
+      <span class="text-xl p-2 rounded-xl bg-slate-800/80 border border-white/5">{{ cat.emoji }}</span>
+      <h2 class="text-sm sm:text-base font-black text-white">{{ cat.label }}</h2>
+      <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono" dir="ltr">
+        {{ cat.khatms | length }}
+      </span>
+      <div class="flex-1 h-px bg-slate-800 mr-2"></div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+    <!-- Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
       {% for item in cat.khatms %}
-      <a href="/creator/khatms/{{ item.khatm.id }}" class="glass-card p-4 rounded-2xl flex flex-col justify-between group">
-        <div class="flex justify-between items-start mb-3">
-          <h3 class="text-base font-bold text-slate-100 group-hover:text-emerald-300 transition-colors line-clamp-1">{{ item.khatm.title }}</h3>
-          <span class="status {{ item.khatm.status.value|lower }} whitespace-nowrap mr-2">{{ label(item.khatm.status) }}</span>
+      {% set k = item.khatm %}
+      <div class="glass-card p-5 rounded-2xl flex flex-col justify-between group hover:border-emerald-500/40">
+        <div>
+          <div class="flex items-start justify-between gap-3 mb-2">
+            <h3 class="text-base font-black text-white group-hover:text-emerald-300 transition-colors line-clamp-1">
+              {{ k.title }}
+            </h3>
+            <span class="status-badge {% if k.status.value == 'ACTIVE' %}status-active{% elif k.status.value == 'COMPLETED' %}status-completed{% elif k.status.value == 'CANCELLED' %}status-cancelled{% else %}status-draft{% endif %} flex-none">
+              {% if k.status.value == 'ACTIVE' %}🟢 در جریان
+              {% elif k.status.value == 'COMPLETED' %}🔵 تکمیل‌شده
+              {% elif k.status.value == 'CANCELLED' %}🔴 متوقف
+              {% else %}پیش‌نویس{% endif %}
+            </span>
+          </div>
+
+          {% if k.niyyat %}
+          <p class="text-xs text-slate-400 line-clamp-1 mb-3">
+            نیت: <span class="text-slate-300">{{ k.niyyat }}</span>
+          </p>
+          {% endif %}
         </div>
-        <div class="flex items-center gap-3 text-xs text-slate-400">
-          <span class="flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z" /></svg>
-            <span dir="ltr">{{ item.members }}</span> {{ t('web.creator.members_word', lang) }}
-          </span>
-          <span class="text-slate-600">·</span>
-          <span>{{ label(item.khatm.khatm_type) }}</span>
+
+        <div class="pt-3 border-t border-white/5 flex items-center justify-between text-xs mt-3">
+          <div class="flex items-center gap-3 text-slate-400">
+            <span class="flex items-center gap-1.5 font-bold text-slate-300">
+              <svg class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z" />
+              </svg>
+              <span dir="ltr">{{ item.members }}</span> نفر عضو
+            </span>
+            <span>•</span>
+            <span class="text-slate-400">
+              {% if k.khatm_type.value == 'COMMITMENT' %}تعهدی روزانه{% else %}آزاد همگانی{% endif %}
+            </span>
+          </div>
+
+          <a href="/creator/khatms/{{ k.id }}" class="font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 group-hover:translate-x-[-2px] transition-transform">
+            <span>مدیریت و لینک دعوت</span>
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </a>
         </div>
-      </a>
+      </div>
       {% endfor %}
     </div>
   </section>
   {% endfor %}
 {% else %}
-  <div class="glass-panel p-10 rounded-2xl text-center text-slate-400 border border-dashed border-slate-600">
-    <p>{{ t('web.creator.branch_empty', lang) }}</p>
+  <!-- Empty State for Active/Completed Branches -->
+  <div class="glass-panel p-10 sm:p-14 rounded-3xl text-center border border-dashed border-slate-700">
+    <div class="w-16 h-16 rounded-3xl bg-slate-800 text-slate-400 mx-auto flex items-center justify-center mb-4">
+      <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+      </svg>
+    </div>
+    <h3 class="text-base font-bold text-white mb-1">
+      {% if active_branch == 'active' %}هیچ ختم فعالی ندارید{% else %}هنوز ختم تکمیل‌شده‌ای در بایگانی ندارید{% endif %}
+    </h3>
+    <p class="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto mb-6">
+      {% if active_branch == 'active' %}
+      برای ایجاد برنامهٔ ختم جمعی جدید، روی دکمه زیر کلیک کنید:
+      {% else %}
+      ختم‌هایی که تمام سهم‌های آن‌ها تکمیل شود، به طور خودکار در این بخش قرار می‌گیرند.
+      {% endif %}
+    </p>
+    {% if active_branch == 'active' %}
+    <a href="/creator/khatms/new" class="btn-primary">
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      <span>➕ ساخت ختم جدید</span>
+    </a>
+    {% endif %}
   </div>
 {% endif %}
+
 {% endblock %}

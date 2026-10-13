@@ -1,10 +1,259 @@
 ## 2026-10-13 — Antigravity — Telegram-to-Bale Media Migration Engine & CLI Pipeline
-- **Master Plan:** Formulated `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and decision `DEC-PY-0118`.
+- **Master Plan:** Formulated `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and decision `DEC-PY-0127`.
 - **Core Migrator Service (`src/khatmsaz/modules/content/migrator.py`):** Built `TelegramToBaleMigrator` engine streaming Quran 604 pages (images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) directly to a dedicated Bale media storage chat, capturing generated `file_id`s, and registering in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`.
 - **Config & Settings (`src/khatmsaz/config.py`):** Added `bale_media_storage_chat_id` and `telegram_scratch_chat_id`.
 - **CLI Runner Script (`scripts/migrate_telegram_to_bale.py`):** Created standalone terminal migration tool with `--target`, `--limit`, `--delay`, `--dry-run`, and live progress feedback.
 - **Bot Monitoring (`src/khatmsaz/bot/handlers/admin.py`):** Added `/admin_bale_media_status` and `/admin_sync_bale` permission-gated admin commands.
 - **Validation:** Added 7 unit tests in `tests/test_telegram_to_bale_migration.py`. Full non-integration suite `349 passed` cleanly.
+
+## 2026-10-13 — Antigravity — Open Khatm Collective Progression Engine (MASTER-14)
+- **Collective Quran & Khutbah Progression for Open Khatms (`MASTER-14`):**
+  - Eliminated parallel individual page starting points in Open Quran Khatms.
+  - Implemented `get_next_open_quran_page` in `delivery.py` to query the latest allocated Quran page range across the entire khatm.
+  - Enabled multi-member sequential page coverage without overlap (User 1 takes 1..5, User 2 takes 6..8, User 3 takes 9..18, etc.).
+  - Added wrap-around support past page 604 into round 2 (`[[602, 604], [1, 2]]`).
+  - Updated `allocate_khutbah_section_range` to query across all participations in the khatm, allowing collective handoff of Khutbah sections.
+  - Authored `docs/ai/masters/MASTER_14_OPEN_KHATM_COLLECTIVE_PROGRESSION_ENGINE.md`.
+  - Added test suite `tests/test_master_14_open_khatm_collective.py`.
+- **Validation:** 433 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
+## 2026-10-13 — Antigravity — Open Khatm Flow Overhaul & Immediate Recitation Recording (MASTER-13)
+- **Immediate Recitation Recording for Open Khatms (`MASTER-13`):**
+  - Resolved blocking alerts («سهم امروز شما قبلاً ارسال شده است» and «هیچ سهمی برای امروز وجود ندارد») when tapping «اعلام انجام قرائت امروز» (`menu.today`) or `/today` in Open Khatms.
+  - Implemented `_deliver_open_khatm_flow` in `report.py` to immediately display any pending uncompleted share or prompt for count (`CommitFlow.entering_count`).
+  - Fixed `portions.py:ask_contribution_amount` to bypass the commitment mode picker check for OPEN khatms, preventing accidental routing to «این ختم تعهدی است...».
+  - Omitted `mk_hourmenu` («تنظیم ساعت یادآوری») for OPEN khatms in `member_my_khatms.py` since open khatms have no reminder hours.
+  - Excluded OPEN khatms from triggering mode picker or reminder questions in `join_requests.py`.
+  - Updated `delivery.py:prepare_numeric` to include `open:` prefix when scanning for outstanding shares.
+  - Self-healed missing `delivered_at` in `share_occurrence/service.py:complete`.
+  - Updated button label in `i18n/__init__.py` to «📿 دریافت سهم قرائت».
+- **Validation:** 427 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
+## 2026-10-13 — Antigravity — Full Codebase & Routing Audit, Port Safety Verification & Shutdown Guard
+- **Full Codebase Audit (Subagents 1 & 2):**
+  - Line-by-line verification of all inline keyboard callbacks (`keyboards.py`, `handlers/`) confirming no active callback exceeds the Telegram 64-byte limit.
+  - Verification of web form fields and endpoints in `app.py`, ensuring defense against HTTP 422 errors.
+  - Verification of non-overlapping 7-day and 24-hour expiration reminder queries for the 30-day Pro plan.
+  - Verification of strict port isolation: verified port `8080` is the only port used by KhatmSaz on the remote server; zero foreign ports touched.
+- **Logging Teardown Guard:**
+  - Added `sys.is_finalizing()` check and exception safety to `TelegramErrorAlertHandler.emit` and `_asyncio_hook` in `src/khatmsaz/core/logging_system.py`, suppressing teardown noise and preventing interpreter shutdown crashes.
+- **Validation:** 424 passed in pytest, live service active on VPS with 19 bots polling and APScheduler running cleanly once per minute.
+
+## 2026-10-13 — Antigravity — Dedicated Admin Bot, Continuous Logging & Error Alerts, Custom La'n Flow (MASTER-12)
+- **Dedicated Central Admin Bot (`@khatmsaz_admin_bot`, `DEC-PY-0125`):**
+  - Isolated `@Khatm_Saz_bot` exclusively for creator flows; Super Admin interactions moved to `@khatmsaz_admin_bot` (`8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`).
+  - Added dedicated admin dispatcher (`dp_admin`) and handlers (`admin_bot/handlers.py`) with `/start`, `/receipts`, `/laan`, `/broadcasts`, `/status`, `/logs`, `/errors`.
+- **Live Continuous Logging & Real-Time Crash/Bug Alert System (`DEC-PY-0126`):**
+  - Implemented continuous rotating file logging (`logs/khatmsaz.log` and `logs/errors.log`).
+  - Implemented `TelegramErrorAlertHandler` dispatching formatted alerts to Super Admins via `@khatmsaz_admin_bot` with 60-second rate-limiting debounce.
+  - Installed top-level uncaught exception handlers for synchronous and asyncio loop exceptions.
+- **Custom La'n Khatm Wizard Redesign (`DEC-PY-0124`):**
+  - Removed preset categories and implemented custom title/text wizard flow with admin moderation card and auto-invite delivery upon approval.
+- **Direct PayPing Shaparak Link & Clean 8-Digit Tracking Code:**
+  - Configured direct Shaparak URL `https://ppng.ir/d/VFBD` and 8-digit numeric tracking codes.
+- **Validation:** 424 passed, 230 skipped, 0 failed in pytest suite (100% pass rate).
+
+## 2026-10-13 — Antigravity — Production Stability, Multiplatform Devotionals & Codebase Audit
+- **Multiplatform Devotional Media Registration Fix («ثبت برای هر دو پلتفرم»):**
+  - Resolved `خطا در ثبت فایل: unsupported asset platform` when choosing «هر دو پلتفرم» (`BOTH`) in devotional media uploads (`/devotionals`).
+  - Extended all content registration methods in `src/khatmsaz/modules/content/service.py` (`add_devotional_audio_variant`, `add_devotional_image_page`, `set_devotional_pdf`, `add_devotional_video_page`, `add_devotional_pdf_page`, `add_devotional_audio_page`, `register_devotional_audio`, `register_devotional_image`, `register_quran_page_asset`) to support `BOTH` and `ALL` by registering for both `TELEGRAM` and `BALE`.
+  - Updated lookup queries to match `DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"])`.
+- **Production Crash Fix (`PlanTier` NameError in `wallet.py`):**
+  - Fixed runtime crash `NameError: name 'PlanTier' is not defined` in `src/khatmsaz/bot/handlers/wallet.py:143` by importing `PlanTier` from `khatmsaz.modules.plan.models`.
+- **Telegram 64-Byte Callback Overflows Shortened & Synced:**
+  - `creator_schedule_keyboard`: Shortened `weekly:0,1,2,3,4` to `workdays` and `weekly:5,6` to `weekend`; added handler parsing in `khatm_service.set_schedule`.
+  - `portion_done_keyboard` & `post_completion_keyboard`: Shortened `undo:{undo_completed_id}:{next_id}` to `undo:{undo_completed_id}`; updated handler to safely unpack 2-part and 3-part callbacks.
+  - `devotional._reciter_picker_keyboard`: Shortened `devotional_reciter:{slug}:{variant.reciter_id}` to `drec:{variant.id}`; updated handler to resolve via `DevotionalMedia.id`.
+- **Domain Concurrency & Financial Integrity:**
+  - `wallet_service.spend`: Added `for_update=True` row locking to prevent race conditions on balance deduction.
+  - `broadcast_service`: Bound invoice resource to `broadcast.id` upon submission and invoked `wallet_service.refund_purchase_invoice` on admin rejection, preventing non-cash promotional credits from being converted to real cash.
+  - `plan_repository`: Added `UserPlan.expires_at > now + timedelta(hours=24)` lower bound to `list_needing_7d_reminder`, preventing duplicate 7d and 24h reminders.
+  - `completion_service` & `bootstrap.py`: Wrapped notifications in error handling and isolated the 4 scheduler jobs in independent `try...except` blocks.
+- **Web Form & Route Alignment:**
+  - Handled `new_status or status` and `refund_creator or refund_wallet` in `admin_change_khatm_status`.
+  - Handled `remote_file_id or asset_ref` in `save_quran_asset`.
+  - Fixed Bale invite URL fallback in `app.py` to use `https://ble.ir/{settings.bale_bot_username}?start=join_{token_str}`.
+- **Validation:** Tests passed (`test_mini_app_entry.py`, `test_migration_graph.py`, `test_keyboards.py`, `test_devotional_media_delivery.py`). All files pass syntax compilation.
+
+## 2026-10-13 — Antigravity — Broadcast Tier Pricing, Bank Receipt Flow, Creator Panel Guard & 30-Day Pro Plan Lifecycle (MASTER-10)
+- **30-Day PRO Plan Lifecycle & Additive Renewal (`DEC-PY-0122`):**
+  1. Configured PRO plan duration to 30 days (`_PRO_PLAN_DURATION_DAYS = 30`).
+  2. Implemented additive renewal: purchasing or renewing while active extends `expires_at` by 30 days additively, preserving all remaining days.
+  3. Pre-lapse automated reminders: 7-day warning and 24-hour warning sent to user via their bot platform.
+  4. Automatic downgrade upon lapse: expired PRO plans lapse to FREE (or BASIC if audience > cap), notifying the user.
+  5. Background job: `plan_service.process_plan_expirations_and_reminders` scheduled every minute in `_run_reminder_scan`, with lazy fallback evaluation in `get_plan`.
+  6. Added Alembic migration `proplan2026101302_pro_plan_duration_and_reminders.py` and self-healing schema additions.
+- **Broadcast 1000-Tier Pricing & Receipt Flow (`DEC-PY-0121`):**
+  1. Broadcast 1,000-recipient tier pricing (`ceil(audience/1000)` packages), complete removal of free broadcast quotas, and removal of broadcast entitlements from Basic plan.
+  2. PayPing Direct Link analysis: Clarified that PayPing API requires `returnUrl` (callback), while creating a single product with "تعیین قیمت توسط مشتری" or using personal PayPing ID provides a direct open-amount payment link with zero callback dependencies.
+  3. Bank receipt upload architecture (`wallet_receipt_claims` table, bot FSM receipt upload, admin push notification with 1-click inline approve/reject buttons, and automated wallet balance credit).
+  4. Restricting creator panel access exclusively to `SUPER_ADMIN` users in bot menus and web routes.
+- **Decisions Recorded:** Added `DEC-PY-0121` and `DEC-PY-0122` to `docs/ai/DECISIONS.md` and updated `docs/ai/INDEX.md`, `docs/ai/PROJECT_STATE.md`, and `docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`.
+
+## 2026-10-11 — Antigravity — Post-Completion Two-Message Flow (Confirmation + Invite Link & Progress Report) & MASTER-07 Update
+- **Two Separate Post-Completion Messages (`DEC-PY-0120`):** Updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md`, `src/khatmsaz/bot/handlers/member_commitment.py`, and `src/khatmsaz/bot/handlers/portions.py` so that clicking the portion completion button sends **two separate messages**: Message 1 (Confirmation + Khatm Invite Link via `_invite_friends_line`) followed immediately by Message 2 (standalone Progress Report via `build_motivational_progress_snippet`).
+- **Removed "Read Another Portion" Button & 14:00 Member Broadcast:** Removed the `[📖 خواندن یک سهم دیگر]` inline button from post-completion messages. Disconnected `deliver_member_daily_digests` from `src/khatmsaz/modules/reminder_engine/service.py:run_once` so members receive the progress report immediately after completing their share instead of a scheduled 14:00 broadcast.
+- **Validation:** 8 passed in `tests/test_member_daily_digest.py` (100% green).
+
+## 2026-10-11 — Antigravity — Bale Native Markdown Adapter, Session Interceptor & Clean Tag Rendering (MASTER-09)
+- **Bale Messenger HTML Tag Fix (`src/khatmsaz/bot/bale/formatting.py` & `client.py`):** Fixed unrendered raw HTML tags (`<b>`, `<i>`, etc.) appearing in Bale messenger messages. Implemented `html_to_bale_markdown(text: str) -> str` supporting `<b>`/`<strong>` to `*bold*`, `<i>`/`<em>` to `_italic_`, `<code>` to `` `code` ``, `<pre>` to ````pre````, `<a href="url">text</a>` to `[text](url)`, linebreaks, HTML entity decoding, and clean stripping of other tags. Implemented `BaleAiohttpSession(AiohttpSession)` intercepting `SendMessage`, `EditMessageText`, and media caption methods, converting HTML to Bale markdown and clearing `parse_mode = None`. Updated `build_bale_bot` to use `BaleAiohttpSession` and `DefaultBotProperties(parse_mode=None)`. Added defensive conversion in `src/khatmsaz/bot/notify_adapter.py`.
+- **Member Daily 14:00 Digest Simplification:** Removed inline action buttons from `build_member_daily_digest_message` and `deliver_member_daily_digests` in `src/khatmsaz/modules/reporting/member_daily_digest.py`, delivering the digest as a simple, clean, informative notification without buttons.
+- **Master Documentation & Tests:** Authored `docs/ai/masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md` and updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md` and `docs/ai/INDEX.md`. Added unit tests in `tests/test_member_daily_digest.py` covering HTML-to-Markdown conversion, session payload interception, and buttonless digest messages.
+- **Validation:** 397 passed, 230 skipped in pytest (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — Ground-Up Redesign of Creator Panel & Master-08 Implementation
+- **Creator Panel Ground-Up Redesign (MASTER-08):** Authored `docs/ai/masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md`. Redesigned the entire Creator / Organizer experience across 7 views in `src/khatmsaz/web/templates/` (`creator_base.html`, `creator_dashboard.html`, `creator_khatms.html`, `creator_khatm_detail.html`, `creator_khatm_new.html`, `creator_wallet.html`, `creator_broadcasts.html`, `creator_login.html`) using Estedad 5.3.0 font, glowing dark theme, responsive topbar, and mobile dock.
+- **Backend Endpoints Enhanced (`src/khatmsaz/web/app.py`):** Added `progress_pct` computation for recent khatms on dashboard; parsed and passed `niyyat` to workflow service in `POST /creator/khatms/create`; injected Telegram and Bale invite links into `khatm_detail`; added `POST /creator/khatms/{id}/toggle-status` (pause/resume); added `POST /creator/khatms/{id}/members/{part_id}/remove` (leave/remove member). Recorded `DEC-PY-0119` in `docs/ai/DECISIONS.md`.
+- **Test Suite & Verification:** Added `tests/test_creator_panel_all_routes.py` (8 unit tests, 100% green); preserved all 9 existing template render tests in `tests/test_admin_template_render.py` and `tests/test_owner_spec_c.py`.
+- **Validation:** 393 passed, 230 skipped in pytest (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — Member Daily 14:00 Progress Digest & Motivational Banner Master (MASTER-07)
+- **Member Daily 14:00 Progress Digest (`member_daily_digest.py`):** Created `src/khatmsaz/modules/reporting/member_daily_digest.py` delivering an encouraging daily progress digest at 14:00 (Tehran time) to active members in active khatms. Notifications are routed strictly through the member bot each participant joined through (`joined_via_bot_instance_id`). Displays progress before today, today's recitations so far, total progress with percentage, member's portion status (done, pending, or ready), and 1-click continuation button (`today_pick:{participation.id}`). Added self-healing columns `last_member_daily_digest_date` and `member_daily_digest_enabled` in `user_settings` and `bootstrap.py`. Wired into `reminder_engine/service.py:run_once`.
+- **Motivational Progress Banner upon Portion Completion:** Added `build_motivational_progress_snippet` in `src/khatmsaz/bot/member_copy.py` calculating yesterday's, today's, and total progress. Enhanced `completion_text` with `progress_snippet: str = ""` to append the progress banner right when a member clicks "✅ اعلام انجام سهم" / Done. Connected in `complete_share` and `regular_early_done` in `member_commitment.py` and `mark_portion_done` in `portions.py` alongside a prompt button `[📖 خواندن یک سهم دیگر]`.
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md` and updated `docs/ai/INDEX.md`. Added test suite in `tests/test_member_daily_digest.py`.
+- **Validation:** 5 passed in `tests/test_member_daily_digest.py`, 35 passed in combined regression suite.
+
+## 2026-10-11 — Antigravity — Khutbah Ghadir Multi-Media Trio (8 Parts) & Creator Daily 12:00 PM Report Master
+- **Khutbah Ghadir 8-Part Multi-Media Trio (`khutbah-ghadir`):** Added canonical category seeding for `khutbah-ghadir` («خطبه غدیر پیامبر اکرم (ص)») in `khatm_category/service.py`. Automatically shown in bot creation wizard under «📜 خطبه‌ها». Extended `content/service.py` with `add_devotional_pdf_page`, `add_devotional_audio_page`, and `list_devotional_media_for_part`. Added Telegram admin upload shortcuts in `manage_content.py` (`/set_video`, `/set_pdf`, `/set_audio`, `/set_media`, `/media`). Enabled trio sequential delivery (video + PDF + audio) in `devotional.py:deliver_devotional_media`. Set 8-part multiplier for Khutbah Ghadir ($1 \text{ دور} = 8 \text{ بخش}$) in `khatm_workflow/service.py` and `share_occurrence/delivery.py`.
+- **Creator Daily 12:00 PM Progress Report (`creator_daily_report.py`):** Created `src/khatmsaz/modules/reporting/creator_daily_report.py` delivering a status summary at 12:00 PM (Tehran time) to creators with active khatms (progress before today, today's recitations, overall progress, active members, and customized devotional units). Added self-healing columns `last_creator_daily_report_date` and `creator_daily_report_enabled` in `user_settings`. Connected to `reminder_engine/service.py:run_once`. Created master doc `docs/ai/KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md` and added tests in `tests/test_khutbah_ghadir_and_daily_report.py`.
+- **Validation:** 387 passed, 230 skipped in pytest (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — Payment Gateway Callback Architecture & In-Bot Verification Fallback (MASTER-06)
+- **PayPing v3 Callback & In-Bot Verification Safety Net (`MASTER_06`):** Fixed `claim_pending_payment` in `wallet/service.py:verify_payping_callback_and_credit` to fallback to `pending.authority` when PayPing v3 does not return authority code in redirect callback. Added `[🔄 استعلام و ثبت پرداخت (در صورت کسر وجه)]` button with callback `wallet_check:<id>` and state `entering_ref_id` in `bot/handlers/wallet.py`, allowing users whose browsers time out during redirect (`ERR_TIMED_OUT`) to enter their bank RefId directly in Telegram/Bale and verify/credit immediately server-to-server. Added i18n support in Persian, Arabic, and English.
+- **Apache Reverse-Proxy & Port Safety:** Preserved all 10 VPS ports (8000 aiBOT, 8080 khatmsaz, 81/443 apache2, 2053/2096 x-ui, 8443/8444 xray, 3306 mysql, 5432 postgres, 6379 redis). Modernized TLS and proxy headers in `/etc/apache2/sites-available/khedmatgozaran-api.conf`.
+- **Master Documentation:** Created `docs/ai/masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md` and updated indices. Added test suite in `tests/test_wallet_check_button.py`.
+- **Validation:** 385 passed, 230 skipped in pytest (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — Admin Panel Line-by-Line Debug, Invitation Service Extensions & Stability Master
+- **Admin Web Panel Stability & ASGI Exception Fix (`BUG-W01` to `BUG-W20`):** Fixed production crash `AttributeError: module 'khatmsaz.modules.invitation.service' has no attribute 'list_for_khatm'` at `app.py:2105` inside `khatm_detail` and `decide_laan_moderation`. Added `list_for_khatm` and `get_or_create_for_khatm` to `invitation.service` and `invitation.repository`. Added secure `.token` property on `KhatmInvitation` model. Added `build_web_invite_url(token, khatm_bot_cat)` in `bot/invite_links.py` with registry fallback. Fixed 15+ missing global imports in `src/khatmsaz/web/app.py` (`openpyxl` `Workbook`/`get_column_letter`, `asyncio`, `re`, `Any`, `WaitingList`, `Wallet`, `UserPlan`, `PhoneClaim`, `CreatorRequest`, `CreatorRequestStatus`, `QuranPageAsset`, `InvoiceKind`, `khatm_request_service`, `advertising_service`, `main_menu_keyboard`, `send_media`, `send_with_keyboard`, `occ_repo`, `occ_service`, `allocation_service`). Fixed service signatures across `system_settings_service.list_current`, `plan_service.set_plan`, `workflow_service.leave_khatm`, and `wallet_service.purchase`. Handled manual portion completion via standard `occ_service` and `allocation_service` APIs. Created Master Document `docs/ai/ADMIN_PANEL_DEBUG_AND_FIX_MASTER.md` and added comprehensive route tests in `tests/test_admin_panel_all_routes.py`.
+- **Validation:** 382 passed, 230 skipped in pytest (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — PhoneClaim e164 Attribute Fix & None-Safe Session Queries
+- **Users 360-Degree View AttributeError Fix (`/users`):** Fixed `AttributeError: 'PhoneClaim' object has no attribute 'phone_e164'` in `src/khatmsaz/web/app.py:2400` when listing users with verified phone claims. Correct attribute on `PhoneClaim` is `e164`. Added None checks on `session.get` calls in `phone_verifications`, `broadcasts_page`, and `creator_requests_page`, eliminating SQLAlchemy `SAWarning: fully NULL primary key identity cannot load any object`.
+- **Validation:** 372 passed, 230 skipped (100% green, 0 failures).
+
+## 2026-10-11 — Antigravity — Khatm Model pending_lan_approval Column & Self-Healing Migration
+- **Khatm Model pending_lan_approval Fix (`BUG-03` / Web App 500 Crash):** Fixed `AttributeError: type object 'Khatm' has no attribute 'pending_lan_approval'` when loading `/` (dashboard) and `/khatms` in the Admin Panel / Mini-App. Added `pending_lan_approval: Mapped[bool]` to `Khatm` model in `models.py`, added Alembic revision `laan2026101101_add_pending_lan_approval.py`, added self-healing DDL in `bootstrap.py` on startup (`ALTER TABLE khatms ADD COLUMN IF NOT EXISTS pending_lan_approval BOOLEAN DEFAULT FALSE;`), wired it into `repository.py` and `khatm_workflow.service.py`, and added comprehensive unit tests in `tests/test_laan_moderation_flow.py`.
+- **Validation:** 371 passed, 230 skipped (100% green, 0 failures).
+
+## 2026-10-10 — Antigravity — PayPing Callback Live Fix, Moderation Hub Integration, Plan Entitlements & Scheduler Workers
+- **PayPing Callback & Wallet Verification Fix (`BUG-23`):** Fixed live server `405 Method Not Allowed` and `400 Bad Request` in `/payments/payping/callback` by supporting both `GET` and `POST`, case-insensitively parsing first-class form/query params, eliminating reliance on non-existent `data` JSON string, and triggering proactive bot notification to the user upon wallet credit.
+- **Admin Panel Moderation Hub & Navigation:** Added `/moderation` («مرکز نظارت (لعن، کاور، پیشنهادات)») directly to the desktop sidebar navigation under Group 2 in `base.html`. Added `KHUTBAH` option to `categories.html` form and corrected accordion header to display «خطبه‌ها» instead of «لعن‌ها» (`BUG-02`).
+- **Plan Entitlements & Coupon Checkbox (`BUG-08`):** Added `max_devotional_members` and `max_quran_members` inputs to plan editing forms in `finance.html` so limits are not cleared on update. Fixed `is_active` checkbox handling in `create_coupon`.
+- **Broadcast Media Preview & Non-Blocking Delivery (`BUG-10`):** Added media attachment indicator (`media_type`, `media_file_id_telegram`, `media_file_id_bale`) to broadcast cards in `broadcasts.html`. Offloaded broadcast recipient delivery to FastAPI `BackgroundTasks` in `web/app.py:decide_broadcast`. Routed `servant_ad_send` through recipient's active member bot.
+- **Scheduler Workers & Multi-Round Wrap-Around (`BUG-11`, `BUG-14`, `BUG-15`):** Connected dormant background workers in `reminder_engine/service.py:run_once` (`delegate_inactive_portions`, `_send_open_schedule_reminders`, `check_share_occurrence_misses`). Enabled multi-round wrap-around to page 1 in open regular Quran reading when `open_reading_next_page > total_pages`. Routed monthly reports via the member's joined bot instance in `monthly_report/service.py`.
+- **Validation:** 366 unit tests PASS (100% green, 0 failures).
+
+## 2026-10-10 — Antigravity — Open Khatm Flow Realignment, Khutbah 5-Part Round Multiplier & Video Caption System
+- **Open Khatm Flow Overhaul (Abolition of 7-Day Reservations per V3 Spec):** Eliminated 7-day reservations (`OpenReservation`) and capacity locks from `share_occurrence/delivery.py:prepare_numeric`. Open shares are issued immediately (`committed=False`, `reservation_id=None`) with zero capacity lock and zero expiry alerts. Removed "این رزرو ۷ روز اعتبار دارد" message from `member_commitment.py`.
+- **Open Khatm Direct Amount Flow in `portions.py`:** Removed erroneous routing to the commitment mode picker (`start_commitment_mode_picker` / "این ختم تعهدی است..."). For open khatms, members are directly asked for their desired amount and portion is issued instantly.
+- **Khutbah Fadakiyyah 5-Part Round Multiplier & Early Closure Fix:** Target unit is now "دور" (Round). In `create_khatm.py` and `khatm_workflow/service.py`, entering target 1 stores `repetition_target = 5` ($1 \times 5 = 5$ parts). Added self-healing in `delivery.py:record_progress` and `prepare_numeric` so legacy khatms with target < 5 do not prematurely close after reading part 1. Khatm completes only when all 5 parts of the round are completed.
+- **Multi-Part Allocation in Open Khutbah:** Requesting 2 parts in an open Khutbah correctly allocates sections 1 and 2 (`ranges=[[1, 2]]`, `amount=2`) instead of capping to 1 part.
+- **Khutbah Video Captions Preservation:** Official captions with hashtags and `khedmatgozaran.com` links are preserved across `devotional.py`, `occurrence_adapter.py`, and `content/service.py`.
+- **Master Documentation:** Created `docs/ai/masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md`, updated Section 3 in `MASTER_01_KHATM_ENGINE_AND_MODES.md`, and documented `BUG-18` to `BUG-22` in `MASTER_BUG_AND_GAP_REPORT.md`.
+- **Validation:** 363 unit tests PASS (100% green).
+
+## 2026-10-10 — Antigravity — Admin Panel Ground-Up Redesign, Master-Aligned Implementation & BUG-17 Video Caption Preservation
+- **Admin Panel Full Redesign Implementation:** Overhauled all 10 Admin Panel modules (`dashboard`, `moderation` [8 queues], `khatms`, `khatm_detail`, `devotionals`, `quran` [604-page inspector], `finance` [5 tabs], `users` [360-degree view], `templates`, `bot_tokens`, `operations`, `admins`, `audit`, `broadcasts`, `servant_ad`, `phone_verifications`, `categories`) using glassmorphism UI, Estedad typography, and interactive help modal `[؟]` (pop-up guide with step-by-step instructions in simple Persian).
+- **Direct Web Khatm Creation & Management:** Implemented `POST /khatms/create`, full Excel export (`GET /khatms/{id}/export`), manual portion completion, waiting list promotion, and live setting adjustments directly from the admin panel.
+- **BUG-17 Fix (Khutbah Fadakiah Video Captions):** Preserved and transmitted full original video captions (descriptions, hashtags `#خدمتگزاران`, and service links). Widened `DevotionalMedia.reciter_label` to `TEXT` with automatic self-healing in `bootstrap.py`.
+- **BUG-12 Fix (Creator Mini-App 403):** Fixed `_authenticate_telegram_mini_app` in `web/app.py` to auto-promote creator bot users to `CREATOR` role upon entry.
+- **Validation:** 361 unit and template render tests PASS (100% green).
+
+## 2026-10-10 — Antigravity — Parent-Child Admin Panel Redesign Master, 4 Domain Child Masters & Line-by-Line Bug Report Master
+- **Parent Master (`docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`):** Designed ground-up 10-module Admin Panel & Creator Panel redesign with `[؟]` tooltip popup guides, step-by-step operational walkthroughs, and complete FastAPI route specifications.
+- **Child Masters (`docs/ai/masters/MASTER_01..04`):** Documented complete architecture and admin workflows for (01) Khatm Engine & Modes, (02) Content, Devotionals, Quran & Media, (03) Plans, Billing, Wallet & Ads, and (04) Multi-Bot Fleet, Users, 8 Moderation Queues & Operations.
+- **Bug & Gap Report Master (`docs/ai/MASTER_BUG_AND_GAP_REPORT.md`):** Recorded 16 line-by-line bugs (`BUG-01`..`BUG-16`) and 11 Admin Panel feature gaps with exact file/line references and fix blueprints.
+
+## 2026-10-10 — Antigravity — Continuous Quran-Style Khutbah Section Progression & Duplicate Reply Fix
+- **Continuous Khutbah Section Progression:** Added `allocate_khutbah_section_range` in `share_occurrence/delivery.py` and wired it into `prepare`, `prepare_numeric`, `occurrence_adapter.py:deliver_occurrence`, and `handlers/report.py:deliver_today_early` so Khutbah sections advance on every issued share (like Quran) even when prior shares remain uncompleted, while self-healing any colliding uncompleted share ranges.
+- **Duplicate Self-Reply Fix:** Excluded newly delivered shares (`just_delivered_id`) from the immediate debt-reply loop in `handlers/report.py:deliver_today_early`.
+- **Master Audit Documentation:** Updated `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` §9 with the ratified rule and implementation details.
+- **Validation:** 362 unit tests PASS (100% green).
+
+## 2026-10-10 — Antigravity — Dynamic Share-Aware Completion Button Labels («اعلام ثبت قرائت ...»)
+- **Dynamic Per-Share & Per-Khatm Action Buttons:** Updated `member_copy.py:done_button_label`, `occurrence_adapter.py:keyboard`, `keyboards.py` (`portion_done_keyboard`, `regular_commitment_done_keyboard`), `handlers/report.py`, `handlers/member_commitment.py`, and `reminder_engine/service.py` so the completion button beneath delivered shares dynamically displays the exact pages, count, or section + khatm title (e.g. `✅ اعلام ثبت قرائت صفحه 124 تا 126`, `✅ اعلام ثبت قرائت 100 صلوات`, `✅ اعلام ثبت قرائت بخش 3 و 4 خطبه فدکیه`, `✅ اعلام ثبت قرائت زیارت عاشورا`).
+- **Range-Aware Completion Confirmation:** Updated `member_commitment.py:complete_share` to pass `start` and `end` from `occurrence.content_spec["ranges"]` to `share_label`, ensuring Quran and Khutbah completion messages cite the exact page/section range completed.
+- **Master Audit Documentation:** Updated `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md` §2.1 with the dynamic button specifications.
+- **Validation:** 33 targeted tests PASS.
+
+## 2026-10-08 — Antigravity — Join Preview Total Goal & Completion Reporting Button Renaming
+- **Clarified Commitment Join Preview Total Goal:** Updated `join.preview.mode_commitment_quantified` so that `{count}` is properly presented as the total goal of the khatm («هدف کل ختم: {count} {unit}») rather than asserting each member commits to the entire total.
+- **Renamed Completion Action Button to «اعلام انجام قرائت»:** Changed completion buttons (`portions.button.done*`, `commit.regular.done_button`, `member_copy.py:done_button_label`) to «✅ اعلام انجام قرائت» so users clearly recognize that clicking the button reports/registers their recitation. Renamed `menu.today` to «📖 اعلام انجام قرائت امروز» with backward-compatible button matching in `keyboards.py:TODAY_BUTTON_TEXTS`.
+- **Validation:** 360 unit tests PASS (100% green).
+
+## 2026-10-08 — Antigravity — Single Section Delivery & Self-Healing for Khutbah Occurrences
+- **Prevent Multi-Part Video Blast:** Fixed `deliver_devotional_media` so when `page_numbers` is omitted and multiple video parts exist, only the first part is sent by default rather than delivering all parts.
+- **Self-Healing Legacy Occurrences & Numeric Commitments:** Added oversized `delivery_components` detection and reset in `occurrence_adapter.py`. Implemented automatic section range calculation and `content_spec` backfill when `ranges` is missing in `occurrence_adapter.py` and `delivery.py:prepare_numeric`.
+- **Validation:** 358 unit tests PASS (100% green).
+
+## 2026-10-08 — Antigravity — Khutbah Video Delivery & Member Prompt Customization
+- **Devotional Video Delivery:** Fixed `AttributeError: '_TargetMessage' object has no attribute 'answer_video'` by implementing `answer_video`, `answer_animation`, `answer_voice`, and `forward` in `notify_adapter.py:_TargetMessage`. Added `send_video` fallback support in `occurrence_adapter.py`.
+- **Customized Khutbah Member Prompts:** Added `commit.ask_times_per_period.khutbah` and `commit.ask_count.khutbah` in `i18n` asking «چند بخش از خطبه را می‌خواهید در روزهای انتخابی بخوانید؟». Updated `commit.period.these_days` to «روزهای انتخابی». Added `commit.unit.khutbah` («بخش»).
+- **Sequential Khutbah 5-Part Section Delivery:** Added sequential section allocation in `delivery.py:prepare` and section-specific delivery in `occurrence_adapter.py` and `devotional.py`.
+- **Command `/videos`:** Added `/videos [slug]` (or `/list_videos`) in `manage_content.py` to inspect all registered video sections.
+- **Validation:** 356 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Daily Deadline Hour 24 & Wizard Auto-Seed Robustness
+- **Deadline Hour 24 Support:** Fixed `ValueError: hour must be in 0..23` in `share_occurrence/delivery.py` by converting hour 24 (end-of-day deadline) to midnight of the following day. Added regression test in `tests/test_khutbah_integration.py`.
+- **Wizard Category Seed Guard:** Protected `seed_canonical_categories` inside `create_khatm.py:_show_category_prompt` with a try-except block so unseeded or mocked test environments do not fail.
+- **Validation:** 353 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Auto-Seed Khutbah Fadakiah Category in Wizard
+- **Auto-Seeding Khutbah Fadakiah:** Added `seed_canonical_categories` in `khatm_category/service.py` ensuring «خطبه فدکیه حضرت فاطمه زهرا (س)» is always seeded and active.
+- **Wizard Integration:** Hooked `seed_canonical_categories` to bot startup in `bootstrap.py` and on-the-fly in `create_khatm.py:_show_category_prompt`, so selecting «📜 ختم خطبه‌ها» immediately offers «خطبه فدکیه حضرت فاطمه زهرا (س)».
+- **Validation:** 352 unit tests PASS.
+
+## 2026-10-08 — Antigravity — KhatmCategoryGroup Enum & Decoupled Video Addition Fix
+- **Decoupled Video Registration:** Removed redundant `KhatmCategory` query from `add_devotional_video_page`, preventing `invalid input value for enum khatmcategorygroup: "KHUTBAH"` from blocking `/set_video`.
+- **Database Enum Self-Heal & Migration:** Added `ALTER TYPE khatmcategorygroup ADD VALUE IF NOT EXISTS 'KHUTBAH'` to bot startup in `bootstrap.py` and in Alembic migration `khutbah2026100801`.
+- **Validation:** 351 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Devotional Asset DB Constraint & Error Parsing Fix
+- **DB Check Constraint Fix:** Fixed `CheckViolationError: new row for relation "devotional_assets" violates check constraint "ck_devotional_assets_type"`. Used `content_type="DUA"` in `add_devotional_video_page` and `scripts/register_khutbah_fadakiah.py` to ensure immediate out-of-the-box compatibility with existing production schemas.
+- **Alembic Migration:** Added migration `khutbah2026100801_allow_khutbah_devotional_asset.py` expanding `ck_devotional_assets_type` to allow `('DUA', 'ZIYARAT', 'SALAWAT', 'KHUTBAH')`.
+- **Telegram Error Entity Parsing:** Added `parse_mode=None` to `message.answer` on unexpected errors in `manage_content.py:set_video_direct` so Python exception formatting (`<class ...>`) does not crash Telegram. Added support for `target_msg.animation`.
+- **Telegram Forward Ref Decoding:** Supported `tg_forward:` prefix alongside `telegram-forward:`, handling string channel usernames (`@channel`) and numeric IDs.
+- **Validation:** 351 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Auto-Provision Devotional Asset & Quran Forward Interception Fix
+- **Auto-Provisioning Devotional Asset & Category:** Added automatic on-demand creation of `DevotionalAsset` and `KhatmCategory` in `content/service.py:add_devotional_video_page` if missing in DB when setting video clips via `/set_video`, preventing `ValueError: enabled devotional asset not found`.
+- **Quran Forward Interception Fix:** Suppressed unwanted «این پیام از کانال قرآن تعیین‌شده نیامده و ثبت نشد.» error reply in `admin.py:275` for forwards from other channels by returning silently.
+- **Admin Video Reply Enhancements:** Added support for extracting channel links from video captions (`caption` and `text`) and error trapping in `manage_content.py:set_video_direct`.
+- **Validation:** 350 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Khutbah 5-Part Video Delivery & Dua-Ziyarat Bot Routing
+- **Khutbah Routing to Dua & Ziyarat Bot:** Implemented directive «بات ارسال خطبه فدک بات دعا و زیارته». Khutbah category Khatms resolve to `BotCategory.DUA_ZIYARAT` in `bot_registry/service.py` and `create_khatm.py`.
+- **Devotional Video Media Delivery:** Supported `VIDEO` kind in `content/service.py` and `devotional.py:deliver_devotional_media`. When videos are present, video clips are sent directly as requested («بجای متن و فایل و صوت همین ویدیو براشون ارسال بشه»), bypassing raw text and audio.
+- **Admin In-Bot Video Upload & Reply Shortcut:** Added `/set_video <slug> [part] [optional_link]` and `/add_video` in `manage_content.py`, supporting replies to video messages and Telegram channel post links (`https://t.me/khedmatgozaran_group/25286`). Shared `manage_content` across creator and member dispatchers in `bootstrap.py`.
+- **Khutbah Fadakiah 5 Parts:** Updated `scripts/register_khutbah_fadakiah.py` to seed the 5 canonical sections matching Khedmatgozaran video series (parts 1 to 5).
+- **Validation:** 349 unit tests PASS (including `test_khutbah_routing_to_dua_ziyarat_bot` and `test_video_media_is_delivered_directly_instead_of_text_audio`).
+
+## 2026-10-08 — Antigravity — Master Audit V3 Bugs Resolved & Khutbah Fadakiah Seeded
+- **All 9 Audit Ledger Bugs Fully Resolved:**
+  - **Bug 1:** Fixed navigation deadlock for «🔙 بازگشت به منوی اصلی» across all 3 creator submenus (`src/khatmsaz/bot/handlers/panel.py`).
+  - **Bug 2:** Removed restrictive `user.role` gate in `panel.py` and `creator_broadcast.py`, giving new creators immediate menu access.
+  - **Bug 3:** Registered `BotCategory.KHUTBAH` in `bot_registry/models.py`, `bot_registry/service.py`, and `keyboards.py`.
+  - **Bug 4:** Fixed creator panel inline report button target callback to `creator_finance_report_entry`.
+  - **Bug 5:** Cleaned up `_ask_reminder_tone` and `_show_visibility_step` in `create_khatm.py`; step-back from visibility now reliably returns to reminder tone selection.
+  - **Bug 6:** Implemented `scripts/register_khutbah_fadakiah.py` seeding all 8 canonical parts of Khutbah Fadakiah, audio media slots, and category row. Enabled `KHUTBAH` in `content/service.py:DEVOTIONAL_TYPES`.
+  - **Bug 7:** Added `KHUTBAH` label and `📜` icon mapping in `start.py:124-135` and `join.preview.type_khutbah` in `i18n/__init__.py`.
+  - **Bug 8:** Added `"khutbah": "قرائت شد"` to `verbs` in `member_copy.py:186-193`.
+  - **Bug 9:** Added `khutbah` field to web panel `/bots` in `web/app.py:2760, 2788` and `web/templates/bot_tokens.html`, with `intro.image_caption.KHUTBAH` in `i18n/__init__.py`.
+- **Validation:** 347 unit tests PASS (including new regression tests in `tests/test_khutbah_integration.py`).
+
+## 2026-10-08 — Antigravity — Master System Audit Report V3 Completed (No Code Changes)
+- **Zero-Code Full-System Audit:** Performed exhaustive 0-100 audit of all bot menus, buttons, handlers, copy, and multi-bot taxonomy matching owner requirements. Documented full findings and solutions in `docs/ai/MASTER_SYSTEM_AUDIT_REPORT_V3.md`.
+- **Identified Critical Defects:** Dead «بازگشت به منوی اصلی» button across 3 creator submenus, obsolete `UserRole.CREATOR` menu gating blocking new creators, and missing `KHUTBAH` bot category mapping.
+- **Copy Verification:** Verified 100% eradication of «فلانی», «شرعی», and non-Persian languages temporarily hidden.
+- **Validation:** 344 unit tests PASS.
+
+## 2026-10-08 — Antigravity — Wizard Step-by-Step Back Navigation & Khutbah Family Activation
+- **Fixed Wizard Back Navigation Bug (P1):** Fixed critical issue where tapping «مرحله قبل» (`ck:back`) jumped to the very first step (`choosing_template`). Implemented step-by-step reverse FSM routing across all states (`confirming` -> `choosing_visibility` -> `choosing_reminder_tone` -> target/policy/fixed daily -> `entering_creator_contact` -> `entering_welcome` -> `entering_niyyat` -> `choosing_mode` -> category -> template -> cancel).
+- **Added Khutbah Family (P3):** Added «📜 ختم خطبه‌ها» (`ck:group:KHUTBAH`) to `template_choice_keyboard`. Added `KhatmCategoryGroup.KHUTBAH` in domain models, web admin panel, and `i18n` strings with support for sequential parts, audio files, and cycling.
+- **Copy Cleaned (P2):** Removed the word «فلانی» completely from onboarding captions, examples, and documentation.
+- **Validation:** Added comprehensive test suite `test_previous_wizard_step_comprehensive_flow` and `test_khutbah_button_in_template_keyboard` in `tests/test_v3_wizard_and_allocation.py`. All 344 tests PASS.
+>>>>>>> update_khatm_wizard_flow
 
 ## 2026-10-08 — Antigravity — V3 Wizard Flow Completion, 2-Message Output & Sequential Allocation Priority
 - **Wizard Editing Flow (`create_khatm.py`):** Fully connected `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`).

@@ -49,6 +49,18 @@ logger = logging.getLogger(__name__)
 WELCOME_TEXT = t("welcome.text", "fa")
 
 
+@router.message(Command("admin"))
+async def admin_redirect_in_creator_bot(message: Message) -> None:
+    settings = get_settings()
+    admin_bot_username = getattr(settings, "admin_bot_username", "khatmsaz_admin_bot") or "khatmsaz_admin_bot"
+    await message.answer(
+        "👑 <b>مدیریت گرامی،</b>\n\n"
+        "امور مدیریتی، نظارتی و تأیید فیش‌ها به ربات اختصاصی مدیریت منتقل شده است:\n"
+        f"👉 @{admin_bot_username}\n\n"
+        "اینجا (ربات ختم‌ساز) صرفاً برای ساخت و مدیریت ختم‌های شماست 🌱"
+    )
+
+
 def _clean_niyyat(niyyat: str) -> str:
     """Strip a leading «به نیت»/«بنية»/«Intention» so the display label
     (join.niyyat_line = «به نیت: {niyyat}») doesn't double it — owner report
@@ -124,12 +136,14 @@ def build_join_preview_message(
         type_key = {
             "DUA": "join.preview.type_dua",
             "LAAN": "join.preview.type_laan",
+            "KHUTBAH": "join.preview.type_khutbah",
         }.get(category_group or "SALAWAT", "join.preview.type_salawat")
+        icon = "📜" if (category_group or "") == "KHUTBAH" else "📿"
         type_label = t(type_key, lang)
         if category_title:
-            text += t("join.preview.type_line_with_category", lang, icon="📿", type=type_label, category=escape(category_title))
+            text += t("join.preview.type_line_with_category", lang, icon=icon, type=type_label, category=escape(category_title))
         else:
-            text += t("join.preview.type_line", lang, icon="📿", type=type_label)
+            text += t("join.preview.type_line", lang, icon=icon, type=type_label)
         if _is_commitment(khatm):
             if khatm.repetition_target:
                 unit = t("create_khatm.unit.salawat", lang) if (category_group or "SALAWAT") == "SALAWAT" else t("create_khatm.unit.time", lang)
@@ -544,7 +558,7 @@ async def resume_join_after_registration(
     # portion silently skipped the question (reported 2026-09-27).
     is_fresh_join = (
         not was_waitlisted
-        and khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN)
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
     )
     # R11/N2 (owner 2026-09-28): for a repetition-based COMMITMENT khatm (Salawat/
     # Dua/Ziyarat/La'an — NOT Quran, which keeps its page/portion + delivery-hour
@@ -558,7 +572,8 @@ async def resume_join_after_registration(
     is_quran = khatm.template_type == KhatmTemplateType.QURAN_PAGE
     if (
         state is not None and not was_waitlisted and is_quran
-        and (khatm.khatm_type == KhatmTypeEnum.OPEN or getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
+        and khatm.khatm_type == KhatmTypeEnum.COMMITMENT
+        and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
         await start_commitment_mode_picker(message, state, participation.id, lang, summary=text, family="QURAN")
@@ -567,7 +582,8 @@ async def resume_join_after_registration(
         and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
     ):
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
-        family = pending_category_group if 'pending_category_group' in locals() else None
+        from khatmsaz.bot.member_copy import content_family
+        family = (await content_family(session, khatm)).upper()
         await start_commitment_mode_picker(
             message, state, participation.id, lang, summary=text, family=family
         )

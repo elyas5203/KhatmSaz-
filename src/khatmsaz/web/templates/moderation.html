@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}مرکز نظارت و بررسی درخواست‌ها | ختم‌ساز{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">مرکز نظارت و تایید صلاحیت محتوا</p>
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">صف‌های نظارت و مدیریت درخواست‌ها</h1>
+  </div>
+  <div class="flex items-center gap-2">
+    {{ help_button(
+      "راهنمای مرکز نظارت و تایید",
+      "در این مرکز تمام درخواست‌هایی که نیازمند تایید شرعی، امنیتی یا محتوایی ادمین هستند تجمیع شده‌اند تا بدون نیاز به زدن دستور متنی در ربات، با یک کلیک تایید یا رد شوند.",
+      [
+        "تایید لعن‌های سفارشی: وقتی کاربری متن دلخواه برای لعن می‌نویسد، ختم در وضعیت پیش‌نویس می‌ماند تا شما متن را بخوانید، در صورت نیاز غلط‌های املایی را اصلاح کنید و دکمهٔ «تایید و انتشار» را بزنید.",
+        "بررسی کاور ختم: اگر سازنده عکسی برای پوستر ختم فرستاده باشد، تصویر را چک کرده و تایید یا رد می‌کنید.",
+        "پیشنهادهای نوع ختم: کاربران درخواست اضافه شدن دعاها یا زیارات جدید را ثبت می‌کنند که می‌توانید همراه با یادداشت پاسخ دهید."
+      ],
+      "به محض تایید لعن سفارشی توسط شما، ختم فعال شده و لینک دعوت همراه با کارت ختم به چت تلگرام/بله سازنده ارسال می‌گردد."
+    ) }}
+  </div>
+</div>
+
+{% if saved == 'laan_approved' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>ختم لعن سفارشی با موفقیت تایید شد و لینک دعوت برای سازنده ارسال گردید.</span>
+</div>
+{% elif saved == 'laan_rejected' %}
+<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+  <span>⚠️</span>
+  <span>ختم لعن رد شد و به سازنده اطلاع داده شد.</span>
+</div>
+{% elif saved == 'cover_approved' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>کاور ختم با موفقیت تایید شد.</span>
+</div>
+{% elif saved == 'cover_rejected' %}
+<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+  <span>⚠️</span>
+  <span>کاور ختم رد شد.</span>
+</div>
+{% elif saved == 'req_approved' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>پیشنهاد نوع ختم تایید شد و به کاربر اطلاع‌رسانی گردید.</span>
+</div>
+{% elif saved == 'req_rejected' %}
+<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+  <span>ℹ️</span>
+  <span>پیشنهاد رد شد و پاسخ برای کاربر فرستاده شد.</span>
+</div>
+{% endif %}
+
+<!-- Tabs Navigation -->
+<div class="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 mb-6">
+  <a href="/moderation?tab=laan" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'laan' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>🔥 لعن‌های سفارشی</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'laan' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.laan }}</span>
+  </a>
+  <a href="/moderation?tab=covers" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'covers' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>🖼 کاور ختم‌ها</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'covers' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.covers }}</span>
+  </a>
+  <a href="/moderation?tab=requests" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'requests' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>💡 پیشنهاد نوع ختم</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'requests' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.requests }}</span>
+  </a>
+  <div class="h-5 w-px bg-slate-800 hidden lg:block mx-1"></div>
+  <a href="/broadcasts" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+    <span>📢 پیام گروهی</span>
+    <span class="text-xs font-mono text-slate-500">({{ counts.broadcasts }})</span>
+  </a>
+  <a href="/phone-verifications" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+    <span>📱 شماره خارجی</span>
+    <span class="text-xs font-mono text-slate-500">({{ counts.phones }})</span>
+  </a>
+  <a href="/creator-requests" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+    <span>👑 نقش سازنده</span>
+    <span class="text-xs font-mono text-slate-500">({{ counts.creators }})</span>
+  </a>
+  <a href="/categories" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
+    <span>🤲 دعای درخواستی</span>
+    <span class="text-xs font-mono text-slate-500">({{ counts.categories }})</span>
+  </a>
+</div>
+
+{% if active_tab == 'laan' %}
+<!-- TAB 1: LAAN APPROVAL QUEUE -->
+<section class="space-y-4">
+  {% for row in laan_rows %}
+  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید متن</span>
+          <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
+        </div>
+        <h3 class="text-lg font-bold text-white">{{ row.khatm.title }}</h3>
+        <p class="text-xs text-slate-400 mt-0.5">
+          سازنده: <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'ناشناس' }}</strong>
+          (شناسه کاربر: <code class="text-emerald-400">{{ row.khatm.creator_user_id }}</code>)
+        </p>
+      </div>
+      <div class="text-left">
+        <span class="text-xs text-slate-500 font-mono block">شناسه ختم: {{ row.khatm.id }}</span>
+      </div>
+    </div>
+
+    <form method="post" action="/moderation/laan/{{ row.khatm.id }}/decide" class="space-y-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">
+          متن لعن ثبت‌شده توسط کاربر (می‌توانید قبل از تایید ویرایش کنید):
+          {{ tooltip("این متن دقیقاً متنی است که کاربر فرستاده. اگر غلط املایی دارد می‌توانید آن را اصلاح کنید تا با متن اصلاح‌شده ذخیره و منتشر شود.") }}
+        </label>
+        <textarea name="updated_description" rows="3" class="w-full p-3.5 rounded-2xl bg-slate-950/60 border border-slate-700 text-slate-200 text-sm leading-relaxed focus:border-emerald-500 focus:outline-none font-medium">{{ row.khatm.description or row.khatm.title }}</textarea>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+        <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد کردن این ختم اطمینان دارید؟');" class="px-5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all cursor-pointer">
+          ❌ رد کردن ختم
+        </button>
+        <button type="submit" name="decision" value="approve" class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+          ✅ تأیید و انتشار ختم (ارسال کارت برای سازنده)
+        </button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+    <span class="text-4xl block mb-2">🎉</span>
+    <b class="text-white text-base block mb-1">هیچ ختم لعن سفارشی در انتظار تأییدی وجود ندارد</b>
+    <p class="text-xs text-slate-400">تمام ختم‌های لعن اختصاصی بررسی و تعیین تکلیف شده‌اند.</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% elif active_tab == 'covers' %}
+<!-- TAB 2: COVERS APPROVAL QUEUE -->
+<section class="space-y-4">
+  {% for row in cover_rows %}
+  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
+    <div class="flex flex-col md:flex-row gap-6">
+      <div class="w-full md:w-56 shrink-0 flex flex-col items-center">
+        {% if row.khatm.cover_ref %}
+        <img src="{{ row.khatm.cover_ref }}" alt="کاور ختم" class="w-full h-48 object-cover rounded-2xl border border-slate-700 shadow-lg" onerror="this.src='/static/khatm-logo.png';">
+        {% else %}
+        <div class="w-full h-48 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 text-xs">بدون پیش‌نمایش</div>
+        {% endif %}
+      </div>
+      <div class="flex-1 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">کاور در انتظار بررسی</span>
+            <span class="text-xs text-slate-400">{{ row.time }}</span>
+          </div>
+          <h3 class="text-lg font-bold text-white mb-1">{{ row.khatm.title }}</h3>
+          <p class="text-xs text-slate-400 mb-3">
+            سازنده: <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'ناشناس' }}</strong>
+          </p>
+        </div>
+
+        <form method="post" action="/moderation/covers/{{ row.khatm.id }}/decide" class="space-y-3 pt-3 border-t border-slate-800">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <div>
+            <input type="text" name="note" placeholder="یادداشت مدیر (در صورت رد شدن برای کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
+          </div>
+          <div class="flex items-center justify-end gap-3">
+            <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+              ❌ رد کاور
+            </button>
+            <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+              ✅ تأیید کاور
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+    <span class="text-4xl block mb-2">🖼</span>
+    <b class="text-white text-base block mb-1">هیچ کاوری در انتظار بررسی نیست</b>
+    <p class="text-xs text-slate-400">تمام تصاویر کاور ارسالی بررسی شده‌اند.</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% elif active_tab == 'requests' %}
+<!-- TAB 3: KHATM TYPE REQUESTS -->
+<section class="space-y-4">
+  {% for row in khatm_req_rows %}
+  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">پیشنهاد جدید</span>
+          <span class="text-xs text-slate-400">{{ row.time }}</span>
+        </div>
+        <p class="text-xs text-slate-400">
+          ارسال‌شده توسط: <strong class="text-slate-200">{{ row.requester.display_name if row.requester else 'کاربر' }}</strong>
+          (شناسه: <code class="text-emerald-400">{{ row.item.requester_user_id }}</code>)
+        </p>
+      </div>
+      <span class="text-xs text-slate-500 font-mono">شناسه درخواست: {{ row.item.id }}</span>
+    </div>
+
+    <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
+      <b class="text-xs text-slate-400 block mb-1">متن پیشنهاد / توضیحات کاربر:</b>
+      <p class="text-sm text-slate-200 leading-relaxed">{{ row.item.description }}</p>
+      {% if row.item.attachment_ref %}
+      <div class="mt-3 pt-3 border-t border-slate-900 flex items-center gap-2 text-xs text-emerald-400">
+        <span>📎 فایل ضمیمه:</span>
+        <code class="text-[0.7rem] bg-slate-900 px-2 py-1 rounded-lg">{{ row.item.attachment_ref }}</code>
+      </div>
+      {% endif %}
+    </div>
+
+    <form method="post" action="/moderation/khatm-requests/{{ row.item.id }}/decide" class="space-y-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div>
+        <input type="text" name="note" placeholder="یادداشت و پاسخ شما برای کاربر (در اعلان به کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+          ❌ رد پیشنهاد
+        </button>
+        <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+          ✅ تأیید و ثبت در سیستم
+        </button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+    <span class="text-4xl block mb-2">💡</span>
+    <b class="text-white text-base block mb-1">هیچ پیشنهاد نوع ختمی در انتظار بررسی نیست</b>
+    <p class="text-xs text-slate-400">تمام درخواست‌های کاربران تعیین تکلیف شده‌اند.</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

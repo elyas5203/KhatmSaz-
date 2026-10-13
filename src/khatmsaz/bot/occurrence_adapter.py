@@ -14,15 +14,21 @@ from khatmsaz.modules.share_occurrence import repository, service
 from khatmsaz.i18n import t
 
 
-def keyboard(occurrence):
+def keyboard(occurrence, khatm=None):
     from khatmsaz.bot.member_copy import done_button_label
     spec = occurrence.content_spec or {}
     family = spec.get("family")
     if not family:
         family = "quran" if getattr(occurrence, "unit", None) == "PAGE" else "salawat"
     lang = spec.get("language", "fa")
+    ranges = spec.get("ranges")
+    amount = getattr(occurrence, "amount", None)
+    title = getattr(khatm, "title", None) or spec.get("title")
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
-        text=done_button_label(family, lang), callback_data=f"share_done:{occurrence.id}",
+        text=done_button_label(
+            family, lang, count=amount, ranges=ranges, title=title,
+        ),
+        callback_data=f"share_done:{occurrence.id}",
     )]])
 
 
@@ -50,7 +56,12 @@ def label(khatm, occurrence):
     if occurrence.unit == "PAGE":
         pages = "، ".join(f"{a} تا {b}" if a != b else str(a) for a, b in occurrence.content_spec["ranges"])
         return t("share.pages", lang, title=escape(khatm.title), pages=pages)
-    amount = share_label(occurrence.content_spec.get("family", "salawat"), count=occurrence.amount, lang=lang)
+    family = occurrence.content_spec.get("family", "salawat")
+    start = None
+    end = None
+    if occurrence.content_spec.get("ranges"):
+        start, end = occurrence.content_spec["ranges"][0]
+    amount = share_label(family, count=occurrence.amount, start=start, end=end, lang=lang)
     return t("share.amount", lang, title=escape(khatm.title), amount=amount)
 
 
@@ -68,7 +79,7 @@ async def send_control(session, part, khatm, occurrence, purpose, *, now):
         text += "\n" + t("share.deadline", occurrence.content_spec.get("language", "fa"))
     elif purpose == "RESERVATION_WARNING":
         text += "\n" + t("portions.open_reservation_warning", occurrence.content_spec.get("language", "fa"), count=occurrence.amount)
-    msg = await bot.send_message(chat_id=chat, text=text, reply_markup=keyboard(occurrence))
+    msg = await bot.send_message(chat_id=chat, text=text, reply_markup=keyboard(occurrence, khatm))
     await service.record_message(session, occurrence_id=occurrence.id, bot_instance_id=occurrence.bot_instance_id,
         component_key=purpose, purpose="FOLLOWUP" if purpose == "RESERVATION_WARNING" else purpose, chat_id=str(chat), message_id=msg.message_id, sent_at=now)
     return True
@@ -80,12 +91,15 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         return False
     records = {r.component_key: r for r in await repository.list_messages(session, occurrence.id)}
     components = occurrence.content_spec.get("delivery_components")
+    if components and occurrence.amount and len(components) > occurrence.amount:
+        components = None
     collecting = components is None
     if collecting:
         from khatmsaz.bot.member_copy import content_family
         settings = await settings_service.get_or_create(session, part.user_id)
         occurrence.content_spec = {**occurrence.content_spec,
             "family": await content_family(session, khatm),
+            "title": getattr(khatm, "title", None),
             "language": getattr(bot, "khatmsaz_language", None) or settings.language}
     components = components or []
     async def collect(method, **kwargs):
@@ -116,9 +130,31 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
                         await collect(method, **{arg: asset.asset_ref})
     elif collecting:
         from khatmsaz.bot.notify_adapter import send_devotional_content
+        from khatmsaz.bot.member_copy import content_family
+        from khatmsaz.modules.share_occurrence import delivery as share_delivery
         settings = await settings_service.get_or_create(session, part.user_id)
+        fam = occurrence.content_spec.get("family") or await content_family(session, khatm)
+        page_numbers = None
+        if fam == "khutbah":
+            sec_start, sec_end = await share_delivery.allocate_khutbah_section_range(
+                session, part.id, khatm, occurrence.amount or 1,
+                target_occurrence_id=occurrence.id,
+            )
+            occurrence.content_spec = {
+                **occurrence.content_spec,
+                "ranges": [[sec_start, sec_end]],
+                "family": "khutbah",
+            }
+            await session.flush()
+            page_numbers = list(range(sec_start, sec_end + 1))
+        elif occurrence.content_spec and "ranges" in occurrence.content_spec:
+            page_numbers = [
+                p for start, end in occurrence.content_spec["ranges"]
+                for p in range(start, end + 1)
+            ]
         if not await send_devotional_content(session, bot.khatmsaz_platform.value, str(chat),
-                khatm=khatm, lang=occurrence.content_spec["language"], bot_instance_id=occurrence.bot_instance_id, receipt_sender=collect):
+                khatm=khatm, lang=occurrence.content_spec["language"], bot_instance_id=occurrence.bot_instance_id,
+                receipt_sender=collect, page_numbers=page_numbers):
             return False
     if not components:
         return False
@@ -130,12 +166,26 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         if key in records:
             continue
         method, kwargs = component["method"], dict(component["kwargs"])
+        if method == "send_video":
+            old_cap = (kwargs.get("caption") or "").strip()
+            if not old_cap or old_cap.startswith("🎬"):
+                ranges = (occurrence.content_spec or {}).get("ranges") or []
+                part_num = index + 1
+                if ranges and isinstance(ranges[0], (list, tuple)) and len(ranges[0]) >= 2:
+                    seq = list(range(int(ranges[0][0]), int(ranges[0][1]) + 1))
+                    if index < len(seq):
+                        part_num = seq[index]
+                if part_num in content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS and (
+                    (occurrence.content_spec or {}).get("family") == "khutbah"
+                    or "فدک" in (getattr(khatm, "title", "") or "")
+                ):
+                    kwargs["caption"] = content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[part_num]
         if kwargs.get("reply_markup"):
             kwargs["reply_markup"] = InlineKeyboardMarkup.model_validate(kwargs["reply_markup"])
         try:
             message = await getattr(bot, method)(chat_id=chat, **kwargs)
         except TelegramBadRequest as exc:
-            arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document"}.get(method)
+            arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document", "send_video": "video"}.get(method)
             if arg is None or "wrong file identifier" not in str(exc).lower():
                 raise
             owner = get_registry().get_creator_bot(bot.khatmsaz_platform)
@@ -143,7 +193,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
                 raise
             buffer = BytesIO()
             await owner.download(kwargs[arg], destination=buffer)
-            kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf'}[arg] }")
+            kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf','video':'mp4'}[arg] }")
             message = await getattr(bot, method)(chat_id=chat, **kwargs)
         await service.record_message(session, occurrence_id=occurrence.id,
             bot_instance_id=occurrence.bot_instance_id, component_key=key, purpose="CONTENT",

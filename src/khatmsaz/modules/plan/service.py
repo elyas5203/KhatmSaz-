@@ -1,6 +1,5 @@
-"""Plan business logic. A missing row means FREE — never create a row just
-to read someone's plan (DOMAIN_MODEL.md §7: keep this cheap and lazy)."""
-
+import math
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.modules.plan import repository
@@ -12,21 +11,67 @@ class PlanFeatureUnavailableError(Exception):
     """The active plan does not permit the requested feature."""
 
 
-async def get_plan(session: AsyncSession, user_id) -> PlanTier:
-    """The user's STORED plan tier — FREE / BASIC / PRO (missing row = FREE).
+_PRO_PLAN_DURATION_DAYS = 30
 
-    Owner model (OWNER_SPEC_MASTER §A, 2026-09-30): the tier is a real stored
-    state, not derived from wallet funds. FREE auto-upgrades to BASIC when the
-    creator's total audience passes the admin cap (`maybe_autoupgrade_free_to_basic`),
-    and PRO is reached by an explicit purchase. Reads stay cheap: a missing
-    `UserPlan` row means FREE and we never create one just to read it.
+
+async def get_plan(session: AsyncSession, user_id) -> PlanTier:
+    """The user's active plan tier — FREE / BASIC / PRO (missing row = FREE).
+
+    Owner model (2026-10-13 / MASTER-10): PRO plan has a 30-day duration.
+    If an expired PRO row is found, it lazily evaluates to BASIC (if audience
+    passes cap) or FREE.
     """
     row = await repository.get_by_user(session, user_id)
-    return row.plan if row is not None else PlanTier.FREE
+    if row is None:
+        return PlanTier.FREE
+    expires_at = getattr(row, "expires_at", None)
+    if row.plan == PlanTier.PRO and expires_at is not None:
+        now = datetime.now(timezone.utc)
+        if expires_at <= now:
+            cap = await get_free_total_member_cap(session)
+            members = await count_total_active_members(session, user_id)
+            if cap is not None and members > cap:
+                return PlanTier.BASIC
+            return PlanTier.FREE
+    return row.plan
+
+
+async def get_plan_details(session: AsyncSession, user_id) -> dict:
+    """Detailed plan status including expiration and remaining days."""
+    row = await repository.get_by_user(session, user_id)
+    now = datetime.now(timezone.utc)
+    if row is None:
+        return {
+            "plan": PlanTier.FREE,
+            "expires_at": None,
+            "days_left": None,
+            "is_active": True,
+        }
+    plan = row.plan
+    expires_at = getattr(row, "expires_at", None)
+    days_left = None
+    if plan == PlanTier.PRO and expires_at is not None:
+        if expires_at > now:
+            days_left = max(1, math.ceil((expires_at - now).total_seconds() / 86400))
+        else:
+            cap = await get_free_total_member_cap(session)
+            members = await count_total_active_members(session, user_id)
+            plan = PlanTier.BASIC if (cap is not None and members > cap) else PlanTier.FREE
+            days_left = 0
+    return {
+        "plan": plan,
+        "expires_at": expires_at,
+        "days_left": days_left,
+        "is_active": True,
+    }
 
 
 async def set_plan(session: AsyncSession, user_id, plan: PlanTier) -> None:
     await repository.upsert(session, user_id, plan)
+
+
+async def assign_plan(session: AsyncSession, user_id, plan: PlanTier, *, assigned_by_user_id=None) -> None:
+    await set_plan(session, user_id, plan)
 
 
 # --- Owner model §A1: admin-editable member cap + advertising flag ----------
@@ -140,3 +185,124 @@ async def set_definition(
         price_toman=price_toman, unit_price_toman=unit_price_toman,
         entitlements=entitlements,
     )
+
+
+async def get_pro_plan_price(session: AsyncSession) -> int:
+    """Return the admin-configured price for upgrading to PRO (to remove ads)."""
+    definition = await get_definition(session, PlanTier.PRO)
+    if definition is None or not definition.enabled:
+        return 0
+    return max(0, int(definition.price_toman or 0))
+
+
+async def purchase_pro_plan(
+    session: AsyncSession,
+    user_id,
+    *,
+    coupon_code: str | None = None,
+    days: int = _PRO_PLAN_DURATION_DAYS,
+):
+    """Purchase or renew the 30-day PRO plan from the user's wallet.
+
+    Owner request (2026-10-13 / MASTER-10):
+    - PRO plan duration is 30 days.
+    - If renewed while still active, adds 30 days additively to current expiration.
+    - If purchased afresh or after lapse, starts 30 days from now.
+    """
+    from khatmsaz.modules.wallet.models import InvoiceKind
+
+    definition = await get_definition(session, PlanTier.PRO)
+    if definition is None or not definition.enabled:
+        raise PlanFeatureUnavailableError("پلن حرفه‌ای (PRO) در حال حاضر غیرفعال است.")
+    price = max(0, int(definition.price_toman or 0))
+
+    row = await repository.get_by_user(session, user_id)
+    now = datetime.now(timezone.utc)
+    is_renewal = bool(row and row.plan == PlanTier.PRO and row.expires_at and row.expires_at > now)
+    action_label = "تمدید ۳۰ روزه" if is_renewal else "ارتقای ۳۰ روزه"
+
+    invoice = None
+    if price > 0:
+        invoice = await wallet_service.purchase(
+            session,
+            user_id=user_id,
+            gross_amount_toman=price,
+            description=f"{action_label} پلن حرفه‌ای ({definition.title})",
+            invoice_kind=InvoiceKind.PURCHASE,
+            coupon_code=coupon_code,
+        )
+    user_plan, new_expiry = await repository.extend_pro_plan(session, user_id, days=days)
+    return invoice, new_expiry
+
+
+async def process_plan_expirations_and_reminders(session: AsyncSession, notify) -> dict:
+    """Periodic job (run every minute alongside reminder scan):
+    1. Sends 7-day warning to users whose PRO plan expires in <= 7 days.
+    2. Sends 24-hour warning to users whose PRO plan expires in <= 24 hours.
+    3. Downgrades lapsed PRO plans to FREE or BASIC, and notifies users.
+    """
+    from khatmsaz.modules.identity import service as identity_service
+
+    now = datetime.now(timezone.utc)
+    counts = {"reminded_7d": 0, "reminded_24h": 0, "expired": 0}
+
+    # 1. 7-day warnings
+    needing_7d = await repository.list_needing_7d_reminder(session, now=now)
+    for p in needing_7d:
+        identities = await identity_service.list_identities_for_user(session, p.user_id)
+        text = (
+            "🌱 <b>یادآوری پایان اعتبار پلن حرفه‌ای</b>\n\n"
+            "کاربر گرامی، ۷ روز تا پایان اعتبار پلن حرفه‌ای ۳۰ روزه شما باقی مانده است.\n"
+            "برای تداوم امکانات پیشرفته، عدم نمایش تبلیغات به اعضا و ابزارهای حرفه‌ای، می‌توانید هم‌اکنون پلن خود را تمدید فرمایید.\n\n"
+            "🔄 <b>با تمدید، ۳۰ روز کامل به مهلت فعلی شما افزوده خواهد شد.</b>\n"
+            "جهت تمدید، از بخش کیف پول در منوی ربات اقدام فرمایید."
+        )
+        for ident in identities:
+            try:
+                await notify(ident.platform.value, ident.subject, text)
+            except Exception:
+                pass
+        await repository.mark_7d_reminded(session, p.user_id)
+        counts["reminded_7d"] += 1
+
+    # 2. 24-hour warnings
+    needing_24h = await repository.list_needing_24h_reminder(session, now=now)
+    for p in needing_24h:
+        identities = await identity_service.list_identities_for_user(session, p.user_id)
+        text = (
+            "⚠️ <b>هشدار پایان اعتبار پلن حرفه‌ای (۲۴ ساعت باقی‌مانده)</b>\n\n"
+            "کاربر گرامی، تنها ۲۴ ساعت تا پایان اعتبار پلن حرفه‌ای شما باقی مانده است.\n"
+            "در صورت عدم تمدید، ختم‌های شما به پلن عادی منتقل شده و امکانات حرفه‌ای متوقف خواهند شد.\n\n"
+            "🔄 با تمدید هم‌اکنون، ۳۰ روز به اعتبار شما اضافه خواهد شد. جهت تمدید از بخش کیف پول اقدام فرمایید. 🌱"
+        )
+        for ident in identities:
+            try:
+                await notify(ident.platform.value, ident.subject, text)
+            except Exception:
+                pass
+        await repository.mark_24h_reminded(session, p.user_id)
+        counts["reminded_24h"] += 1
+
+    # 3. Lapsed PRO plans
+    newly_expired = await repository.list_newly_expired_pro(session, now=now)
+    cap = await get_free_total_member_cap(session)
+    for p in newly_expired:
+        members = await count_total_active_members(session, p.user_id)
+        fallback_tier = PlanTier.BASIC if (cap is not None and members > cap) else PlanTier.FREE
+        await repository.downgrade_expired_pro(session, p.user_id, fallback_tier)
+
+        identities = await identity_service.list_identities_for_user(session, p.user_id)
+        text = (
+            "⏳ <b>پایان مهلت اعتبار پلن حرفه‌ای</b>\n\n"
+            "کاربر گرامی، مهلت ۳۰ روزه پلن حرفه‌ای شما به پایان رسید و ختم‌های شما به پلن عادی بازگشتند.\n"
+            "هر زمان که تمایل داشتید می‌توانید با تمدید پلن، مجدداً از امکانات حرفه‌ای و عدم نمایش تبلیغات بهره‌مند شوید. 🌱"
+        )
+        for ident in identities:
+            try:
+                await notify(ident.platform.value, ident.subject, text)
+            except Exception:
+                pass
+        counts["expired"] += 1
+
+    return counts
+

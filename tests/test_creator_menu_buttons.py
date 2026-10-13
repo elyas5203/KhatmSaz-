@@ -37,17 +37,16 @@ async def test_creator_finance_and_support_buttons_are_wired(monkeypatch):
         return creator, "fa"
 
     async def fake_answer(_message, text, **kwargs):
-        assert "گزارش و مالی" in text
-        assert kwargs.get("reply_markup") is not None
-        calls["finance"] += 1
-
-    async def fake_help(_message):
-        calls["support"] += 1
+        if "گزارش و مالی" in text:
+            assert kwargs.get("reply_markup") is not None
+            calls["finance"] += 1
+        elif "راهنما و پشتیبانی" in text:
+            assert kwargs.get("reply_markup") is not None
+            calls["support"] += 1
 
     monkeypatch.setattr(panel, "_get_context", fake_context)
-    # «گزارش و مالی» opens its own report/wallet submenu (owner 2026-10-01).
+    # «گزارش و مالی» and «راهنما و پشتیبانی» open their respective submenus.
     monkeypatch.setattr(Message, "answer", fake_answer)
-    monkeypatch.setattr(help_handler, "help_command", fake_help)
 
     bot = Bot("123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi")
     bot._me = User(id=123456, is_bot=True, first_name="KhatmSaz", username="khatmsaz_test_bot")

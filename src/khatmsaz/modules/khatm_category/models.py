@@ -25,6 +25,7 @@ class KhatmCategoryGroup(str, enum.Enum):
     SALAWAT = "SALAWAT"
     LAAN = "LAAN"
     DUA = "DUA"
+    KHUTBAH = "KHUTBAH"
 
 
 class KhatmCategory(Base):

@@ -4,10 +4,12 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import UserStatus
+from khatmsaz.modules.participation.models import Participation, ParticipationStatus
 from khatmsaz.modules.reporting import service as reporting_service
 from khatmsaz.modules.settings import repository as settings_repository
 
@@ -82,8 +84,23 @@ async def deliver_due(
         )
         if report.has_activity:
             text = _render(period, report, settings.language)
+            bot_instance_id = (
+                await session.execute(
+                    select(Participation.joined_via_bot_instance_id)
+                    .where(
+                        Participation.user_id == user.id,
+                        Participation.status == ParticipationStatus.ACTIVE,
+                        Participation.joined_via_bot_instance_id.isnot(None),
+                    )
+                    .order_by(Participation.created_at.desc())
+                    .limit(1)
+                )
+            ).scalar_one_or_none()
             for identity in await identity_service.list_identities_for_user(session, user.id):
-                await notify(identity.platform.value, identity.subject, text)
+                try:
+                    await notify(identity.platform.value, identity.subject, text, bot_instance_id=bot_instance_id)
+                except TypeError:
+                    await notify(identity.platform.value, identity.subject, text)
             delivered += 1
         settings.last_monthly_report_period = period
     await session.flush()

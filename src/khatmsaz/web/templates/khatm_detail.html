@@ -1,31 +1,105 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
-{% block title %}{{ khatm.title }} | ختم‌ساز{% endblock %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}{{ khatm.title }} | مدیریت ختم{% endblock %}
 {% block content %}
-<a href="/khatms" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm font-bold bg-slate-800/40 px-4 py-2 rounded-xl">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-  بازگشت به ختم‌ها
-</a>
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 pt-2">
+  <a href="/khatms" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold bg-slate-800/40 px-4 py-2 rounded-xl">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+    بازگشت به فهرست ختم‌ها
+  </a>
 
-<section class="mb-8 relative">
-  <p class="text-xs font-bold text-sky-500 tracking-wider uppercase mb-1">{{ fa_label(khatm.template_type) }} <span class="text-slate-600 px-1">·</span> {{ fa_label(khatm.khatm_type) }}</p>
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <h1 class="text-3xl sm:text-4xl font-bold text-white">{{ khatm.title }}</h1>
-    
-    {% if khatm.status.value == 'ACTIVE' %}
-    <span class="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-sm font-bold rounded-xl border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
-    {% elif khatm.status.value == 'DRAFT' %}
-    <span class="px-4 py-1.5 bg-slate-500/10 text-slate-400 text-sm font-bold rounded-xl border border-slate-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
-    {% elif khatm.status.value == 'COMPLETED' %}
-    <span class="px-4 py-1.5 bg-sky-500/10 text-sky-400 text-sm font-bold rounded-xl border border-sky-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
-    {% elif khatm.status.value == 'CANCELLED' %}
-    <span class="px-4 py-1.5 bg-rose-500/10 text-rose-500 text-sm font-bold rounded-xl border border-rose-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
-    {% else %}
-    <span class="px-4 py-1.5 bg-slate-500/10 text-slate-400 text-sm font-bold rounded-xl border border-slate-500/20 whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
-    {% endif %}
+  <div class="flex items-center gap-3">
+    <a href="/khatms/{{ khatm.id }}/export.xlsx" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-bold transition-all shadow-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+      📥 دانلود اکسل اعضا (.xlsx)
+    </a>
+
+    {{ help_button(
+      "راهنمای مدیریت جزئیات ختم و اعضا",
+      "در این صفحه می‌توانید تمام تنظیمات ختم را ویرایش کنید، وضعیت آن را تغییر دهید، اعضا را مدیریت کنید، سهم‌های باز را دستی ثبت کنید، و فایل خروجی اکسل را دریافت کنید.",
+      [
+        "در کارت‌های بالای صفحه، آمار اعضای فعال، سهم‌های خوانده‌شده و نرخ تبدیل دعوت را بررسی فرمایید.",
+        "در تب تنظیمات ختم، عنوان، نیت، متن خوش‌آمدگویی، وضعیت فعال/تکمیل/لغو و ظرفیت را ویرایش و ذخیره کنید.",
+        "در جدول اعضا، برای ثبت سهم‌های باز روی «✅ ثبت سهم» و برای حذف عضو و بالا آمدن خودکار نفر بعدی از لیست انتظار روی «🚪 حذف عضو» بزنید.",
+        "با کلیک روی «دانلود اکسل اعضا»، خروجی استاندارد برای بایگانی دریافت خواهید کرد."
+      ],
+      "نکته: در صورت لغو ختم، می‌توانید تیک «بازپرداخت به کیف پول سازنده» را بزنید تا مبلغ پرداخت‌شده خودکار بازگردد."
+    ) }}
   </div>
+</div>
+
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span>
+    {% if saved == 'created' %}ختم با موفقیت ایجاد و فعال شد ✅
+    {% elif saved == 'updated' %}تنظیمات ختم با موفقیت ذخیره شد ✅
+    {% elif saved == 'status_changed' %}وضعیت ختم با موفقیت تغییر یافت ✅
+    {% elif saved == 'share_completed' %}سهم عضو با موفقیت ثبت شد ✅
+    {% elif saved == 'member_removed' %}عضو با موفقیت حذف شد و لیست انتظار بررسی گردید ✅
+    {% else %}تغییرات با موفقیت اعمال شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+<!-- Header & Title -->
+<section class="glass-panel p-6 rounded-3xl mb-8 border border-white/5">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 mb-2 flex-wrap">
+        <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">{{ fa_label(khatm.template_type) }}</span>
+        <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300">{{ fa_label(khatm.khatm_type) }}</span>
+        {% if category %}
+        <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">{{ category.title }}</span>
+        {% endif %}
+        {% if khatm.visibility.value == 'PRIVATE' %}
+        <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">خصوصی (لینک اختصاصی)</span>
+        {% endif %}
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">{{ khatm.title }}</h1>
+      <p class="text-xs text-slate-400 flex items-center gap-2 flex-wrap">
+        <span>سازنده: <strong class="text-slate-200">{{ creator_user.display_name if creator_user else 'مدیریت سامانه' }}</strong></span>
+        <span class="text-slate-600">·</span>
+        <span class="font-mono text-slate-500" dir="ltr">ID: {{ khatm.id }}</span>
+      </p>
+    </div>
+
+    <!-- Status Changer Form -->
+    <form method="post" action="/khatms/{{ khatm.id }}/status" class="flex flex-col sm:flex-row items-end sm:items-center gap-3 bg-slate-900/60 p-3 rounded-2xl border border-slate-700/60">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div class="text-right w-full sm:w-auto">
+        <label class="block text-[0.65rem] font-bold text-slate-400 mb-1">وضعیت ختم</label>
+        <select name="status" class="input-field py-1.5 px-3 text-xs">
+          <option value="ACTIVE" {% if khatm.status.value == 'ACTIVE' %}selected{% endif %}>✅ فعال</option>
+          <option value="COMPLETED" {% if khatm.status.value == 'COMPLETED' %}selected{% endif %}>🏆 تکمیل‌شده</option>
+          <option value="CANCELLED" {% if khatm.status.value == 'CANCELLED' %}selected{% endif %}>⛔ لغوشده</option>
+        </select>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2 sm:pt-4">
+        <label class="flex items-center gap-1.5 text-[0.7rem] text-slate-300 cursor-pointer" title="در صورت لغو، هزینه پرداخت‌شده به کیف پول بانی برمی‌گردد">
+          <input type="checkbox" name="refund_wallet" class="rounded text-emerald-500">
+          <span>استرداد وجه بانی</span>
+        </label>
+        <button type="submit" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer">ثبت</button>
+      </div>
+    </form>
+  </div>
+
+  {% if invite_url %}
+  <div class="mt-5 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-3.5 rounded-2xl">
+    <div class="flex items-center gap-2 text-xs text-slate-300">
+      <span class="text-emerald-400 font-bold">🔗 لینک دعوت:</span>
+      <input value="{{ invite_url }}" readonly id="inviteInput" class="bg-slate-950/60 px-3 py-1 rounded-lg text-slate-400 font-mono text-xs w-64 sm:w-80 border border-slate-800" dir="ltr">
+    </div>
+    <button type="button" onclick="navigator.clipboard.writeText(document.getElementById('inviteInput').value); alert('لینک دعوت کپی شد!')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all self-end sm:self-center">
+      کپی لینک دعوت
+    </button>
+  </div>
+  {% endif %}
 </section>
 
+<!-- Stats Cards -->
 <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
   <article class="glass-card p-5 rounded-2xl flex items-center gap-4">
     <div class="p-3 bg-sky-500/10 text-sky-400 rounded-xl">
@@ -33,7 +107,7 @@
     </div>
     <div>
       <strong class="block text-2xl font-bold text-white">{{ stats.active_members }}</strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">عضو فعال {{ tooltip("تعداد کاربرانی که در این ختم شرکت کرده‌اند و هنوز انصراف نداده‌اند.") }}</span>
+      <span class="text-xs text-slate-400 font-bold">عضو فعال {{ tooltip("تعداد شرکت‌کنندگانی که در این ختم سهم برداشته و هنوز انصراف نداده‌اند.") }}</span>
     </div>
   </article>
   
@@ -47,7 +121,7 @@
         <span class="text-sm text-slate-500">/</span>
         <span>{{ stats.total_portions }}</span>
       </strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">سهم تکمیل‌شده {{ tooltip("تعداد سهم‌هایی که کاربرا تایید کردند خوانده‌اند از کل سهم‌های تعریف شده برای این دوره.") }}</span>
+      <span class="text-xs text-slate-400 font-bold">سهم‌های خوانده‌شده {{ tooltip("تعداد سهم‌هایی که اعضا تأیید کرده‌اند تلاوت کرده‌اند از کل سهم‌های دوره.") }}</span>
     </div>
   </article>
   
@@ -57,50 +131,203 @@
     </div>
     <div>
       <strong class="block text-2xl font-bold text-white font-mono" dir="ltr">{{ stats.invitation_conversion_percent }}%</strong>
-      <span class="text-xs text-slate-400 uppercase tracking-wider font-bold">نرخ تبدیل دعوت {{ tooltip("درصد کاربرانی که روی لینک دعوت این ختم کلیک کرده‌اند و نهایتاً در آن عضو شده‌اند.") }}</span>
+      <span class="text-xs text-slate-400 font-bold">نرخ تبدیل دعوت {{ tooltip("درصد کاربرانی که با لینک دعوت وارد شده و عضو ختم شده‌اند.") }}</span>
     </div>
   </article>
 </section>
 
-<section class="glass-panel p-6 rounded-3xl">
-  <div class="mb-6 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">اعضای ختم</h2>
+<!-- Settings Accordion / Form -->
+<details class="glass-panel p-6 rounded-3xl mb-8 border border-white/5 group">
+  <summary class="cursor-pointer list-none flex items-center justify-between font-extrabold text-lg text-white">
+    <div class="flex items-center gap-2">
+      <span>✏️ ویرایش تنظیمات ختم</span>
+      {{ tooltip("تمام متون و پارامترهای اجرایی این ختم توسط ادمین در این فرم قابل ویرایش است.") }}
+    </div>
+    <span class="text-emerald-400 group-open:rotate-180 transition-transform">⌄</span>
+  </summary>
+
+  <form method="post" action="/khatms/{{ khatm.id }}/update" class="mt-6 pt-6 border-t border-white/5 space-y-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">عنوان ختم</label>
+        <input name="title" value="{{ khatm.title }}" required class="input-field">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">نیت ختم</label>
+        <input name="niyyat" value="{{ khatm.niyyat or '' }}" placeholder="نیت ختم..." class="input-field">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">هدف تعداد کل (ذکر/صلوات/صفحه)</label>
+        <input name="repetition_target" type="number" min="1" value="{{ khatm.repetition_target or '' }}" class="input-field font-mono">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">ساعت موعد روزانه (ساعت خاتمه سهم)</label>
+        <input name="daily_deadline_hour" type="number" min="0" max="23" value="{{ khatm.daily_deadline_hour if khatm.daily_deadline_hour is not none else '' }}" placeholder="مثلاً 22" class="input-field font-mono">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">سقف ظرفیت اعضا</label>
+        <input name="capacity" type="number" min="1" value="{{ khatm.capacity or '' }}" placeholder="خالی = بدون سقف" class="input-field font-mono">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">نمایش عمومی/خصوصی</label>
+        <select name="visibility" class="input-field">
+          <option value="PUBLIC" {% if khatm.visibility.value == 'PUBLIC' %}selected{% endif %}>عمومی</option>
+          <option value="PRIVATE" {% if khatm.visibility.value == 'PRIVATE' %}selected{% endif %}>خصوصی</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">پلتفرم‌های مجاز</label>
+        <select name="allowed_platforms" class="input-field">
+          <option value="BOTH" {% if khatm.allowed_platforms == 'BOTH' %}selected{% endif %}>هم تلگرام و هم بله</option>
+          <option value="TELEGRAM" {% if khatm.allowed_platforms == 'TELEGRAM' %}selected{% endif %}>فقط تلگرام</option>
+          <option value="BALE" {% if khatm.allowed_platforms == 'BALE' %}selected{% endif %}>فقط بله</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">لحن یادآوری</label>
+        <select name="reminder_tone" class="input-field">
+          <option value="GENTLE" {% if khatm.reminder_tone == 'GENTLE' %}selected{% endif %}>مهربان و آرام</option>
+          <option value="URGENT" {% if khatm.reminder_tone == 'URGENT' %}selected{% endif %}>جدی و فوری</option>
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold text-slate-300 mb-1">پیام خوش‌آمدگویی اختصاصی به اعضای جدید</label>
+      <textarea name="welcome_text" rows="2" class="input-field text-sm">{{ khatm.welcome_text or '' }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold text-slate-300 mb-1">توضیحات تکمیلی ختم</label>
+      <textarea name="description" rows="2" class="input-field text-sm">{{ khatm.description or '' }}</textarea>
+    </div>
+
+    <div class="flex justify-end pt-2">
+      <button type="submit" class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition-all shadow-md cursor-pointer">
+        💾 ذخیره تغییرات ختم
+      </button>
+    </div>
+  </form>
+</details>
+
+<!-- Members & Shares Section -->
+<section class="glass-panel p-6 rounded-3xl mb-8 border border-white/5">
+  <div class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+    <div>
+      <h2 class="text-xl font-extrabold text-white">اعضای ختم و وضعیت سهم‌ها</h2>
+      <p class="text-xs text-slate-400 mt-1">مشاهده سهم‌های خوانده‌شده و بدهی‌های باز هر عضو، با قابلیت ثبت دستی یا حذف عضو</p>
+    </div>
+
+    <!-- Member Search -->
+    <form method="get" class="flex gap-2">
+      <input name="q" value="{{ query }}" placeholder="جستجوی نام یا شناسه عضو..." class="input-field py-1.5 px-3 text-xs w-48 sm:w-60">
+      <button type="submit" class="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">جستجو</button>
+    </form>
   </div>
   
-  <div class="flex flex-col gap-3">
-    {% for membership, user in members %}
-    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-      <div class="flex items-center gap-4">
-        <div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-slate-300 font-bold">
-          {{ (user.display_name or '؟')|first }}
-        </div>
-        <div>
-          <b class="block font-bold text-white mb-1">{{ user.display_name or 'کاربر بدون نام' }}</b>
-          <div class="flex items-center gap-2 text-xs">
-            {% if membership.status.value == 'ACTIVE' %}
-            <span class="text-emerald-400 font-medium">{{ fa_label(membership.status) }}</span>
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead class="text-slate-400 border-b border-white/5">
+        <tr>
+          <th class="py-3 px-3">عضو</th>
+          <th class="py-3 px-3">پلتفرم</th>
+          <th class="py-3 px-3">وضعیت</th>
+          <th class="py-3 px-3 text-center">سهم‌های خوانده</th>
+          <th class="py-3 px-3 text-center">بدهی باز</th>
+          <th class="py-3 px-3 text-left">عملیات مدیریت</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-white/5">
+        {% for row in rows %}
+        {% set membership = row.membership %}
+        {% set user = row.user %}
+        <tr class="hover:bg-white/5 transition-colors">
+          <td class="py-3 px-3">
+            <strong class="block text-slate-200 font-bold">{{ user.display_name or 'کاربر بدون نام' }}</strong>
+            <span class="text-[0.65rem] text-slate-500 font-mono" dir="ltr">{{ user.id }}</span>
+          </td>
+          <td class="py-3 px-3">
+            {% if row.account %}
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">{{ row.account.platform.value }}</span>
             {% else %}
-            <span class="text-slate-400 font-medium">{{ fa_label(membership.status) }}</span>
+            <span class="text-slate-600">-</span>
             {% endif %}
-            
+          </td>
+          <td class="py-3 px-3">
+            {% if membership.status.value == 'ACTIVE' %}
+            <span class="text-emerald-400 font-bold">فعال</span>
+            {% else %}
+            <span class="text-slate-500">{{ fa_label(membership.status) }}</span>
+            {% endif %}
             {% if membership.is_committed %}
-            <span class="text-slate-600 font-bold">·</span>
-            <span class="text-sky-400 font-medium flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
-              متعهد
-            </span>
+            <span class="text-sky-400 mr-1 font-bold">· متعهد</span>
             {% endif %}
-          </div>
-        </div>
-      </div>
-      <code class="text-xs text-slate-500 font-mono bg-slate-900 px-2 py-1 rounded" dir="ltr" title="{{ membership.id }}">{{ membership.id|string|truncate(13, true, '…') }}</code>
+          </td>
+          <td class="py-3 px-3 text-center font-mono font-bold text-emerald-400">
+            {{ row.read_count }}
+          </td>
+          <td class="py-3 px-3 text-center font-mono font-bold {% if row.is_debtor %}text-rose-400{% else %}text-slate-500{% endif %}">
+            {{ row.debt_count }}
+          </td>
+          <td class="py-3 px-3 text-left">
+            <div class="flex items-center justify-end gap-2">
+              {% if row.debt_count > 0 %}
+              <form method="post" action="/khatms/{{ khatm.id }}/members/{{ membership.id }}/complete-share">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[0.7rem] font-bold transition-all cursor-pointer" title="ثبت دستی انجام سهم باز این عضو">
+                  ✅ ثبت سهم
+                </button>
+              </form>
+              {% endif %}
+
+              <form method="post" action="/khatms/{{ khatm.id }}/members/{{ membership.id }}/remove" onsubmit="return confirm('آیا از حذف این عضو و ارتقای نفر اول لیست انتظار مطمئن هستید؟')">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <button type="submit" class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[0.7rem] font-bold transition-all cursor-pointer">
+                  🚪 حذف عضو
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="p-8 text-center text-slate-500">هیچ عضوی در این ختم ثبت نشده است.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Waiting List Section -->
+{% if waiting_rows %}
+<section class="glass-panel p-6 rounded-3xl mb-8 border border-amber-500/20 bg-amber-500/5">
+  <div class="mb-4 flex items-center justify-between border-b border-amber-500/20 pb-3">
+    <div class="flex items-center gap-2">
+      <h2 class="text-lg font-extrabold text-amber-300">⏳ لیست انتظار این ختم ({{ waiting_rows|length }} نفر)</h2>
+      {{ tooltip("افرادی که به دلیل پر بودن ظرفیت ثبت‌نام کرده‌اند. با حذف هر عضو، نفر اول خودکار جایگزین می‌شود.") }}
     </div>
-    {% else %}
-    <div class="p-8 text-center">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-      <p class="text-slate-400 font-medium">این ختم هنوز هیچ عضوی ندارد.</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+    {% for wait_item, wait_user in waiting_rows %}
+    <div class="p-3.5 rounded-xl bg-slate-900/60 border border-amber-500/20 flex items-center justify-between">
+      <div>
+        <span class="text-xs font-bold text-amber-300">نفر {{ wait_item.position }} در صف</span>
+        <strong class="block text-sm text-slate-200 mt-0.5">{{ wait_user.display_name or 'کاربر بدون نام' }}</strong>
+      </div>
+      <span class="text-[0.65rem] text-slate-500 font-mono" dir="ltr">{{ wait_item.created_at.strftime('%Y-%m-%d') if wait_item.created_at else '' }}</span>
     </div>
     {% endfor %}
   </div>
 </section>
+{% endif %}
 {% endblock %}

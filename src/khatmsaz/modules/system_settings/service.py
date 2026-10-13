@@ -19,12 +19,12 @@ KNOWN_SETTINGS: dict[str, dict] = {
         "default": 30, "min": 1, "max": 365,
         "label_fa": "تعداد روز عدم‌فعالیت قبل از واگذاری سهم قرآن به یار ذخیره",
     },
-    "broadcast_telegram_free_count": {"default": 3, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان تلگرام در ۷ روز"},
-    "broadcast_telegram_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر پیام تلگرام پس از سهمیه"},
-    "broadcast_bale_free_count": {"default": 3, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان بله در ۷ روز"},
-    "broadcast_bale_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر پیام بله پس از سهمیه"},
-    "broadcast_sms_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیامک رایگان در ۷ روز"},
-    "broadcast_sms_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر ارسال گروهی پیامک پس از سهمیه"},
+    "broadcast_telegram_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان تلگرام (منسوخ)"},
+    "broadcast_telegram_price_toman": {"default": 50_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیام تلگرام"},
+    "broadcast_bale_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان بله (منسوخ)"},
+    "broadcast_bale_price_toman": {"default": 50_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیام بله"},
+    "broadcast_sms_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیامک رایگان (منسوخ)"},
+    "broadcast_sms_price_toman": {"default": 100_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیامک"},
 }
 
 KNOWN_STRING_SETTINGS = {
@@ -33,6 +33,7 @@ KNOWN_STRING_SETTINGS = {
     "intro_image_salawat",
     "intro_image_dua_ziyarat",
     "intro_image_laan",
+    "intro_image_khutbah",
     "custom_khatm_admin_phone",
 }
 
@@ -60,10 +61,19 @@ async def set_int(session: AsyncSession, key: str, value: int) -> None:
 
 async def list_current(session: AsyncSession) -> dict[str, int]:
     rows = {row.key: row.value for row in await repository.list_all(session)}
-    return {
-        key: (int(rows[key]) if key in rows else meta["default"])
-        for key, meta in KNOWN_SETTINGS.items()
-    }
+    result: dict[str, int] = {}
+    for key, meta in KNOWN_SETTINGS.items():
+        if key in rows:
+            try:
+                result[key] = int(rows[key])
+            except (TypeError, ValueError):
+                result[key] = meta["default"]
+        else:
+            result[key] = meta["default"]
+    return result
+
+
+list_all = list_current
 
 
 async def get_str(session: AsyncSession, key: str, default: str = "") -> str:

@@ -98,8 +98,8 @@ class DevotionalMedia(Base):
     # Only meaningful for AUDIO — which reciter this variant is. "" (not
     # NULL, to keep the unique constraint simple) for IMAGE/PDF.
     reciter_id: Mapped[str] = mapped_column(String(64), default="")
-    reciter_label: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    # Only meaningful for IMAGE — 1-based page order. 0 for AUDIO/PDF.
+    reciter_label: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Only meaningful for IMAGE/VIDEO — 1-based page/part order. 0 for AUDIO/PDF.
     page_number: Mapped[int] = mapped_column(Integer, default=0)
     asset_ref: Mapped[str] = mapped_column(String(500))
     asset_platform: Mapped[str] = mapped_column(String(16), default="TELEGRAM")

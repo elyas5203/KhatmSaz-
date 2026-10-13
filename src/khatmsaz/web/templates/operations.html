@@ -1,11 +1,24 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}سلامت سرویس‌ها | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">عملیات</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">سلامت سرویس‌ها {{ tooltip("وضعیت اتصال سرویس‌های مختلف مثل درگاه پرداخت، سامانه پیامکی، و صف‌های ارسال پیام را نشان می‌دهد.") }}</h1>
-  <p class="text-slate-400 text-sm">وضعیت سرویس‌ها، صف‌ها و تنظیمات نمایشی پنل را از اینجا مدیریت کنید.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">عملیات و زیرساخت</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">سلامت سرویس‌ها و تنظیمات</h1>
+      {{ help_button(
+        "راهنمای سلامت سرویس‌ها و تنظیمات سراسری",
+        "در این صفحه وضعیت اتصال دیتابیس، ردیس، بات تلگرام و بله، درگاه پرداخت پی‌پینگ و پیامک کاوه‌نگار نمایش داده می‌شود و می‌توانید لوگو و شماره پشتیبانی سیستم را تنظیم کنید.",
+        [
+          "چراغ‌های بالای صفحه را برای بررسی سلامت هر سرویس مشاهده فرمایید.",
+          "برای تغییر لوگوی پنل یا شماره پشتیبانی، فرم‌های بالای صفحه را پر کرده و ذخیره نمایید.",
+          "در بخش صف‌های در انتظار و پردازشگر، آخرین وضعیت اسکنر خودکار سیستم را بررسی کنید."
+        ],
+        "نکته: اگر چراغ سرویسی نیازمند تنظیم بود، اطلاعات مربوط به آن در متغیرهای سیستم یا بخش توکن‌ها نیاز به بازبینی دارد."
+      ) }}
+    </div>
+  </div>
 </section>
 
 {% if saved == 'logo' %}

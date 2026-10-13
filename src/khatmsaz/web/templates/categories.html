@@ -1,12 +1,27 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}دسته‌های لعن و ادعیه | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ختم‌ها</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">لعن و ادعیه</h1>
-  <p class="text-slate-400 text-sm leading-7">اینجا فقط زیرگروه‌های لعن، دعا و زیارت را مدیریت می‌کنید. صلوات زیرگروه ندارد و تصویر ثابت آن در صفحهٔ «دعاها و زیارات» تنظیم می‌شود.</p>
-  <a href="/devotionals" class="inline-flex mt-3 text-sm font-bold text-emerald-300 hover:text-emerald-200">رفتن به متن دعاها و زیارات ←</a>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">دسته‌بندی‌های ویزارد ختم</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">دسته‌بندی‌های لعن، دعا و خطبه</h1>
+      {{ help_button(
+        "راهنمای دسته‌بندی‌های ویزارد",
+        "گزینه‌هایی که هنگام ساخت ختم به کاربر پیشنهاد می‌شوند در این صفحه مدیریت می‌شوند. هر دسته می‌تواند به یک متن آماده از کتابخانه ادعیه متصل باشد.",
+        [
+          "درخواست‌های ارسالی کاربران برای ادعیه جدید در بالای صفحه نمایش داده شده‌اند.",
+          "می‌توانید دسته جدید برای دعا، زیارت، لعن یا خطبه بسازید و اولویت نمایش آن را تعیین کنید.",
+          "هر دسته می‌تواند به متن کامل ذخیره‌شده در استودیو محتوا پیوند بخورد."
+        ],
+        "نکته: دسته‌های غیرفعال در منوی بات به کاربران نمایش داده نمی‌شوند."
+      ) }}
+    </div>
+  </div>
+  <a href="/devotionals" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold transition-all">
+    رفتن به استودیو محتوا و ادعیه ←
+  </a>
 </section>
 
 {% if saved %}
@@ -45,6 +60,7 @@
           <label class="text-xs font-bold text-slate-400">گروه</label>
           <select name="group" class="input-field">
             <option value="DUA">دعا / زیارت</option>
+            <option value="KHUTBAH">خطبه</option>
             <option value="LAAN">لعن</option>
           </select>
         </div>
@@ -106,6 +122,7 @@
       <select name="group" class="input-field">
         <option value="LAAN">لعن</option>
         <option value="DUA">دعا / زیارت</option>
+        <option value="KHUTBAH">خطبه</option>
       </select>
     </div>
     
@@ -160,7 +177,7 @@
     <details class="group rounded-2xl border border-slate-700/50 bg-slate-900/35" {% if loop.first %}open{% endif %}>
       <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded-2xl">
         <div>
-          <h3 class="text-lg font-extrabold text-white">{% if group_key == 'DUA' %}دعاها و زیارت‌ها{% else %}لعن‌ها{% endif %}</h3>
+          <h3 class="text-lg font-extrabold text-white">{% if group_key == 'DUA' %}دعاها و زیارت‌ها{% elif group_key == 'KHUTBAH' %}خطبه‌ها{% elif group_key == 'LAAN' %}لعن‌ها{% else %}{{ group_key }}{% endif %}</h3>
           <p class="text-xs text-slate-400 mt-1">{{ group_items|length }} فرزند — برای بازکردن فهرست کلیک کنید</p>
         </div>
         <span class="text-emerald-300 text-xl transition-transform group-open:rotate-180">⌄</span>

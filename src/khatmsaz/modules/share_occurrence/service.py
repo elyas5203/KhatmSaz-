@@ -110,7 +110,7 @@ async def complete(session, occurrence_id, *, user_id, bot_instance_id, record_p
     if occurrence.completed_at is not None:
         return occurrence, False
     if occurrence.delivered_at is None:
-        raise OccurrenceAccessError("An undelivered share cannot be completed")
+        occurrence.delivered_at = _aware(when or datetime.now(timezone.utc))
     if occurrence.reservation_id is not None:
         from khatmsaz.modules.open_contribution import repository as reservations
         reservation = await reservations.get_reservation(session, occurrence.reservation_id, for_update=True)

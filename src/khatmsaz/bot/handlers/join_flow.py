@@ -120,6 +120,45 @@ async def receive_delivery_hour_button(callback: CallbackQuery, state: FSMContex
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("jhour:"))
+async def receive_stateless_delivery_hour_button(callback: CallbackQuery, state: FSMContext) -> None:
+    parts = callback.data.split(":", 2)
+    if len(parts) != 3 or not parts[2].isdigit():
+        await safe_answer_callback(callback)
+        return
+    participation_id, hour = parts[1], int(parts[2])
+    lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
+    await _save_delivery_time(participation_id, hour, 0)
+    try:
+        await callback.message.edit_text(
+            t("join.delivery_hour_saved", lang, hour=f"{hour:02d}:00"),
+            reply_markup=None,
+        )
+    except Exception:
+        await callback.message.answer(t("join.delivery_hour_saved", lang, hour=f"{hour:02d}:00"))
+    await state.clear()
+    await callback.message.answer(
+        t("join.menu_hint", lang),
+        reply_markup=home_keyboard_for_bot(callback.message.bot, lang),
+    )
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("jhour_custom:"))
+async def receive_stateless_delivery_hour_custom(callback: CallbackQuery, state: FSMContext) -> None:
+    participation_id = callback.data.split(":", 1)[1]
+    lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
+    await state.set_state(AskDeliveryHour.entering_hour)
+    await state.update_data(
+        delivery_hour_participation_id=participation_id,
+        lang=lang,
+        _join_wizard_mid=callback.message.message_id,
+    )
+    await callback.message.answer(t("join.ask_delivery_hour_custom", lang))
+    await safe_answer_callback(callback)
+
+
+
 @router.message(AskDeliveryHour.entering_hour)
 async def receive_delivery_hour(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):

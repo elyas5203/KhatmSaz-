@@ -147,12 +147,8 @@ async def approve_join(callback: CallbackQuery) -> None:
     needs_reminder = False
     needs_mode_picker = False
     
-    is_member_choice = (
-        khatm.khatm_type == KhatmTypeEnum.OPEN 
-        or (khatm.khatm_type == KhatmTypeEnum.COMMITMENT and getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE")
-    )
-    
-    if khatm.khatm_type in (KhatmTypeEnum.COMMITMENT, KhatmTypeEnum.OPEN):
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+        is_member_choice = getattr(khatm, "commitment_policy", "MEMBER_CHOICE") == "MEMBER_CHOICE"
         if is_member_choice:
             needs_mode_picker = True
         else:

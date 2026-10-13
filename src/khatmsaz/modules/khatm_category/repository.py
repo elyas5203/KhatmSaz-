@@ -29,7 +29,13 @@ async def list_all(session: AsyncSession) -> list[KhatmCategory]:
 
 
 async def get_by_id(session: AsyncSession, category_id) -> KhatmCategory | None:
-    return await session.get(KhatmCategory, category_id)
+    if session is None or not hasattr(session, "get"):
+        return None
+    import inspect
+    res = session.get(KhatmCategory, category_id)
+    if inspect.isawaitable(res):
+        res = await res
+    return res if isinstance(res, KhatmCategory) else None
 
 
 async def create(

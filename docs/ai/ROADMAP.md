@@ -1,9 +1,20 @@
 ## 2026-10-13 — Automated Telegram-to-Bale media migration pipeline [Antigravity]
-- [x] Publish `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and record decision DEC-PY-0118.
+- [x] Publish `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and record decision DEC-PY-0127.
 - [x] Implement core engine `src/khatmsaz/modules/content/migrator.py` with memory-efficient streaming and idempotency.
 - [x] Implement standalone CLI tool `scripts/migrate_telegram_to_bale.py` with dry-run and throttling support.
 - [x] Add in-bot monitoring commands `/admin_bale_media_status` and `/admin_sync_bale` in `src/khatmsaz/bot/handlers/admin.py`.
 - [x] Add 7 unit tests in `tests/test_telegram_to_bale_migration.py`; full suite passes with zero regressions.
+
+## 2026-10-10 — PayPing Callback, Moderation Hub & System Bug Resolution [Antigravity]
+- [x] Fixed PayPing v3 callback and wallet credit flow (`BUG-23`) on live server and web app (support GET/POST, case-insensitive parameter parsing, proactive user notification).
+- [x] Integrated `/moderation` hub in desktop sidebar navigation under Group 2 (`base.html`).
+- [x] Fixed plan entitlements dropping in `finance.html` and `web/app.py` (`BUG-08`) by exposing devotional and Quran member cap fields.
+- [x] Added media previews to broadcast moderation queue and non-blocking asynchronous dispatch (`BUG-10`).
+- [x] Connected dormant background workers in `reminder_engine/service.py:run_once` (`BUG-11`).
+- [x] Added multi-round wrap-around to page 1 for open regular Quran reading (`BUG-15`).
+- [x] Routed monthly reports through recipient's active member bot instance (`BUG-14`).
+- [x] Full non-integration test suite verified (366 passed, 0 failures).
+>>>>>>> update_khatm_wizard_flow
 
 ## 2026-10-05 — Full share redesign continuation [Codex]
 - [x] Confirm Quran numeric/regular modes with owner (DEC-PY-0117); implement page-aware flows and numeric reservation links.

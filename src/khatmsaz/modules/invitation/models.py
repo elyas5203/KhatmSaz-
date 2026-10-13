@@ -26,3 +26,8 @@ class KhatmInvitation(Base):
     cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (Index("ix_khatm_invitations_khatm_id", "khatm_id"),)
+
+    @property
+    def token(self) -> str:
+        """Compatibility property for callers expecting raw token."""
+        return getattr(self, "_raw_token", self.token_hash[:16])

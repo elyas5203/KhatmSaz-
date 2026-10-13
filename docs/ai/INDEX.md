@@ -1,10 +1,47 @@
 ## 2026-10-13 — مهاجرت خودکار رسانه‌ها از تلگرام به بله
 - سند مستر: [TELEGRAM_TO_BALE_MIGRATION_MASTER.md](TELEGRAM_TO_BALE_MIGRATION_MASTER.md)
-- تصمیم محصول: DEC-PY-0118 در `DECISIONS.md`.
+- تصمیم محصول: DEC-PY-0127 در `DECISIONS.md`.
 - موتور هسته: `src/khatmsaz/modules/content/migrator.py` (`TelegramToBaleMigrator`, `get_bale_quran_coverage`).
 - اسکریپت خط فرمان: `scripts/migrate_telegram_to_bale.py`.
 - دستورات ادمین بات: `/admin_bale_media_status` و `/admin_sync_bale` در `src/khatmsaz/bot/handlers/admin.py`.
 - تست‌ها: `tests/test_telegram_to_bale_migration.py`.
+
+## 2026-10-13 — Dedicated Admin Bot (@khatmsaz_admin_bot), Real-Time Crash Monitoring & Custom La'n Wizard Master
+- [MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md](masters/MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md) — Dedicated Admin Bot (`@khatmsaz_admin_bot`), complete isolation of admin functions from creator bot, live continuous file logging, real-time Telegram crash/error dispatch to super admin, custom La'n title & dhikr prompts, moderation queue, automated invitation delivery upon admin approval, direct PayPing Shaparak checkout link (`ppng.ir/d/VFBD`), card number removal, and 8-digit numeric tracking codes.
+
+## 2026-10-13 — Laan Wizard Redesign, Direct PayPing, Numeric Tracking Code & Centralized Admin Bot Dispatch Master
+- [MASTER_11_LAAN_WIZARD_DIRECT_PAYPING_AND_ADMIN_BOT_DISPATCH.md](masters/MASTER_11_LAAN_WIZARD_DIRECT_PAYPING_AND_ADMIN_BOT_DISPATCH.md) — Elimination of preset Laan options, custom title & recitation dhikr prompt, moderation queue, automated invitation delivery upon admin approval, direct PayPing checkout link (`ppng.ir/d/VFBD`), card number removal, 8-digit numeric tracking codes, and centralized admin dispatch.
+
+## 2026-10-13 — Plans, Broadcast 1000-Tier Pricing, Receipt Upload & Creator Panel Guard Master
+- [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1,000-recipient ceiling tiers, complete removal of free broadcasts, bank receipt upload & admin approval, PayPing direct link architecture & admin-only creator panel guard.
+
+## 2026-10-11 — Bale Native Markdown Adapter & Clean Tag Rendering Master
+- [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale messenger HTML-to-Markdown conversion engine, low-level `BaleAiohttpSession` request interceptor, removal of unrendered HTML tags across Bale fleet & simplified button-free member daily 14:00 digest.
+
+## 2026-10-11 — Member Daily Progress Digest at 14:00 & Motivational Progress Master
+- [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 Tehran daily progress digest to active members via member bots, post-completion motivational progress snippet & button-free clean layout.
+
+## 2026-10-11 — Khutbah Ghadir 8-Part Trio & Creator Daily 12:00 PM Report Master
+- [KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md](KHUTBAH_GHADIR_AND_CREATOR_DAILY_REPORT_MASTER.md) — 8-part Khutbah Ghadir multi-media trio (Video+PDF+Audio), canonical seeding, Telegram commands & 12:00 PM creator daily report.
+
+## 2026-10-11 — Payment Gateway Architecture Master & In-Bot Verification
+- [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 lifecycle, `ERR_TIMED_OUT` mobile carrier analysis, Apache 443 reverse proxy hardening, Port stability guarantees, In-bot self-healing verification (`wallet_check`).
+
+## 2026-10-10 — Admin Panel Redesign Master (Parent-Child Architecture) & Bug Report Master
+- **Parent Master:** [ADMIN_PANEL_REDESIGN_MASTER.md](ADMIN_PANEL_REDESIGN_MASTER.md)
+- **Child Masters (`docs/ai/masters/`):**
+  - [MASTER_01_KHATM_ENGINE_AND_MODES.md](masters/MASTER_01_KHATM_ENGINE_AND_MODES.md) — Khatm types, Commitment vs Open, Fixed vs Member-Choice, Numeric vs Regular, `ShareOccurrence` lifecycle.
+  - [MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md](masters/MASTER_02_CONTENT_DEVOTIONALS_AND_MEDIA.md) — Categories, Devotionals, Khutbah sections, Quran 604 pages, Templates, `DevotionalMedia` & `file_id` uploads.
+  - [MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md](masters/MASTER_03_PLANS_BILLING_WALLET_AND_ADS.md) — `FREE`/`BASIC`/`PRO` plans, Wallet (`balance_toman` vs `credit_toman`), PayPing v3, Coupons, SMS plans, Broadcast pricing, `servant_ad`.
+  - [MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md](masters/MASTER_04_BOTS_USERS_MODERATION_AND_OPS.md) — 14-bot fleet, Identity, Phone verification, Account merge, 8 Moderation queues, Admin roles & Operations.
+  - [MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md](masters/MASTER_05_OPEN_KHATM_AND_KHUTBAH_FLOW.md) — Open Khatm engine, Khutbah 5-section sequential rollover, video captions & ephemeral store.
+  - [MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md](masters/MASTER_06_PAYMENT_GATEWAY_AND_CALLBACK_ARCHITECTURE.md) — PayPing v3 callback, ERR_TIMED_OUT resolution, Apache proxy, In-bot verification.
+  - [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 member daily progress digest & post-completion motivational progress.
+  - [MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md) — Creator panel & web mini-app ground-up redesign, invite link generation, khatm detail tabs, progress bars, zero-error UX.
+  - [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale native Markdown engine, `BaleAiohttpSession` interceptor & clean tag rendering.
+  - [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1000-recipient tier pricing, removal of free broadcasts, bank receipt upload & approval, PayPing direct link, and admin-only creator panel guard.
+- **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
+>>>>>>> update_khatm_wizard_flow
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)

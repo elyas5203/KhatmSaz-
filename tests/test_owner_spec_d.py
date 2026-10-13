@@ -18,9 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_d1_today_action_uses_the_full_reading_label_everywhere():
-    assert t("menu.today", "fa") == "📖 انجام قرائت امروز"
+    assert t("menu.today", "fa") == "📖 اعلام انجام قرائت امروز"
     labels = [button.text for row in participant_menu_keyboard("fa").keyboard for button in row]
-    assert "📖 انجام قرائت امروز" in labels
+    assert "📖 اعلام انجام قرائت امروز" in labels
 
     user_facing_sources = [
         ROOT / "src/khatmsaz/i18n/__init__.py",

@@ -15,6 +15,7 @@ def test_creation_menu_exposes_devotional_families_as_independent_parents():
     assert ("📿 ختم صلوات", "ck:group:SALAWAT") in buttons
     assert ("🤲 ختم دعا و زیارت", "ck:group:DUA") in buttons
     assert ("🗡 ختم لعن", "ck:group:LAAN") in buttons
+    assert ("📜 ختم خطبه‌ها", "ck:group:KHUTBAH") in buttons
     assert ("📖 ختم قرآن", "ck:tpl:QURAN_PAGE") in buttons
     assert all(callback != "ck:tpl:SALAWAT" for _, callback in buttons)
 
@@ -22,6 +23,7 @@ def test_creation_menu_exposes_devotional_families_as_independent_parents():
 def test_each_parent_keyboard_contains_only_supplied_children():
     dua = SimpleNamespace(id=uuid4(), title="دعای عهد", group=KhatmCategoryGroup.DUA)
     laan = SimpleNamespace(id=uuid4(), title="لعن عمر", group=KhatmCategoryGroup.LAAN)
+    khutbah = SimpleNamespace(id=uuid4(), title="خطبه فدکیه", group=KhatmCategoryGroup.KHUTBAH)
 
     dua_buttons = _button_pairs(
         category_choice_keyboard([dua], group="DUA", allow_custom_request=True)
@@ -29,9 +31,14 @@ def test_each_parent_keyboard_contains_only_supplied_children():
     laan_buttons = _button_pairs(
         category_choice_keyboard([laan], group="LAAN", allow_custom_request=False)
     )
+    khutbah_buttons = _button_pairs(
+        category_choice_keyboard([khutbah], group="KHUTBAH", allow_custom_request=False)
+    )
 
     assert any(text == "🤲 دعای عهد" for text, _ in dua_buttons)
     assert all("لعن عمر" not in text for text, _ in dua_buttons)
     assert ("➕ دعا یا زیارت دیگر", "ck:cat:custom") in dua_buttons
     assert any(text == "🗡 لعن عمر" for text, _ in laan_buttons)
     assert all(callback != "ck:cat:custom" for _, callback in laan_buttons)
+    assert any(text == "📜 خطبه فدکیه" for text, _ in khutbah_buttons)
+    assert all(callback != "ck:cat:custom" for _, callback in khutbah_buttons)

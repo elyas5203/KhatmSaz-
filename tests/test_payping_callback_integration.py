@@ -89,6 +89,15 @@ async def test_payping_callback_credits_once_and_replay_is_idempotent(monkeypatc
     assert "قبلاً ثبت شده" in replay.text
     assert forged.status_code == 400
 
+    # Also test canceled callback
+    canceled = await client.post("/payments/payping/callback", data={"status": "0"})
+    assert canceled.status_code == 200
+    assert "پرداخت کامل نشد" in canceled.text
+
+    canceled_get = await client.get("/payments/payping/callback?status=0")
+    assert canceled_get.status_code == 200
+    assert "پرداخت کامل نشد" in canceled_get.text
+
     async with session_scope() as session:
         wallet = await repository.get_by_user(session, user_id)
         assert wallet is not None

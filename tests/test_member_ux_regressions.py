@@ -195,6 +195,7 @@ async def test_scheduled_devotional_content_prefers_registered_pdf(monkeypatch):
     monkeypatch.setattr("khatmsaz.core.bot_registry.get_registry", lambda: registry)
     monkeypatch.setattr("khatmsaz.modules.khatm_category.service.get", _category)
     monkeypatch.setattr(notify_adapter.content_service, "get_devotional_asset", _asset)
+    monkeypatch.setattr(notify_adapter.content_service, "list_devotional_video_pages", _none_list)
     monkeypatch.setattr(notify_adapter.content_service, "list_devotional_image_pages", _none_list)
     monkeypatch.setattr(notify_adapter.content_service, "get_devotional_pdf", _pdf)
     monkeypatch.setattr(notify_adapter.content_service, "list_devotional_audio_variants", _none_list)

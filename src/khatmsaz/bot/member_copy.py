@@ -19,6 +19,8 @@ async def content_family(session: AsyncSession, khatm: Khatm) -> str:
     )
     if category is None:
         title = getattr(khatm, "title", "")
+        if "خطبه" in title:
+            return "khutbah"
         if "زیارت" in title:
             return "ziyarat"
         if "دعا" in title:
@@ -30,6 +32,8 @@ async def content_family(session: AsyncSession, khatm: Khatm) -> str:
         return "salawat"
     if category.group == KhatmCategoryGroup.LAAN:
         return "laan"
+    if category.group == KhatmCategoryGroup.KHUTBAH:
+        return "khutbah"
     return "ziyarat" if "زیارت" in category.title else "dua"
 
 
@@ -40,15 +44,27 @@ def share_label(
     if lang == "ar":
         if family == "quran":
             return f"الصفحات من {start} إلى {end}" if start is not None else f"{count or 1} صفحة من القرآن"
+        if family == "khutbah":
+            return f"القسم {start}" if start is not None else f"{count or 1} قسم من الخطبة"
         names = {"salawat": "صلوات", "dua": "الدعاء المحدد", "ziyarat": "الزيارة المحددة", "laan": "الذكر المحدد"}
         return f"{count or 1} مرة من {names.get(family, 'القراءة المحددة')}"
     if lang != "fa":
         if family == "quran":
             return f"pages {start} to {end}" if start is not None else f"{count or 1} Quran page(s)"
+        if family == "khutbah":
+            return f"section {start}" if start is not None else f"{count or 1} section(s) of the Khutbah"
         names = {"salawat": "Salawat", "dua": "the selected dua", "ziyarat": "the selected ziyarat", "laan": "the selected la'an"}
         return f"{count or 1} time(s) {names.get(family, 'the selected recitation')}"
     if family == "quran":
+        if start is not None and end is not None and start == end:
+            return f"صفحه {start}"
         return f"صفحات {start} تا {end}" if start is not None else f"{count or 1} صفحه از قرآن"
+    if family == "khutbah":
+        if start is not None and end is not None and start != end:
+            return f"بخش {start} تا {end} از خطبه"
+        if start is not None:
+            return f"بخش {start} از خطبه"
+        return f"{count or 1} بخش از خطبه"
     amount = count or 1
     labels = {
         "salawat": "صلوات",
@@ -61,21 +77,93 @@ def share_label(
 
 def action_verb(family: str, lang: str = "fa") -> str:
     if lang == "ar":
-        return {"quran": "قراءة", "salawat": "إرسال", "dua": "قراءة", "ziyarat": "قراءة", "laan": "ذكر"}.get(family, "إتمام")
+        return {"quran": "قراءة", "salawat": "إرسال", "dua": "قراءة", "ziyarat": "قراءة", "laan": "ذكر", "khutbah": "قراءة"}.get(family, "إتمام")
     if lang != "fa":
-        return {"quran": "recite", "salawat": "send", "dua": "recite", "ziyarat": "recite", "laan": "recite"}.get(family, "complete")
+        return {"quran": "recite", "salawat": "send", "dua": "recite", "ziyarat": "recite", "laan": "recite", "khutbah": "recite"}.get(family, "complete")
     return {
         "quran": "قرائت",
         "salawat": "ذکر",
         "dua": "قرائت",
         "ziyarat": "قرائت",
-        "laan": "ذکر",
+        "laan": "قرائت",
+        "khutbah": "قرائت",
     }.get(family, "انجام")
 
 
-def done_button_label(family: str | None, lang: str = "fa") -> str:
+def _clean_khatm_title(title: str | None, family: str) -> str:
+    raw = (title or "").strip()
+    for prefix in ("ختمِ ", "ختم "):
+        if raw.startswith(prefix):
+            raw = raw[len(prefix):].strip()
+    if family == "khutbah":
+        for splitter in (" حضرت ", " امیرالمؤمنین", " امام "):
+            if splitter in raw:
+                raw = raw.split(splitter, 1)[0].strip()
+        if not raw or raw == "آزمایشی":
+            return "خطبه"
+        if "خطبه" not in raw:
+            raw = f"خطبه {raw}"
+        return raw[:28].strip()
+    if family == "ziyarat":
+        if not raw or raw == "آزمایشی":
+            return "زیارت"
+        return raw[:28].strip()
+    if family == "dua":
+        if not raw or raw == "آزمایشی":
+            return "دعا"
+        return raw[:28].strip()
+    return raw[:28].strip()
+
+
+def done_button_label(
+    family: str | None,
+    lang: str = "fa",
+    *,
+    count: int | None = None,
+    start: int | None = None,
+    end: int | None = None,
+    ranges: list[list[int]] | list[tuple[int, int]] | None = None,
+    title: str | None = None,
+) -> str:
     fam = family or "salawat"
+    has_details = (
+        count is not None
+        or start is not None
+        or end is not None
+        or bool(ranges)
+        or bool(title)
+    )
+    if ranges and start is None and len(ranges) == 1:
+        start, end = ranges[0][0], ranges[0][1]
+
     if lang == "ar":
+        if has_details:
+            if fam == "quran":
+                if ranges and len(ranges) > 1:
+                    pages_str = " و ".join(f"{a} إلى {b}" if a != b else str(a) for a, b in ranges)
+                    return f"✅ تسجيل تلاوة صفحة {pages_str}"
+                if start is not None and end is not None:
+                    return f"✅ تسجيل تلاوة صفحة {start}" if start == end else f"✅ تسجيل تلاوة صفحة {start} إلى {end}"
+                if start is not None:
+                    return f"✅ تسجيل تلاوة صفحة {start}"
+                if count is not None:
+                    return f"✅ تسجيل تلاوة {count} صفحة"
+            if fam == "khutbah":
+                if start is not None and end is not None:
+                    if start == end:
+                        return f"✅ تسجيل قراءة القسم {start} من الخطبة"
+                    if end == start + 1:
+                        return f"✅ تسجيل قراءة القسم {start} و {end} من الخطبة"
+                    return f"✅ تسجيل قراءة القسم {start} إلى {end} من الخطبة"
+                if count is not None:
+                    return f"✅ تسجيل قراءة {count} قسم من الخطبة"
+            if fam == "salawat" and count is not None:
+                return f"✅ تسجيل قراءة {count} صلوات"
+            if fam == "laan" and count is not None:
+                return f"✅ تسجيل قراءة {count} مرة من الذكر"
+            if fam in ("dua", "ziyarat") and count is not None and count > 1:
+                noun = "الزيارة" if fam == "ziyarat" else "الدعاء"
+                return f"✅ تسجيل قراءة {count} مرة {noun}"
         labels = {
             "quran": "✅ تمّت التلاوة بنجاح",
             "salawat": "✅ تم إرسال الصلوات",
@@ -85,7 +173,35 @@ def done_button_label(family: str | None, lang: str = "fa") -> str:
             "khutbah": "✅ تمّت القراءة بنجاح",
         }
         return labels.get(fam, "✅ أنجزت حصتي")
+
     if lang != "fa":
+        if has_details:
+            if fam == "quran":
+                if ranges and len(ranges) > 1:
+                    pages_str = " & ".join(f"{a}-{b}" if a != b else str(a) for a, b in ranges)
+                    return f"✅ Log recitation of page {pages_str}"
+                if start is not None and end is not None:
+                    return f"✅ Log recitation of page {start}" if start == end else f"✅ Log recitation of pages {start} to {end}"
+                if start is not None:
+                    return f"✅ Log recitation of page {start}"
+                if count is not None:
+                    return f"✅ Log recitation of {count} page(s)"
+            if fam == "khutbah":
+                if start is not None and end is not None:
+                    if start == end:
+                        return f"✅ Log section {start} of Khutbah"
+                    if end == start + 1:
+                        return f"✅ Log sections {start} & {end} of Khutbah"
+                    return f"✅ Log sections {start} to {end} of Khutbah"
+                if count is not None:
+                    return f"✅ Log {count} section(s) of Khutbah"
+            if fam == "salawat" and count is not None:
+                return f"✅ Log {count} Salawat"
+            if fam == "laan" and count is not None:
+                return f"✅ Log {count} recitation(s)"
+            if fam in ("dua", "ziyarat") and count is not None and count > 1:
+                noun = "Ziyarat" if fam == "ziyarat" else "Dua"
+                return f"✅ Log {count}x {noun}"
         labels = {
             "quran": "✅ Mark portion done",
             "salawat": "✅ Salawat sent",
@@ -95,15 +211,55 @@ def done_button_label(family: str | None, lang: str = "fa") -> str:
             "khutbah": "✅ Section completed",
         }
         return labels.get(fam, "✅ Mark share done")
+
+    if has_details:
+        if fam == "quran":
+            if ranges and len(ranges) > 1:
+                pages_str = " و ".join(f"{a} تا {b}" if a != b else str(a) for a, b in ranges)
+                return f"✅ اعلام ثبت قرائت صفحه {pages_str}"
+            if start is not None and end is not None:
+                if start == end:
+                    return f"✅ اعلام ثبت قرائت صفحه {start}"
+                return f"✅ اعلام ثبت قرائت صفحه {start} تا {end}"
+            if start is not None:
+                return f"✅ اعلام ثبت قرائت صفحه {start}"
+            if count is not None:
+                return f"✅ اعلام ثبت قرائت {count} صفحه قرآن"
+        elif fam == "khutbah":
+            short_title = _clean_khatm_title(title, "khutbah")
+            if start is not None and end is not None:
+                if start == end:
+                    return f"✅ اعلام ثبت قرائت بخش {start} {short_title}"
+                if end == start + 1:
+                    return f"✅ اعلام ثبت قرائت بخش {start} و {end} {short_title}"
+                return f"✅ اعلام ثبت قرائت بخش {start} تا {end} {short_title}"
+            if start is not None:
+                return f"✅ اعلام ثبت قرائت بخش {start} {short_title}"
+            if count is not None:
+                return f"✅ اعلام ثبت قرائت {count} بخش {short_title}"
+            return f"✅ اعلام ثبت قرائت {short_title}"
+        elif fam == "salawat":
+            if count is not None:
+                return f"✅ اعلام ثبت قرائت {count} صلوات"
+        elif fam == "laan":
+            if count is not None:
+                return f"✅ اعلام ثبت قرائت {count} مرتبه ذکر لعن"
+        elif fam in ("dua", "ziyarat"):
+            short_title = _clean_khatm_title(title, fam)
+            if count is not None and count > 1:
+                return f"✅ اعلام ثبت قرائت {count} مرتبه {short_title}"
+            return f"✅ اعلام ثبت قرائت {short_title}"
+
     labels = {
-        "quran": "✅ قرائت بخش فوق انجام شد",
-        "salawat": "✅ ذکر صلوات فرستاده شد",
-        "dua": "✅ قرائت دعا انجام شد",
-        "ziyarat": "✅ قرائت زیارت انجام شد",
-        "laan": "✅ ذکر لعن انجام شد",
-        "khutbah": "✅ قرائت این بخش از خطبه انجام شد",
+        "quran": "✅ اعلام انجام قرائت",
+        "salawat": "✅ اعلام انجام ذکر صلوات",
+        "dua": "✅ اعلام انجام قرائت دعا",
+        "ziyarat": "✅ اعلام انجام قرائت زیارت",
+        "laan": "✅ اعلام انجام ذکر لعن",
+        "khutbah": "✅ اعلام انجام قرائت",
     }
-    return labels.get(fam, "✅ قرائت بخش فوق انجام شد")
+    return labels.get(fam, "✅ اعلام انجام قرائت")
+
 
 
 def format_deadline(deadline: int | None, user_tz: str | None = None, lang: str = "fa") -> str:
@@ -161,12 +317,18 @@ def reminder_text(
 
 
 def completion_text(
-    khatm: Khatm, family: str, share: str, *, invite_line: str = "", lang: str = "fa",
+    khatm: Khatm, family: str, share: str, *, invite_line: str = "", progress_snippet: str = "", lang: str = "fa",
 ) -> str:
     if lang == "ar":
-        return f"✅ تم تسجيل {share} في ختم «{escape(khatm.title)}». تقبّل الله منكم 🌱{invite_line}"
+        msg = f"✅ تم تسجيل {share} في ختم «{escape(khatm.title)}». تقبّل الله منكم 🌱"
+        if progress_snippet:
+            msg += f"\n\n{progress_snippet}"
+        return f"{msg}{invite_line}"
     if lang != "fa":
-        return f"✅ {share} was recorded for “{escape(khatm.title)}”.{invite_line}"
+        msg = f"✅ {share} was recorded for “{escape(khatm.title)}”."
+        if progress_snippet:
+            msg += f"\n\n{progress_snippet}"
+        return f"{msg}{invite_line}"
     niyyat = (khatm.niyyat or "سلامتی و فرج امام عصر علیه السلام").strip()
     if niyyat.startswith("به نیت "):
         niyyat = niyyat[len("به نیت "):].strip()
@@ -176,13 +338,68 @@ def completion_text(
         "dua": "قرائت شد",
         "ziyarat": "قرائت شد",
         "laan": "ذکر شد",
+        "khutbah": "قرائت شد",
     }
     verb = verbs.get(family, "انجام شد")
     res = (
         "با سلام 🌱\n\n"
         f"✅ {share} {verb}.\n\n"
         f"اعلام شما در سیستم ثبت شد و در ثواب ختم «{escape(khatm.title)}» به نیت {escape(niyyat)} شریک شدید.\n\n"
+    )
+    if progress_snippet:
+        res += f"{progress_snippet}\n\n"
+    res += (
         "خداوند از شما قبول فرماید. با تشکر."
         f"{invite_line}"
     )
     return res
+
+
+async def build_motivational_progress_snippet(
+    session, khatm, now_utc=None, lang: str = "fa",
+) -> str:
+    """Build a concise motivational progress snippet for a completed share."""
+    if not khatm:
+        return ""
+    try:
+        from datetime import datetime, timezone
+        from zoneinfo import ZoneInfo
+        from khatmsaz.modules.reporting.creator_daily_report import (
+            format_khatm_amount,
+            get_khatm_daily_counts,
+            to_persian_digits,
+        )
+
+        now_utc = now_utc or datetime.now(timezone.utc)
+        tz = ZoneInfo("Asia/Tehran")
+        local_now = now_utc.astimezone(tz)
+        today_start_utc = local_now.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+
+        before_today, today, total, _ = await get_khatm_daily_counts(
+            session, khatm, today_start_utc, now_utc
+        )
+        before_str = await format_khatm_amount(session, khatm, before_today)
+        today_str = await format_khatm_amount(session, khatm, today)
+        total_str = await format_khatm_amount(session, khatm, total)
+
+        progress_line = f"▫️ مجموع قرائت‌شده: <b>{total_str}</b>"
+        if khatm.repetition_target is not None and khatm.repetition_target > 0:
+            effective_target = khatm.repetition_target
+            fam = await content_family(session, khatm)
+            if fam == "khutbah":
+                sections_per_round = 8 if (khatm.title and "غدیر" in khatm.title) else 5
+                if effective_target < sections_per_round:
+                    effective_target *= sections_per_round
+            target_str = await format_khatm_amount(session, khatm, effective_target)
+            percent = min(round((total / effective_target) * 100, 1), 100.0) if effective_target > 0 else 0.0
+            progress_line += f" از <b>{target_str}</b> (پیشرفت: <b>{to_persian_digits(percent)}٪</b>)"
+
+        return (
+            "📊 <b>روند پیشرفت کلی این ختم:</b>\n"
+            f"▫️ قرائت تا دیروز: {before_str}\n"
+            f"▫️ قرائت‌های امروز: {today_str}\n"
+            f"{progress_line}"
+        )
+    except Exception:
+        return ""
+

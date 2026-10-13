@@ -6,6 +6,8 @@ from sqlalchemy import select, func
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import math
+
 from khatmsaz.modules.broadcast import repository
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.khatm import service as khatm_service
@@ -17,6 +19,8 @@ from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import PlanTier
 from khatmsaz.modules.system_settings import service as system_settings_service
+from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.models import InvoiceKind
 
 CHANNELS = ("TELEGRAM", "BALE", "SMS")
 
@@ -91,21 +95,33 @@ async def submit(
     )
     if not users:
         raise ValueError("broadcast audience is empty")
-    _free_count, price = await channel_policy(session, channel)
-    if channel in {"TELEGRAM", "BALE"}:
-        plan = await plan_service.get_plan(session, creator_user_id)
-        used = await repository.count_lifetime_digital_for_creator(session, creator_user_id)
-        if plan != PlanTier.PRO and (len(users) >= 1000 or used >= 2):
-            raise plan_service.PlanFeatureUnavailableError(
-                "more than two digital broadcasts or an audience of 1000+ requires PRO"
-            )
-        cost = 0
-    else:
-        # SMS is paid from the first request. Operations controls its price.
-        cost = price
+    # DEC-PY-0121 / MASTER-10: Only PRO plan users may submit broadcasts (Basic has no broadcast)
+    plan = await plan_service.get_plan(session, creator_user_id)
+    if plan != PlanTier.PRO:
+        raise plan_service.PlanFeatureUnavailableError(
+            "ارسال پیام گروهی تنها برای کاربران دارای پلن حرفه‌ای امکان‌پذیر است."
+        )
+
+    # Calculate 1000-recipient packages and total cost
+    _free_count, unit_price = await channel_policy(session, channel)
+    if unit_price <= 0:
+        unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
+
+    packages_count = math.ceil(len(users) / 1000)
+    cost = packages_count * unit_price
+
+    invoice = None
+    if cost > 0:
+        invoice = await wallet_service.spend(
+            session,
+            user_id=creator_user_id,
+            amount=cost,
+            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته ۱۰۰۰ نفری برای {len(users)} مخاطب)",
+            invoice_kind=InvoiceKind.PURCHASE,
+        )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
     bale_media = media_file_id if (has_media and channel == "BALE") else None
-    return await repository.create(
+    broadcast = await repository.create(
         session, khatm_id=khatm_id, creator_user_id=creator_user_id, body=body,
         target_scope="KHATM" if khatm_id else "ALL", channel=channel,
         audience_count=len(users), cost_toman=cost,
@@ -113,6 +129,9 @@ async def submit(
         media_type=media_type if has_media else None,
         media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
+    if invoice is not None and getattr(broadcast, "id", None) is not None:
+        await wallet_service.bind_invoice_resource(session, invoice.id, str(broadcast.id))
+    return broadcast
 
 
 async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
@@ -186,6 +205,23 @@ async def reject(session: AsyncSession, broadcast_id, note: str | None = None) -
     if item is None or item.status != BroadcastStatus.PENDING:
         raise ValueError("broadcast is not pending")
     await repository.mark_reviewed(session, item, BroadcastStatus.REJECTED, note)
+    # DEC-PY-0121 / MASTER-10: Refund wallet if message is rejected by admin
+    if item.cost_toman > 0:
+        refunded = await wallet_service.refund_purchase_invoice(
+            session,
+            user_id=item.creator_user_id,
+            kind=InvoiceKind.PURCHASE,
+            resource_ref=str(item.id),
+            description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
+        )
+        if refunded is None:
+            await wallet_service.add_cash(
+                session,
+                user_id=item.creator_user_id,
+                amount=item.cost_toman,
+                description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
+                ref=f"REFUND-BC-{str(item.id)[:8]}",
+            )
     return item
 
 

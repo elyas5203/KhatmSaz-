@@ -129,6 +129,7 @@ async def start_commitment_mode_picker(
 
 
 def _family_prompt(base: str, family: str | None) -> str:
+    fam = (family or "").upper()
     suffix = {
         "SALAWAT": "salawat",
         "DUA": "dua",
@@ -136,7 +137,8 @@ def _family_prompt(base: str, family: str | None) -> str:
         "DUA_ZIYARAT": "dua",
         "LAAN": "laan",
         "QURAN": "quran",
-    }.get(family or "")
+        "KHUTBAH": "khutbah",
+    }.get(fam)
     return f"{base}.{suffix}" if suffix else base
 
 
@@ -242,10 +244,13 @@ async def enter_count(message: Message, state: FSMContext) -> None:
                     raise
                 delivered = False
         await state.clear()
-        await message.answer("🌱 سهم شما ثبت شد. " + (
-            "این رزرو ۷ روز اعتبار دارد؛ پس از خواندن، انجام همین سهم را ثبت کنید."
-            if occurrence.reservation_id else "تعهد این سهم تا انجام باقی می‌ماند."
-        ) + ("" if delivered or occurrence.delivered_at else "\nارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم."))
+        msg_note = (
+            "پس از قرائت، دکمهٔ ثبت را بزنید."
+            if not occurrence.committed
+            else "تعهد این سهم تا انجام باقی می‌ماند."
+        )
+        await message.answer(f"🌱 سهم شما آماده شد؛ {msg_note}"
+            + ("" if delivered or occurrence.delivered_at else "\nارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم."))
     except ValueError:
         await message.answer("این مقدار یا برنامه قابل ثبت نیست. عضویت، مقدار سهم و تنظیمات ختم را بررسی کنید.")
 
@@ -498,8 +503,13 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         0: "days.saturday", 1: "days.sunday", 2: "days.monday",
         3: "days.tuesday", 4: "days.wednesday", 5: "days.thursday", 6: "days.friday"
     }
-    family = data.get("commit_family")
-    unit = t("portions.unit.page", lang) if family == "QURAN" else t("commit.unit.salawat", lang) if family == "SALAWAT" else t("commit.unit.dua", lang)
+    family = (data.get("commit_family") or "").upper()
+    unit = (
+        t("portions.unit.page", lang) if family == "QURAN"
+        else t("commit.unit.salawat", lang) if family == "SALAWAT"
+        else t("commit.unit.khutbah", lang) if family == "KHUTBAH"
+        else t("commit.unit.dua", lang)
+    )
     
     if freq == ScheduleFreq.WEEKLY.value:
         sel = sorted(set(data.get("commit_weekdays") or []))
@@ -584,11 +594,17 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
         )
         # Thank + invite others into THIS khatm with its direct member-bot link.
         from khatmsaz.bot.handlers.portions import _invite_friends_line
-        from khatmsaz.bot.member_copy import completion_text, content_family, share_label
+        from khatmsaz.bot.member_copy import (
+            build_motivational_progress_snippet,
+            completion_text,
+            content_family,
+            share_label,
+        )
         invite_line = await _invite_friends_line(
             session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
         )
         family = await content_family(session, khatm)
+        snippet = await build_motivational_progress_snippet(session, khatm)
         confirmed_text = completion_text(
             khatm, family, share_label(family, count=amount, lang=lang),
             invite_line=invite_line, lang=lang,
@@ -598,6 +614,8 @@ async def confirm_regular_occurrence(callback: CallbackQuery) -> None:
     except Exception:
         await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(confirmed_text)
+    if snippet:
+        await callback.message.answer(snippet)
     await safe_answer_callback(callback)
 
 
@@ -625,18 +643,38 @@ async def complete_share(callback: CallbackQuery) -> None:
             occurrence, changed = await shares.complete(session, oid, user_id=user.id,
                 bot_instance_id=member_instance_id(callback.message.bot), record_progress=delivery.record_progress)
         except shares.OccurrenceAccessError:
-            await safe_answer_callback(callback, "این رزرو دیگر معتبر نیست یا ارسال سهم هنوز کامل نشده است.", show_alert=True)
+            await safe_answer_callback(callback, "ثبت این سهم با مشکل مواجه شد یا قبلاً انجام شده است؛ لطفاً وضعیت را مجدداً بررسی نمایید.", show_alert=True)
             return
     # Completion has committed before best-effort message cleanup.
     async with session_scope() as session:
         await cleanup(session, part, occurrence)
     await safe_answer_callback(callback, "✅ انجام این سهم ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
     if changed:
-        from khatmsaz.bot.member_copy import completion_text, share_label
-        family = occurrence.content_spec.get("family", "salawat")
-        lang = occurrence.content_spec.get("language", "fa")
-        await callback.message.answer(completion_text(khatm, family,
-            share_label(family, count=occurrence.amount, lang=lang), lang=lang))
+        from khatmsaz.bot.handlers.portions import _invite_friends_line
+        from khatmsaz.bot.member_copy import (
+            build_motivational_progress_snippet,
+            completion_text,
+            share_label,
+        )
+        spec = occurrence.content_spec or {}
+        family = spec.get("family") or ("quran" if getattr(occurrence, "unit", None) == "PAGE" else "salawat")
+        lang = spec.get("language", "fa")
+        start = end = None
+        if spec.get("ranges"):
+            start, end = spec["ranges"][0][0], spec["ranges"][-1][1]
+        async with session_scope() as session:
+            invite_line = await _invite_friends_line(
+                session, khatm, khatm.creator_user_id, platform, lang, bot=callback.message.bot
+            )
+            snippet = await build_motivational_progress_snippet(session, khatm)
+        confirmed_text = completion_text(
+            khatm, family,
+            share_label(family, count=occurrence.amount, start=start, end=end, lang=lang),
+            invite_line=invite_line, lang=lang,
+        )
+        await callback.message.answer(confirmed_text)
+        if snippet:
+            await callback.message.answer(snippet)
 
 
 @router.callback_query(F.data.startswith("legacy_share_done:"))
