@@ -61,6 +61,52 @@ def _calc_deadline(local: datetime, deadline_hour: int | None) -> datetime | Non
     return None
 
 
+async def get_next_open_quran_page(
+    session,
+    khatm_id,
+    total_pages: int,
+    *,
+    default_start: int = 1,
+) -> int:
+    """Determine the next sequential Quran page cursor collectively for the given khatm.
+
+    Inspects all prior ShareOccurrences with unit='PAGE' issued across all participants
+    in this khatm. If none exist, falls back to default_start. If prior occurrences exist,
+    the next page begins immediately after the last allocated range, wrapping around
+    total_pages back to 1.
+    """
+    from khatmsaz.modules.participation.models import Participation
+    from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+
+    if not hasattr(session, "execute"):
+        return default_start
+    try:
+        stmt = (
+            select(ShareOccurrence)
+            .join(Participation, Participation.id == ShareOccurrence.participation_id)
+            .where(
+                Participation.khatm_id == khatm_id,
+                ShareOccurrence.unit == "PAGE",
+            )
+            .order_by(ShareOccurrence.created_at.desc(), ShareOccurrence.id.desc())
+            .limit(1)
+        )
+        res = await session.execute(stmt)
+        if res is not None and hasattr(res, "scalars"):
+            last_occ = res.scalars().first()
+            if last_occ is not None and getattr(last_occ, "content_spec", None):
+                ranges = last_occ.content_spec.get("ranges")
+                if ranges and isinstance(ranges, list) and len(ranges) > 0:
+                    last_range = ranges[-1]
+                    if isinstance(last_range, (list, tuple)) and len(last_range) >= 2:
+                        last_end = last_range[1]
+                        if isinstance(last_end, int):
+                            return (last_end % total_pages) + 1
+    except Exception:
+        pass
+    return default_start
+
+
 async def allocate_khutbah_section_range(
     session,
     participation_id,
@@ -91,12 +137,22 @@ async def allocate_khutbah_section_range(
     rows = []
     if hasattr(session, "execute"):
         import inspect
+        from khatmsaz.modules.participation.models import Participation
         try:
-            res = await session.execute(
-                select(ShareOccurrence)
-                .where(ShareOccurrence.participation_id == participation_id)
-                .order_by(ShareOccurrence.created_at.asc(), ShareOccurrence.id.asc())
-            )
+            if khatm is not None and getattr(khatm, "id", None) is not None:
+                stmt = (
+                    select(ShareOccurrence)
+                    .join(Participation, Participation.id == ShareOccurrence.participation_id)
+                    .where(Participation.khatm_id == khatm.id)
+                    .order_by(ShareOccurrence.created_at.asc(), ShareOccurrence.id.asc())
+                )
+            else:
+                stmt = (
+                    select(ShareOccurrence)
+                    .where(ShareOccurrence.participation_id == participation_id)
+                    .order_by(ShareOccurrence.created_at.asc(), ShareOccurrence.id.asc())
+                )
+            res = await session.execute(stmt)
             if res is not None and hasattr(res, "scalars") and not inspect.iscoroutinefunction(res.scalars):
                 scalars = res.scalars()
                 if not inspect.iscoroutine(scalars):
@@ -111,6 +167,8 @@ async def allocate_khutbah_section_range(
     prev_range = None
     dirty = False
     for occ in rows:
+        if occ.content_spec and occ.content_spec.get("family") and occ.content_spec.get("family") != "khutbah":
+            continue
         occ_amt = occ.amount or 1
         expected_start = (cursor % total_sections) + 1
         expected_end = min(expected_start + occ_amt - 1, total_sections)
@@ -305,11 +363,12 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
             amount = sum(b-a+1 for a,b in spec["ranges"])
         else:
             total_pages = content.get_quran_total_pages(khatm)
-            start = (part.open_reading_next_page-1) % total_pages + 1
-            end = min(total_pages, start+amount-1)
-            ranges = [[start,end]]
-            if end-start+1 < amount:
-                ranges.append([1,amount-(end-start+1)])
+            default_start = (part.open_reading_next_page - 1) % total_pages + 1
+            start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+            end = min(total_pages, start + amount - 1)
+            ranges = [[start, end]]
+            if end - start + 1 < amount:
+                ranges.append([1, amount - (end - start + 1)])
             spec = {"ranges": ranges}
     else:
         if fam == "khutbah":

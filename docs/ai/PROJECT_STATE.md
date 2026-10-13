@@ -1,3 +1,15 @@
+## Current state — 2026-10-13 — Open Khatm Collective Progression Engine (MASTER-14) [Antigravity]
+- **Open Khatm Collective Progression Engine (`MASTER-14`):**
+  - Problem diagnosed: In Open Khatms (`KhatmTypeEnum.OPEN`), Quran page allocations relied on `part.open_reading_next_page` stored individually on `Participation`. Consequently, if User 1 took pages 1 to 5, User 2 joining or requesting pages also started at page 1 (parallel individual paths instead of a collective group recitation). Similarly, in Khutbah Fadakiyyah/Ghadir, `allocate_khutbah_section_range` filtered by `participation_id == participation_id`, preventing collective section handoff.
+  - Fix in `src/khatmsaz/modules/share_occurrence/delivery.py`:
+    - Created `get_next_open_quran_page(session, khatm.id, total_pages)`: searches the latest `ShareOccurrence` with `unit == 'PAGE'` issued for the entire khatm (`Participation.khatm_id == khatm.id`). If none exists, falls back to start page 1; if prior occurrences exist, the next start page begins at `(last_end % total_pages) + 1`.
+    - Integrated with `prepare_numeric`: multiple participants advance the Quran sequentially without overlap (e.g., User 1 takes 5 pages -> [1..5], User 2 takes 3 pages -> [6..8], User 3 takes 10 pages -> [9..18]).
+    - Implemented clean wrap-around at page 604: requests crossing page 604 wrap into round 2 across multiple segments (e.g., at page 602 with 5 pages -> `[[602, 604], [1, 2]]`), and subsequent requests continue seamlessly from page 3.
+    - Updated `allocate_khutbah_section_range`: queries all occurrences for `Participation.khatm_id == khatm.id`, enabling collective handoff of Khutbah sections (1..5 or 1..8) across all participating members.
+  - Added unit and integration tests in `tests/test_master_14_open_khatm_collective.py`.
+  - Authored comprehensive specification: `docs/ai/masters/MASTER_14_OPEN_KHATM_COLLECTIVE_PROGRESSION_ENGINE.md`.
+- **Validation:** 433 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Open Khatm Flow Overhaul & Immediate Recitation Recording (MASTER-13) [Antigravity]
 - **Immediate Recitation Recording for Open Khatms (`MASTER-13`):**
   - Problem diagnosed: In Open Khatms (`KhatmTypeEnum.OPEN`), clicking «اعلام انجام قرائت امروز» (`menu.today` or `/today`) gave either «سهم امروز شما قبلاً ارسال شده است» or «هیچ سهمی برای امروز وجود ندارد» because `delivery.prepare` was designed for daily scheduled commitment routines. Furthermore, tapping «دریافت سهم» (`contribute:`) was intercepted by `portions.py:622` because `prepare_numeric` set `part.commitment_mode = "COUNT"`, incorrectly triggering `start_commitment_mode_picker` («این ختم تعهدی است...»).

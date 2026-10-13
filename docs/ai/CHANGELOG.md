@@ -1,3 +1,14 @@
+## 2026-10-13 — Antigravity — Open Khatm Collective Progression Engine (MASTER-14)
+- **Collective Quran & Khutbah Progression for Open Khatms (`MASTER-14`):**
+  - Eliminated parallel individual page starting points in Open Quran Khatms.
+  - Implemented `get_next_open_quran_page` in `delivery.py` to query the latest allocated Quran page range across the entire khatm.
+  - Enabled multi-member sequential page coverage without overlap (User 1 takes 1..5, User 2 takes 6..8, User 3 takes 9..18, etc.).
+  - Added wrap-around support past page 604 into round 2 (`[[602, 604], [1, 2]]`).
+  - Updated `allocate_khutbah_section_range` to query across all participations in the khatm, allowing collective handoff of Khutbah sections.
+  - Authored `docs/ai/masters/MASTER_14_OPEN_KHATM_COLLECTIVE_PROGRESSION_ENGINE.md`.
+  - Added test suite `tests/test_master_14_open_khatm_collective.py`.
+- **Validation:** 433 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Open Khatm Flow Overhaul & Immediate Recitation Recording (MASTER-13)
 - **Immediate Recitation Recording for Open Khatms (`MASTER-13`):**
   - Resolved blocking alerts («سهم امروز شما قبلاً ارسال شده است» and «هیچ سهمی برای امروز وجود ندارد») when tapping «اعلام انجام قرائت امروز» (`menu.today`) or `/today` in Open Khatms.
