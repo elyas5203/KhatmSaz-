@@ -14,15 +14,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(
-        """
-        ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE NULL;
-        ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_7d BOOLEAN DEFAULT FALSE;
-        ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_24h BOOLEAN DEFAULT FALSE;
-        ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expired_notified BOOLEAN DEFAULT FALSE;
-        CREATE INDEX IF NOT EXISTS ix_user_plans_plan_expires ON user_plans(plan, expires_at);
-        """
-    )
+    op.execute("ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE NULL;")
+    op.execute("ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_7d BOOLEAN DEFAULT FALSE;")
+    op.execute("ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_24h BOOLEAN DEFAULT FALSE;")
+    op.execute("ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expired_notified BOOLEAN DEFAULT FALSE;")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_user_plans_plan_expires ON user_plans(plan, expires_at);")
 
 
 def downgrade() -> None:

@@ -28,10 +28,10 @@ def upgrade() -> None:
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             reviewed_at TIMESTAMP WITH TIME ZONE
         );
-        CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_user ON wallet_receipt_claims(user_id);
-        CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_status ON wallet_receipt_claims(status);
         """
     )
+    op.execute("CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_user ON wallet_receipt_claims(user_id);")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_status ON wallet_receipt_claims(status);")
 
 
 def downgrade() -> None:
