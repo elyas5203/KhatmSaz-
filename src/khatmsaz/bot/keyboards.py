@@ -39,6 +39,10 @@ ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
 CREATE_BUTTON_TEXTS = variants("menu.create")
 MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
 TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
+    "📖 دریافت سهم قرائت",
+    "دریافت سهم قرائت",
+    "📖 دریافت سهم امروز",
+    "دریافت سهم امروز",
     "📖 انجام قرائت امروز",
     "📖 اعلام انجام قرائت امروز",
     "📖 اعلام انجام قرائت",

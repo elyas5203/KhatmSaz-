@@ -1,3 +1,19 @@
+## Current state — 2026-10-13 — Member Portion Receipt Button & Khatm Disambiguation System (MASTER-15) [Antigravity]
+- **Member Portion Receipt & Khatm Disambiguation System (`MASTER-15`):**
+  - **Button Copy Refinement (`menu.today`):**
+    - Updated primary action button label from confusing «📖 اعلام انجام قرائت امروز» to **«📖 دریافت سهم قرائت»** (ar: «📖 استلام حصة القراءة», en: «📖 Receive Recitation Portion»).
+    - Expanded `TODAY_BUTTON_TEXTS` in `keyboards.py` to match all variants (`📖 دریافت سهم قرائت`, `دریافت سهم قرائت`, `📖 دریافت سهم امروز`, `دریافت سهم امروز`) alongside legacy variants, ensuring seamless backward compatibility for cached client keyboards.
+  - **Khatm Disambiguation in Multi-Khatm Selections (`report.py` & `member_my_khatms.py`):**
+    - Problem diagnosed: When members participated in multiple khatms with identical default titles (e.g. «ختم قرآن»), the selection keyboard in `today_overview` rendered identical duplicate buttons (`[🌱 ختم قرآن]`, `[🌱 ختم قرآن]`) without identifying whose khatm it was or what intention was set.
+    - Implemented `get_khatm_identifier(session, khatm, lang)` in `member_copy.py` to extract `title`, privacy-aware `creator_name`, and `niyyat`.
+    - Updated `report.py:today_overview`:
+      - Header prompt updated to warm, clear copy: «سهم کدام ختم را می‌خواهید دریافت کنید؟».
+      - Message body renders numbered cards with title, creator name (`👤 از طرف: ...`), and intention (`🤲 به نیت: ...`).
+      - Inline buttons disambiguated with creator names: `[🌱 ۱. ختم قرآن (حمیدرضا رئیسی)]`.
+    - Updated `member_my_khatms.py`: renders full creator and niyyat details on each khatm card.
+  - Added test suite `tests/test_master_15_portion_receipt_and_disambiguation.py` and authored `docs/ai/masters/MASTER_15_MEMBER_PORTION_RECEIPT_AND_KHATM_IDENTIFICATION.md`.
+- **Validation:** 437 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Open Khatm Collective Progression Engine (MASTER-14) [Antigravity]
 - **Open Khatm Collective Progression Engine (`MASTER-14`):**
   - Problem diagnosed: In Open Khatms (`KhatmTypeEnum.OPEN`), Quran page allocations relied on `part.open_reading_next_page` stored individually on `Participation`. Consequently, if User 1 took pages 1 to 5, User 2 joining or requesting pages also started at page 1 (parallel individual paths instead of a collective group recitation). Similarly, in Khutbah Fadakiyyah/Ghadir, `allocate_khutbah_section_range` filtered by `participation_id == participation_id`, preventing collective section handoff.

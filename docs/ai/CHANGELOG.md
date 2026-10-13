@@ -1,3 +1,17 @@
+## 2026-10-13 — Antigravity — Member Portion Receipt Button & Khatm Disambiguation System (MASTER-15)
+- **Member Portion Receipt & Khatm Disambiguation System (`MASTER-15`):**
+  - **Button Copy Refinement (`menu.today`):**
+    - Updated primary action button label from confusing «📖 اعلام انجام قرائت امروز» to **«📖 دریافت سهم قرائت»** (ar: «📖 استلام حصة القراءة», en: «📖 Receive Recitation Portion»).
+    - Expanded `TODAY_BUTTON_TEXTS` in `keyboards.py` to match all variants (`📖 دریافت سهم قرائت`, `دریافت سهم قرائت`, `📖 دریافت سهم امروز`, `دریافت سهم امروز`) alongside legacy variants, ensuring seamless backward compatibility for cached client keyboards.
+  - **Khatm Disambiguation in Multi-Khatm Selections (`report.py` & `member_my_khatms.py`):**
+    - Fixed identical duplicate buttons in `today_overview` when participating in multiple khatms with identical default titles.
+    - Implemented `get_khatm_identifier(session, khatm, lang)` in `member_copy.py` to extract `title`, privacy-aware `creator_name`, and `niyyat`.
+    - Message body in `today_overview` now displays numbered cards with creator name and intention details.
+    - Inline buttons disambiguated with creator names: `[🌱 ۱. ختم قرآن (نام سازنده)]`.
+    - Updated `member_my_khatms.py` to display creator and intention on each khatm card.
+  - Added test suite `tests/test_master_15_portion_receipt_and_disambiguation.py` and master doc `docs/ai/masters/MASTER_15_MEMBER_PORTION_RECEIPT_AND_KHATM_IDENTIFICATION.md`.
+- **Validation:** 437 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Open Khatm Collective Progression Engine (MASTER-14)
 - **Collective Quran & Khutbah Progression for Open Khatms (`MASTER-14`):**
   - Eliminated parallel individual page starting points in Open Quran Khatms.
