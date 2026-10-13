@@ -18,6 +18,7 @@ from aiogram.types import BufferedInputFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from khatmsaz.config import get_settings
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.content import service as content_service
 from khatmsaz.modules.content.models import (
@@ -119,6 +120,15 @@ class TelegramToBaleMigrator:
         self.bale_bot = bale_bot
         self.bale_storage_chat_id = bale_storage_chat_id
         self.tg_scratch_chat_id = tg_scratch_chat_id
+        if not self.tg_scratch_chat_id:
+            settings = get_settings()
+            if settings.telegram_scratch_chat_id:
+                self.tg_scratch_chat_id = settings.telegram_scratch_chat_id
+            else:
+                for x in settings.super_admin_telegram_chat_ids.split(","):
+                    if x.strip().isdigit() or (x.strip().startswith("-") and x.strip()[1:].isdigit()):
+                        self.tg_scratch_chat_id = int(x.strip())
+                        break
         self.delay_seconds = delay_seconds
         self.dry_run = dry_run
         self.progress_callback = progress_callback
@@ -235,6 +245,15 @@ class TelegramToBaleMigrator:
             if not msg.document:
                 raise RuntimeError("Bale send_document returned message without document attribute")
             file_id = msg.document.file_id
+
+        # Delete temporary upload message in Bale to keep storage chat clean
+        try:
+            await self.bale_bot.delete_message(
+                chat_id=self.bale_storage_chat_id,
+                message_id=msg.message_id,
+            )
+        except Exception:
+            pass
 
         if self.delay_seconds > 0:
             await asyncio.sleep(self.delay_seconds)

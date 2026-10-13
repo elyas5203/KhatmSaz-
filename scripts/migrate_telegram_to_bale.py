@@ -77,15 +77,8 @@ async def main() -> int:
     args = parse_args()
     settings = get_settings()
 
-    storage_chat_id = args.storage_chat_id or settings.bale_media_storage_chat_id
+    storage_chat_id = args.storage_chat_id or settings.bale_media_storage_chat_id or 1499052236
     scratch_chat_id = args.scratch_chat_id or settings.telegram_scratch_chat_id
-
-    if not args.dry_run and not storage_chat_id:
-        logger.error(
-            "Bale storage chat ID is required. Pass --storage-chat-id <id> or set "
-            "BALE_MEDIA_STORAGE_CHAT_ID in .env / settings."
-        )
-        return 1
 
     logger.info("Initializing bot clients...")
     tg_bot = None

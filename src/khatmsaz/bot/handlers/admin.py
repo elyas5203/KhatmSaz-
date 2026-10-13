@@ -400,14 +400,7 @@ async def admin_sync_bale(message: Message, command: CommandObject) -> None:
         storage_chat_id = settings.bale_media_storage_chat_id
 
     if not storage_chat_id:
-        await message.answer(
-            "⚠️ <b>شناسه کانال یا گروه مخزن بله مشخص نشده است.</b>\n\n"
-            "برای شروع همگام‌سازی، شناسه کانال بله را به عنوان آرگومان به دستور اضافه کنید:\n"
-            "<code>/admin_sync_bale -1001234567890</code>\n\n"
-            "یا مقدار <code>BALE_MEDIA_STORAGE_CHAT_ID</code> را در تنظیمات (.env) سرور ثبت فرمایید.\n"
-            "<i>(توجه: ربات بله باید در این کانال یا گروه، عضو و ادمین باشد تا بتواند فایل‌ها را ذخیره کند.)</i>"
-        )
-        return
+        storage_chat_id = settings.bale_media_storage_chat_id or 1499052236
 
     scratch_id = settings.telegram_scratch_chat_id or message.chat.id
     _bale_sync_running = True
