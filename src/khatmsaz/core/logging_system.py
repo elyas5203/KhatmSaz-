@@ -39,48 +39,53 @@ class TelegramErrorAlertHandler(logging.Handler):
         self._loop: asyncio.AbstractEventLoop | None = None
 
     def emit(self, record: logging.LogRecord) -> None:
+        if sys.is_finalizing():
+            return
         # Avoid recursion if logging within the handler fails
         if record.name.startswith("khatmsaz.core.logging_system") or record.name.startswith("aiogram"):
             return
 
-        # Debounce to prevent flooding admin in tight loops
-        err_key = f"{record.name}:{record.lineno}:{getattr(record, 'exc_info', None) and record.exc_info[0] or record.getMessage()[:50]}"
-        now = time.time()
-        last_sent = _last_alerts.get(err_key, 0.0)
-        if now - last_sent < _ALERT_COOLDOWN_SECONDS:
-            return
-        _last_alerts[err_key] = now
-
-        # Format alert payload
-        time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        msg_text = record.getMessage()
-
-        tb_text = ""
-        if record.exc_info and record.exc_info[1]:
-            lines = traceback.format_exception(*record.exc_info)
-            # Take last 12 lines of traceback to fit comfortably in Telegram message
-            tb_text = "".join(lines[-12:])
-        elif record.stack_info:
-            tb_text = str(record.stack_info)[-600:]
-
-        alert_message = (
-            "🚨 <b>هشدار خطای سیستمی در ختم‌ساز</b>\n\n"
-            f"📍 <b>محل وقوع:</b> <code>{escape(record.name)}:{record.lineno}</code>\n"
-            f"⚠️ <b>سطح خطا:</b> <b>{escape(record.levelname)}</b>\n"
-            f"⏰ <b>زمان:</b> <code>{time_str}</code>\n\n"
-            f"📝 <b>پیام:</b>\n<code>{escape(msg_text[:400])}</code>"
-        )
-        if tb_text:
-            alert_message += f"\n\n📋 <b>تریس خطا (خلاصه):</b>\n<pre>{escape(tb_text[:900])}</pre>"
-
-        # Dispatch asynchronously via running loop
         try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = self._loop
+            # Debounce to prevent flooding admin in tight loops
+            err_key = f"{record.name}:{record.lineno}:{getattr(record, 'exc_info', None) and record.exc_info[0] or record.getMessage()[:50]}"
+            now = time.time()
+            last_sent = _last_alerts.get(err_key, 0.0)
+            if now - last_sent < _ALERT_COOLDOWN_SECONDS:
+                return
+            _last_alerts[err_key] = now
 
-        if loop and loop.is_running():
-            loop.create_task(self._send_alert_safe(alert_message))
+            # Format alert payload
+            time_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+            msg_text = record.getMessage()
+
+            tb_text = ""
+            if record.exc_info and record.exc_info[1]:
+                lines = traceback.format_exception(*record.exc_info)
+                # Take last 12 lines of traceback to fit comfortably in Telegram message
+                tb_text = "".join(lines[-12:])
+            elif record.stack_info:
+                tb_text = str(record.stack_info)[-600:]
+
+            alert_message = (
+                "🚨 <b>هشدار خطای سیستمی در ختم‌ساز</b>\n\n"
+                f"📍 <b>محل وقوع:</b> <code>{escape(record.name)}:{record.lineno}</code>\n"
+                f"⚠️ <b>سطح خطا:</b> <b>{escape(record.levelname)}</b>\n"
+                f"⏰ <b>زمان:</b> <code>{time_str}</code>\n\n"
+                f"📝 <b>پیام:</b>\n<code>{escape(msg_text[:400])}</code>"
+            )
+            if tb_text:
+                alert_message += f"\n\n📋 <b>تریس خطا (خلاصه):</b>\n<pre>{escape(tb_text[:900])}</pre>"
+
+            # Dispatch asynchronously via running loop
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = self._loop
+
+            if loop and loop.is_running():
+                loop.create_task(self._send_alert_safe(alert_message))
+        except Exception:
+            pass
 
     async def _send_alert_safe(self, text: str) -> None:
         try:
@@ -162,8 +167,12 @@ def install_exception_hooks(loop: asyncio.AbstractEventLoop | None = None) -> No
     # Asyncio loop hook
     if loop is not None:
         def _asyncio_hook(_loop: asyncio.AbstractEventLoop, context: dict[str, Any]) -> None:
+            if sys.is_finalizing():
+                return
             exc = context.get("exception")
             msg = context.get("message", "Unhandled exception in asyncio loop")
+            if msg == "Unclosed client session":
+                return
             if exc is not None:
                 logger.critical("Asyncio task crashed: %s (%s)", msg, exc, exc_info=exc)
             else:
