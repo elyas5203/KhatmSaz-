@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from khatmsaz.bot.keyboards import (
     REPORT_BUTTON_TEXTS, TODAY_BUTTON_TEXTS,
@@ -15,7 +16,7 @@ from khatmsaz.bot.keyboards import (
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmTemplateType
+from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.allocation.models import PortionUnitKind
 from khatmsaz.modules.notification.models import NotificationKind
 from khatmsaz.modules.notification import service as notification_service
@@ -32,8 +33,41 @@ from khatmsaz.bot.member_scope import ensure_participation_matches_bot, member_i
 router = Router(name="report")
 
 
+async def _deliver_open_khatm_flow(
+    target_message: Message,
+    state: FSMContext | None,
+    participation,
+    khatm,
+    lang: str,
+    platform: Platform,
+) -> None:
+    from khatmsaz.modules.share_occurrence import repository as shares
+    from khatmsaz.bot.occurrence_adapter import label, keyboard
+    from khatmsaz.bot.handlers.member_commitment import CommitFlow
+    from khatmsaz.bot.member_copy import content_family
+
+    async with session_scope() as session:
+        pending = await shares.list_outstanding(session, participation.id)
+        delivered = [item for item in pending if item.delivered_at is not None]
+        if delivered:
+            for item in delivered:
+                await target_message.answer(label(khatm, item), reply_markup=keyboard(item, khatm))
+            return
+        fam = await content_family(session, khatm)
+        unit = (
+            "بخش" if fam == "khutbah"
+            else "صفحه" if khatm.template_type == KhatmTemplateType.QURAN_PAGE
+            else "صلوات" if fam == "salawat"
+            else "مرتبه"
+        )
+    if state is not None:
+        await state.set_state(CommitFlow.entering_count)
+        await state.update_data(commit_pid=str(participation.id), commit_family=fam.upper(), lang=lang)
+    await target_message.answer(f"می‌خواهید چند {unit} از این ختم قرائت کنید؟ عدد مورد نظر را بفرستید:")
+
+
 @router.message(F.text.in_(TODAY_BUTTON_TEXTS))
-async def today_overview(message: Message) -> None:
+async def today_overview(message: Message, state: FSMContext | None = None) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     available: list[tuple[object, object]] = []
     bot_lang = getattr(message.bot, "khatmsaz_language", None)
@@ -56,6 +90,18 @@ async def today_overview(message: Message) -> None:
     if not available:
         await message.answer(t("report.no_portion_today", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
         return
+
+    if len(available) == 1:
+        single_khatm, single_part = available[0]
+        ktype = getattr(single_khatm, "khatm_type", None)
+        is_open = (
+            ktype == KhatmTypeEnum.OPEN
+            or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+        )
+        if is_open:
+            await _deliver_open_khatm_flow(message, state, single_part, single_khatm, lang, platform)
+            return
+
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=f"🌱 {khatm.title}", callback_data=f"today_pick:{participation.id}")]
         for khatm, participation in available
@@ -64,7 +110,7 @@ async def today_overview(message: Message) -> None:
 
 
 @router.callback_query(F.data.startswith("today_pick:"))
-async def deliver_today_early(callback: CallbackQuery) -> None:
+async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None = None) -> None:
     """Deliver one selected khatm now and mark today's scheduled send consumed."""
     bot = callback.message.bot
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -81,6 +127,18 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
         if khatm is None or not await ensure_participation_matches_bot(session, participation, khatm, bot) or not khatm_service.has_started(khatm):
             await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
             return
+
+    ktype = getattr(khatm, "khatm_type", None)
+    is_open = (
+        ktype == KhatmTypeEnum.OPEN
+        or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+    )
+    if is_open:
+        await _deliver_open_khatm_flow(callback.message, state, participation, khatm, lang, platform)
+        await safe_answer_callback(callback)
+        return
+
+    async with session_scope() as session:
         settings = await settings_service.get_or_create(session, user.id)
         try:
             user_tz = ZoneInfo(settings.timezone)

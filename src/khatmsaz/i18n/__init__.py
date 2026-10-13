@@ -1328,7 +1328,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
-    "portions.button.contribute": {"fa": "✅ اعلام انجام سهم", "ar": "✅ إعلان إنجاز الحصة", "en": "✅ Report share done"},
+    "portions.button.contribute": {"fa": "📿 دریافت سهم قرائت", "ar": "📿 استلام حصة القراءة", "en": "📿 Receive reading share"},
     "portions.button.show_content": {
         "fa": "📖 نمایش محتوای سهم", "ar": "📖 عرض محتوى الحصة", "en": "📖 Show portion content",
     },

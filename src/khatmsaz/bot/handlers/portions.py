@@ -610,6 +610,18 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         participation = await _active_participation_for_current_bot(session, khatm_id, user.id, callback.bot)
 
+    if khatm is not None and participation is not None:
+        ktype = getattr(khatm, "khatm_type", None)
+        is_open = (
+            ktype == KhatmTypeEnum.OPEN
+            or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+        )
+        if is_open:
+            from khatmsaz.bot.handlers.report import _deliver_open_khatm_flow
+            await _deliver_open_khatm_flow(callback.message, state, participation, khatm, lang, platform)
+            await safe_answer_callback(callback)
+            return
+
     if khatm is not None and participation is not None and getattr(khatm, "commitment_policy", None) == "FIXED_DAILY":
         from khatmsaz.bot.handlers.start import AskDeliveryHour
         from khatmsaz.bot.keyboards import delivery_hour_keyboard

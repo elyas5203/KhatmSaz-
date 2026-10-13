@@ -262,7 +262,7 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
     if part.status != "ACTIVE" or khatm.status != "ACTIVE" or not khatms.has_started(khatm, now=now) or khatm.commitment_policy == "FIXED_DAILY":
         raise ValueError("Numeric mode is unavailable")
     for old in await repository.list_outstanding(session, part.id):
-        if old.source_key.startswith(("count:", "reservation:")):
+        if old.source_key.startswith(("count:", "reservation:", "open:")):
             return old
     total = await contributions.total_for_khatm(session, khatm.id)
     from khatmsaz.bot.member_copy import content_family

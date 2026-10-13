@@ -643,7 +643,7 @@ async def complete_share(callback: CallbackQuery) -> None:
             occurrence, changed = await shares.complete(session, oid, user_id=user.id,
                 bot_instance_id=member_instance_id(callback.message.bot), record_progress=delivery.record_progress)
         except shares.OccurrenceAccessError:
-            await safe_answer_callback(callback, "این رزرو دیگر معتبر نیست یا ارسال سهم هنوز کامل نشده است.", show_alert=True)
+            await safe_answer_callback(callback, "ثبت این سهم با مشکل مواجه شد یا قبلاً انجام شده است؛ لطفاً وضعیت را مجدداً بررسی نمایید.", show_alert=True)
             return
     # Completion has committed before best-effort message cleanup.
     async with session_scope() as session:

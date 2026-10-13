@@ -1,3 +1,16 @@
+## Current state — 2026-10-13 — Open Khatm Flow Overhaul & Immediate Recitation Recording (MASTER-13) [Antigravity]
+- **Immediate Recitation Recording for Open Khatms (`MASTER-13`):**
+  - Problem diagnosed: In Open Khatms (`KhatmTypeEnum.OPEN`), clicking «اعلام انجام قرائت امروز» (`menu.today` or `/today`) gave either «سهم امروز شما قبلاً ارسال شده است» or «هیچ سهمی برای امروز وجود ندارد» because `delivery.prepare` was designed for daily scheduled commitment routines. Furthermore, tapping «دریافت سهم» (`contribute:`) was intercepted by `portions.py:622` because `prepare_numeric` set `part.commitment_mode = "COUNT"`, incorrectly triggering `start_commitment_mode_picker` («این ختم تعهدی است...»).
+  - Fix in `src/khatmsaz/bot/handlers/report.py`: Added `_deliver_open_khatm_flow`. In `today_overview` and `deliver_today_early`, OPEN khatms are immediately recognized. If an uncompleted delivered share is open, it is displayed with `[✅ اعلام ثبت قرائت ...]`. If no share is open, it immediately opens the amount prompt (`CommitFlow.entering_count`: «می‌خواهید چند {واحد} از این ختم قرائت کنید؟ عدد مورد نظر را بفرستید:») without any daily restrictions, mode picker redirects, or blocking alerts.
+  - Fix in `src/khatmsaz/bot/handlers/portions.py`: `ask_contribution_amount` routes OPEN khatms directly to `_deliver_open_khatm_flow`, completely bypassing the commitment mode picker check.
+  - Fix in `src/khatmsaz/bot/handlers/member_my_khatms.py`: Omitted `mk_hourmenu` («ساعت یادآوری») for OPEN khatms since open khatms have no reminder hours.
+  - Fix in `src/khatmsaz/bot/handlers/join_requests.py`: Excluded OPEN khatms from triggering mode pickers or daily reminder setup on join approval.
+  - Fix in `src/khatmsaz/modules/share_occurrence/delivery.py`: Updated `prepare_numeric` to include `open:` prefixed source keys when looking for outstanding shares.
+  - Fix in `src/khatmsaz/modules/share_occurrence/service.py`: Self-heals missing `delivered_at` if a member completes their share, preventing `OccurrenceAccessError`.
+  - Fix in `src/khatmsaz/bot/handlers/member_commitment.py`: Replaced technical «رزرو» copy with clear, friendly Persian messages.
+  - Updated `portions.button.contribute` in `i18n/__init__.py` to «📿 دریافت سهم قرائت».
+- **Validation:** 427 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Full Codebase Audit, Server Safety Verification & Shutdown Guard [Antigravity]
 - **Subagent Codebase & Routing Audit:**
   - Audited all Telegram callback_data strings in `src/khatmsaz/bot/keyboards.py` and handlers; confirmed all active patterns (`cs:schedule_set`, `undo:`, `drec:`, `approve_leave:`) are strictly <= 64 bytes and match their handlers.

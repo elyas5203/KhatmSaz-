@@ -1,3 +1,15 @@
+## 2026-10-13 — Antigravity — Open Khatm Flow Overhaul & Immediate Recitation Recording (MASTER-13)
+- **Immediate Recitation Recording for Open Khatms (`MASTER-13`):**
+  - Resolved blocking alerts («سهم امروز شما قبلاً ارسال شده است» and «هیچ سهمی برای امروز وجود ندارد») when tapping «اعلام انجام قرائت امروز» (`menu.today`) or `/today` in Open Khatms.
+  - Implemented `_deliver_open_khatm_flow` in `report.py` to immediately display any pending uncompleted share or prompt for count (`CommitFlow.entering_count`).
+  - Fixed `portions.py:ask_contribution_amount` to bypass the commitment mode picker check for OPEN khatms, preventing accidental routing to «این ختم تعهدی است...».
+  - Omitted `mk_hourmenu` («تنظیم ساعت یادآوری») for OPEN khatms in `member_my_khatms.py` since open khatms have no reminder hours.
+  - Excluded OPEN khatms from triggering mode picker or reminder questions in `join_requests.py`.
+  - Updated `delivery.py:prepare_numeric` to include `open:` prefix when scanning for outstanding shares.
+  - Self-healed missing `delivered_at` in `share_occurrence/service.py:complete`.
+  - Updated button label in `i18n/__init__.py` to «📿 دریافت سهم قرائت».
+- **Validation:** 427 passed, 230 skipped, 0 failed in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Full Codebase & Routing Audit, Port Safety Verification & Shutdown Guard
 - **Full Codebase Audit (Subagents 1 & 2):**
   - Line-by-line verification of all inline keyboard callbacks (`keyboards.py`, `handlers/`) confirming no active callback exceeds the Telegram 64-byte limit.
