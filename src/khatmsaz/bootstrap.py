@@ -61,11 +61,8 @@ logger = logging.getLogger("khatmsaz")
 
 
 def _configure_logging() -> None:
-    settings = get_settings()
-    logging.basicConfig(
-        level=settings.log_level,
-        format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
-    )
+    from khatmsaz.core.logging_system import configure_system_logging
+    configure_system_logging()
 
 
 def _tag_bot(
@@ -129,6 +126,8 @@ async def _build_member_bots() -> list[Bot]:
 
 async def main() -> None:
     _configure_logging()
+    from khatmsaz.core.logging_system import install_exception_hooks
+    install_exception_hooks(asyncio.get_running_loop())
     settings = get_settings()
 
     # --- Creator bots (from .env, as before) ---
@@ -155,6 +154,14 @@ async def main() -> None:
             "No bot tokens configured. Set TELEGRAM_BOT_TOKEN and/or BALE_BOT_TOKEN in .env"
         )
 
+    # --- Admin bot (@khatmsaz_admin_bot, DEC-PY-0125, MASTER-12) ---
+    admin_bots: list[Bot] = []
+    if settings.admin_bot_token:
+        admin_bot = build_telegram_bot(token=settings.admin_bot_token)
+        _tag_bot(admin_bot, role=BotRole.ADMIN)
+        admin_bots.append(admin_bot)
+        logger.info("Admin bot configured (@khatmsaz_admin_bot).")
+
     # Sync creator tokens into bot_instances table
     if settings.bot_token_encryption_key:
         try:
@@ -168,12 +175,12 @@ async def main() -> None:
     member_bots = await _build_member_bots()
 
     # --- Build registry ---
-    all_bots = creator_bots + member_bots
+    all_bots = creator_bots + admin_bots + member_bots
     registry = BotRegistry(all_bots)
     set_registry(registry)
     logger.info(
-        "BotRegistry: %d creator(s), %d member(s).",
-        len(creator_bots), len(member_bots),
+        "BotRegistry: %d creator(s), %d admin(s), %d member(s).",
+        len(creator_bots), len(admin_bots), len(member_bots),
     )
 
     # FSM state must survive service restarts. MemoryStorage left an old
@@ -183,15 +190,30 @@ async def main() -> None:
         settings.redis_url,
         key_builder=DefaultKeyBuilder(prefix="khatmsaz_fsm_creator", with_bot_id=True),
     )
+    admin_storage = RedisStorage.from_url(
+        settings.redis_url,
+        key_builder=DefaultKeyBuilder(prefix="khatmsaz_fsm_admin", with_bot_id=True),
+    )
     member_storage = RedisStorage.from_url(
         settings.redis_url,
         key_builder=DefaultKeyBuilder(prefix="khatmsaz_fsm_member", with_bot_id=True),
     )
 
-    # --- Creator Dispatcher ---
+    # --- Creator Dispatcher (Strictly for Khatm Creation & Management) ---
     dp_creator = Dispatcher(storage=creator_storage)
     dp_creator.message.outer_middleware(ModerationMiddleware())
     dp_creator.callback_query.outer_middleware(ModerationMiddleware())
+
+    # --- Admin Dispatcher (Strictly for Super Admin @khatmsaz_admin_bot) ---
+    dp_admin = Dispatcher(storage=admin_storage)
+    dp_admin.message.outer_middleware(ModerationMiddleware())
+    dp_admin.callback_query.outer_middleware(ModerationMiddleware())
+
+    from khatmsaz.bot.handlers.admin_bot import router as admin_bot_router
+    dp_admin.include_router(admin_bot_router)
+    dp_admin.include_router(admin_router)
+    dp_admin.include_router(broadcast_router)
+    dp_admin.include_router(manual_phone_verification_router)
 
     # --- Member Dispatcher ---
     dp_member = Dispatcher(storage=member_storage)
@@ -208,22 +230,16 @@ async def main() -> None:
     dp_member.include_router(member_my_khatms_router)
     dp_member.include_router(portions_router)
     dp_member.include_router(devotional_router)
-    # public_khatms moved to the shared list below so /public_khatms works on
-    # the creator bot too (owner live QA 2026-09-28: it produced no output
-    # there because it was member-only).
 
-    # --- Creator-only routers ---
+    # --- Creator-only routers (Admin functionality completely isolated) ---
     dp_creator.include_router(start_router)
     dp_creator.include_router(registration_router)
     dp_creator.include_router(create_khatm_router)
     dp_creator.include_router(my_khatms_router)
-    dp_creator.include_router(admin_router)
-    dp_creator.include_router(broadcast_router)
     dp_creator.include_router(wallet_router)
     dp_creator.include_router(creator_decisions_router)
     dp_creator.include_router(creator_request_router)
     dp_creator.include_router(creator_broadcast_router)
-    dp_creator.include_router(manual_phone_verification_router)
     dp_creator.include_router(account_router)
     dp_creator.include_router(account_link_router)
     dp_creator.include_router(change_phone_router)
@@ -270,8 +286,8 @@ async def main() -> None:
         dp_creator.include_router(_fresh_router(_path))
         dp_member.include_router(_fresh_router(_path))
 
-    # Fetch and tag usernames for creator bots (member bots already tagged during token validation above).
-    for bot in creator_bots:
+    # Fetch and tag usernames for creator & admin bots (member bots already tagged during token validation above).
+    for bot in creator_bots + admin_bots:
         try:
             me = await bot.get_me()
             bot.khatmsaz_username = me.username  # type: ignore[attr-defined]
@@ -511,6 +527,8 @@ async def main() -> None:
             logger.info("Admin web server requested to exit.")
 
         stop_coros = [_safe_stop_polling(dp_creator)]
+        if admin_bots:
+            stop_coros.append(_safe_stop_polling(dp_admin))
         if member_bots:
             stop_coros.append(_safe_stop_polling(dp_member))
         await asyncio.gather(*stop_coros, return_exceptions=True)
@@ -519,6 +537,8 @@ async def main() -> None:
     tasks: list[asyncio.Task] = [
         asyncio.create_task(_run_polling_supervised(dp_creator, creator_bots, "creator")),
     ]
+    if admin_bots:
+        tasks.append(asyncio.create_task(_run_polling_supervised(dp_admin, admin_bots, "admin")))
     if member_bots:
         tasks.append(asyncio.create_task(_run_polling_supervised(dp_member, member_bots, "member")))
 

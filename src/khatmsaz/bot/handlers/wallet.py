@@ -77,7 +77,7 @@ def _topup_keyboard(lang: str, *, pro_price: int | None = None, is_pro: bool = F
     rows.extend([
         [
             InlineKeyboardButton(
-                text="💳 افزایش موجودی (کارت به کارت / لینک مستقیم)",
+                text="💳 افزایش موجودی (لینک مستقیم شاپرک)",
                 callback_data="wallet:topup_info",
             )
         ],
@@ -419,17 +419,13 @@ async def receive_ref_id_for_verification(message: Message, state: FSMContext) -
 @router.callback_query(F.data == "wallet:topup_info")
 async def show_topup_info(callback: CallbackQuery) -> None:
     settings = get_settings()
-    direct_link = getattr(settings, "payping_direct_url", None) or "https://payping.ir/@khatmsaz"
-    card_number = getattr(settings, "admin_card_number", None) or "۶۰۳۷-۹۹۷۵-۹۹۹۹-۹۹۹۹"
-    card_holder = getattr(settings, "admin_card_holder", None) or "خدمتگزاران"
+    direct_link = getattr(settings, "payping_direct_url", None) or "https://ppng.ir/d/VFBD"
 
     text = (
         "💳 <b>افزایش موجودی کیف پول</b>\n\n"
-        "جهت شارژ حساب خود، می‌توانید مبلغ مورد نظر را از یکی از روش‌های زیر واریز فرمایید:\n\n"
+        "جهت شارژ حساب خود، می‌توانید مبلغ مورد نظر را از طریق لینک مستقیم زیر در درگاه امن شاپرک پرداخت نمایید:\n\n"
         f"🔗 <b>لینک پرداخت مستقیم شاپرک:</b>\n{direct_link}\n\n"
-        f"💳 <b>شماره کارت بانکی:</b>\n<code>{card_number}</code>\n"
-        f"به نام: <b>{card_holder}</b>\n\n"
-        "🌱 <b>پس از واریز:</b> لطفاً روی دکمهٔ «📸 ارسال تصویر فیش واریز» در زیر کلیک کرده و عکس فیش خود را ارسال فرمایید تا پس از بررسی مدیریت، حساب شما به صورت خودکار شارژ گردد."
+        "🌱 <b>پس از پرداخت:</b> لطفاً روی دکمهٔ «📸 ارسال تصویر فیش واریز» در زیر کلیک کرده و عکس رسید پرداخت خود را ارسال فرمایید تا پس از بررسی مدیریت، حساب شما به صورت خودکار شارژ گردد."
     )
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -518,22 +514,25 @@ async def receive_receipt_photo(message: Message, state: FSMContext) -> None:
         )
         user_display = user.display_name or str(message.chat.id)
 
+    # Clean, readable 8-digit numeric tracking code (MASTER-11)
+    tracking_code = str((claim.id.int % 90000000) + 10000000)
+
     await state.clear()
     await message.answer(
         "✅ <b>فیش واریزی شما با موفقیت ثبت شد.</b>\n\n"
         f"💰 مبلغ اعلام‌شده: <b>{amount_toman:,} تومان</b>\n"
-        f"🆔 کد رهگیری: <code>{str(claim.id)[:8]}</code>\n\n"
+        f"🆔 کد رهگیری: <code>{tracking_code}</code>\n\n"
         "پس از بررسی و تأیید توسط مدیریت، کیف پول شما به صورت خودکار شارژ خواهد شد 🌱"
     )
 
-    # Push to Super Admins in Telegram
+    # Push to Super Admins in Telegram via Khatm_Saz_bot
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     admin_caption = (
         "🧾 <b>درخواست جدید شارژ کیف پول (فیش واریزی)</b>\n\n"
         f"👤 <b>کاربر:</b> {user_display} (شناسه: <code>{user.id}</code>)\n"
         f"💰 <b>مبلغ اعلام‌شده:</b> <b>{amount_toman:,} تومان</b>\n"
         f"📅 <b>زمان ثبت:</b> {now_str}\n"
-        f"🆔 <b>کد رهگیری:</b> <code>{claim.id}</code>\n\n"
+        f"🆔 <b>کد رهگیری:</b> <code>{tracking_code}</code>\n\n"
         "لطفاً پس از تطبیق با حساب بانکی، وضعیت را تعیین فرمایید:"
     )
     admin_markup = InlineKeyboardMarkup(
@@ -553,25 +552,13 @@ async def receive_receipt_photo(message: Message, state: FSMContext) -> None:
         ]
     )
 
-    settings = get_settings()
-    admin_ids = [v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()]
-    for admin_chat_id in admin_ids:
-        try:
-            if message.photo:
-                await message.bot.send_photo(
-                    chat_id=int(admin_chat_id),
-                    photo=photo_file_id,
-                    caption=admin_caption,
-                    reply_markup=admin_markup,
-                )
-            else:
-                await message.bot.send_message(
-                    chat_id=int(admin_chat_id),
-                    text=admin_caption,
-                    reply_markup=admin_markup,
-                )
-        except Exception:
-            pass
+    from khatmsaz.bot.admin_notifications import notify_super_admins_photo
+    await notify_super_admins_photo(
+        admin_caption,
+        photo_file_id=photo_file_id if message.photo else None,
+        source_bot=message.bot,
+        reply_markup=admin_markup,
+    )
 
 
 @router.callback_query(F.data.startswith("receipt:approve:"))
@@ -588,7 +575,10 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
         admin_user = await identity_service.find_by_platform(
             session, platform, str(callback.from_user.id)
         )
-        if admin_user is None or admin_user.role != UserRole.SUPER_ADMIN:
+        settings = get_settings()
+        admin_ids = {v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()}
+        is_allowed = str(callback.from_user.id) in admin_ids or (admin_user is not None and admin_user.role == UserRole.SUPER_ADMIN)
+        if not is_allowed:
             await callback.answer("شما دسترسی مدیریت برای تأیید این فیش را ندارید.", show_alert=True)
             return
 
@@ -646,7 +636,10 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
         admin_user = await identity_service.find_by_platform(
             session, platform, str(callback.from_user.id)
         )
-        if admin_user is None or admin_user.role != UserRole.SUPER_ADMIN:
+        settings = get_settings()
+        admin_ids = {v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()}
+        is_allowed = str(callback.from_user.id) in admin_ids or (admin_user is not None and admin_user.role == UserRole.SUPER_ADMIN)
+        if not is_allowed:
             await callback.answer("شما دسترسی مدیریت ندارید.", show_alert=True)
             return
 

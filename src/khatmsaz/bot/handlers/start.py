@@ -49,6 +49,18 @@ logger = logging.getLogger(__name__)
 WELCOME_TEXT = t("welcome.text", "fa")
 
 
+@router.message(Command("admin"))
+async def admin_redirect_in_creator_bot(message: Message) -> None:
+    settings = get_settings()
+    admin_bot_username = getattr(settings, "admin_bot_username", "khatmsaz_admin_bot") or "khatmsaz_admin_bot"
+    await message.answer(
+        "👑 <b>مدیریت گرامی،</b>\n\n"
+        "امور مدیریتی، نظارتی و تأیید فیش‌ها به ربات اختصاصی مدیریت منتقل شده است:\n"
+        f"👉 @{admin_bot_username}\n\n"
+        "اینجا (ربات ختم‌ساز) صرفاً برای ساخت و مدیریت ختم‌های شماست 🌱"
+    )
+
+
 def _clean_niyyat(niyyat: str) -> str:
     """Strip a leading «به نیت»/«بنية»/«Intention» so the display label
     (join.niyyat_line = «به نیت: {niyyat}») doesn't double it — owner report

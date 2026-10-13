@@ -5,6 +5,53 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0126 — Live Continuous File Logging, Error Crash Alert System & Telegram Real-Time Error Dispatch (MASTER-12)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Continuous Moment-by-Moment File Logging:** Added rotating file logger writing to `logs/khatmsaz.log` (level INFO) and `logs/errors.log` (level ERROR/CRITICAL with full tracebacks).
+2. **Real-Time Telegram Crash Alerting:** Implemented `TelegramErrorAlertHandler` that hooks into the logging engine. Whenever an unhandled exception, critical error, or dangerous bug occurs, an alert is formatted with module name, line number, exception type, error message, and stack trace, and immediately sent to the Super Admin via `@khatmsaz_admin_bot`. Includes debounce rate-limiting (max 1 alert per unique error type/module per 60s) to prevent flood.
+3. **Asyncio & Sys Exception Hooks:** Integrated `sys.excepthook` and `asyncio.get_running_loop().set_exception_handler` so silent background task failures are surfaced and dispatched to the admin.
+4. **Interactive In-Bot Log Commands:** Super Admins can query `/logs`, `/errors`, and download log files directly in `@khatmsaz_admin_bot`.
+
+---
+
+### DEC-PY-0125 — Dedicated Admin Bot (@khatmsaz_admin_bot) and Complete Isolation of Admin Functions from Creator Bot (MASTER-12)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Dedicated Admin Bot:** Token `8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`, username `@khatmsaz_admin_bot`. All administrative operations, settings, stats, and moderation workflows are hosted exclusively on this bot.
+2. **Creator Bot (`Khatm_Saz_bot`) Isolation:** `Khatm_Saz_bot` is strictly and exclusively dedicated to creating and managing khatms for creators. Even the Super Admin using `Khatm_Saz_bot` sees only the creator menus. All admin push notifications, receipt moderation, La'n khatm reviews, and crash alerts are diverted to `@khatmsaz_admin_bot`. (Supersedes the admin dispatch channel in `DEC-PY-0124`).
+3. **Strict Role-Gating:** Access to `@khatmsaz_admin_bot` is restricted to Super Admins (`5490508090` and `UserRole.SUPER_ADMIN`). Non-admins receive an explicit unauthorized notice.
+
+---
+
+### DEC-PY-0124 — Direct PayPing link (ppng.ir/d/VFBD), removal of card numbers, 8-digit numeric tracking code (MASTER-11, partially superseded by DEC-PY-0125 for dispatch bot)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Elimination of Card Numbers:** Bank card number and holder name are completely removed from the wallet recharge screen.
+2. **Dedicated PayPing Direct Link:** The wallet top-up message provides the dedicated open-amount Shaparak link `https://ppng.ir/d/VFBD`.
+3. **Clean 8-Digit Numeric Tracking Code:** Replaced the hexadecimal UUID slice (e.g. `01a134f0`) with an 8-digit numeric tracking code (e.g. `83491205`) for clear display in Persian RTL chat and clean banking reconciliation.
+4. **Centralized Admin Dispatch via `Khatm_Saz_bot`:** All admin push notifications (receipt approval requests, custom La'an moderation) are dispatched exclusively through the creator bot `@Khatm_Saz_bot`. Super admin chat IDs are resolved both from `.env` and by querying `role == 'SUPER_ADMIN'` in the database. Media uploaded to member bots is cross-downloaded and re-uploaded via `Khatm_Saz_bot` to prevent Telegram file_id authorization errors.
+
+---
+
+### DEC-PY-0123 — La'an Khatm Wizard Redesign: Elimination of preset options, custom title & dhikr prompt, moderation queue, and automated invite delivery (MASTER-11)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Elimination of Preset La'an Categories:** Removed all preset buttons («لعن عمر», «لعن ابوبکر», «لعن عایشه», «لعن هشت‌گانه امام رضا») from the wizard and deleted them from `khatm_categories` and admin panel.
+2. **Interactive Wizard Prompts:** Selecting "لعن" immediately asks:
+   - Question 1: «عنوان ختم لعنتون چیه؟» (Creator enters custom title)
+   - Question 2: «متن ذکر لعن را وارد کنید:» (Creator enters custom dhikr / recitation text)
+   - Followed by the regular wizard steps (Commitment vs Free, count/goal, schedule, deadline hour, niyyat).
+3. **Pending Moderation Queue:** Upon completion, the khatm is created in `status = DRAFT` / `pending_lan_approval = True`. The creator is informed that member recruitment is inactive until admin approval.
+4. **Super Admin Dispatch & Inline Review:** The request is dispatched to `@Khatm_Saz_bot` for super admins with `[✅ تأیید و فعال‌سازی]` and `[❌ رد کردن]` buttons.
+5. **Automated Invite Card Delivery upon Approval:** Upon admin approval, the khatm status becomes `ACTIVE` and the invitation card along with member invite links is immediately sent to the creator in `@Khatm_Saz_bot`.
+
+---
+
 ### DEC-PY-0122 — 30-day PRO Plan duration, additive renewal, pre-lapse warnings (7-day and 24-hour), and automatic downgrade
 
 **Date:** 2026-10-13

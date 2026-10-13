@@ -1449,7 +1449,7 @@ async def creator_khatm_detail(
         invite_links_map = build_member_invite_links(bot_cat, token_str, langs=["fa"])
         fa_links = invite_links_map.get("fa", {})
         telegram_invite_url = fa_links.get("telegram") or f"/join/{token_str}"
-        bale_uname = getattr(settings, "bale_bot_username", None) or "khatmsaz_bot"
+        bale_uname = getattr(get_settings(), "bale_bot_username", None) or "khatmsaz_bot"
         bale_invite_url = fa_links.get("bale") or f"https://ble.ir/{bale_uname}?start=join_{token_str}"
 
         # Compute progress percentage safely

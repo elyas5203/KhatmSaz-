@@ -69,6 +69,8 @@ class CreateKhatm(StatesGroup):
     choosing_template = State()
     choosing_category = State()
     entering_custom_dua_title = State()
+    entering_laan_title = State()
+    entering_laan_text = State()
     choosing_mode = State()
     entering_niyyat = State()
     entering_welcome = State()
@@ -440,6 +442,28 @@ async def _show_category_group(
         await _ask_mode(callback.message, state)
         await safe_answer_callback(callback)
         return
+
+    # Owner decision (2026-10-13, DEC-PY-0123, MASTER-11/12):
+    # La'an has no preset categories; ask title and recitation text interactively.
+    if group == KhatmCategoryGroup.LAAN:
+        data = (await state.get_data()) if hasattr(state, "get_data") else {}
+        if data.get("editing_from_confirm"):
+            title = _default_khatm_title(data, lang)
+            await state.update_data(title=title, editing_from_confirm=False)
+            platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+            await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
+            await safe_answer_callback(callback)
+            return
+        await state.set_state(CreateKhatm.entering_laan_title)
+        prompt_text = (
+            "⚔️ <b>عنوان ختم لعنتون چیه؟</b>\n\n"
+            "لطفاً عنوان مورد نظر خود برای این ختم را بنویسید:\n"
+            "<i>(مثلاً: ختم لعن بر دشمنان اهل بیت علیهم‌السلام)</i>"
+        )
+        await _wiz(callback.message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
+        await safe_answer_callback(callback)
+        return
+
     await _show_category_prompt(callback.message, state, group)
     await safe_answer_callback(callback)
 
@@ -525,6 +549,44 @@ async def enter_custom_dua_title(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(StateFilter(CreateKhatm.entering_laan_title))
+async def enter_laan_title(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+    lang = await _lang(state)
+    raw = (message.text or "").strip()
+    if not raw or raw.startswith("/"):
+        await _wizard_error(message, state, "لطفاً یک عنوان معتبر برای ختم وارد نمایید.")
+        return
+    await state.update_data(title=raw)
+    await state.set_state(CreateKhatm.entering_laan_text)
+    prompt_text = (
+        "📜 <b>متن ختم لعن رو بفرستید:</b>\n\n"
+        "متن دقیق ذکری که اعضا باید قرائت کنند را وارد نمایید:\n"
+        "<i>(این ذکر دقیقاً در سهم‌های روزانه نمایش داده خواهد شد)</i>"
+    )
+    await _wiz(message, state, prompt_text, reply_markup=create_wizard_back_keyboard(lang))
+
+
+@router.message(StateFilter(CreateKhatm.entering_laan_text))
+async def enter_laan_text(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+    lang = await _lang(state)
+    raw = (message.text or "").strip()
+    if not raw or raw.startswith("/"):
+        await _wizard_error(message, state, "لطفاً متن ذکر لعن را وارد نمایید.")
+        return
+    await state.update_data(recitation_text=raw)
+    data = await state.get_data()
+    if data.get("editing_from_confirm"):
+        await state.update_data(editing_from_confirm=False)
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        await _show_confirmation(message, state, platform=platform, platform_subject=str(message.chat.id))
+        return
+    await _ask_mode(message, state)
+
+
 @router.callback_query(F.data.startswith("ck:cat:"), StateFilter(CreateKhatm.choosing_category))
 async def choose_category(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
@@ -582,6 +644,8 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
 
 def _default_khatm_title(data: dict, lang: str) -> str:
     """Build the standard title without asking the creator an extra question."""
+    if data.get("title"):
+        return data["title"]
     if data.get("content_category_title"):
         return t(
             "create_khatm.default_title.category", lang,
@@ -1726,6 +1790,16 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
         await _show_template_step(message, state)
     elif current == CreateKhatm.entering_custom_dua_title.state:
         await _show_category_prompt(message, state, KhatmCategoryGroup.DUA)
+    elif current == CreateKhatm.entering_laan_title.state:
+        await _show_template_step(message, state)
+    elif current == CreateKhatm.entering_laan_text.state:
+        await state.set_state(CreateKhatm.entering_laan_title)
+        prompt_text = (
+            "⚔️ <b>عنوان ختم لعنتون چیه؟</b>\n\n"
+            "لطفاً عنوان مورد نظر خود برای این ختم را بنویسید:\n"
+            "<i>(مثلاً: ختم لعن بر دشمنان اهل بیت علیهم‌السلام)</i>"
+        )
+        await _wiz(message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
     elif current == CreateKhatm.choosing_mode.state:
         intro_mid = data.get("_intro_mid")
         if intro_mid:
@@ -1735,9 +1809,16 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
                 pass
             await state.update_data(_intro_mid=None)
         cg = data.get("category_group")
-        if cg in {
+        if cg == KhatmCategoryGroup.LAAN.value:
+            await state.set_state(CreateKhatm.entering_laan_text)
+            prompt_text = (
+                "📜 <b>متن ختم لعن رو بفرستید:</b>\n\n"
+                "متن دقیق ذکری که اعضا باید قرائت کنند را وارد نمایید:\n"
+                "<i>(این ذکر دقیقاً در سهم‌های روزانه نمایش داده خواهد شد)</i>"
+            )
+            await _wiz(message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
+        elif cg in {
             KhatmCategoryGroup.DUA.value,
-            KhatmCategoryGroup.LAAN.value,
             KhatmCategoryGroup.KHUTBAH.value,
         }:
             await _show_category_prompt(message, state, KhatmCategoryGroup(cg))
@@ -2177,53 +2258,42 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     # Need original message or callback's message for answer
     target_msg = message if isinstance(message, Message) else message.message
     
-    # DEC-PY-0118 (BUG-03): Custom La'an khatms stay DRAFT until approved by an admin.
+    # DEC-PY-0123 / DEC-PY-0125: Custom La'an khatms stay DRAFT/PENDING until approved by admin.
     if khatm is not None and (
         khatm.status == KhatmStatus.DRAFT
         or getattr(khatm, "pending_lan_approval", False) is True
     ):
         await target_msg.answer(
-            f"⏳ ختم «{khatm.title}» شما ثبت شد و متن ذکر لعن سفارشی برای بررسی و تأیید مدیر ارسال گردید.\n\n"
-            "تا پیش از تأیید مدیر، عضوگیری در این ختم غیرفعال است و به‌محض تأیید، کارت و لینک دعوت همین‌جا برایتان ارسال خواهد شد 🌱",
+            f"⏳ <b>ختم «{escape(khatm.title)}» با موفقیت ثبت شد.</b>\n\n"
+            "به دلیل سفارشی بودن ذکر لعن، ختم جهت بررسی و تأیید برای مدیریت ارسال گردید.\n"
+            "بلافاصله پس از تأیید توسط مدیریت، پیام حاوی لینک دعوت برای شما ارسال خواهد شد 🌱",
             reply_markup=main_menu_keyboard(lang, is_creator=True),
         )
-        from khatmsaz.bot.notify_adapter import send_with_keyboard
+        from khatmsaz.bot.admin_notifications import notify_super_admins
         admin_kb = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
                         text="✅ تأیید و فعال‌سازی",
-                        callback_data=f"lan_mod:approve:{khatm.id}",
+                        callback_data=f"laan:approve:{khatm.id}",
                     ),
                     InlineKeyboardButton(
                         text="❌ رد کردن",
-                        callback_data=f"lan_mod:reject:{khatm.id}",
+                        callback_data=f"laan:reject:{khatm.id}",
                     ),
                 ]
             ]
         )
         admin_text = (
-            "🔔 درخواست تأیید متن لعن سفارشی\n\n"
-            f"👤 سازنده: {creator_name}\n"
-            f"📌 عنوان ختم: {khatm.title}\n"
-            f"📝 متن لعن ثبت‌شده:\n{khatm.description or '—'}\n\n"
-            "می‌توانید همین‌جا با دکمه‌های زیر تأیید/رد کنید یا در پنل وب ادمین (بخش مرکز نظارت) متن را ویرایش و تأیید نمایید:"
+            "⚔️ <b>درخواست تأیید ختم لعن سفارشی</b>\n\n"
+            f"👤 <b>سازنده:</b> {escape(creator_name)}\n"
+            f"📌 <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+            f"📜 <b>متن ذکر لعن:</b>\n<blockquote>{escape(khatm.recitation_text or khatm.description or '—')}</blockquote>\n"
+            f"🎯 <b>نیت:</b> {escape(khatm.niyyat or '—')}\n"
+            f"📅 <b>نوع:</b> {'تعهدی' if khatm.khatm_type.value == 'COMMITMENT' else 'آزاد'}\n\n"
+            "وضعیت را مشخص فرمایید:"
         )
-        admin_ids = [
-            v.strip()
-            for v in get_settings().super_admin_telegram_chat_ids.split(",")
-            if v.strip()
-        ]
-        for admin_chat_id in admin_ids:
-            try:
-                await send_with_keyboard(
-                    Platform.TELEGRAM.value,
-                    admin_chat_id,
-                    admin_text,
-                    admin_kb,
-                )
-            except Exception:
-                pass
+        await notify_super_admins(admin_text, reply_markup=admin_kb)
         return
 
     # Owner (2026-10-01): Arabic/English are temporarily DISABLED — only Persian
@@ -2269,7 +2339,7 @@ async def notify_creator_laan_decision(
         notify = get_notify_fn()
     except RuntimeError:
         return
-    accounts = await identity_service.list_accounts_for_user(session, khatm.creator_user_id)
+    accounts = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
     if approved:
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
         by_lang = invite_links.build_member_invite_links(
@@ -2277,29 +2347,29 @@ async def notify_creator_laan_decision(
         )
         invite_lines_str = invite_links.format_invite_lines(by_lang) or "⚠️ لینک دعوت از بخش مدیریت ختم قابل دریافت است."
         card_text = build_ready_to_forward_card(khatm, khatm_bot_cat, invite_lines_str)
-        msg1 = f"✅ متن لعن سفارشی ختم «{khatm.title}» توسط مدیر تأیید شد و ختم شما اکنون فعال است 🌱"
+        msg1 = f"✅ ختم «{khatm.title}» توسط مدیریت تأیید شد و هم‌اکنون فعال است 🌱"
         if note:
-            msg1 += f"\n💬 توضیح مدیر: {note}"
+            msg1 += f"\n💬 توضیح مدیریت: {note}"
         for acc in accounts:
             try:
-                await notify(acc.platform.value, acc.platform_user_id, msg1)
-                await notify(acc.platform.value, acc.platform_user_id, card_text)
+                await notify(acc.platform.value, acc.subject, msg1)
+                await notify(acc.platform.value, acc.subject, card_text)
             except Exception:
                 pass
     else:
-        msg = f"❌ ختم لعن سفارشی «{khatm.title}» مورد تأیید مدیر قرار نگرفت و لغو شد."
+        msg = f"❌ ختم لعن «{khatm.title}» مورد تأیید مدیریت قرار نگرفت و فعال نشد."
         if note:
             msg += f"\n💬 علت: {note}"
         if refunded_amount > 0:
             msg += f"\n💳 مبلغ {refunded_amount:,} تومان به کیف پول شما بازگردانده شد."
         for acc in accounts:
             try:
-                await notify(acc.platform.value, acc.platform_user_id, msg)
+                await notify(acc.platform.value, acc.subject, msg)
             except Exception:
                 pass
 
 
-@router.callback_query(F.data.startswith("lan_mod:"))
+@router.callback_query(F.data.startswith("lan_mod:") | F.data.startswith("laan:approve:") | F.data.startswith("laan:reject:"))
 async def handle_laan_moderation_callback(callback: CallbackQuery) -> None:
     """Inline button handler for Super Admins approving/rejecting custom La'an in Telegram."""
     from khatmsaz.modules.identity.models import UserRole

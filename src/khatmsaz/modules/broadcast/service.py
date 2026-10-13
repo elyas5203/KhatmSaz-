@@ -129,7 +129,7 @@ async def submit(
         media_type=media_type if has_media else None,
         media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
-    if invoice is not None:
+    if invoice is not None and getattr(broadcast, "id", None) is not None:
         await wallet_service.bind_invoice_resource(session, invoice.id, str(broadcast.id))
     return broadcast
 

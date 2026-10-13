@@ -1,3 +1,9 @@
+## 2026-10-13 — Dedicated Admin Bot (@khatmsaz_admin_bot), Real-Time Crash Monitoring & Custom La'n Wizard Master
+- [MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md](masters/MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md) — Dedicated Admin Bot (`@khatmsaz_admin_bot`), complete isolation of admin functions from creator bot, live continuous file logging, real-time Telegram crash/error dispatch to super admin, custom La'n title & dhikr prompts, moderation queue, automated invitation delivery upon admin approval, direct PayPing Shaparak checkout link (`ppng.ir/d/VFBD`), card number removal, and 8-digit numeric tracking codes.
+
+## 2026-10-13 — Laan Wizard Redesign, Direct PayPing, Numeric Tracking Code & Centralized Admin Bot Dispatch Master
+- [MASTER_11_LAAN_WIZARD_DIRECT_PAYPING_AND_ADMIN_BOT_DISPATCH.md](masters/MASTER_11_LAAN_WIZARD_DIRECT_PAYPING_AND_ADMIN_BOT_DISPATCH.md) — Elimination of preset Laan options, custom title & recitation dhikr prompt, moderation queue, automated invitation delivery upon admin approval, direct PayPing checkout link (`ppng.ir/d/VFBD`), card number removal, 8-digit numeric tracking codes, and centralized admin dispatch.
+
 ## 2026-10-13 — Plans, Broadcast 1000-Tier Pricing, Receipt Upload & Creator Panel Guard Master
 - [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1,000-recipient ceiling tiers, complete removal of free broadcasts, bank receipt upload & admin approval, PayPing direct link architecture & admin-only creator panel guard.
 

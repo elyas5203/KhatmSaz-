@@ -15,6 +15,7 @@ class BotRegistry:
     def __init__(self, bots: list[Bot]) -> None:
         self._bots_by_id: dict[UUID, Bot] = {}
         self._creator_bots: dict[Platform, Bot] = {}
+        self._admin_bots: dict[Platform, Bot] = {}
         self._member_bots: dict[tuple[Platform, str, str], Bot] = {}
         self._all: list[Bot] = list(bots)
 
@@ -28,6 +29,8 @@ class BotRegistry:
 
             if role == BotRole.CREATOR and plat:
                 self._creator_bots[plat] = bot
+            elif role == BotRole.ADMIN and plat:
+                self._admin_bots[plat] = bot
             elif role == BotRole.MEMBER and plat:
                 cat = getattr(bot, "khatmsaz_category", None)
                 lang = getattr(bot, "khatmsaz_language", None)
@@ -36,6 +39,9 @@ class BotRegistry:
 
     def get_creator_bot(self, platform: Platform) -> Bot | None:
         return self._creator_bots.get(platform)
+
+    def get_admin_bot(self, platform: Platform = Platform.TELEGRAM) -> Bot | None:
+        return self._admin_bots.get(platform)
 
     def get_member_bot(
         self, platform: Platform, category: BotCategory | str, language: str,
@@ -51,6 +57,9 @@ class BotRegistry:
 
     def creator_bots(self) -> list[Bot]:
         return list(self._creator_bots.values())
+
+    def admin_bots(self) -> list[Bot]:
+        return list(self._admin_bots.values())
 
     def member_bots(self) -> list[Bot]:
         return list(self._member_bots.values())

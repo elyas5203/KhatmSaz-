@@ -68,7 +68,7 @@ async def test_creator_unauthenticated_redirects():
 async def test_creator_dashboard_renders():
     """Verify creator dashboard renders with stats and recent khatm cards."""
     creator_id = new_id()
-    mock_creator = User(id=creator_id, display_name="حسین علی‌نژاد", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="حسین علی‌نژاد", role=UserRole.SUPER_ADMIN)
 
     mock_khatm = Khatm(
         id=new_id(),
@@ -125,7 +125,7 @@ async def test_creator_khatm_detail_renders_with_invite_links():
     """Verify khatm_detail renders with Telegram & Bale invite links and progress bar."""
     creator_id = new_id()
     khatm_id = new_id()
-    mock_creator = User(id=creator_id, display_name="مهدی رضایی", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="مهدی رضایی", role=UserRole.SUPER_ADMIN)
 
     mock_khatm = Khatm(
         id=khatm_id,
@@ -181,7 +181,7 @@ async def test_creator_khatm_detail_renders_with_invite_links():
 async def test_creator_khatm_create_saves_niyyat():
     """Verify that creating a khatm saves clean_niyyat in workflow_service."""
     creator_id = new_id()
-    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.SUPER_ADMIN)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -223,7 +223,7 @@ async def test_creator_khatm_toggle_status():
     """Verify toggle-status pauses and resumes a khatm."""
     creator_id = new_id()
     khatm_id = new_id()
-    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.SUPER_ADMIN)
     mock_khatm = Khatm(id=khatm_id, creator_user_id=creator_id, status=KhatmStatus.ACTIVE, title="ختم تست")
 
     transport = ASGITransport(app=app)
@@ -253,7 +253,7 @@ async def test_creator_khatm_toggle_status():
 async def test_creator_wallet_renders():
     """Verify /creator/wallet renders balance and plan comparison."""
     creator_id = new_id()
-    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.SUPER_ADMIN)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -281,7 +281,7 @@ async def test_creator_wallet_renders():
 async def test_creator_broadcasts_renders():
     """Verify /creator/broadcasts renders audience and options."""
     creator_id = new_id()
-    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.CREATOR)
+    mock_creator = User(id=creator_id, display_name="سازنده", role=UserRole.SUPER_ADMIN)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -301,5 +301,6 @@ async def test_creator_broadcasts_renders():
             res = await client.get("/creator/broadcasts")
             assert res.status_code == 200
             assert "ارسال پیام گروهی اختصاصی" in res.text
-            assert "ربات تلگرام — رایگان" in res.text
+            assert "ربات تلگرام" in res.text
+            assert "به ازای هر ۱۰۰۰ نفر" in res.text
             assert "char-counter" in res.text

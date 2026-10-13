@@ -149,6 +149,10 @@ async def test_broadcast_rejection_refunds_wallet(monkeypatch):
     )
     mock_add_cash = AsyncMock()
     monkeypatch.setattr("khatmsaz.modules.wallet.service.add_cash", mock_add_cash)
+    monkeypatch.setattr(
+        "khatmsaz.modules.wallet.service.refund_purchase_invoice",
+        AsyncMock(return_value=None),
+    )
 
     await broadcast_service.reject(session, bc_id, note="عدم رعایت محتوا")
 
@@ -273,6 +277,10 @@ async def test_creator_web_login_bot_command_guards_non_admins(monkeypatch):
     monkeypatch.setattr(
         "khatmsaz.modules.identity.service.find_by_platform",
         AsyncMock(return_value=mock_user),
+    )
+    monkeypatch.setattr(
+        "khatmsaz.bot.handlers.my_khatms.get_settings",
+        lambda: SimpleNamespace(admin_web_base_url="https://app.khatmsaz.com"),
     )
 
     await creator_web_login(message)

@@ -1,3 +1,24 @@
+## Current state — 2026-10-13 — Dedicated Admin Bot, Continuous Logging & Error Alerts, Custom La'n Flow (MASTER-12) [Antigravity]
+- **Dedicated Central Admin Bot (`@khatmsaz_admin_bot`, `DEC-PY-0125`):**
+  - Isolated `@Khatm_Saz_bot` strictly for creator duties (creating and managing khatms). Even Super Admins see only creator UX in `@Khatm_Saz_bot`.
+  - Configured dedicated administrative bot `@khatmsaz_admin_bot` (`8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`) strictly guarded for Super Admin (`UserRole.SUPER_ADMIN`).
+  - Added full interactive Persian admin control panel: `/start`, `/admin`, `/menu`, `/receipts` (receipt verification & balance top-up), `/laan` (custom La'n moderation & auto-invite dispatch), `/broadcasts` (broadcast review & auto-refund on reject), `/status` (live server telemetry, OS, Python, Postgres, active bots), `/logs` and `/errors` (in-bot tail inspection & full log file downloads).
+  - Dedicated admin dispatcher `dp_admin` with separate Redis FSM storage prefix `khatmsaz_fsm_admin`.
+- **Live Continuous Logging & Real-Time Crash/Bug Alert System (`DEC-PY-0126`):**
+  - Configured continuous rotating file logging in `src/khatmsaz/core/logging_system.py`: `logs/khatmsaz.log` (10MB x 5 backups, level INFO) and `logs/errors.log` (10MB x 5 backups, level ERROR).
+  - Built `TelegramErrorAlertHandler`: catches all `ERROR` and `CRITICAL` records, formats rich Persian alert card with module, line number, timestamp, message, and traceback snippet, rate-limited with 60-second debounce per error key, and automatically dispatches to Super Admins via `@khatmsaz_admin_bot`.
+  - Installed global top-level hooks for both `sys.excepthook` and `asyncio.get_event_loop().set_exception_handler`.
+- **Custom La'n Khatm Wizard Redesign (`DEC-PY-0124`):**
+  - Removed preset La'n categories from wizard and purged legacy categories from database.
+  - Wizard prompts: «عنوان ختم لعنتون چیه؟» -> «متن ختم لعن رو بفرستید:» -> standard wizard parameters.
+  - Saved as draft (`pending_lan_approval = True`), creator notified of pending review.
+  - Moderation card dispatched to Super Admin in `@khatmsaz_admin_bot`. Upon approval, khatm is activated and the ready-to-forward invitation card with invite links is automatically delivered to the creator.
+- **Direct PayPing Shaparak Link & Clean 8-Digit Tracking Code:**
+  - Removed bank card numbers and holder names completely from top-up screen.
+  - Set direct Shaparak payment link to `https://ppng.ir/d/VFBD`.
+  - Formatted clean 8-digit numeric tracking codes (e.g., `83491205`) instead of raw hex UUIDs.
+- **Validation:** 424 passed, 230 skipped, 0 failed in pytest suite (100% pass rate).
+
 ## Current state — 2026-10-13 — Production Stability, Multiplatform Devotionals & Codebase Audit [Antigravity]
 - **Multiplatform Devotional Media Registration Fix («ثبت برای هر دو پلتفرم»):**
   - Problem: Uploading devotional media (Ziyarat Ashura, Dua, Khutbah) selecting «هر دو پلتفرم» (`BOTH`) crashed with `خطا در ثبت فایل: unsupported asset platform` because `content_service` strictly validated against `{"TELEGRAM", "BALE"}` and rejected `BOTH`.

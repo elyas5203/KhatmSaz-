@@ -1,3 +1,17 @@
+## 2026-10-13 — Antigravity — Dedicated Admin Bot, Continuous Logging & Error Alerts, Custom La'n Flow (MASTER-12)
+- **Dedicated Central Admin Bot (`@khatmsaz_admin_bot`, `DEC-PY-0125`):**
+  - Isolated `@Khatm_Saz_bot` exclusively for creator flows; Super Admin interactions moved to `@khatmsaz_admin_bot` (`8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`).
+  - Added dedicated admin dispatcher (`dp_admin`) and handlers (`admin_bot/handlers.py`) with `/start`, `/receipts`, `/laan`, `/broadcasts`, `/status`, `/logs`, `/errors`.
+- **Live Continuous Logging & Real-Time Crash/Bug Alert System (`DEC-PY-0126`):**
+  - Implemented continuous rotating file logging (`logs/khatmsaz.log` and `logs/errors.log`).
+  - Implemented `TelegramErrorAlertHandler` dispatching formatted alerts to Super Admins via `@khatmsaz_admin_bot` with 60-second rate-limiting debounce.
+  - Installed top-level uncaught exception handlers for synchronous and asyncio loop exceptions.
+- **Custom La'n Khatm Wizard Redesign (`DEC-PY-0124`):**
+  - Removed preset categories and implemented custom title/text wizard flow with admin moderation card and auto-invite delivery upon approval.
+- **Direct PayPing Shaparak Link & Clean 8-Digit Tracking Code:**
+  - Configured direct Shaparak URL `https://ppng.ir/d/VFBD` and 8-digit numeric tracking codes.
+- **Validation:** 424 passed, 230 skipped, 0 failed in pytest suite (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Production Stability, Multiplatform Devotionals & Codebase Audit
 - **Multiplatform Devotional Media Registration Fix («ثبت برای هر دو پلتفرم»):**
   - Resolved `خطا در ثبت فایل: unsupported asset platform` when choosing «هر دو پلتفرم» (`BOTH`) in devotional media uploads (`/devotionals`).

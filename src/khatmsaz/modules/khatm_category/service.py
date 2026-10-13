@@ -181,5 +181,12 @@ async def seed_canonical_categories(session: AsyncSession) -> dict[str, object]:
         session.add(cat_ghadir)
         await session.flush()
 
+    # 3. Purge legacy preset LAAN categories (DEC-PY-0123 / MASTER-11)
+    if hasattr(session, "execute"):
+        from sqlalchemy import delete
+        await session.execute(
+            delete(KhatmCategory).where(KhatmCategory.group == KhatmCategoryGroup.LAAN)
+        )
+
     return {"khutbah_fadakiah": str(cat.id), "khutbah_ghadir": str(cat_ghadir.id)}
 

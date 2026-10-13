@@ -12,6 +12,7 @@ from khatmsaz.core.db import Base
 class BotRole(str, enum.Enum):
     CREATOR = "CREATOR"
     MEMBER = "MEMBER"
+    ADMIN = "ADMIN"
 
 
 class BotCategory(str, enum.Enum):
