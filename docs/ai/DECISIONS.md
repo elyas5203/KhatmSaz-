@@ -5,6 +5,12 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0127 — Automated cross-platform Telegram-to-Bale media migration pipeline
+
+**Date:** 2026-10-13
+**Owner confirmation:** An automated, memory-efficient migration pipeline streams Quran pages (604 images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) from Telegram to a dedicated Bale storage chat. Captured Bale `file_id` values are registered in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`. Delivery on Bale uses these pre-registered `file_id`s for zero-bandwidth instant delivery. The process is strictly idempotent, throttled for rate-limits, and manageable via CLI (`scripts/migrate_telegram_to_bale.py`) and admin command (`/admin_bale_media_status`, `/admin_sync_bale`). See `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md`.
+
+---
 ### DEC-PY-0126 — Live Continuous File Logging, Error Crash Alert System & Telegram Real-Time Error Dispatch (MASTER-12)
 
 **Date:** 2026-10-13
@@ -110,6 +116,7 @@ new entry that says so and link back.
 2. **Devotional & Khutbah media management in Web Admin Panel:** Support both direct file upload from computer/mobile in the web panel (which sends the file via the creator bot to obtain and store `file_id` in `devotional_media`) AND direct entry of `file_id` or URL for large files (>50MB).
 3. **PRO plan model:** Fixed-price `PRO` plan (paid from wallet at the admin-configured `PRO` price to disable ads completely) plus manual admin override to set any user's plan (`FREE` / `BASIC` / `PRO`) from the Web Admin Panel.
 4. **Admin Panel routing & UI:** Rebuild the Admin Panel across the 10 modules with `[؟]` simple-language popup guides and step-by-step instructions while preserving/aliasing legacy URL paths (`/categories`, `/devotionals`, `/bots`, `/operations`, `/broadcasts`, etc.) so existing links and tests continue to work seamlessly.
+>>>>>>> update_khatm_wizard_flow
 
 ---
 

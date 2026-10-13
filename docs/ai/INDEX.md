@@ -1,3 +1,11 @@
+## 2026-10-13 — مهاجرت خودکار رسانه‌ها از تلگرام به بله
+- سند مستر: [TELEGRAM_TO_BALE_MIGRATION_MASTER.md](TELEGRAM_TO_BALE_MIGRATION_MASTER.md)
+- تصمیم محصول: DEC-PY-0127 در `DECISIONS.md`.
+- موتور هسته: `src/khatmsaz/modules/content/migrator.py` (`TelegramToBaleMigrator`, `get_bale_quran_coverage`).
+- اسکریپت خط فرمان: `scripts/migrate_telegram_to_bale.py`.
+- دستورات ادمین بات: `/admin_bale_media_status` و `/admin_sync_bale` در `src/khatmsaz/bot/handlers/admin.py`.
+- تست‌ها: `tests/test_telegram_to_bale_migration.py`.
+
 ## 2026-10-13 — Dedicated Admin Bot (@khatmsaz_admin_bot), Real-Time Crash Monitoring & Custom La'n Wizard Master
 - [MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md](masters/MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md) — Dedicated Admin Bot (`@khatmsaz_admin_bot`), complete isolation of admin functions from creator bot, live continuous file logging, real-time Telegram crash/error dispatch to super admin, custom La'n title & dhikr prompts, moderation queue, automated invitation delivery upon admin approval, direct PayPing Shaparak checkout link (`ppng.ir/d/VFBD`), card number removal, and 8-digit numeric tracking codes.
 
@@ -33,6 +41,7 @@
   - [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale native Markdown engine, `BaleAiohttpSession` interceptor & clean tag rendering.
   - [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1000-recipient tier pricing, removal of free broadcasts, bank receipt upload & approval, PayPing direct link, and admin-only creator panel guard.
 - **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
+>>>>>>> update_khatm_wizard_flow
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)

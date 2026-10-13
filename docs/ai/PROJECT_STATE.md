@@ -14,6 +14,14 @@
   - Added test suite `tests/test_master_15_portion_receipt_and_disambiguation.py` and authored `docs/ai/masters/MASTER_15_MEMBER_PORTION_RECEIPT_AND_KHATM_IDENTIFICATION.md`.
 - **Validation:** 437 passed, 230 skipped, 0 failed in pytest (100% pass rate).
 
+## Current state — 2026-10-13 — Automated Telegram-to-Bale Media Migration Engine [Antigravity]
+- **Master Plan & Research Executed:** Created `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` detailing the complete architecture for zero-downtime, idempotent cross-platform media streaming (Quran 604 pages image+audio, Khutbah, Dua, Ziyarat).
+- **Core Engine Built (`src/khatmsaz/modules/content/migrator.py`):** Implemented `TelegramToBaleMigrator` supporting direct Telegram-to-RAM streaming (`io.BytesIO`), channel forward extraction, rate-limited upload to a designated Bale storage chat, and automatic Bale `file_id` persistence with `asset_platform="BALE"`.
+- **CLI Runner Script (`scripts/migrate_telegram_to_bale.py`):** Built standalone terminal script with `--target`, `--storage-chat-id`, `--delay`, `--limit`, and `--dry-run` options plus interactive console progress.
+- **Bot Admin Monitoring (`src/khatmsaz/bot/handlers/admin.py`):** Added `/admin_bale_media_status` and `/admin_sync_bale` permission-gated admin commands for instant coverage monitoring inside Telegram/Bale.
+- **Config & Settings (`src/khatmsaz/config.py`):** Added `bale_media_storage_chat_id` and `telegram_scratch_chat_id`.
+- **Validation:** 7 dedicated unit tests added in `tests/test_telegram_to_bale_migration.py` PASS; full non-integration test suite `349 passed, 230 deselected in 10.88s` (zero regressions).
+
 ## Current state — 2026-10-13 — Open Khatm Collective Progression Engine (MASTER-14) [Antigravity]
 - **Open Khatm Collective Progression Engine (`MASTER-14`):**
   - Problem diagnosed: In Open Khatms (`KhatmTypeEnum.OPEN`), Quran page allocations relied on `part.open_reading_next_page` stored individually on `Participation`. Consequently, if User 1 took pages 1 to 5, User 2 joining or requesting pages also started at page 1 (parallel individual paths instead of a collective group recitation). Similarly, in Khutbah Fadakiyyah/Ghadir, `allocate_khutbah_section_range` filtered by `participation_id == participation_id`, preventing collective section handoff.
@@ -491,6 +499,7 @@
 - **Example Copy Cleaned (P2):** Eliminated the word «فلانی» completely from onboarding captions, examples, and documentation.
 - **Section P in OWNER_SPEC_MASTER.md:** Fully updated and documented covering items P1 to P7.
 - **Validation:** All 344 non-integration unit tests pass cleanly in 12.34s (including new tests in `tests/test_v3_wizard_and_allocation.py`).
+>>>>>>> update_khatm_wizard_flow
 
 ## Current state — 2026-10-08 — V3 Wizard Flow, 2-Message Output & Sequential Allocation Completed [Antigravity]
 - **Completed Tasks (Approved by Owner):**

@@ -12,6 +12,14 @@
   - Added test suite `tests/test_master_15_portion_receipt_and_disambiguation.py` and master doc `docs/ai/masters/MASTER_15_MEMBER_PORTION_RECEIPT_AND_KHATM_IDENTIFICATION.md`.
 - **Validation:** 437 passed, 230 skipped, 0 failed in pytest (100% pass rate).
 
+## 2026-10-13 — Antigravity — Telegram-to-Bale Media Migration Engine & CLI Pipeline
+- **Master Plan:** Formulated `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and decision `DEC-PY-0127`.
+- **Core Migrator Service (`src/khatmsaz/modules/content/migrator.py`):** Built `TelegramToBaleMigrator` engine streaming Quran 604 pages (images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) directly to a dedicated Bale media storage chat, capturing generated `file_id`s, and registering in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`.
+- **Config & Settings (`src/khatmsaz/config.py`):** Added `bale_media_storage_chat_id` and `telegram_scratch_chat_id`.
+- **CLI Runner Script (`scripts/migrate_telegram_to_bale.py`):** Created standalone terminal migration tool with `--target`, `--limit`, `--delay`, `--dry-run`, and live progress feedback.
+- **Bot Monitoring (`src/khatmsaz/bot/handlers/admin.py`):** Added `/admin_bale_media_status` and `/admin_sync_bale` permission-gated admin commands.
+- **Validation:** Added 7 unit tests in `tests/test_telegram_to_bale_migration.py`. Full non-integration suite `349 passed` cleanly.
+
 ## 2026-10-13 — Antigravity — Open Khatm Collective Progression Engine (MASTER-14)
 - **Collective Quran & Khutbah Progression for Open Khatms (`MASTER-14`):**
   - Eliminated parallel individual page starting points in Open Quran Khatms.
@@ -259,6 +267,7 @@
 - **Added Khutbah Family (P3):** Added «📜 ختم خطبه‌ها» (`ck:group:KHUTBAH`) to `template_choice_keyboard`. Added `KhatmCategoryGroup.KHUTBAH` in domain models, web admin panel, and `i18n` strings with support for sequential parts, audio files, and cycling.
 - **Copy Cleaned (P2):** Removed the word «فلانی» completely from onboarding captions, examples, and documentation.
 - **Validation:** Added comprehensive test suite `test_previous_wizard_step_comprehensive_flow` and `test_khutbah_button_in_template_keyboard` in `tests/test_v3_wizard_and_allocation.py`. All 344 tests PASS.
+>>>>>>> update_khatm_wizard_flow
 
 ## 2026-10-08 — Antigravity — V3 Wizard Flow Completion, 2-Message Output & Sequential Allocation Priority
 - **Wizard Editing Flow (`create_khatm.py`):** Fully connected `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`).
