@@ -1,3 +1,15 @@
+## Current state — 2026-10-13 — Full Codebase Audit, Server Safety Verification & Shutdown Guard [Antigravity]
+- **Subagent Codebase & Routing Audit:**
+  - Audited all Telegram callback_data strings in `src/khatmsaz/bot/keyboards.py` and handlers; confirmed all active patterns (`cs:schedule_set`, `undo:`, `drec:`, `approve_leave:`) are strictly <= 64 bytes and match their handlers.
+  - Audited web forms (`khatm_detail.html` status change, `quran.html` asset save) and confirmed backend endpoints defensively accept both parameter names without HTTP 422 errors.
+  - Audited Bale fallback deep links in `src/khatmsaz/web/app.py` and confirmed proper username integration (`https://ble.ir/{bale_uname}?start=join_{token_str}`).
+  - Audited 30-day Pro plan reminder lifecycle in `src/khatmsaz/modules/plan/`; confirmed non-overlapping time windows for 7-day warning (>24h and <=7d) and 24-hour warning (<=24h).
+- **Server Port Safety (Strict Port 8080 Isolation):**
+  - Verified remote VPS (`91.107.137.22`): KhatmSaz listens ONLY on port `8080` (Uvicorn). Zero foreign ports bound, scanned, or touched; all other server bots remain completely safe.
+- **Logging Engine Python Finalization Guard:**
+  - Added `sys.is_finalizing()` check and exception safety to `TelegramErrorAlertHandler.emit` and `_asyncio_hook` in `src/khatmsaz/core/logging_system.py`, suppressing routine shutdown session collection noise and preventing interpreter teardown crashes.
+- **Validation:** 424 passed in pytest, live service active on VPS with 19 bots polling and APScheduler running once per minute without errors.
+
 ## Current state — 2026-10-13 — Dedicated Admin Bot, Continuous Logging & Error Alerts, Custom La'n Flow (MASTER-12) [Antigravity]
 - **Dedicated Central Admin Bot (`@khatmsaz_admin_bot`, `DEC-PY-0125`):**
   - Isolated `@Khatm_Saz_bot` strictly for creator duties (creating and managing khatms). Even Super Admins see only creator UX in `@Khatm_Saz_bot`.

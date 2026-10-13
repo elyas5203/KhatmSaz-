@@ -1,3 +1,13 @@
+## 2026-10-13 — Antigravity — Full Codebase & Routing Audit, Port Safety Verification & Shutdown Guard
+- **Full Codebase Audit (Subagents 1 & 2):**
+  - Line-by-line verification of all inline keyboard callbacks (`keyboards.py`, `handlers/`) confirming no active callback exceeds the Telegram 64-byte limit.
+  - Verification of web form fields and endpoints in `app.py`, ensuring defense against HTTP 422 errors.
+  - Verification of non-overlapping 7-day and 24-hour expiration reminder queries for the 30-day Pro plan.
+  - Verification of strict port isolation: verified port `8080` is the only port used by KhatmSaz on the remote server; zero foreign ports touched.
+- **Logging Teardown Guard:**
+  - Added `sys.is_finalizing()` check and exception safety to `TelegramErrorAlertHandler.emit` and `_asyncio_hook` in `src/khatmsaz/core/logging_system.py`, suppressing teardown noise and preventing interpreter shutdown crashes.
+- **Validation:** 424 passed in pytest, live service active on VPS with 19 bots polling and APScheduler running cleanly once per minute.
+
 ## 2026-10-13 — Antigravity — Dedicated Admin Bot, Continuous Logging & Error Alerts, Custom La'n Flow (MASTER-12)
 - **Dedicated Central Admin Bot (`@khatmsaz_admin_bot`, `DEC-PY-0125`):**
   - Isolated `@Khatm_Saz_bot` exclusively for creator flows; Super Admin interactions moved to `@khatmsaz_admin_bot` (`8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4`).
