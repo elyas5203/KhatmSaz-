@@ -1,3 +1,11 @@
+## 2026-10-13 — Antigravity — Telegram-to-Bale Media Migration Engine & CLI Pipeline
+- **Master Plan:** Formulated `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and decision `DEC-PY-0118`.
+- **Core Migrator Service (`src/khatmsaz/modules/content/migrator.py`):** Built `TelegramToBaleMigrator` engine streaming Quran 604 pages (images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) directly to a dedicated Bale media storage chat, capturing generated `file_id`s, and registering in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`.
+- **Config & Settings (`src/khatmsaz/config.py`):** Added `bale_media_storage_chat_id` and `telegram_scratch_chat_id`.
+- **CLI Runner Script (`scripts/migrate_telegram_to_bale.py`):** Created standalone terminal migration tool with `--target`, `--limit`, `--delay`, `--dry-run`, and live progress feedback.
+- **Bot Monitoring (`src/khatmsaz/bot/handlers/admin.py`):** Added `/admin_bale_media_status` and `/admin_sync_bale` permission-gated admin commands.
+- **Validation:** Added 7 unit tests in `tests/test_telegram_to_bale_migration.py`. Full non-integration suite `349 passed` cleanly.
+
 ## 2026-10-08 — Antigravity — V3 Wizard Flow Completion, 2-Message Output & Sequential Allocation Priority
 - **Wizard Editing Flow (`create_khatm.py`):** Fully connected `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`).
 - **Split Invite Output (`create_khatm.py`):** Separated `finish_invite_links` output into 2 distinct messages: Message 1 provides creator greeting/management confirmation with persistent reply menu (`main_menu_keyboard(is_creator=True)`). Message 2 provides the ready-to-forward shareable invitation card for members without duplicate "ختم ختم", with proxy niyyat support, clear template and mode labels, and disabled link preview (`LinkPreviewOptions(is_disabled=True)`).

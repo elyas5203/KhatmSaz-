@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     bale_bot_token: str = ""
     bale_api_base_url: str = "https://tapi.bale.ai"
     bale_bot_username: str = ""
+    # Dedicated Bale channel/chat where uploaded media is archived and gets a Bale file_id
+    bale_media_storage_chat_id: int | None = None
+    # Scratch chat/channel in Telegram used to forward and inspect channel posts
+    telegram_scratch_chat_id: int | None = None
 
     admin_web_enabled: bool = True
     admin_web_host: str = "0.0.0.0"

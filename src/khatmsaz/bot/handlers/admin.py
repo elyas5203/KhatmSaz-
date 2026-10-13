@@ -38,6 +38,7 @@ from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanTier, PricingMod
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.advertising import service as advertising_service
 from khatmsaz.modules.content import service as content_service
+from khatmsaz.modules.content.migrator import get_bale_devotional_coverage, get_bale_quran_coverage
 from khatmsaz.modules.content.models import QuranAssetKind
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.system_settings import service as system_settings_service
@@ -261,6 +262,50 @@ async def admin_quran_source_seed(message: Message) -> None:
         f"تصویر: {coverage['image_count']} از ۶۰۴\n"
         f"صوت: {coverage['audio_count']} از ۶۰۴"
     )
+
+
+@router.message(Command("admin_bale_media_status"))
+async def admin_bale_media_status(message: Message) -> None:
+    """Report current media coverage registered for Bale."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.CONTENT_MANAGE):
+        return
+    async with session_scope() as session:
+        cov = await get_bale_quran_coverage(session)
+        dev_cov = await get_bale_devotional_coverage(session)
+    status_emoji = "✅" if cov["ready"] else "⏳"
+    await message.answer(
+        "📊 <b>وضعیت محتوای رسانه‌ای پیام‌رسان بله</b>\n\n"
+        f"📖 <b>قرآن کریم (۶۰۴ صفحه):</b>\n"
+        f"— تصاویر صفحات: {cov['image_count']} از ۶۰۴\n"
+        f"— صوت‌های ترتیل: {cov['audio_count']} از ۶۰۴\n"
+        f"— وضعیت: {status_emoji} {'کامل و آماده تحویل' if cov['ready'] else 'نیازمند همگام‌سازی'}\n\n"
+        f"📿 <b>ادعیه، زیارات و خطبه‌ها:</b>\n"
+        f"— مدیاهای ثبت‌شده بله: {dev_cov['bale_media_count']} از {dev_cov['telegram_media_count']}\n\n"
+        "💡 <i>جهت اجرای همگام‌سازی، از اسکریپت `scripts/migrate_telegram_to_bale.py` استفاده نمایید.</i>"
+    )
+
+
+@router.message(Command("admin_sync_bale"))
+async def admin_sync_bale(message: Message, command: CommandObject) -> None:
+    """Trigger or check Bale sync prerequisite."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.CONTENT_MANAGE):
+        return
+    settings = get_settings()
+    if not settings.bale_media_storage_chat_id:
+        await message.answer(
+            "⚠️ شناسه کانال مخزن رسانه بله (<code>BALE_MEDIA_STORAGE_CHAT_ID</code>) در تنظیمات یا <code>.env</code> مشخص نشده است.\n\n"
+            "ابتدا یک کانال یا گروه در بله ایجاد کنید، ربات بله را در آن ادمین کنید و شناسه‌اش را در فایل تنظیمات ثبت فرمایید."
+        )
+        return
+    await message.answer(
+        "ℹ️ برای اجرای پایدار و بهینهٔ مهاجرت کامل (با نظارت بر پیشرفت و کنترل ترافیک)، "
+        "دستور زیر را در ترمینال سرور اجرا کنید:\n\n"
+        "<code>python scripts/migrate_telegram_to_bale.py --target all</code>\n\n"
+        "وضعیت پیشرفت را می‌توانید از دستور /admin_bale_media_status نیز مشاهده کنید."
+    )
+
 
 
 @router.message(F.forward_origin)

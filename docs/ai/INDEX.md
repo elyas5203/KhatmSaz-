@@ -1,3 +1,11 @@
+## 2026-10-13 — مهاجرت خودکار رسانه‌ها از تلگرام به بله
+- سند مستر: [TELEGRAM_TO_BALE_MIGRATION_MASTER.md](TELEGRAM_TO_BALE_MIGRATION_MASTER.md)
+- تصمیم محصول: DEC-PY-0118 در `DECISIONS.md`.
+- موتور هسته: `src/khatmsaz/modules/content/migrator.py` (`TelegramToBaleMigrator`, `get_bale_quran_coverage`).
+- اسکریپت خط فرمان: `scripts/migrate_telegram_to_bale.py`.
+- دستورات ادمین بات: `/admin_bale_media_status` و `/admin_sync_bale` در `src/khatmsaz/bot/handlers/admin.py`.
+- تست‌ها: `tests/test_telegram_to_bale_migration.py`.
+
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)
 - Sub-specs: [v3_specs/](v3_specs/) (Creator onboarding, commitment vs free, Khutbah cyclic allocation, La'an moderation, Member UI & daily reporting)

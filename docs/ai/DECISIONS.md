@@ -5,6 +5,13 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0118 — Automated cross-platform Telegram-to-Bale media migration pipeline
+
+**Date:** 2026-10-13
+**Owner confirmation:** An automated, memory-efficient migration pipeline streams Quran pages (604 images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) from Telegram to a dedicated Bale storage chat. Captured Bale `file_id` values are registered in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`. Delivery on Bale uses these pre-registered `file_id`s for zero-bandwidth instant delivery. The process is strictly idempotent, throttled for rate-limits, and manageable via CLI (`scripts/migrate_telegram_to_bale.py`) and admin command (`/admin_bale_media_status`). See `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md`.
+
+---
+
 ### DEC-PY-0117 — Quran numeric and scheduled shares
 
 **Date:** 2026-10-05

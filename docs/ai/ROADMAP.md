@@ -1,3 +1,10 @@
+## 2026-10-13 — Automated Telegram-to-Bale media migration pipeline [Antigravity]
+- [x] Publish `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and record decision DEC-PY-0118.
+- [x] Implement core engine `src/khatmsaz/modules/content/migrator.py` with memory-efficient streaming and idempotency.
+- [x] Implement standalone CLI tool `scripts/migrate_telegram_to_bale.py` with dry-run and throttling support.
+- [x] Add in-bot monitoring commands `/admin_bale_media_status` and `/admin_sync_bale` in `src/khatmsaz/bot/handlers/admin.py`.
+- [x] Add 7 unit tests in `tests/test_telegram_to_bale_migration.py`; full suite passes with zero regressions.
+
 ## 2026-10-05 — Full share redesign continuation [Codex]
 - [x] Confirm Quran numeric/regular modes with owner (DEC-PY-0117); implement page-aware flows and numeric reservation links.
 - [x] Execute full PostgreSQL-enabled suite: 437 passed; reviewed additive migration and import/diff checks pass locally.
