@@ -1,3 +1,16 @@
+## 2026-10-13 — Antigravity — Restrict Invite Links to Persian Only (MASTER-16)
+- **Persian-Only Invite Links & Language Step Skip (`MASTER-16`):**
+  - **Single Source of Truth (`invite_links.py`):**
+    - Introduced `ACTIVE_INVITE_LANGUAGES = ("fa",)` restricting default member bot link resolution strictly to Persian.
+    - Updated `build_member_invite_links` to filter out Arabic and English member bots by default.
+    - Simplified `format_invite_lines` to omit redundant language header labels when only one language is present, producing clean direct links under `🔗 لینک‌های شرکت در ختم:`.
+    - Added RTL safety mark `\u200f` for multi-language headers to avoid colon flipping in Telegram/Bale.
+  - **Creation Wizard (`create_khatm.py`):**
+    - Updated `handle_invite_platform` to automatically bypass the redundant language selection step when only Persian is active, immediately finalizing the invitation links.
+    - Filtered available languages in `show_invite_languages_keyboard` to `ACTIVE_INVITE_LANGUAGES`.
+  - Added test suite `tests/test_master_16_persian_only_invite_links.py` and master doc `docs/ai/masters/MASTER_16_RESTRICT_INVITE_LINKS_TO_PERSIAN_ONLY.md`.
+- **Validation:** 441 passed, 230 skipped in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Member Portion Receipt Button & Khatm Disambiguation System (MASTER-15)
 - **Member Portion Receipt & Khatm Disambiguation System (`MASTER-15`):**
   - **Button Copy Refinement (`menu.today`):**

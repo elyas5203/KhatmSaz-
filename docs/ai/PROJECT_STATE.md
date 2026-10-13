@@ -1,3 +1,17 @@
+## Current state — 2026-10-13 — Restrict Invite Links to Persian Only (MASTER-16) [Antigravity]
+- **Persian-Only Invite Links & Language Step Skip (`MASTER-16`):**
+  - Problem diagnosed: When requesting invitation cards (via «🔲 دعوت QR» or wizard finish), Arabic and English member bots were listed under «🇸🇦 :عربی» and «🇬🇧 :انگلیسی», and the creation wizard asked creators to pick languages. The owner requested hiding Arabic and English while active development is focused on Persian.
+  - Solution in `src/khatmsaz/bot/invite_links.py`:
+    - Defined `ACTIVE_INVITE_LANGUAGES = ("fa",)`.
+    - `build_member_invite_links` now filters by `ACTIVE_INVITE_LANGUAGES` by default, excluding Arabic and English bots from invitation cards.
+    - `format_invite_lines` omits the redundant language label header when only one language is present, producing direct, clean links under «🔗 لینک‌های شرکت در ختم:».
+    - `build_web_invite_url` fallback avoids picking non-active language bots.
+  - Solution in `src/khatmsaz/bot/handlers/create_khatm.py`:
+    - `handle_invite_platform` skips the redundant language selection step when only Persian is active, immediately finalizing the invitation links.
+    - `show_invite_languages_keyboard` filters available languages to `ACTIVE_INVITE_LANGUAGES`.
+  - Authored `docs/ai/masters/MASTER_16_RESTRICT_INVITE_LINKS_TO_PERSIAN_ONLY.md` and added test suite `tests/test_master_16_persian_only_invite_links.py`.
+- **Validation:** 441 passed, 230 skipped in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Member Portion Receipt Button & Khatm Disambiguation System (MASTER-15) [Antigravity]
 - **Member Portion Receipt & Khatm Disambiguation System (`MASTER-15`):**
   - **Button Copy Refinement (`menu.today`):**

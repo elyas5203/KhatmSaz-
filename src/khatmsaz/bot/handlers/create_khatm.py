@@ -2089,6 +2089,14 @@ async def handle_invite_platform(callback: CallbackQuery, state: FSMContext) -> 
     plat = callback.data.split(":")[1]
     await state.update_data(selected_invite_platform=plat)
     lang = await _lang(state)
+
+    # Arabic and English member bots are temporarily hidden — skip language step if Persian-only
+    if len(invite_links.ACTIVE_INVITE_LANGUAGES) <= 1:
+        await state.update_data(selected_invite_languages=["fa"])
+        await finish_invite_links(callback.message, state, lang)
+        await callback.answer()
+        return
+
     await state.set_state(CreateKhatm.choosing_invite_languages)
     await show_invite_languages_keyboard(callback, state, lang)
     await callback.answer()
@@ -2114,11 +2122,15 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
             # filter by platform if not ALL
             if plat_choice != "ALL" and getattr(bot, "khatmsaz_platform", None) != Platform(plat_choice):
                 continue
-            available_langs.add(getattr(bot, "khatmsaz_language"))
+            b_lang = getattr(bot, "khatmsaz_language", None)
+            if b_lang in invite_links.ACTIVE_INVITE_LANGUAGES:
+                available_langs.add(b_lang)
             
-    if not available_langs:
-        # Fallback to single-bot if no member bots match
-        await finish_invite_links(message, state, lang)
+    if len(available_langs) <= 1:
+        # Fallback to single-bot or skip if only one language is available
+        await state.update_data(selected_invite_languages=["fa"])
+        target = message if isinstance(message, Message) else message.message
+        await finish_invite_links(target, state, lang)
         return
         
     # Build keyboard
