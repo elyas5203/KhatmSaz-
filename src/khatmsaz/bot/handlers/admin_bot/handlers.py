@@ -262,6 +262,147 @@ async def admin_receipts_handler(event: Message | CallbackQuery) -> None:
         await event.answer()
 
 
+@router.callback_query(F.data.startswith("receipt:approve:"))
+async def approve_receipt_admin_bot(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.resolve_or_provision_user(
+            session, platform, callback.from_user.id
+        )
+        if admin_user.role != UserRole.SUPER_ADMIN:
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim, invoice = await wallet_service.approve_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+        new_balance, new_credit = await wallet_service.get_balances(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n✅ <b>تأیید شد:</b> مبلغ {claim.amount_toman:,} تومان توسط {escape(admin_name)} تأیید و به کیف پول کاربر اضافه گردید."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer(f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
+
+    user_notify_text = (
+        "🎉 <b>واریز شما تأیید شد!</b>\n\n"
+        f"مبلغ <b>{claim.amount_toman:,} تومان</b> با موفقیت به موجودی کیف پول شما افزوده شد 🌱\n\n"
+        f"💰 موجودی فعلی کیف پول: <b>{new_balance:,} تومان</b>"
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            for ident in target_identities:
+                if ident.platform == Platform.TELEGRAM:
+                    await creator_bot.send_message(chat_id=int(ident.subject), text=user_notify_text)
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("receipt:reject:"))
+async def reject_receipt_admin_bot(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.resolve_or_provision_user(
+            session, platform, callback.from_user.id
+        )
+        if admin_user.role != UserRole.SUPER_ADMIN:
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim = await wallet_service.reject_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n❌ <b>رد شد:</b> فیش توسط {escape(admin_name)} رد شد."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer("❌ فیش واریزی رد شد.", show_alert=True)
+
+    user_notify_text = (
+        "❌ <b>عدم تأیید فیش واریزی</b>\n\n"
+        f"متأسفانه فیش واریزی ارسالی شما برای مبلغ <b>{claim.amount_toman:,} تومان</b> مورد تأیید قرار نگرفت.\n"
+        "در صورت کسر وجه از حسابتان، لطفاً با پشتیبانی در ارتباط باشید."
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            for ident in target_identities:
+                if ident.platform == Platform.TELEGRAM:
+                    await creator_bot.send_message(chat_id=int(ident.subject), text=user_notify_text)
+    except Exception:
+        pass
+
+
 # --- La'n Khatms Handlers ---
 
 @router.message(Command("laan"))
