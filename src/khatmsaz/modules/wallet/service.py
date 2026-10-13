@@ -20,9 +20,11 @@ from khatmsaz.modules.wallet.models import (
     DiscountCoupon,
     InvoiceKind,
     InvoiceStatus,
+    ReceiptClaimStatus,
     TxType,
     Wallet,
     WalletInvoice,
+    WalletReceiptClaim,
 )
 from khatmsaz.core.ids import new_id
 
@@ -598,3 +600,89 @@ async def verify_payping_callback_and_credit(
         ref=verification.transaction_ref,
     )
     return verification
+
+
+async def submit_receipt_claim(
+    session: AsyncSession,
+    *,
+    user_id,
+    amount_toman: int,
+    photo_file_id: str,
+    photo_file_id_bale: str | None = None,
+) -> WalletReceiptClaim:
+    if amount_toman <= 0:
+        raise ValueError("amount must be positive")
+    if not photo_file_id:
+        raise ValueError("photo_file_id is required")
+    return await repository.create_receipt_claim(
+        session,
+        user_id=user_id,
+        amount_toman=amount_toman,
+        photo_file_id=photo_file_id,
+        photo_file_id_bale=photo_file_id_bale,
+    )
+
+
+async def get_receipt_claim(
+    session: AsyncSession, claim_id
+) -> WalletReceiptClaim | None:
+    return await repository.get_receipt_claim_by_id(session, claim_id)
+
+
+async def list_pending_receipt_claims(
+    session: AsyncSession, limit: int = 50
+) -> list[WalletReceiptClaim]:
+    return await repository.list_pending_receipt_claims(session, limit=limit)
+
+
+async def approve_receipt_claim(
+    session: AsyncSession,
+    *,
+    claim_id,
+    admin_user_id,
+    admin_note: str | None = None,
+) -> tuple[WalletReceiptClaim, WalletInvoice]:
+    """Approve receipt claim and credit wallet with cash atomically."""
+    now = datetime.now(timezone.utc)
+    claim = await repository.review_receipt_claim(
+        session,
+        claim_id=claim_id,
+        admin_user_id=admin_user_id,
+        status=ReceiptClaimStatus.APPROVED,
+        admin_note=admin_note,
+        now=now,
+    )
+    if claim is None:
+        raise ValueError("claim not found or already processed")
+
+    ref_code = f"RECEIPT-{str(claim.id)[:8]}"
+    invoice = await add_cash(
+        session,
+        claim.user_id,
+        claim.amount_toman,
+        description=f"شارژ کیف پول با فیش واریزی (کد: {str(claim.id)[:8]})",
+        ref=ref_code,
+    )
+    return claim, invoice
+
+
+async def reject_receipt_claim(
+    session: AsyncSession,
+    *,
+    claim_id,
+    admin_user_id,
+    admin_note: str | None = None,
+) -> WalletReceiptClaim:
+    """Reject receipt claim without modifying wallet balances."""
+    now = datetime.now(timezone.utc)
+    claim = await repository.review_receipt_claim(
+        session,
+        claim_id=claim_id,
+        admin_user_id=admin_user_id,
+        status=ReceiptClaimStatus.REJECTED,
+        admin_note=admin_note,
+        now=now,
+    )
+    if claim is None:
+        raise ValueError("claim not found or already processed")
+    return claim

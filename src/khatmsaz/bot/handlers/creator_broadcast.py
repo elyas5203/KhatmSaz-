@@ -98,8 +98,8 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count} نفر\n"
-        "🎁 در پلن رایگان، دو پیام تلگرام/بله برای جمعیت زیر ۱۰۰۰ نفر دارید.\n"
-        "پس از آن برای ادامه، پلن حرفه‌ای لازم است.\n\n"
+        "💳 هزینه ارسال: به ازای هر ۱۰۰۰ نفر یک بسته از کیف پول کسر می‌شود.\n"
+        "⭐ دسترسی به ارسال پیام گروهی ویژهٔ کاربران دارای پلن حرفه‌ای است.\n\n"
     )
     info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
 
@@ -193,12 +193,17 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
             creator_name = creator.display_name if creator and creator.display_name else "نامشخص"
             scope_title = target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده"
     except broadcast_service.plan_service.PlanFeatureUnavailableError:
-        await callback.message.answer("دو پیام رایگان شما مصرف شده یا این پیام ۱۰۰۰ مخاطب و بیشتر دارد؛ برای ادامه پلن حرفه‌ای لازم است.")
+        await callback.message.answer("⭐ ارسال پیام گروهی تنها برای کاربران دارای پلن حرفه‌ای امکان‌پذیر است. لطفاً ابتدا پلن خود را ارتقا دهید.")
         await state.clear()
         await safe_answer_callback(callback)
         return
-    except ValueError:
-        await callback.message.answer("پیام معتبر نیست یا مخاطبی برای آن پیدا نشد.")
+    except broadcast_service.wallet_service.InsufficientFundsError:
+        await callback.message.answer("💳 موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لطفاً ابتدا کیف پول خود را شارژ فرمایید.")
+        await state.clear()
+        await safe_answer_callback(callback)
+        return
+    except ValueError as exc:
+        await callback.message.answer(f"پیام معتبر نیست یا مخاطبی برای آن پیدا نشد ({exc}).")
         await state.clear()
         await safe_answer_callback(callback)
         return
@@ -206,9 +211,9 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
         item=item, creator_name=creator_name, scope_title=scope_title,
     )
     await state.clear()
-    cost_text = "رایگان" if item.cost_toman == 0 else f"{item.cost_toman:,} تومان"
+    cost_text = f"{item.cost_toman:,} تومان"
     await callback.message.answer(
-        f"✅ پیام برای تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 هزینه پس از تأیید: {cost_text}",
+        f"✅ پیام برای بررسی و تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 مبلغ کسر شده از کیف پول: {cost_text}",
         reply_markup=main_menu_keyboard("fa"),
     )
     await safe_answer_callback(callback)

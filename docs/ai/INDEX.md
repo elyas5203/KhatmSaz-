@@ -1,3 +1,6 @@
+## 2026-10-13 — Plans, Broadcast 1000-Tier Pricing, Receipt Upload & Creator Panel Guard Master
+- [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1,000-recipient ceiling tiers, complete removal of free broadcasts, bank receipt upload & admin approval, PayPing direct link architecture & admin-only creator panel guard.
+
 ## 2026-10-11 — Bale Native Markdown Adapter & Clean Tag Rendering Master
 - [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale messenger HTML-to-Markdown conversion engine, low-level `BaleAiohttpSession` request interceptor, removal of unrendered HTML tags across Bale fleet & simplified button-free member daily 14:00 digest.
 
@@ -22,6 +25,7 @@
   - [MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md) — 14:00 member daily progress digest & post-completion motivational progress.
   - [MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md) — Creator panel & web mini-app ground-up redesign, invite link generation, khatm detail tabs, progress bars, zero-error UX.
   - [MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md) — Bale native Markdown engine, `BaleAiohttpSession` interceptor & clean tag rendering.
+  - [MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md) — Broadcast 1000-recipient tier pricing, removal of free broadcasts, bank receipt upload & approval, PayPing direct link, and admin-only creator panel guard.
 - **Bug & Gap Report Master:** [MASTER_BUG_AND_GAP_REPORT.md](MASTER_BUG_AND_GAP_REPORT.md) (16 runtime bugs/dead buttons + 11 Admin Panel gaps).
 
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master

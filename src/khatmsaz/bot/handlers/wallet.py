@@ -6,16 +6,21 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
+from datetime import datetime, timezone
+from uuid import UUID
+
 from khatmsaz.config import get_settings
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform
+from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.settings import service as settings_service
 from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.models import ReceiptClaimStatus
 from khatmsaz.modules.wallet.gateway import GatewayError
 from khatmsaz.modules.wallet.payping import PayPingGateway
+from khatmsaz.bot.keyboards import bail_if_menu_button
 
 router = Router(name="wallet")
 
@@ -39,6 +44,11 @@ class WalletTopup(StatesGroup):
     entering_ref_id = State()
 
 
+class WalletReceiptUpload(StatesGroup):
+    entering_amount = State()
+    uploading_photo = State()
+
+
 async def _lang_for(chat_id, bot) -> str:
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
@@ -47,33 +57,42 @@ async def _lang_for(chat_id, bot) -> str:
         return settings.language
 
 
-def _topup_keyboard(lang: str, *, pro_price: int | None = None) -> InlineKeyboardMarkup:
-    rows = [
-        [
-            InlineKeyboardButton(
-                text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
-                callback_data=f"wallet_topup:{amount}",
-            )
-            for amount in _TOPUP_AMOUNTS[:2]
-        ],
-        [
-            InlineKeyboardButton(
-                text=t("wallet.topup_button", lang, amount=f"{amount // 1000:,}"),
-                callback_data=f"wallet_topup:{amount}",
-            )
-            for amount in _TOPUP_AMOUNTS[2:]
-        ],
-        [InlineKeyboardButton(text=t("wallet.topup_custom_button", lang), callback_data="wallet_topup_custom")],
-    ]
+def _topup_keyboard(lang: str, *, pro_price: int | None = None, is_pro: bool = False) -> InlineKeyboardMarkup:
+    rows = []
     if pro_price is not None and pro_price > 0:
+        btn_text = (
+            f"🔄 تمدید پلن حرفه‌ای ۳۰ روزه ({pro_price:,} تومان)"
+            if is_pro
+            else f"⭐ ارتقا به پلن حرفه‌ای ۳۰ روزه ({pro_price:,} تومان)"
+        )
         rows.append(
             [
                 InlineKeyboardButton(
-                    text=f"⭐ ارتقا به پلن ویژه و حذف تبلیغات ({pro_price:,} تومان)",
+                    text=btn_text,
                     callback_data="wallet:buy_pro",
                 )
             ]
         )
+    rows.extend([
+        [
+            InlineKeyboardButton(
+                text="💳 افزایش موجودی (کارت به کارت / لینک مستقیم)",
+                callback_data="wallet:topup_info",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="📸 ارسال تصویر فیش واریز",
+                callback_data="wallet:receipt_upload",
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="🧾 سوابق تراکنش‌ها و فاکتورها",
+                callback_data="wallet:invoices",
+            )
+        ],
+    ])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -115,14 +134,19 @@ async def _show_wallet(message: Message) -> None:
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         balance, credit = await wallet_service.get_balances(session, user.id)
-        plan = await plan_service.get_plan(session, user.id)
-        if plan.value != "PRO":
-            pro_price = await plan_service.get_pro_plan_price(session)
+        plan_details = await plan_service.get_plan_details(session, user.id)
+        pro_price = await plan_service.get_pro_plan_price(session)
 
+    plan = plan_details["plan"]
     plan_label = t(_PLAN_LABEL_KEYS.get(plan.value, ""), lang) if plan.value in _PLAN_LABEL_KEYS else plan.value
+    overview_text = t("wallet.overview", lang, balance=f"{balance:,}", credit=f"{credit:,}", plan=plan_label)
+    if plan == PlanTier.PRO:
+        days_left = plan_details.get("days_left") or 0
+        overview_text += f"\n⏳ <b>اعتبار پلن حرفه‌ای:</b> {days_left} روز باقی‌مانده\n<i>(با تمدید، ۳۰ روز کامل به مهلت فعلی اضافه می‌شود)</i>"
+
     await message.answer(
-        t("wallet.overview", lang, balance=f"{balance:,}", credit=f"{credit:,}", plan=plan_label),
-        reply_markup=_topup_keyboard(lang, pro_price=pro_price),
+        overview_text,
+        reply_markup=_topup_keyboard(lang, pro_price=pro_price, is_pro=(plan == PlanTier.PRO)),
     )
 
 
@@ -134,17 +158,23 @@ async def buy_pro_from_wallet(callback: CallbackQuery) -> None:
             user = await identity_service.resolve_or_provision_user(
                 session, platform, callback.message.chat.id
             )
-            await plan_service.purchase_pro_plan(session, user.id)
+            prev_plan = await plan_service.get_plan(session, user.id)
+            invoice, new_expiry = await plan_service.purchase_pro_plan(session, user.id)
     except wallet_service.InsufficientFundsError:
         await callback.answer(
-            "موجودی کیف پول شما برای خرید پلن ویژه کافی نیست. ابتدا کیف پول خود را شارژ کنید.",
+            "موجودی کیف پول شما برای خرید یا تمدید پلن حرفه‌ای کافی نیست. ابتدا کیف پول خود را شارژ کنید.",
             show_alert=True,
         )
         return
     except Exception as exc:
         await callback.answer(str(exc), show_alert=True)
         return
-    await callback.answer("🎉 پلن شما با موفقیت به ویژه (PRO) ارتقا یافت!", show_alert=True)
+
+    if prev_plan == PlanTier.PRO:
+        msg = "🎉 پلن حرفه‌ای شما با موفقیت برای ۳۰ روز دیگر تمدید شد!"
+    else:
+        msg = "🎉 پلن شما با موفقیت به حرفه‌ای (PRO) ۳۰ روزه ارتقا یافت!"
+    await callback.answer(msg, show_alert=True)
     await _show_wallet(callback.message)
 
 
@@ -383,4 +413,277 @@ async def receive_ref_id_for_verification(message: Message, state: FSMContext) -
         t("wallet.check_success", lang, amount=f"{credited_amount:,}", ref=normalized_ref)
     )
     await _show_wallet(message)
+
+
+@router.callback_query(F.data == "wallet:topup_info")
+async def show_topup_info(callback: CallbackQuery) -> None:
+    settings = get_settings()
+    direct_link = getattr(settings, "payping_direct_url", None) or "https://payping.ir/@khatmsaz"
+    card_number = getattr(settings, "admin_card_number", None) or "۶۰۳۷-۹۹۷۵-۹۹۹۹-۹۹۹۹"
+    card_holder = getattr(settings, "admin_card_holder", None) or "خدمتگزاران"
+
+    text = (
+        "💳 <b>افزایش موجودی کیف پول</b>\n\n"
+        "جهت شارژ حساب خود، می‌توانید مبلغ مورد نظر را از یکی از روش‌های زیر واریز فرمایید:\n\n"
+        f"🔗 <b>لینک پرداخت مستقیم شاپرک:</b>\n{direct_link}\n\n"
+        f"💳 <b>شماره کارت بانکی:</b>\n<code>{card_number}</code>\n"
+        f"به نام: <b>{card_holder}</b>\n\n"
+        "🌱 <b>پس از واریز:</b> لطفاً روی دکمهٔ «📸 ارسال تصویر فیش واریز» در زیر کلیک کرده و عکس فیش خود را ارسال فرمایید تا پس از بررسی مدیریت، حساب شما به صورت خودکار شارژ گردد."
+    )
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📸 ارسال تصویر فیش واریز", callback_data="wallet:receipt_upload")],
+            [InlineKeyboardButton(text="🔙 بازگشت به کیف پول", callback_data="wallet:open")],
+        ]
+    )
+    await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "wallet:receipt_upload")
+async def start_receipt_upload(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    await state.set_state(WalletReceiptUpload.entering_amount)
+    await state.update_data(lang=lang)
+    await callback.message.answer(
+        "لطفاً مبلغ واریزشده را به تومان وارد فرمایید (مثلاً ۵۰,۰۰۰):\n\n"
+        "(برای انصراف /cancel بزنید)"
+    )
+    await callback.answer()
+
+
+@router.message(WalletReceiptUpload.entering_amount)
+async def receive_receipt_amount(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+
+    text = (message.text or "").strip()
+    if text.lower() in ("/cancel", "cancel", "انصراف"):
+        await state.clear()
+        await message.answer("ارسال فیش واریزی لغو شد.")
+        return
+
+    raw = text.replace(",", "").replace("٬", "")
+    raw = raw.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+    if not raw.isdigit():
+        await message.answer("لطفاً مبلغ را فقط به صورت عدد (ارقام) به تومان ارسال فرمایید:")
+        return
+
+    amount = int(raw)
+    if amount < 5_000 or amount > 100_000_000:
+        await message.answer("مبلغ باید بین ۵,۰۰۰ تا ۱۰۰,۰۰۰,۰۰۰ تومان باشد. لطفاً مبلغ معتبر وارد فرمایید:")
+        return
+
+    await state.update_data(amount_toman=amount)
+    await state.set_state(WalletReceiptUpload.uploading_photo)
+    await message.answer(
+        f"مبلغ اعلام‌شده: <b>{amount:,} تومان</b>\n\n"
+        "لطفاً تصویر یا عکس رسید پرداخت (فیش واریزی) را ارسال فرمایید:\n"
+        "(برای انصراف /cancel بزنید)"
+    )
+
+
+@router.message(WalletReceiptUpload.uploading_photo)
+async def receive_receipt_photo(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+
+    if message.text and message.text.lower() in ("/cancel", "cancel", "انصراف"):
+        await state.clear()
+        await message.answer("ارسال فیش واریزی لغو شد.")
+        return
+
+    photo_file_id = None
+    if message.photo:
+        photo_file_id = message.photo[-1].file_id
+    elif message.document and (message.document.mime_type or "").startswith("image/"):
+        photo_file_id = message.document.file_id
+
+    if not photo_file_id:
+        await message.answer("لطفاً تصویر واضح فیش واریزی یا اسکرین‌شات رسید را به صورت عکس ارسال فرمایید:")
+        return
+
+    data = await state.get_data()
+    amount_toman = data["amount_toman"]
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
+        claim = await wallet_service.submit_receipt_claim(
+            session,
+            user_id=user.id,
+            amount_toman=amount_toman,
+            photo_file_id=photo_file_id,
+        )
+        user_display = user.display_name or str(message.chat.id)
+
+    await state.clear()
+    await message.answer(
+        "✅ <b>فیش واریزی شما با موفقیت ثبت شد.</b>\n\n"
+        f"💰 مبلغ اعلام‌شده: <b>{amount_toman:,} تومان</b>\n"
+        f"🆔 کد رهگیری: <code>{str(claim.id)[:8]}</code>\n\n"
+        "پس از بررسی و تأیید توسط مدیریت، کیف پول شما به صورت خودکار شارژ خواهد شد 🌱"
+    )
+
+    # Push to Super Admins in Telegram
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    admin_caption = (
+        "🧾 <b>درخواست جدید شارژ کیف پول (فیش واریزی)</b>\n\n"
+        f"👤 <b>کاربر:</b> {user_display} (شناسه: <code>{user.id}</code>)\n"
+        f"💰 <b>مبلغ اعلام‌شده:</b> <b>{amount_toman:,} تومان</b>\n"
+        f"📅 <b>زمان ثبت:</b> {now_str}\n"
+        f"🆔 <b>کد رهگیری:</b> <code>{claim.id}</code>\n\n"
+        "لطفاً پس از تطبیق با حساب بانکی، وضعیت را تعیین فرمایید:"
+    )
+    admin_markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=f"✅ تأیید و افزایش اعتبار: {amount_toman:,} تومان",
+                    callback_data=f"receipt:approve:{claim.id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="❌ رد فیش واریزی",
+                    callback_data=f"receipt:reject:{claim.id}",
+                )
+            ],
+        ]
+    )
+
+    settings = get_settings()
+    admin_ids = [v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()]
+    for admin_chat_id in admin_ids:
+        try:
+            if message.photo:
+                await message.bot.send_photo(
+                    chat_id=int(admin_chat_id),
+                    photo=photo_file_id,
+                    caption=admin_caption,
+                    reply_markup=admin_markup,
+                )
+            else:
+                await message.bot.send_message(
+                    chat_id=int(admin_chat_id),
+                    text=admin_caption,
+                    reply_markup=admin_markup,
+                )
+        except Exception:
+            pass
+
+
+@router.callback_query(F.data.startswith("receipt:approve:"))
+async def approve_receipt_callback(callback: CallbackQuery) -> None:
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.find_by_platform(
+            session, platform, str(callback.from_user.id)
+        )
+        if admin_user is None or admin_user.role != UserRole.SUPER_ADMIN:
+            await callback.answer("شما دسترسی مدیریت برای تأیید این فیش را ندارید.", show_alert=True)
+            return
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim, invoice = await wallet_service.approve_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+        new_balance, new_credit = await wallet_service.get_balances(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n✅ <b>تأیید شد:</b> مبلغ {claim.amount_toman:,} تومان توسط {admin_name} تأیید و به کیف پول کاربر اضافه گردید."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer(f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
+
+    user_notify_text = (
+        "🎉 <b>واریز شما تأیید شد!</b>\n\n"
+        f"مبلغ <b>{claim.amount_toman:,} تومان</b> با موفقیت به موجودی کیف پول شما افزوده شد 🌱\n\n"
+        f"💰 موجودی فعلی کیف پول: <b>{new_balance:,} تومان</b>"
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("receipt:reject:"))
+async def reject_receipt_callback(callback: CallbackQuery) -> None:
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.find_by_platform(
+            session, platform, str(callback.from_user.id)
+        )
+        if admin_user is None or admin_user.role != UserRole.SUPER_ADMIN:
+            await callback.answer("شما دسترسی مدیریت ندارید.", show_alert=True)
+            return
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim = await wallet_service.reject_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n❌ <b>رد شد:</b> فیش توسط {admin_name} رد شد."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer("❌ فیش واریزی رد شد.", show_alert=True)
+
+    user_notify_text = (
+        "❌ <b>عدم تأیید فیش واریزی</b>\n\n"
+        f"متأسفانه فیش واریزی ارسالی شما برای مبلغ <b>{claim.amount_toman:,} تومان</b> مورد تأیید قرار نگرفت.\n"
+        "در صورت کسر وجه از حسابتان، لطفاً با پشتیبانی در ارتباط باشید."
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
 

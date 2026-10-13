@@ -310,8 +310,12 @@ async def _creator(request: Request):
         user = await session_service.authenticate_creator(session, raw)
         lang = "fa"
         if user is not None:
-            settings = await settings_service.get_or_create(session, user.id)
-            lang = settings.language
+            # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+            if user.role != UserRole.SUPER_ADMIN:
+                user = None
+            else:
+                settings = await settings_service.get_or_create(session, user.id)
+                lang = settings.language
     return user, raw, lang
 
 
@@ -804,9 +808,14 @@ async def _authenticate_telegram_mini_app(request: Request, init_data: str, *, p
                 raw_token = await session_service.issue_admin_session(session, user)
                 destination, cookie_name, cookie_path = "/", COOKIE_NAME, "/"
             else:
-                if user.role not in {UserRole.CREATOR, UserRole.SUPER_ADMIN}:
-                    user.role = UserRole.CREATOR
-                    await session.flush()
+                # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+                if user.role != UserRole.SUPER_ADMIN:
+                    return _mini_app_page(
+                        request,
+                        purpose=purpose,
+                        error="پنل سازندگان در حال حاضر در دست به‌روزرسانی است و تنها برای مدیر سامانه فعال می‌باشد.",
+                        status_code=403,
+                    )
                 raw_token = await session_service.issue_creator_session(session, user)
                 destination, cookie_name, cookie_path = "/creator", CREATOR_COOKIE_NAME, "/creator"
         except PermissionError:
@@ -903,6 +912,7 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
     title = definition.title if definition and definition.title else fallback
     total_members = await plan_service.count_total_active_members(session, user_id)
     total_cap = await plan_service.get_free_total_member_cap(session)
+    details = await plan_service.get_plan_details(session, user_id)
     view = {
         "tier": plan.value,
         "title": title,
@@ -912,6 +922,8 @@ async def _creator_plan_view(session, user_id, lang: str) -> dict:
         "ads_shown": await plan_service.ads_enabled_for_creator(session, user_id),
         "total_members": total_members,
         "total_cap": total_cap,
+        "expires_at": details.get("expires_at"),
+        "days_left": details.get("days_left"),
         "caps": None,
     }
     return view

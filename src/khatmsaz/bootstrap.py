@@ -335,6 +335,28 @@ async def main() -> None:
             await conn.execute(text("ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS creator_daily_report_enabled BOOLEAN DEFAULT TRUE"))
             await conn.execute(text("ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS last_member_daily_digest_date VARCHAR(10)"))
             await conn.execute(text("ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS member_daily_digest_enabled BOOLEAN DEFAULT TRUE"))
+            await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS wallet_receipt_claims (
+                    id UUID PRIMARY KEY,
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    amount_toman INTEGER NOT NULL,
+                    photo_file_id VARCHAR(255) NOT NULL,
+                    photo_file_id_bale VARCHAR(255),
+                    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                    admin_user_id UUID REFERENCES users(id),
+                    admin_note VARCHAR(500),
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    reviewed_at TIMESTAMP WITH TIME ZONE
+                );
+                CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_user ON wallet_receipt_claims(user_id);
+                CREATE INDEX IF NOT EXISTS ix_wallet_receipt_claims_status ON wallet_receipt_claims(status);
+
+                ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP WITH TIME ZONE NULL;
+                ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_7d BOOLEAN DEFAULT FALSE;
+                ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS reminded_24h BOOLEAN DEFAULT FALSE;
+                ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS expired_notified BOOLEAN DEFAULT FALSE;
+                CREATE INDEX IF NOT EXISTS ix_user_plans_plan_expires ON user_plans(plan, expires_at);
+            """))
     except Exception as exc:
         logger.debug("Database schema self-heal check: %s", exc)
 
@@ -363,6 +385,9 @@ async def main() -> None:
                 await sms_subscription_service.process_expired(session, notify)
             async with session_scope() as session:
                 await wallet_service.cleanup_expired_pending_payments(session)
+            async with session_scope() as session:
+                from khatmsaz.modules.plan import service as plan_service
+                await plan_service.process_plan_expirations_and_reminders(session, notify)
         except Exception as exc:
             runtime_status.mark_scan_failed(exc)
             raise

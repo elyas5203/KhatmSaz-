@@ -1,3 +1,18 @@
+## 2026-10-13 — Antigravity — Broadcast Tier Pricing, Bank Receipt Flow, Creator Panel Guard & 30-Day Pro Plan Lifecycle (MASTER-10)
+- **30-Day PRO Plan Lifecycle & Additive Renewal (`DEC-PY-0122`):**
+  1. Configured PRO plan duration to 30 days (`_PRO_PLAN_DURATION_DAYS = 30`).
+  2. Implemented additive renewal: purchasing or renewing while active extends `expires_at` by 30 days additively, preserving all remaining days.
+  3. Pre-lapse automated reminders: 7-day warning and 24-hour warning sent to user via their bot platform.
+  4. Automatic downgrade upon lapse: expired PRO plans lapse to FREE (or BASIC if audience > cap), notifying the user.
+  5. Background job: `plan_service.process_plan_expirations_and_reminders` scheduled every minute in `_run_reminder_scan`, with lazy fallback evaluation in `get_plan`.
+  6. Added Alembic migration `proplan2026101302_pro_plan_duration_and_reminders.py` and self-healing schema additions.
+- **Broadcast 1000-Tier Pricing & Receipt Flow (`DEC-PY-0121`):**
+  1. Broadcast 1,000-recipient tier pricing (`ceil(audience/1000)` packages), complete removal of free broadcast quotas, and removal of broadcast entitlements from Basic plan.
+  2. PayPing Direct Link analysis: Clarified that PayPing API requires `returnUrl` (callback), while creating a single product with "تعیین قیمت توسط مشتری" or using personal PayPing ID provides a direct open-amount payment link with zero callback dependencies.
+  3. Bank receipt upload architecture (`wallet_receipt_claims` table, bot FSM receipt upload, admin push notification with 1-click inline approve/reject buttons, and automated wallet balance credit).
+  4. Restricting creator panel access exclusively to `SUPER_ADMIN` users in bot menus and web routes.
+- **Decisions Recorded:** Added `DEC-PY-0121` and `DEC-PY-0122` to `docs/ai/DECISIONS.md` and updated `docs/ai/INDEX.md`, `docs/ai/PROJECT_STATE.md`, and `docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`.
+
 ## 2026-10-11 — Antigravity — Post-Completion Two-Message Flow (Confirmation + Invite Link & Progress Report) & MASTER-07 Update
 - **Two Separate Post-Completion Messages (`DEC-PY-0120`):** Updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md`, `src/khatmsaz/bot/handlers/member_commitment.py`, and `src/khatmsaz/bot/handlers/portions.py` so that clicking the portion completion button sends **two separate messages**: Message 1 (Confirmation + Khatm Invite Link via `_invite_friends_line`) followed immediately by Message 2 (standalone Progress Report via `build_motivational_progress_snippet`).
 - **Removed "Read Another Portion" Button & 14:00 Member Broadcast:** Removed the `[📖 خواندن یک سهم دیگر]` inline button from post-completion messages. Disconnected `deliver_member_daily_digests` from `src/khatmsaz/modules/reminder_engine/service.py:run_once` so members receive the progress report immediately after completing their share instead of a scheduled 14:00 broadcast.

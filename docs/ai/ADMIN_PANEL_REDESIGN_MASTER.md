@@ -35,7 +35,8 @@ flowchart TD
 7. 📙 **[مستر فرزند ۰۷ — خلاصه روزانه اعضا در ساعت ۱۴ و موتور پیشرفت انگیزشی](masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md)**
 8. 🎛 **[مستر فرزند ۰۸ — معماری، بازطراحی و تجربهٔ کاربری پنل سازندگان ختم](masters/MASTER_08_CREATOR_PANEL_AND_USER_EXPERIENCE.md)**
 9. 📱 **[مستر فرزند ۰۹ — مبدل مارک‌داون بله و سازگاری پیام‌رسان بله در ناوگان ربات‌ها](masters/MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md)**
-10. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
+10. 💰 **[مستر فرزند ۱۰ — مهندسی مجدد پیام‌های گروهی، بسته‌های ۱۰۰۰ نفری، شارژ با فیش بانکی/پی‌پینگ مستقیم و قفل پنل سازندگان](masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md)**
+11. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
 
 ---
 

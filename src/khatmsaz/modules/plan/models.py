@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -54,4 +54,14 @@ class UserPlan(Base):
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    # Owner request (2026-10-13 / MASTER-10): PRO plan has a 30-day duration,
+    # extendable additively on renewal, reverting to FREE/BASIC upon lapse.
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reminded_7d: Mapped[bool] = mapped_column(Boolean, default=False)
+    reminded_24h: Mapped[bool] = mapped_column(Boolean, default=False)
+    expired_notified: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    __table_args__ = (
+        Index("ix_user_plans_plan_expires", "plan", "expires_at"),
     )

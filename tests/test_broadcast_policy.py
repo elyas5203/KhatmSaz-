@@ -9,53 +9,55 @@ from khatmsaz.modules.plan.models import PlanTier
 
 
 @pytest.mark.asyncio
-async def test_submit_all_targets_uses_first_two_lifetime_digital_messages(monkeypatch):
+async def test_submit_requires_pro_plan(monkeypatch):
     creator_id = uuid4()
-    created = SimpleNamespace()
     monkeypatch.setattr(service, "audience_user_ids", AsyncMock(return_value=[uuid4(), uuid4()]))
-    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(3, 12_000)))
-    monkeypatch.setattr(repository, "count_lifetime_digital_for_creator", AsyncMock(return_value=1))
     monkeypatch.setattr(service.plan_service, "get_plan", AsyncMock(return_value=PlanTier.FREE))
+
+    with pytest.raises(service.plan_service.PlanFeatureUnavailableError):
+        await service.submit(
+            object(), khatm_id=None, creator_user_id=creator_id,
+            body="سلام اعضای عزیز", channel="BALE",
+        )
+
+
+@pytest.mark.asyncio
+async def test_pro_plan_charged_per_1000_recipients_from_wallet(monkeypatch):
+    creator_id = uuid4()
+    # 2 recipients = 1 package of 1000
+    monkeypatch.setattr(service, "audience_user_ids", AsyncMock(return_value=[uuid4(), uuid4()]))
+    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(0, 50_000)))
+    monkeypatch.setattr(service.plan_service, "get_plan", AsyncMock(return_value=PlanTier.PRO))
+    mock_spend = AsyncMock()
+    monkeypatch.setattr(service.wallet_service, "spend", mock_spend)
+    created = SimpleNamespace()
     create = AsyncMock(return_value=created)
     monkeypatch.setattr(repository, "create", create)
 
     result = await service.submit(
         object(), khatm_id=None, creator_user_id=creator_id,
-        body="سلام اعضای عزیز", channel="BALE",
+        body="پیام گروهی", channel="BALE",
     )
-
     assert result is created
-    kwargs = create.await_args.kwargs
-    assert kwargs["target_scope"] == "ALL"
-    assert kwargs["channel"] == "BALE"
-    assert kwargs["audience_count"] == 2
-    assert kwargs["cost_toman"] == 0
+    assert mock_spend.await_count == 1
+    assert mock_spend.await_args.kwargs["amount"] == 50_000
+    assert create.await_args.kwargs["cost_toman"] == 50_000
 
 
 @pytest.mark.asyncio
-async def test_third_digital_message_requires_pro_and_pro_is_unlimited(monkeypatch):
+async def test_sms_is_paid_per_tier(monkeypatch):
+    creator_id = uuid4()
     monkeypatch.setattr(service, "audience_user_ids", AsyncMock(return_value=[uuid4()]))
-    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(3, 12_000)))
-    monkeypatch.setattr(repository, "count_lifetime_digital_for_creator", AsyncMock(return_value=2))
-    monkeypatch.setattr(service.plan_service, "get_plan", AsyncMock(return_value=PlanTier.FREE))
-    with pytest.raises(service.plan_service.PlanFeatureUnavailableError):
-        await service.submit(object(), khatm_id=None, creator_user_id=uuid4(), body="سوم", channel="TELEGRAM")
-
+    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(0, 100_000)))
     monkeypatch.setattr(service.plan_service, "get_plan", AsyncMock(return_value=PlanTier.PRO))
+    mock_spend = AsyncMock()
+    monkeypatch.setattr(service.wallet_service, "spend", mock_spend)
     create = AsyncMock(return_value=SimpleNamespace())
     monkeypatch.setattr(repository, "create", create)
-    await service.submit(object(), khatm_id=None, creator_user_id=uuid4(), body="سوم", channel="BALE")
-    assert create.await_args.kwargs["cost_toman"] == 0
 
-
-@pytest.mark.asyncio
-async def test_sms_is_paid_from_first_message(monkeypatch):
-    monkeypatch.setattr(service, "audience_user_ids", AsyncMock(return_value=[uuid4()]))
-    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(0, 15_000)))
-    create = AsyncMock(return_value=SimpleNamespace())
-    monkeypatch.setattr(repository, "create", create)
-    await service.submit(object(), khatm_id=None, creator_user_id=uuid4(), body="پیامک", channel="SMS")
-    assert create.await_args.kwargs["cost_toman"] == 15_000
+    await service.submit(object(), khatm_id=None, creator_user_id=creator_id, body="پیامک", channel="SMS")
+    assert mock_spend.await_args.kwargs["amount"] == 100_000
+    assert create.await_args.kwargs["cost_toman"] == 100_000
 
 
 @pytest.mark.asyncio

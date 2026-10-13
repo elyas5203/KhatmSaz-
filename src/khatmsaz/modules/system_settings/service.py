@@ -19,12 +19,12 @@ KNOWN_SETTINGS: dict[str, dict] = {
         "default": 30, "min": 1, "max": 365,
         "label_fa": "تعداد روز عدم‌فعالیت قبل از واگذاری سهم قرآن به یار ذخیره",
     },
-    "broadcast_telegram_free_count": {"default": 3, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان تلگرام در ۷ روز"},
-    "broadcast_telegram_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر پیام تلگرام پس از سهمیه"},
-    "broadcast_bale_free_count": {"default": 3, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان بله در ۷ روز"},
-    "broadcast_bale_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر پیام بله پس از سهمیه"},
-    "broadcast_sms_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیامک رایگان در ۷ روز"},
-    "broadcast_sms_price_toman": {"default": 0, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر ارسال گروهی پیامک پس از سهمیه"},
+    "broadcast_telegram_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان تلگرام (منسوخ)"},
+    "broadcast_telegram_price_toman": {"default": 50_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیام تلگرام"},
+    "broadcast_bale_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیام رایگان بله (منسوخ)"},
+    "broadcast_bale_price_toman": {"default": 50_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیام بله"},
+    "broadcast_sms_free_count": {"default": 0, "min": 0, "max": 1000, "label_fa": "تعداد پیامک رایگان (منسوخ)"},
+    "broadcast_sms_price_toman": {"default": 100_000, "min": 0, "max": 100_000_000, "label_fa": "هزینه هر بسته ۱۰۰۰ نفری پیامک"},
 }
 
 KNOWN_STRING_SETTINGS = {

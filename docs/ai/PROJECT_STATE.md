@@ -1,3 +1,25 @@
+## Current state — 2026-10-13 — Broadcast Tier Pricing, Bank Receipt Flow, Creator Panel Guard & 30-Day Pro Plan Lifecycle (MASTER-10) [Antigravity]
+- **30-Day PRO Plan Lifecycle & Additive Renewal (`DEC-PY-0122`):**
+  - Configured PRO plan to have a 30-day duration (`_PRO_PLAN_DURATION_DAYS = 30`).
+  - Added additive renewal logic: purchasing or renewing an active PRO plan adds 30 days to the current `expires_at`, preserving all remaining days.
+  - Implemented pre-lapse automated warnings:
+    - **7 days before expiration:** Bot sends a friendly reminder with remaining days and renewal prompt.
+    - **24 hours before expiration:** Bot sends an alert highlighting that only 24 hours remain before returning to standard tier.
+  - Automated downgrade on expiration: users whose PRO plan expires are automatically returned to `FREE` (or `BASIC` if audience exceeds cap) and receive an expiration notification.
+  - Scheduled scanning via AsyncIOScheduler (`process_plan_expirations_and_reminders`) running every minute alongside reminder scans, plus lazy fallback evaluation in `get_plan`.
+  - Added Alembic migration `proplan2026101302_pro_plan_duration_and_reminders.py` and startup self-heal.
+- **Plans & Broadcast Pricing Architecture (`DEC-PY-0121`):**
+  - Clarified that PRO plan does not include unlimited broadcasts. Broadcasts cost `ceil(audience / 1000) * price_per_1000`. Free quotas (2 free messages) are completely abolished. Basic plan excludes broadcast capabilities.
+- **Bank Receipt Upload & PayPing Direct Link Architecture:**
+  - Researched PayPing API vs Direct Products/Links. Confirmed that PayPing API requires `returnUrl` (making it unsuitable for timeout-prone mobile networks without server callbacks), whereas creating a single product with «تعیین قیمت توسط مشتری» (Open Price) generates a direct payment link (`payping.ir/d/...` or `payping.ir/@Username`) where users enter any amount and receive a bank tracking code.
+  - Implemented Bank Receipt Upload FSM flow where users submit their payment receipt photo and amount in the bot; this is forwarded to super admins with inline approve/reject buttons to credit the user's wallet with one click.
+- **Admin-Only Guard for Creator Web Panel:**
+  - Guarded `/creator/*` and `/mini/creator/*` routes and in-bot creator panel launch buttons so that only `SUPER_ADMIN` users can access the creator panel during its ongoing development.
+- **Validation:** 35 passed in comprehensive regression suite (`test_pro_plan_duration_and_reminders.py`, `test_pro_plan_purchase.py`, `test_master_10_broadcast_receipt_and_creator_guard.py`, `test_broadcast_policy.py`, `test_member_daily_digest.py`, `test_wallet_check_button.py`).
+- **Master Documentation:**
+  - Authored and updated `docs/ai/masters/MASTER_10_PLANS_BROADCAST_RECEIPT_PAYMENT_AND_CREATOR_PANEL_GUARD.md`.
+  - Updated `docs/ai/INDEX.md`, `docs/ai/ADMIN_PANEL_REDESIGN_MASTER.md`, and recorded `DEC-PY-0121` and `DEC-PY-0122` in `docs/ai/DECISIONS.md`.
+
 ## Current state — 2026-10-11 — Post-Completion Two-Message Flow (Confirmation + Invite Link & Progress Report) & MASTER-07 Update [Antigravity]
 - **Two Separate Post-Completion Messages (`DEC-PY-0120`):**
   - Updated `docs/ai/masters/MASTER_07_MEMBER_DAILY_DIGEST_AND_MOTIVATIONAL_PROGRESS.md` to specify two distinct messages upon completing a portion:

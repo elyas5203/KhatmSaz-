@@ -496,8 +496,9 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     buttons = []
     if is_creator or is_admin:
         buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
-        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
     if is_admin:
+        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
         buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
     buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)

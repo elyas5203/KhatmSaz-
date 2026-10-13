@@ -24,12 +24,12 @@
 {% if error == 'plan_required' %}
 <div class="mb-6 p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs sm:text-sm font-bold flex items-center gap-2">
   <svg class="h-5 w-5 text-amber-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-  <span>دو ارسال رایگان شما مصرف شده است یا تعداد مخاطبان بیش از ۱۰۰۰ نفر می‌باشد؛ برای ادامه نیاز به پلن حرفه‌ای دارید. <a href="/creator/wallet" class="underline mr-1 text-white">ارتقای پلن</a></span>
+  <span>ارسال پیام گروهی ویژهٔ پلن حرفه‌ای و مشروط به موجودی کافی در کیف پول است. <a href="/creator/wallet" class="underline mr-1 text-white">ارتقای پلن / شارژ کیف پول</a></span>
 </div>
 {% elif error %}
 <div class="mb-6 p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs sm:text-sm font-bold flex items-center gap-2">
   <svg class="h-5 w-5 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-  <span>اطلاعات پیام معتبر نیست یا مخاطبی برای ارسال یافت نشد.</span>
+  <span>اطلاعات پیام معتبر نیست، موجودی کیف پول کافی نمی‌باشد یا مخاطبی یافت نشد.</span>
 </div>
 {% endif %}
 
@@ -42,8 +42,8 @@
     <p class="font-bold text-white mb-0.5">نکات مهم در ارسال پیام به شرکت‌کنندگان:</p>
     <ul class="list-disc list-inside space-y-1 text-slate-400">
       <li>پیام‌های ارسالی فقط به اعضایی می‌رسد که در ختم‌های شخص شما عضو هستند.</li>
-      <li>تمام سازندگان دارای <strong>۲ پیام گروهی رایگان</strong> در تلگرام و بله می‌باشند.</li>
-      <li>جهت حفظ اخلاق و امنیت کاربران، متن پیام پیش از ارسال به تایید مدیر محتوا می‌رسد.</li>
+      <li>هزینهٔ ارسال به ازای هر ۱۰۰۰ مخاطب (بسته‌ای) از موجودی کیف پول کسر می‌شود.</li>
+      <li>جهت حفظ اخلاق و امنیت کاربران، متن پیام پیش از ارسال به تأیید مدیر محتوا می‌رسد.</li>
     </ul>
   </div>
 </div>
@@ -85,9 +85,9 @@
     <div>
       <label class="block text-xs font-bold text-slate-300 mb-2">روش و بستر ارسال پیام</label>
       <select name="channel" class="input-field" required>
-        <option value="TELEGRAM">ربات تلگرام — رایگان (جزو سهمیه ۲ پیام)</option>
-        <option value="BALE">پیام‌رسان بله — رایگان (جزو سهمیه ۲ پیام)</option>
-        <option value="SMS">پیامک متنی به شماره موبایل — {{ '{:,}'.format(policies.SMS[1]) }} تومان به ازای هر پیامک</option>
+        <option value="TELEGRAM">ربات تلگرام — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.TELEGRAM[1] or 50000) }} تومان</option>
+        <option value="BALE">پیام‌رسان بله — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.BALE[1] or 50000) }} تومان</option>
+        <option value="SMS">پیامک متنی به شماره موبایل — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.SMS[1] or 100000) }} تومان</option>
       </select>
     </div>
 

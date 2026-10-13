@@ -24,25 +24,27 @@ async def _get_context(event):
         settings = await settings_service.get_or_create(session, user.id)
         return user, settings.language
 
-def creator_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(
-                text=t("panel.creator.open_mini_app", lang),
-                callback_data="creator:web_login",
-            )],
-            [
-                InlineKeyboardButton(text=t("menu.create", lang), callback_data="creator_panel:create"),
-                InlineKeyboardButton(text=t("menu.my_khatms", lang), callback_data="creator_panel:my_khatms")
-            ],
-            [InlineKeyboardButton(text="📢 ارسال پیام گروهی اختصاصی", callback_data="creator_panel:broadcast")],
-            [
-                InlineKeyboardButton(text=t("menu.report", lang), callback_data="creator_panel:finance"),
-                InlineKeyboardButton(text=t("menu.creator.wallet", lang), callback_data="creator_panel:wallet"),
-            ],
-            [InlineKeyboardButton(text=t("menu.settings", lang), callback_data="creator_panel:settings")]
-        ]
-    )
+def creator_panel_keyboard(lang: str, is_admin: bool = False) -> InlineKeyboardMarkup:
+    rows = []
+    if is_admin:
+        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
+        rows.append([InlineKeyboardButton(
+            text=t("panel.creator.open_mini_app", lang),
+            callback_data="creator:web_login",
+        )])
+    rows.extend([
+        [
+            InlineKeyboardButton(text=t("menu.create", lang), callback_data="creator_panel:create"),
+            InlineKeyboardButton(text=t("menu.my_khatms", lang), callback_data="creator_panel:my_khatms")
+        ],
+        [InlineKeyboardButton(text="📢 ارسال پیام گروهی اختصاصی", callback_data="creator_panel:broadcast")],
+        [
+            InlineKeyboardButton(text=t("menu.report", lang), callback_data="creator_panel:finance"),
+            InlineKeyboardButton(text=t("menu.creator.wallet", lang), callback_data="creator_panel:wallet"),
+        ],
+        [InlineKeyboardButton(text=t("menu.settings", lang), callback_data="creator_panel:settings")]
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -69,7 +71,7 @@ async def handle_creator_management(message: Message) -> None:
     user, lang = await _get_context(message)
     await message.answer(
         "🎛 <b>پنل مدیریت سازنده</b>\n\nلطفاً یکی از بخش‌های زیر را انتخاب کنید:",
-        reply_markup=creator_panel_keyboard(lang)
+        reply_markup=creator_panel_keyboard(lang, is_admin=user.role == UserRole.SUPER_ADMIN)
     )
 
 @router.message(F.text.in_(variants("menu.creator.finance")))
@@ -206,7 +208,7 @@ async def handle_panel_back(callback: CallbackQuery) -> None:
     user, lang = await _get_context(callback)
     target = callback.data.split(":")[2]
     if target == "creator":
-        await callback.message.edit_text("🎛 <b>پنل مدیریت سازنده</b>\n\nلطفاً یکی از بخش‌های زیر را انتخاب کنید:", reply_markup=creator_panel_keyboard(lang))
+        await callback.message.edit_text("🎛 <b>پنل مدیریت سازنده</b>\n\nلطفاً یکی از بخش‌های زیر را انتخاب کنید:", reply_markup=creator_panel_keyboard(lang, is_admin=user.role == UserRole.SUPER_ADMIN))
     elif target == "admin":
         await callback.message.edit_text("🎛 <b>پنل مدیریت ادمین</b>\n\nلطفاً یکی از بخش‌های زیر را انتخاب کنید:", reply_markup=admin_panel_keyboard(lang))
     await callback.answer()

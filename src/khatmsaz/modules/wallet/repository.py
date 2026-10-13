@@ -12,9 +12,11 @@ from khatmsaz.modules.wallet.models import (
     CouponRedemption,
     DiscountCoupon,
     PendingPayment,
+    ReceiptClaimStatus,
     TxType,
     Wallet,
     WalletInvoice,
+    WalletReceiptClaim,
     WalletTransaction,
 )
 
@@ -308,3 +310,71 @@ async def delete_expired_unused_payments(session: AsyncSession, *, now: datetime
         )
     )
     return int(result.rowcount or 0)
+
+
+async def create_receipt_claim(
+    session: AsyncSession,
+    *,
+    user_id,
+    amount_toman: int,
+    photo_file_id: str,
+    photo_file_id_bale: str | None = None,
+) -> WalletReceiptClaim:
+    claim = WalletReceiptClaim(
+        id=new_id(),
+        user_id=user_id,
+        amount_toman=amount_toman,
+        photo_file_id=photo_file_id,
+        photo_file_id_bale=photo_file_id_bale,
+        status=ReceiptClaimStatus.PENDING.value,
+    )
+    session.add(claim)
+    await session.flush()
+    return claim
+
+
+async def get_receipt_claim_by_id(
+    session: AsyncSession, claim_id
+) -> WalletReceiptClaim | None:
+    result = await session.execute(
+        select(WalletReceiptClaim).where(WalletReceiptClaim.id == claim_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def list_pending_receipt_claims(
+    session: AsyncSession, limit: int = 50
+) -> list[WalletReceiptClaim]:
+    result = await session.execute(
+        select(WalletReceiptClaim)
+        .where(WalletReceiptClaim.status == ReceiptClaimStatus.PENDING.value)
+        .order_by(WalletReceiptClaim.created_at.asc())
+        .limit(limit)
+    )
+    return list(result.scalars())
+
+
+async def review_receipt_claim(
+    session: AsyncSession,
+    *,
+    claim_id,
+    admin_user_id,
+    status: ReceiptClaimStatus,
+    admin_note: str | None = None,
+    now: datetime,
+) -> WalletReceiptClaim | None:
+    result = await session.execute(
+        update(WalletReceiptClaim)
+        .where(
+            WalletReceiptClaim.id == claim_id,
+            WalletReceiptClaim.status == ReceiptClaimStatus.PENDING.value,
+        )
+        .values(
+            status=status.value if hasattr(status, "value") else str(status),
+            admin_user_id=admin_user_id,
+            admin_note=admin_note,
+            reviewed_at=now,
+        )
+        .returning(WalletReceiptClaim)
+    )
+    return result.scalar_one_or_none()

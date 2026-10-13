@@ -146,3 +146,31 @@ class PendingPayment(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (Index("ix_pending_payments_authority", "authority"),)
+
+
+class ReceiptClaimStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+class WalletReceiptClaim(Base):
+    """A user submitted payment receipt photo for manual admin verification (DEC-PY-0121 / MASTER-10)."""
+
+    __tablename__ = "wallet_receipt_claims"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
+    amount_toman: Mapped[int] = mapped_column(Integer)
+    photo_file_id: Mapped[str] = mapped_column(String(255))
+    photo_file_id_bale: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default=ReceiptClaimStatus.PENDING.value)
+    admin_user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    admin_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_wallet_receipt_claims_user", "user_id"),
+        Index("ix_wallet_receipt_claims_status", "status"),
+    )

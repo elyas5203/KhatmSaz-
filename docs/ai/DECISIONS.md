@@ -5,6 +5,31 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0122 — 30-day PRO Plan duration, additive renewal, pre-lapse warnings (7-day and 24-hour), and automatic downgrade
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **30-Day PRO Plan Duration:** The PRO plan duration is strictly 30 days (1 month).
+2. **Additive Renewal:** Renewing an active PRO plan adds 30 days additively to the current expiration date (`current_expires_at + 30 days`), preserving remaining time. If renewed when expired, it starts 30 days from now.
+3. **Pre-Lapse Automated Warnings:**
+   - **7 days before expiration:** Bot sends a friendly reminder highlighting remaining days and prompt to renew without interruption.
+   - **24 hours before expiration:** Bot sends a final alert that only 24 hours remain before returning to standard tier.
+4. **Automatic Downgrade & Notification upon Lapse:** If not renewed by `expires_at`, the user automatically lapses out of PRO (to BASIC if active members exceed cap, else FREE), and receives an expiration notification.
+5. **Periodic Scheduler & Lazy Check:** Checked every minute by `plan_service.process_plan_expirations_and_reminders` via AsyncIOScheduler, with lazy expiration fallback in `get_plan`.
+
+---
+
+### DEC-PY-0121 — Broadcast 1,000-recipient tier pricing, removal of free messages, bank receipt upload / PayPing direct link top-up, and admin-only creator panel guard (MASTER-10)
+
+**Date:** 2026-10-13
+**Owner confirmation:**
+1. **Broadcast 1000-Recipient Tier Pricing:** Pro plan does not include unlimited broadcasts. Every broadcast charges `ceil(audience_count / 1000) * price_per_1000` from the user's wallet. Even for an audience of 1 to 1000, 1 package fee is charged. For 6000 recipients, 6 package units are charged. Free broadcast quotas (e.g. 2 free messages) are completely abolished.
+2. **Basic Plan Broadcast Exclusion:** Basic plan users do not have broadcast messaging entitlements.
+3. **Creator Panel Restricted to Admin Only:** Until fully refined and approved, access to the Creator Panel (`/creator/*`, `/mini/creator/*`, and in-bot button `creator:web_login`) is strictly restricted to `SUPER_ADMIN` users. Regular users receive a friendly Persian upgrade notice.
+4. **Bank Receipt Upload Flow & PayPing Direct Link:** Automated redirect/callback payment is bypassed. Users recharge via card-to-card or PayPing direct open-amount link (`payping.ir/d/...` or `payping.ir/@Username`), upload a receipt screenshot in the bot, which is dispatched to super admins with inline approve/reject buttons. Approving credits the user's wallet immediately and issues an invoice.
+
+---
+
 ### DEC-PY-0120 — Post-completion two-message flow (Confirmation + Invite Link, then separate Progress Report), removal of 'read another portion' button, and removal of 14:00 member broadcast
 
 **Date:** 2026-10-11

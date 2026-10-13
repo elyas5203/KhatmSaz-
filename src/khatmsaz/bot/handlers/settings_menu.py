@@ -78,13 +78,13 @@ async def _lang_for(chat_id, bot) -> str:
 
 
 def _can_open_creator_panel(bot, user) -> bool:
-    """Creators/Super-Admins on the creator bot may open their Mini App from
-    Settings (owner 2026-09-29). Never on a member bot (no creator panel there;
-    the `creator:web_login` handler is creator-dispatcher-only)."""
+    """Super-Admins on the creator bot may open the Creator Mini App
+    (DEC-PY-0121 / MASTER-10). Regular creators are temporarily blocked while
+    the creator panel is undergoing modernization."""
     from khatmsaz.modules.identity.models import UserRole
     if is_member_bot(bot):
         return False
-    return getattr(user, "role", None) in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+    return getattr(user, "role", None) == UserRole.SUPER_ADMIN
 
 
 @router.message(F.text.in_(SETTINGS_BUTTON_TEXTS))
