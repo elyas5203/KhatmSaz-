@@ -246,6 +246,46 @@ sequenceDiagram
 
 ---
 
+### ۳.۴. معماری بارگذاری و تحویل چندرسانه‌ای ادعیه برای هر دو پلتفرم (Dual-Platform Ingestion & Delivery)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as ادمین سامانه (Super Admin)
+    participant Web as پنل وب ادمین (/admin/devotionals)
+    participant ContentSvc as سرویس محتوا (content_service)
+    participant DB as دیتابیس (devotional_media)
+    participant MemberBot as ربات‌های عضو (Telegram & Bale)
+    actor Member as عضو ختم (کاربر)
+
+    Admin->>Web: آپلود فایل رسانه‌ای (صوت، تصویر، ویدیو یا PDF)
+    Note over Admin,Web: انتخاب پلتفرم: «هر دو پلتفرم (BOTH / ALL)»
+    Web->>ContentSvc: فراخوانی با asset_platform="BOTH"
+    Note over ContentSvc: ثبت خودکار و همزمان برای هر دو پلتفرم<br/>TELEGRAM و BALE
+    ContentSvc->>DB: INSERT رکورد رسانه برای TELEGRAM
+    ContentSvc->>DB: INSERT رکورد رسانه برای BALE
+    DB-->>Web: تأیید ثبت موفق دوگانه
+    Web-->>Admin: ✅ فایل با موفقیت برای هر دو پلتفرم ثبت شد.
+
+    par درخواست تحویل در تلگرام
+        Member->>MemberBot: درخواست سهم روزانه زیارت عاشورا / دعا
+        MemberBot->>ContentSvc: جستجوی رسانه با platform="TELEGRAM"
+        ContentSvc->>DB: SELECT WHERE asset_platform IN ('TELEGRAM', 'BOTH')
+        DB-->>ContentSvc: بازگرداندن فایل/file_id
+        ContentSvc-->>MemberBot: فایل تلگرام
+        MemberBot-->>Member: ارسال صوت/تصویر در تلگرام
+    and درخواست تحویل در بله
+        Member->>MemberBot: درخواست سهم روزانه زیارت عاشورا / دعا
+        MemberBot->>ContentSvc: جستجوی رسانه با platform="BALE"
+        ContentSvc->>DB: SELECT WHERE asset_platform IN ('BALE', 'BOTH')
+        DB-->>ContentSvc: بازگرداندن فایل/file_id
+        ContentSvc-->>MemberBot: فایل بله
+        MemberBot-->>Member: ارسال صوت/تصویر در بله
+    end
+```
+
+---
+
 ## ۴. ماتریس و بسته‌های کاری (Work Packages Ledger)
 
 | بسته | عنوان | وضعیت | شرح اقدامات فنی |
@@ -257,6 +297,7 @@ sequenceDiagram
 | **WP-05** | دکمه‌های تأیید و رد فیش توسط ادمین | COMPLETED | پیاده‌سازی هندلرهای تلگرام برای تأیید/رد فیش با یک کلیک و شارژ خودکار کیف پول کاربر |
 | **WP-06** | دوره ۳۰ روزه پرو، تمدید و یادآوری‌ها | COMPLETED | افزودن `expires_at`، تمدید افزایشی ۳۰ روزه، هشدارهای ۷ روز و ۲۴ ساعت، مایگریشن و استقرار لایو |
 | **WP-07** | آزمون‌های واحد و استقرار زنده | COMPLETED | تدوین ۳۵ تست خودکار در `tests/`، اجرای کامل `pytest`، پوش به گیت و استقرار روی سرور `91.107.137.22` |
+| **WP-08** | پشتیبانی رسانه‌های دوپلتفرمی و ممیزی سرتاسری | COMPLETED | پشتیبانی از `BOTH/ALL` در تمام توابع `content_service`، رفع خطای `unsupported asset platform`، رفع باگ `PlanTier` در کیف پول، کوتاه‌سازی کال‌بک‌های بالای ۶۴ بایت و ممیزی خط به خط همزمانی دیتابیس و انزوای پورت‌ها |
 
 ---
 
@@ -265,3 +306,4 @@ sequenceDiagram
 python -m pytest tests/test_wallet_check_button.py tests/test_member_daily_digest.py -v
 python -m pytest -q
 ```
+
