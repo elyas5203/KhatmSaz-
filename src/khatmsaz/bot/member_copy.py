@@ -404,9 +404,103 @@ async def build_motivational_progress_snippet(
         return ""
 
 
+def extract_proxy_name(niyyat: str | None) -> str | None:
+    """Extract dedication/proxy name from a stored niyyat string."""
+    if not niyyat:
+        return None
+    raw = niyyat.strip()
+    for sep in (
+        "— به نیابت از ",
+        "— به نیابت ",
+        "به نیابت از ",
+        "نیابت از ",
+        "— نيابةً عن ",
+        "— نيابة عن ",
+        "نيابةً عن ",
+        "نيابة عن ",
+        "— on behalf of ",
+        "on behalf of ",
+    ):
+        if sep in raw:
+            part = raw.split(sep, 1)[1].strip(" :،-—.")
+            if part:
+                return part
+    return None
+
+
+def get_khatm_display_title(khatm: Khatm, lang: str = "fa") -> str:
+    """Returns human-facing title, using dedication (niabat) if title is generic or absent."""
+    raw_title = (getattr(khatm, "title", None) or "").strip()
+    niyyat = getattr(khatm, "niyyat", None)
+    proxy = extract_proxy_name(niyyat)
+
+    generic_titles = {
+        "ختم قرآن", "ختم صلوات", "قرآن", "صلوات",
+        "ختمة القرآن", "ختمة الصلوات", "Quran khatm", "Salawat khatm",
+        "ختم", ""
+    }
+
+    if proxy:
+        if raw_title in generic_titles or not raw_title:
+            if lang == "ar":
+                return f"نيابةً عن {proxy}"
+            elif lang != "fa":
+                return f"On behalf of {proxy}"
+            return f"به نیابت از {proxy}"
+
+    if raw_title:
+        return raw_title
+
+    if lang == "ar":
+        return "ختمة القرآن"
+    elif lang != "fa":
+        return "Quran khatm"
+    return "ختم قرآن"
+
+
+async def format_khatm_report_header(session: AsyncSession, khatm: Khatm, lang: str = "fa") -> str:
+    """Formats a clean, dignified khatm headline for daily reports, avoiding repeated 'ختم'."""
+    raw_title = (getattr(khatm, "title", None) or "").strip()
+    niyyat = getattr(khatm, "niyyat", None)
+    proxy = extract_proxy_name(niyyat)
+
+    # Check if raw_title already starts with "به نیابت از"
+    if not proxy and raw_title.startswith("به نیابت از "):
+        proxy = raw_title[len("به نیابت از "):].strip()
+    elif not proxy and raw_title.startswith("نيابةً عن "):
+        proxy = raw_title[len("نيابةً عن "):].strip()
+    elif not proxy and raw_title.startswith("On behalf of "):
+        proxy = raw_title[len("On behalf of "):].strip()
+
+    # Determine devotional family/label
+    family = await content_family(session, khatm)
+    labels = {
+        "quran": "ختم قرآن",
+        "salawat": "صلوات",
+        "khutbah": "خطبه فدکیه",
+        "dua": "دعا",
+        "ziyarat": "زیارت",
+        "laan": "ذکر لعن",
+    }
+    devotional_label = labels.get(family, "ختم")
+
+    if proxy:
+        if lang == "ar":
+            return f"🌟 <b>نيابةً عن {proxy}</b> ({devotional_label})"
+        elif lang != "fa":
+            return f"🌟 <b>On behalf of {proxy}</b> ({devotional_label})"
+        return f"🌟 <b>به نیابت از {proxy}</b> ({devotional_label})"
+
+    # No proxy: format cleanly without repeating "ختم"
+    title_to_use = raw_title or devotional_label
+    if title_to_use.startswith("ختم ") or title_to_use.startswith("ختمة "):
+        return f"🌟 <b>{title_to_use}</b>"
+    return f"🌟 <b>ختم «{title_to_use}»</b>"
+
+
 async def get_khatm_identifier(session: AsyncSession, khatm: Khatm, lang: str = "fa") -> tuple[str, str | None, str | None]:
     """Return (title, creator_display_name, cleaned_niyyat) for disambiguating khatms."""
-    title = (getattr(khatm, "title", None) or "ختم").strip()
+    title = get_khatm_display_title(khatm, lang)
     creator_name = None
     creator_user_id = getattr(khatm, "creator_user_id", None)
     if creator_user_id:
@@ -431,4 +525,5 @@ async def get_khatm_identifier(session: AsyncSession, khatm: Khatm, lang: str = 
 
     niyyat = (getattr(khatm, "niyyat", None) or "").strip() or None
     return title, creator_name, niyyat
+
 

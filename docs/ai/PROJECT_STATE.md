@@ -1,3 +1,24 @@
+## Current state — 2026-10-14 — Khatm Niabat Title and Periodic Report Display (MASTER-23) [Antigravity]
+- **Khatm Niabat Title & Report Display (`MASTER-23`):**
+  - **Owner Mandate:** "یک مورد دیگ این گزارش ک داره میفرسته عنوانشو همش نوشته مثلا قران یا فلان، من میخوام اون نیابت باشه، عنوان ختم قران اشتباهه چون اینطوری برای همه ثابت میشه، این خوب نیست بنظرم. برو فایلارو بررسی بکن و بعد برام فایلای مسترشو بروز بکن و یا بساز و بعد درست بکن".
+  - **Core Copy & Disambiguation Helpers (`src/khatmsaz/bot/member_copy.py`):**
+    - `extract_proxy_name(niyyat)`: extracts clean proxy name from stored niyyat strings (e.g. `— به نیابت از مرحوم مغفور مهندس علی اکبر مویدی` -> `مرحوم مغفور مهندس علی اکبر مویدی`).
+    - `get_khatm_display_title(khatm, lang)`: resolves human-readable title; if title is generic (`ختم قرآن`, `ختم صلوات`) and a dedication proxy exists, returns `به نیابت از {proxy}`.
+    - `format_khatm_report_header(session, khatm, lang)`: formats clean headline for reports (`🌟 <b>به نیابت از {proxy}</b> ({devotional})`), preventing repeated "ختم «ختم ...»" artifacts for non-dedicated khatms (e.g. `🌟 <b>ختم زیارت آل یاسین</b>`).
+    - `get_khatm_identifier`: updated to use `get_khatm_display_title`.
+  - **Creation Wizard (`src/khatmsaz/bot/handlers/create_khatm.py`):**
+    - In `enter_niyyat`, when a proxy is entered, `title` in FSM state is automatically set to `به نیابت از {name}` so future khatms are persisted with their unique Niabat identity.
+    - In `skip_niyyat`, default title is cleanly restored with `_default_khatm_title(data, lang, force_default=True)`.
+  - **Reporting Modules Updated:**
+    - `src/khatmsaz/modules/reporting/creator_daily_report.py`: 12:00 PM creator daily report uses `format_khatm_report_header` and labels management buttons with the Niabat title.
+    - `src/khatmsaz/modules/reporting/member_daily_digest.py`: 14:00 member daily digest uses `format_khatm_report_header`.
+  - **Creator & Member Lists Updated:**
+    - `src/khatmsaz/bot/handlers/my_khatms.py`: displays `get_khatm_display_title` across created and joined khatm cards.
+    - `src/khatmsaz/bot/handlers/report.py`: `today_overview` buttons use `title` from `get_khatm_identifier`.
+  - **Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_23_KHATM_NIABAT_TITLE_AND_REPORT_DISPLAY.md`.
+    - Added test suite `tests/test_master_23_khatm_niabat_title.py` (6 unit tests). Full test suite: 480 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## Current state — 2026-10-14 — Direct Verification for Foreign Phone Numbers (MASTER-22) [Antigravity]
 - **Direct Verification for Foreign Numbers (`MASTER-22`):**
   - **Owner Mandate:** "شماره های خارجی اگر بودن میخوام نیازی به تایید نداشته باشن مستقیم احراز هویت بشن".

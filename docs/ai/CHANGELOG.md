@@ -1,3 +1,23 @@
+## 2026-10-14 — Antigravity — Khatm Niabat Title and Periodic Report Display (MASTER-23)
+- **Khatm Niabat Title & Report Display (`MASTER-23`):**
+  - **Core Copy & Disambiguation Helpers (`src/khatmsaz/bot/member_copy.py`):**
+    - `extract_proxy_name`: robustly extracts dedication proxy name from stored niyyat strings across Persian, Arabic, and English formats.
+    - `get_khatm_display_title`: dynamically resolves title to `به نیابت از {proxy}` for khatms with generic/default titles.
+    - `format_khatm_report_header`: builds clean report headlines (`🌟 <b>به نیابت از {proxy}</b> ({devotional})`), preventing repeated "ختم «ختم ...»" artifacts for non-dedicated khatms (e.g. `🌟 <b>ختم زیارت آل یاسین</b>`).
+    - `get_khatm_identifier`: updated to use `get_khatm_display_title`.
+  - **Creation Wizard (`src/khatmsaz/bot/handlers/create_khatm.py`):**
+    - `enter_niyyat` automatically sets `title` in FSM state to `به نیابت از {name}` upon receiving creator dedication input.
+    - `skip_niyyat` restores default title with `_default_khatm_title(data, lang, force_default=True)`.
+  - **Reporting Modules Updated:**
+    - `creator_daily_report.py`: 12:00 PM creator daily report uses `format_khatm_report_header` and labels management buttons with the Niabat title.
+    - `member_daily_digest.py`: 14:00 member daily digest uses `format_khatm_report_header`.
+  - **Creator & Member Lists Updated:**
+    - `my_khatms.py`: displays `get_khatm_display_title` across created and joined khatm cards.
+    - `report.py`: `today_overview` buttons use `title` from `get_khatm_identifier`.
+  - **Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_23_KHATM_NIABAT_TITLE_AND_REPORT_DISPLAY.md`.
+    - Added test suite `tests/test_master_23_khatm_niabat_title.py` (6 unit tests). Full test suite: 480 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## 2026-10-14 — Antigravity — Direct Verification for Foreign Phone Numbers (MASTER-22)
 - **Direct Verification for Foreign Numbers (`MASTER-22`):**
   - **Phone Module Core Service (`src/khatmsaz/modules/phone/service.py`):**

@@ -119,7 +119,7 @@ async def today_overview(message: Message, state: FSMContext | None = None) -> N
             cards_text.append("\n".join(card_lines))
 
             btn_suffix = f" ({creator_name})" if creator_name else ""
-            btn_text = f"🌱 {khatm.title}{btn_suffix}"
+            btn_text = f"🌱 {title}{btn_suffix}"
             if len(btn_text) > 45:
                 btn_text = btn_text[:42] + "..."
             inline_rows.append([InlineKeyboardButton(text=btn_text, callback_data=f"today_pick:{participation.id}")])

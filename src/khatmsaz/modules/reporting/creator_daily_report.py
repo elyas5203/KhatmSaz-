@@ -238,8 +238,11 @@ async def build_creator_daily_report_message(
             percent = min(round((total / effective_target) * 100, 1), 100.0) if effective_target > 0 else 0.0
             target_line += f" از <b>{target_str}</b> (پیشرفت: <b>{to_persian_digits(percent)}٪</b>)"
 
+        from khatmsaz.bot.member_copy import format_khatm_report_header, get_khatm_display_title
+        header = await format_khatm_report_header(session, khatm, "fa")
+
         block = (
-            f"🌟 <b>ختم «{khatm.title}»</b>\n"
+            f"{header}\n"
             f"▫️ پیشرفت تا دیروز: {before_str}\n"
             f"▫️ قرائت‌های امروز (تا ساعت ۱۲): {today_str}\n"
             f"{target_line}\n"
@@ -253,9 +256,13 @@ async def build_creator_daily_report_message(
                 InlineKeyboardButton(text="👥 مشاهده اعضا", callback_data=f"creator_report:members:{khatm.id}"),
             ])
         else:
+            disp_title = get_khatm_display_title(khatm, "fa")
+            btn_text = f"⚙️ مدیریت: {disp_title}"
+            if len(btn_text) > 35:
+                btn_text = btn_text[:32] + "..."
             keyboard_rows.append([
                 InlineKeyboardButton(
-                    text=f"⚙️ مدیریت: {khatm.title[:20]}", callback_data=f"my_khatms:manage:{khatm.id}"
+                    text=btn_text, callback_data=f"my_khatms:manage:{khatm.id}"
                 )
             ])
 

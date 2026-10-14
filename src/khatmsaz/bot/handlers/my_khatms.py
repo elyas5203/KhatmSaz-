@@ -1121,14 +1121,17 @@ async def _build_my_khatms_tree(session, user_id, lang: str) -> _Tree:
     kept, so the view is always current."""
     tree: _Tree = {branch: {} for branch in _BRANCHES}
 
+    from khatmsaz.bot.member_copy import get_khatm_display_title
+
     created = await khatm_service.list_my_created(session, user_id)
     for khatm in created:
         bucket = _khatm_bucket(khatm)
         branch = "finished" if bucket == "FINISHED" else "created"
         category = await _content_group(session, khatm)
-        line = t("my_khatms.created_line", lang, title=khatm.title, status=khatm.status.value)
+        disp_title = get_khatm_display_title(khatm, lang)
+        line = t("my_khatms.created_line", lang, title=disp_title, status=khatm.status.value)
         buttons = [InlineKeyboardButton(
-            text=t("my_khatms.button.manage", lang, title=khatm.title),
+            text=t("my_khatms.button.manage", lang, title=disp_title),
             callback_data=f"my_khatms:manage:{khatm.id}",
         )]
         tree[branch].setdefault(category, []).append({"line": line, "buttons": buttons})
@@ -1142,13 +1145,14 @@ async def _build_my_khatms_tree(session, user_id, lang: str) -> _Tree:
         branch = "finished" if bucket == "FINISHED" else "joined"
         category = await _content_group(session, khatm)
         buttons: list[InlineKeyboardButton] = []
+        disp_title = get_khatm_display_title(khatm, lang)
 
         if khatm.khatm_type == KhatmTypeEnum.OPEN:
             total = await contribution_repository.total_for_participation(session, participation.id)
-            line = t("my_khatms.open_line", lang, bucket=bucket_label, title=khatm.title, total=int(total))
+            line = t("my_khatms.open_line", lang, bucket=bucket_label, title=disp_title, total=int(total))
             if bucket == "ACTIVE":
                 buttons.append(InlineKeyboardButton(
-                    text=t("my_khatms.button.contribute", lang, title=khatm.title),
+                    text=t("my_khatms.button.contribute", lang, title=disp_title),
                     callback_data=f"contribute:{khatm.id}",
                 ))
         else:
@@ -1156,7 +1160,7 @@ async def _build_my_khatms_tree(session, user_id, lang: str) -> _Tree:
             done, total_portions = await allocation_service.progress(session, khatm.id)
             line = t(
                 "my_khatms.progress_line", lang,
-                bucket=bucket_label, title=khatm.title, waiting_note=waiting_note,
+                bucket=bucket_label, title=disp_title, waiting_note=waiting_note,
                 done=done, total=total_portions,
             )
             if bucket == "ACTIVE":
@@ -1164,14 +1168,14 @@ async def _build_my_khatms_tree(session, user_id, lang: str) -> _Tree:
                     # Waitlisted (owner decision, 2026-09-20): free to
                     # contribute casually via the open pool (DEC-PY-0010).
                     buttons.append(InlineKeyboardButton(
-                        text=t("my_khatms.button.contribute", lang, title=khatm.title),
+                        text=t("my_khatms.button.contribute", lang, title=disp_title),
                         callback_data=f"contribute:{khatm.id}",
                     ))
                 elif khatm.template_type == KhatmTemplateType.QURAN_PAGE:
                     is_paused = await participation_service.is_paused(participation)
                     if is_paused:
                         buttons.append(InlineKeyboardButton(
-                            text=t("my_khatms.button.resume", lang, title=khatm.title),
+                            text=t("my_khatms.button.resume", lang, title=disp_title),
                             callback_data=f"resume:{participation.id}",
                         ))
                     elif khatm.allow_pause:

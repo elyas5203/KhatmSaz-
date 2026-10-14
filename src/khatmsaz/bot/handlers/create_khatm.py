@@ -642,16 +642,16 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
     )
 
 
-def _default_khatm_title(data: dict, lang: str) -> str:
+def _default_khatm_title(data: dict, lang: str, force_default: bool = False) -> str:
     """Build the standard title without asking the creator an extra question."""
-    if data.get("title"):
+    if not force_default and data.get("title"):
         return data["title"]
     if data.get("content_category_title"):
         return t(
             "create_khatm.default_title.category", lang,
             name=data["content_category_title"],
         )
-    if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value:
+    if data.get("template_type") == KhatmTemplateType.QURAN_PAGE.value:
         return t("create_khatm.default_title.quran", lang)
     return t("create_khatm.default_title.salawat", lang)
 
@@ -721,7 +721,22 @@ async def enter_niyyat(message: Message, state: FSMContext) -> None:
         return
     lang = await _lang(state)
     proxy = (message.text or "").strip() or None
-    await state.update_data(niyyat=_compose_niyyat(lang, proxy))
+    composed_niyyat = _compose_niyyat(lang, proxy)
+    updates: dict = {"niyyat": composed_niyyat}
+    if proxy:
+        name = proxy.strip()
+        for prefix in ("به نیابت از", "نیابت از", "به نیت", "نیت", "به نيابة عن", "نيابة عن", "on behalf of"):
+            if name.lower().startswith(prefix.lower()):
+                name = name[len(prefix):].strip(" :،-") or name
+                break
+        if name:
+            if lang == "ar":
+                updates["title"] = f"نيابةً عن {name}"
+            elif lang != "fa":
+                updates["title"] = f"On behalf of {name}"
+            else:
+                updates["title"] = f"به نیابت از {name}"
+    await state.update_data(**updates)
     data = await state.get_data()
     if data.get("editing_from_confirm"):
         await state.update_data(editing_from_confirm=False)
@@ -734,7 +749,9 @@ async def enter_niyyat(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "ck:skip_niyyat", StateFilter(CreateKhatm.entering_niyyat))
 async def skip_niyyat(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
-    await state.update_data(niyyat=_compose_niyyat(lang, None))
+    data = await state.get_data()
+    default_title = _default_khatm_title(data, lang, force_default=True)
+    await state.update_data(title=default_title, niyyat=_compose_niyyat(lang, None))
     await safe_clear_inline_keyboard(callback.message)
     data = await state.get_data()
     if data.get("editing_from_confirm"):

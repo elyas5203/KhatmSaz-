@@ -158,8 +158,11 @@ async def build_member_daily_digest_message(
         else:
             status_text = "✨ آماده ثبت سهم یا مشارکت امروز"
 
+        from khatmsaz.bot.member_copy import format_khatm_report_header
+        header = await format_khatm_report_header(session, khatm, "fa")
+
         block = (
-            f"🌟 <b>ختم «{khatm.title}»</b>\n"
+            f"{header}\n"
             f"▫️ پیشرفت کل ختم تا دیروز: {before_str}\n"
             f"▫️ قرائت‌های امروز ختم (تا ساعت ۱۴): {today_str}\n"
             f"{target_line}\n"
