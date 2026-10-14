@@ -41,6 +41,7 @@ from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, U
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+from khatmsaz.modules.reporting import service as reporting_service
 from khatmsaz.modules.session import service as session_service
 from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import WalletReceiptClaim, ReceiptClaimStatus
@@ -141,13 +142,14 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text=broadcast_btn, callback_data="admin:broadcasts"),
+            InlineKeyboardButton(text="👥 تفکیک کاربران و دسته‌ها", callback_data="admin:user_analytics"),
+        ],
+        [
             InlineKeyboardButton(text="📊 وضعیت زنده سرور", callback_data="admin:status"),
-        ],
-        [
             InlineKeyboardButton(text="📑 مشاهده لاگ‌ها", callback_data="admin:logs"),
-            InlineKeyboardButton(text="🚨 آخرین خطاها", callback_data="admin:errors"),
         ],
         [
+            InlineKeyboardButton(text="🚨 آخرین خطاها", callback_data="admin:errors"),
             InlineKeyboardButton(text="🌐 دریافت لینک ورود به پنل (مرورگر / وب)", callback_data="admin:web_link"),
         ],
     ]
@@ -848,9 +850,15 @@ async def admin_status_handler(event: Message | CallbackQuery) -> None:
     member_count = len(registry.member_bots())
 
     db_ok = "متصل ✅"
+    user_summary = ""
     try:
         async with session_scope() as session:
             await session.execute(select(1))
+            analytics = await reporting_service.get_system_user_analytics(session)
+            p = analytics["platform"]
+            top = analytics["top_category"]
+            top_str = f" | 🏆 بیشترین استقبال: {top['title']}" if top else ""
+            user_summary = f"\n👥 <b>مجموع کل کاربران:</b> {p['total_users']} (📱 {p['telegram_users']} تلگرام · 🟢 {p['bale_users']} بله){top_str}\n"
     except Exception as exc:
         db_ok = f"خطا ❌ ({exc})"
 
@@ -859,13 +867,67 @@ async def admin_status_handler(event: Message | CallbackQuery) -> None:
         f"🖥 <b>سیستم‌عامل:</b> {sys.platform}\n"
         f"🐍 <b>نسخه پایتون:</b> {sys.version.split()[0]}\n"
         f"🗄 <b>پایگاه‌داده Postgres:</b> {db_ok}\n"
+        f"{user_summary}"
         f"🤖 <b>ربات‌های فعال:</b>\n"
         f"• ربات‌های سازنده: <b>{creator_count}</b>\n"
         f"• ربات ادمین مرکزی: <b>{admin_count}</b> (@khatmsaz_admin_bot)\n"
         f"• ربات‌های مخاطبان (عضویت): <b>{member_count}</b>\n"
         f"⏰ <b>زمان سرور:</b> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
     )
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به منو", callback_data="admin:refresh")]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="👥 مشاهده تفکیک کامل کاربران", callback_data="admin:user_analytics")],
+        [InlineKeyboardButton(text="🔙 بازگشت به منو", callback_data="admin:refresh")],
+    ])
+    if isinstance(event, CallbackQuery):
+        await message.edit_text(text, reply_markup=kb)
+        await event.answer()
+    else:
+        await message.answer(text, reply_markup=kb)
+
+
+@router.message(Command("users_stat", "analytics", "users"))
+@router.callback_query(F.data == "admin:user_analytics")
+async def admin_user_analytics_handler(event: Message | CallbackQuery) -> None:
+    """MASTER-20: Breakdown of total users across all bots, platforms, and 5 devotional categories."""
+    if not await _is_super_admin(event):
+        await _reject_unauthorized(event)
+        return
+
+    message = event if not isinstance(event, CallbackQuery) else event.message
+    async with session_scope() as session:
+        analytics = await reporting_service.get_system_user_analytics(session)
+
+    plat = analytics["platform"]
+    cats = analytics["categories"]
+    top_cat = analytics["top_category"]
+
+    cat_lines = []
+    for c in cats:
+        star = " 🏆 (بیشترین استقبال)" if c["is_top"] else f" (رتبه {c['rank']})"
+        cat_lines.append(
+            f"• {c['icon']} <b>{c['title']}:</b> <code>{c['engaged_users']}</code> کاربر "
+            f"({c['popularity_percent']}٪) · <i>{c['total_khatms']} ختم</i>{star}"
+        )
+    cat_text = "\n".join(cat_lines)
+
+    top_text = f"\n🏆 <b>بیشترین استقبال:</b> {top_cat['title']} ({top_cat['popularity_percent']}٪ سهم بازار)\n" if top_cat else ""
+
+    text = (
+        "📊 <b>تحلیل جامع کاربران و تفکیک دسته‌ها</b>\n\n"
+        f"👥 <b>مجموع کل کاربران سامانه:</b> <code>{plat['total_users']}</code> نفر\n"
+        f"📱 <b>کاربران تلگرام:</b> <code>{plat['telegram_users']}</code> نفر\n"
+        f"🟢 <b>کاربران بله:</b> <code>{plat['bale_users']}</code> نفر\n"
+        f"🔄 <b>کاربران متصل به هر دو پلتفرم:</b> <code>{plat['dual_platform_users']}</code> نفر\n"
+        f"👑 <b>سازندگان:</b> <code>{plat['creators_count']}</code> | 🛡 <b>مدیران:</b> <code>{plat['super_admins_count']}</code>\n"
+        f"{top_text}\n"
+        "📈 <b>میزان استقبال از ۵ دستهٔ عبادی:</b>\n"
+        f"{cat_text}\n\n"
+        "💡 <i>جهت مشاهده گزارش و نمودارهای کامل، به پنل مدیریت وب مراجعه فرمایید.</i>"
+    )
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔄 بروزرسانی آمار", callback_data="admin:user_analytics")],
+        [InlineKeyboardButton(text="🔙 بازگشت به منوی اصلی", callback_data="admin:refresh")],
+    ])
     if isinstance(event, CallbackQuery):
         await message.edit_text(text, reply_markup=kb)
         await event.answer()

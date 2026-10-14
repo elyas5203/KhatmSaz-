@@ -1780,6 +1780,7 @@ async def dashboard(request: Request):
         recent = list(
             (await session.execute(select(Khatm).order_by(Khatm.created_at.desc()).limit(8))).scalars()
         )
+        user_analytics = await reporting_service.get_system_user_analytics(session)
     pending_map = {
         "laan": int(pending_laan or 0),
         "covers": int(pending_covers or 0),
@@ -1805,6 +1806,7 @@ async def dashboard(request: Request):
             },
             pending=pending_map,
             recent=recent,
+            user_analytics=user_analytics,
         ),
     )
 
@@ -2635,6 +2637,7 @@ async def users(request: Request, q: str = "", page: int = 1):
             }
             for u in found
         ]
+        user_analytics = await reporting_service.get_system_user_analytics(session)
     return templates.TemplateResponse(
         request=request,
         name="users.html",
@@ -2644,6 +2647,7 @@ async def users(request: Request, q: str = "", page: int = 1):
             raw,
             users=found,
             user_rows=user_rows,
+            user_analytics=user_analytics,
             query=query,
             page=page,
             has_next=has_next,

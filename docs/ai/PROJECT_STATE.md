@@ -1,3 +1,26 @@
+## Current state — 2026-10-14 — Admin Panel User Analytics & Devotional Category Reception Breakdown (MASTER-21) [Antigravity]
+- **Admin Panel User Analytics & Devotional Breakdown (`MASTER-21`):**
+  - **Owner Mandate:** "یک مورد دیگ میخوام تو پنل ادمین میخوام مجموع تمام یوزر هایی ک هست تو تمام بات ها هم ببینم بعد به تفکیک هم ببینم اینطوری باشه بعد به تفکیک یوزر های قران و لعن و صلوات و دعا و خطبه هم باشه ک ببینم استقبال از کدوم بیشتره".
+  - **Comprehensive Reporting Service Engine (`src/khatmsaz/modules/reporting/service.py`):**
+    - Defined `DEVOTIONAL_METADATA` establishing the 5 canonical devotional families: قرآن کریم (Quran), لعن و برائت (La'an), صلوات و اذکار (Salawat), ادعیه و زیارات (Dua & Ziyarat), and خطبه‌ها و بیانات (Khutbah).
+    - Implemented `get_system_user_analytics(session: AsyncSession)` computing:
+      - Total registered users (`users`), active users (`UserStatus.ACTIVE`), and roles (Creators, Super Admins, Regular users).
+      - Platform breakdown: Telegram users, Bale users, and dual-platform users (`PlatformIdentity`).
+      - Devotional category metrics: engaged users (creators + participants combined), active readers, total khatms, active khatms, total participations.
+      - Relative market adoption / popularity percentage and automatic ranking (1 to 5) with `is_top` badge.
+  - **Web Admin Dashboard (`src/khatmsaz/web/app.py` & `src/khatmsaz/web/templates/dashboard.html`):**
+    - Enriched "Total Users" card with inline Telegram vs Bale badges.
+    - Added comprehensive analytics section `📊 تحلیل جامع استقبال و تفکیک کاربران` displaying popularity ranking, progress bars, and platform distribution.
+  - **Users 360° Management (`src/khatmsaz/web/templates/users.html`):**
+    - Added high-level summary cards above search form showing platform split, top category, and user counts per devotional family.
+  - **Admin Bot Telemetry (`src/khatmsaz/bot/handlers/admin_bot/handlers.py`):**
+    - Added `admin:user_analytics` callback and commands (`/users_stat`, `/analytics`, `/users`) displaying text breakdown of users and 5 categories.
+    - Enhanced `/status` command with live user summary and top category.
+  - **Master Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_21_ADMIN_PANEL_USER_ANALYTICS_AND_DEVOTIONAL_BREAKDOWN.md`.
+    - Added test suite `tests/test_master_21_user_analytics.py` (5 tests passing).
+  - **Validation:** 461 passed, 231 skipped in pytest (100% pass rate).
+
 ## Current state — 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-20) [Antigravity]
 - **Master Plan & Architecture Authored (`MASTER-20`):** Created `docs/ai/masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and registered `DEC-PY-0128`.
 - **Real-Time Streaming Core (`src/khatmsaz/modules/content/migrator.py`):**

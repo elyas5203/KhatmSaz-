@@ -34,6 +34,43 @@
 </div>
 {% endif %}
 
+<!-- User Analytics & Devotional Summary (MASTER-20) -->
+{% if user_analytics %}
+<section class="glass-panel rounded-2xl p-4 mb-6 border border-white/10">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3 pb-2 border-b border-slate-700/50">
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-bold text-emerald-400">📊 تفکیک جامع کاربران و استقبال دسته‌ها:</span>
+      <span class="text-xs font-mono text-white bg-slate-800 px-2.5 py-0.5 rounded-lg border border-slate-700">کل: <b>{{ user_analytics.platform.total_users }}</b></span>
+      <span class="text-xs font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-lg border border-sky-500/20">📱 تلگرام: {{ user_analytics.platform.telegram_users }}</span>
+      <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">🟢 بله: {{ user_analytics.platform.bale_users }}</span>
+    </div>
+    {% if user_analytics.top_category %}
+    <span class="text-xs font-bold text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-xl border border-amber-500/30 self-start md:self-auto">
+      🏆 بیشترین استقبال: <b>{{ user_analytics.top_category.title }} ({{ user_analytics.top_category.popularity_percent }}٪)</b>
+    </span>
+    {% endif %}
+  </div>
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+    {% for cat in user_analytics.categories %}
+    <div class="p-2.5 rounded-xl bg-slate-800/40 border {% if cat.is_top %}border-amber-500/40 bg-amber-500/5{% else %}border-slate-700/50{% endif %} flex items-center justify-between">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="text-lg">{{ cat.icon }}</span>
+        <div class="truncate">
+          <b class="text-xs text-white block truncate">{{ cat.title }}</b>
+          <small class="text-[0.65rem] text-slate-400 font-mono">{{ cat.total_khatms }} ختم</small>
+        </div>
+      </div>
+      <div class="text-left shrink-0 pr-1">
+        <b class="text-xs font-mono {% if cat.is_top %}text-amber-400{% else %}text-emerald-400{% endif %}">{{ cat.engaged_users }}</b>
+        <span class="text-[0.65rem] text-slate-400 block font-mono">{{ cat.popularity_percent }}%</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 <!-- Search Form -->
 <form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get">
   <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
