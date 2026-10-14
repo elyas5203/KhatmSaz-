@@ -1,5 +1,5 @@
-## Current state — 2026-10-14 — Khatm Niabat Title and Periodic Report Display (MASTER-23) [Antigravity]
-- **Khatm Niabat Title & Report Display (`MASTER-23`):**
+## Current state — 2026-10-14 — Khatm Niabat Title and Periodic Report Display (MASTER-24) [Antigravity]
+- **Khatm Niabat Title & Report Display (`MASTER-24`):**
   - **Owner Mandate:** "یک مورد دیگ این گزارش ک داره میفرسته عنوانشو همش نوشته مثلا قران یا فلان، من میخوام اون نیابت باشه، عنوان ختم قران اشتباهه چون اینطوری برای همه ثابت میشه، این خوب نیست بنظرم. برو فایلارو بررسی بکن و بعد برام فایلای مسترشو بروز بکن و یا بساز و بعد درست بکن".
   - **Core Copy & Disambiguation Helpers (`src/khatmsaz/bot/member_copy.py`):**
     - `extract_proxy_name(niyyat)`: extracts clean proxy name from stored niyyat strings (e.g. `— به نیابت از مرحوم مغفور مهندس علی اکبر مویدی` -> `مرحوم مغفور مهندس علی اکبر مویدی`).

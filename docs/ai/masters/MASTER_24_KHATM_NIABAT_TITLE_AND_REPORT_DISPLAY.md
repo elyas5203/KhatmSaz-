@@ -1,4 +1,4 @@
-# MASTER-23 — Khatm Niabat Title and Report Display (شناسنامهٔ نیابت در عنوان ختم و گزارش‌های دوره‌ای)
+# MASTER-24 — Khatm Niabat Title and Report Display (شناسنامهٔ نیابت در عنوان ختم و گزارش‌های دوره‌ای)
 
 **Author:** Antigravity  
 **Date:** 2026-10-14  

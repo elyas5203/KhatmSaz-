@@ -1,5 +1,5 @@
-## 2026-10-14 — Antigravity — Khatm Niabat Title and Periodic Report Display (MASTER-23)
-- **Khatm Niabat Title & Report Display (`MASTER-23`):**
+## 2026-10-14 — Antigravity — Khatm Niabat Title and Periodic Report Display (MASTER-24)
+- **Khatm Niabat Title & Report Display (`MASTER-24`):**
   - **Core Copy & Disambiguation Helpers (`src/khatmsaz/bot/member_copy.py`):**
     - `extract_proxy_name`: robustly extracts dedication proxy name from stored niyyat strings across Persian, Arabic, and English formats.
     - `get_khatm_display_title`: dynamically resolves title to `به نیابت از {proxy}` for khatms with generic/default titles.
