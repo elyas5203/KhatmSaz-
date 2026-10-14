@@ -1,3 +1,21 @@
+## Current state — 2026-10-14 — Direct Verification for Foreign Phone Numbers (MASTER-22) [Antigravity]
+- **Direct Verification for Foreign Numbers (`MASTER-22`):**
+  - **Owner Mandate:** "شماره های خارجی اگر بودن میخوام نیازی به تایید نداشته باشن مستقیم احراز هویت بشن".
+  - **Phone Module Core Service (`src/khatmsaz/modules/phone/service.py`):**
+    - Added `is_foreign_phone(raw: str) -> bool`: reliably identifies non-Iranian numbers (`not normalize_e164(raw).startswith("+98")`).
+    - Added `direct_verify_phone(session, *, user_id, e164, action_context) -> PhoneClaim`: atomic, advisory-locked verification bypassing SMS OTP and admin approval while safeguarding against account takeovers.
+  - **Bot Handlers Updated:**
+    - `src/khatmsaz/bot/handlers/change_phone.py`:
+      - `ensure_creator_phone_verified`: directly verifies foreign phones and allows creators to proceed immediately without queuing for manual review or waiting for admin approval.
+      - `receive_new_phone` (`/change_phone`): directly verifies foreign replacement phones and notifies user immediately.
+    - `src/khatmsaz/bot/handlers/profile.py`: auto-verifies foreign phone numbers upon profile completion.
+    - `src/khatmsaz/bot/handlers/registration.py` & `member_registration.py`: sets `foreign_verified_phone` for both contact share and typed input, directly activating verified claims.
+  - **Web Creator Workflow (`src/khatmsaz/web/app.py`):**
+    - Auto-verifies foreign contact phones on creator khatm creation without blocking on `error=phone`.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md`.
+    - Added test suite `tests/test_master_22_foreign_phone_direct_verify.py` (5 unit tests, 2 integration tests). Full test suite: 474 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## Current state — 2026-10-14 — Admin Panel User Analytics & Devotional Category Reception Breakdown (MASTER-21) [Antigravity]
 - **Admin Panel User Analytics & Devotional Breakdown (`MASTER-21`):**
   - **Owner Mandate:** "یک مورد دیگ میخوام تو پنل ادمین میخوام مجموع تمام یوزر هایی ک هست تو تمام بات ها هم ببینم بعد به تفکیک هم ببینم اینطوری باشه بعد به تفکیک یوزر های قران و لعن و صلوات و دعا و خطبه هم باشه ک ببینم استقبال از کدوم بیشتره".

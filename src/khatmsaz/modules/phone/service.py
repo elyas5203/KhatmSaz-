@@ -44,6 +44,13 @@ def normalize_e164(raw: str) -> str:
     return value
 
 
+def is_foreign_phone(raw: str) -> bool:
+    try:
+        return not normalize_e164(raw).startswith("+98")
+    except OtpError:
+        return False
+
+
 def phone_storage_variants(e164: str) -> set[str]:
     """Forms accepted by the old registration flow before E.164 normalization."""
     normalized = normalize_e164(e164)
@@ -310,4 +317,49 @@ async def verify_and_link_platform_identity(
             await identity_repository.attach_platform_identity(session, user_id, platform, str(subject))
         except IntegrityError as exc:
             raise OtpError("platform identity could not be linked") from exc
+    return claim
+
+
+async def direct_verify_phone(
+    session: AsyncSession,
+    *,
+    user_id,
+    e164: str,
+    action_context: str = "FOREIGN_DIRECT_VERIFY",
+):
+    """Directly verify a phone number (e.g. foreign numbers that cannot receive Iranian SMS)
+    without requiring SMS OTP or admin manual approval."""
+    phone = normalize_e164(e164)
+    user = await session.get(User, user_id, with_for_update=True)
+    if (
+        user is None
+        or user.deleted_at is not None
+        or user.status in {UserStatus.MERGED, UserStatus.SUSPENDED, UserStatus.BANNED}
+    ):
+        raise OtpError("account is not available")
+    await repository.lock_phone(session, phone)
+    owner = await repository.verified_claim(session, phone)
+    if owner is not None and owner.user_id != user_id:
+        raise OtpError("phone belongs to another account")
+
+    previous_claim = await repository.verified_claim_for_user(session, user_id)
+    await repository.revoke_user_verified_claims(session, user_id=user_id)
+    claim = await repository.create_or_verify_claim(
+        session, user_id=user_id, e164=phone
+    )
+    user_settings = await settings_service.get_or_create(session, user_id)
+    user_settings.contact_phone = phone
+    await audit_service.record(
+        session,
+        actor_user_id=user_id,
+        target_user_id=user_id,
+        action="PHONE_VERIFY",
+        details={
+            "phone_last4": phone[-4:],
+            "context": action_context,
+            "foreign": is_foreign_phone(phone),
+            "replaced_previous": previous_claim is not None,
+        },
+    )
+    await session.flush()
     return claim

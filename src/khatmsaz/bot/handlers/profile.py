@@ -236,6 +236,16 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             return
         await identity_service.set_display_name(session, user.id, data["full_name"])
         await settings_service.save_profile(session, user.id, contact_phone=data["phone"], province=data["province"], city=data["city"], gender=Gender(callback.data.split(":", 2)[2]))
+        if phone_service.is_foreign_phone(data["phone"]):
+            try:
+                await phone_service.direct_verify_phone(
+                    session,
+                    user_id=user.id,
+                    e164=data["phone"],
+                    action_context="PROFILE_FOREIGN_DIRECT_VERIFY",
+                )
+            except phone_service.OtpError:
+                pass
     await _delete_profile_prompt(callback.message, state)
     await callback.answer()
 

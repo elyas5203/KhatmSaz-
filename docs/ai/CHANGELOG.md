@@ -1,3 +1,18 @@
+## 2026-10-14 — Antigravity — Direct Verification for Foreign Phone Numbers (MASTER-22)
+- **Direct Verification for Foreign Numbers (`MASTER-22`):**
+  - **Phone Module Core Service (`src/khatmsaz/modules/phone/service.py`):**
+    - Added `is_foreign_phone(raw: str) -> bool`: classifies non-Iranian numbers based on E.164 normalization.
+    - Added `direct_verify_phone`: atomic, advisory-locked direct verification creating `PhoneClaim` with `status=VERIFIED`, setting `UserSettings.contact_phone`, and logging audit without requiring SMS OTP or admin approval.
+  - **Bot Handlers Updated:**
+    - `change_phone.py`: `ensure_creator_phone_verified` directly verifies foreign phones without admin queueing; `receive_new_phone` directly verifies foreign replacement numbers.
+    - `profile.py`: auto-verifies foreign numbers on profile submission.
+    - `registration.py` & `member_registration.py`: sets `foreign_verified_phone` for contact share and manual typing, activating verified claims directly.
+  - **Web Creator Workflow (`src/khatmsaz/web/app.py`):**
+    - Auto-verifies foreign contact phone during web khatm creation.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md`.
+    - Added test suite `tests/test_master_22_foreign_phone_direct_verify.py`. Full test suite: 474 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## 2026-10-14 — Antigravity — Admin Panel User Analytics & Devotional Category Reception Breakdown (MASTER-21)
 - **Admin Panel User Analytics & Devotional Breakdown (`MASTER-21`):**
   - **Comprehensive Reporting Service Engine (`src/khatmsaz/modules/reporting/service.py`):**

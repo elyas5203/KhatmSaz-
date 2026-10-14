@@ -208,6 +208,8 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         await _registration_prompt(message, state, t("registration.phone_invalid", lang), reply_markup=_phone_keyboard(lang))
         return
     await state.update_data(phone=phone)
+    if phone_service.is_foreign_phone(phone):
+        await state.update_data(foreign_verified_phone=True)
     await state.set_state(Registration.choosing_province)
     await _remove_phone_keyboard(message)
     await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
@@ -263,9 +265,16 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             city=data["city"],
             gender=gender,
         )
-        if data.get("foreign_verified_phone"):
-            from khatmsaz.modules.phone import repository as phone_repository
-            await phone_repository.create_or_verify_claim(session, user_id=user.id, e164=data["phone"])
+        if data.get("foreign_verified_phone") or phone_service.is_foreign_phone(data.get("phone", "")):
+            try:
+                await phone_service.direct_verify_phone(
+                    session,
+                    user_id=user.id,
+                    e164=data["phone"],
+                    action_context="REGISTRATION_FOREIGN_DIRECT_VERIFY",
+                )
+            except phone_service.OtpError:
+                pass
             
         pending_token = data.get("pending_join_token")
         user_id = user.id
