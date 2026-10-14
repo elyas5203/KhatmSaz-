@@ -77,7 +77,7 @@ from khatmsaz.modules.notification.models import NotificationKind, NotificationL
 from khatmsaz.modules.open_contribution.models import OpenContribution
 from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.participation.models import Participation, ParticipationStatus
-from khatmsaz.modules.phone import repository as phone_repository
+from khatmsaz.modules.phone import repository as phone_repository, service as phone_service
 from khatmsaz.modules.phone.models import PhoneClaim
 from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import (
@@ -90,7 +90,7 @@ from khatmsaz.modules.plan.models import (
 from khatmsaz.modules.reporting import service as reporting_service
 from khatmsaz.modules.servant_ad import service as servant_ad_service
 from khatmsaz.modules.session import service as session_service
-from khatmsaz.modules.settings import service as settings_service
+from khatmsaz.modules.settings import repository as settings_repository, service as settings_service
 from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.share_occurrence import repository as occ_repo, service as occ_service
 from khatmsaz.modules.sms.provider import build_provider as build_sms_provider
@@ -1167,6 +1167,18 @@ async def creator_khatm_create(
     async with session_scope() as session:
         verified_phone = await phone_repository.verified_claim_for_user(session, creator.id)
         if verified_phone is None:
+            settings = await settings_repository.get_by_user(session, creator.id)
+            if settings and settings.contact_phone and phone_service.is_foreign_phone(settings.contact_phone):
+                try:
+                    verified_phone = await phone_service.direct_verify_phone(
+                        session,
+                        user_id=creator.id,
+                        e164=settings.contact_phone,
+                        action_context="WEB_CREATOR_FOREIGN_DIRECT_VERIFY",
+                    )
+                except Exception:
+                    pass
+        if verified_phone is None:
             return RedirectResponse("/creator/khatms/new?error=phone", status_code=303)
 
         category = None
@@ -1780,6 +1792,7 @@ async def dashboard(request: Request):
         recent = list(
             (await session.execute(select(Khatm).order_by(Khatm.created_at.desc()).limit(8))).scalars()
         )
+        user_analytics = await reporting_service.get_system_user_analytics(session)
     pending_map = {
         "laan": int(pending_laan or 0),
         "covers": int(pending_covers or 0),
@@ -1805,6 +1818,7 @@ async def dashboard(request: Request):
             },
             pending=pending_map,
             recent=recent,
+            user_analytics=user_analytics,
         ),
     )
 
@@ -2635,6 +2649,7 @@ async def users(request: Request, q: str = "", page: int = 1):
             }
             for u in found
         ]
+        user_analytics = await reporting_service.get_system_user_analytics(session)
     return templates.TemplateResponse(
         request=request,
         name="users.html",
@@ -2644,6 +2659,7 @@ async def users(request: Request, q: str = "", page: int = 1):
             raw,
             users=found,
             user_rows=user_rows,
+            user_analytics=user_analytics,
             query=query,
             page=page,
             has_next=has_next,

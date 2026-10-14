@@ -8,7 +8,48 @@
   - Added `get_telegram_file` returning `(None, local_path)` when running with local Bot API, eliminating memory spikes.
   - Enhanced `upload_to_bale` to accept `file_path`, streaming directly via `FSInputFile` and `BaleAiohttpSession` chunked multipart writer.
   - Added local disk file cleanup after mirroring.
-- **Validation:** 4 unit tests in `tests/test_master_21_large_file_bot_api.py`. Full test suite: 468 passed, 231 skipped (100% pass rate).
+- **Validation:** 4 unit tests in `tests/test_master_23_large_file_bot_api.py`. Full test suite: 468 passed, 231 skipped (100% pass rate).
+
+## Current state — 2026-10-14 — Direct Verification for Foreign Phone Numbers (MASTER-22) [Antigravity]
+- **Direct Verification for Foreign Numbers (`MASTER-22`):**
+  - **Owner Mandate:** "شماره های خارجی اگر بودن میخوام نیازی به تایید نداشته باشن مستقیم احراز هویت بشن".
+  - **Phone Module Core Service (`src/khatmsaz/modules/phone/service.py`):**
+    - Added `is_foreign_phone(raw: str) -> bool`: reliably identifies non-Iranian numbers (`not normalize_e164(raw).startswith("+98")`).
+    - Added `direct_verify_phone(session, *, user_id, e164, action_context) -> PhoneClaim`: atomic, advisory-locked verification bypassing SMS OTP and admin approval while safeguarding against account takeovers.
+  - **Bot Handlers Updated:**
+    - `src/khatmsaz/bot/handlers/change_phone.py`:
+      - `ensure_creator_phone_verified`: directly verifies foreign phones and allows creators to proceed immediately without queuing for manual review or waiting for admin approval.
+      - `receive_new_phone` (`/change_phone`): directly verifies foreign replacement phones and notifies user immediately.
+    - `src/khatmsaz/bot/handlers/profile.py`: auto-verifies foreign phone numbers upon profile completion.
+    - `src/khatmsaz/bot/handlers/registration.py` & `member_registration.py`: sets `foreign_verified_phone` for both contact share and typed input, directly activating verified claims.
+  - **Web Creator Workflow (`src/khatmsaz/web/app.py`):**
+    - Auto-verifies foreign contact phones on creator khatm creation without blocking on `error=phone`.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md`.
+    - Added test suite `tests/test_master_22_foreign_phone_direct_verify.py` (5 unit tests, 2 integration tests). Full test suite: 474 passed, 233 skipped, 0 failures (100% pass rate).
+
+## Current state — 2026-10-14 — Admin Panel User Analytics & Devotional Category Reception Breakdown (MASTER-21) [Antigravity]
+- **Admin Panel User Analytics & Devotional Breakdown (`MASTER-21`):**
+  - **Owner Mandate:** "یک مورد دیگ میخوام تو پنل ادمین میخوام مجموع تمام یوزر هایی ک هست تو تمام بات ها هم ببینم بعد به تفکیک هم ببینم اینطوری باشه بعد به تفکیک یوزر های قران و لعن و صلوات و دعا و خطبه هم باشه ک ببینم استقبال از کدوم بیشتره".
+  - **Comprehensive Reporting Service Engine (`src/khatmsaz/modules/reporting/service.py`):**
+    - Defined `DEVOTIONAL_METADATA` establishing the 5 canonical devotional families: قرآن کریم (Quran), لعن و برائت (La'an), صلوات و اذکار (Salawat), ادعیه و زیارات (Dua & Ziyarat), and خطبه‌ها و بیانات (Khutbah).
+    - Implemented `get_system_user_analytics(session: AsyncSession)` computing:
+      - Total registered users (`users`), active users (`UserStatus.ACTIVE`), and roles (Creators, Super Admins, Regular users).
+      - Platform breakdown: Telegram users, Bale users, and dual-platform users (`PlatformIdentity`).
+      - Devotional category metrics: engaged users (creators + participants combined), active readers, total khatms, active khatms, total participations.
+      - Relative market adoption / popularity percentage and automatic ranking (1 to 5) with `is_top` badge.
+  - **Web Admin Dashboard (`src/khatmsaz/web/app.py` & `src/khatmsaz/web/templates/dashboard.html`):**
+    - Enriched "Total Users" card with inline Telegram vs Bale badges.
+    - Added comprehensive analytics section `📊 تحلیل جامع استقبال و تفکیک کاربران` displaying popularity ranking, progress bars, and platform distribution.
+  - **Users 360° Management (`src/khatmsaz/web/templates/users.html`):**
+    - Added high-level summary cards above search form showing platform split, top category, and user counts per devotional family.
+  - **Admin Bot Telemetry (`src/khatmsaz/bot/handlers/admin_bot/handlers.py`):**
+    - Added `admin:user_analytics` callback and commands (`/users_stat`, `/analytics`, `/users`) displaying text breakdown of users and 5 categories.
+    - Enhanced `/status` command with live user summary and top category.
+  - **Master Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_21_ADMIN_PANEL_USER_ANALYTICS_AND_DEVOTIONAL_BREAKDOWN.md`.
+    - Added test suite `tests/test_master_21_user_analytics.py` (5 tests passing).
+  - **Validation:** 461 passed, 231 skipped in pytest (100% pass rate).
 
 ## Current state — 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-20) [Antigravity]
 - **Master Plan & Architecture Authored (`MASTER-20`):** Created `docs/ai/masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and registered `DEC-PY-0128`.

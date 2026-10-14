@@ -5,7 +5,40 @@
   - Updated `get_telegram_file` to detect local filesystem paths directly when running against a local Bot API, eliminating in-memory buffering for large media files.
   - Enhanced `upload_to_bale` to accept `file_path` alongside `file_bytes`, wrapping local files in `FSInputFile` for chunked streaming multipart delivery to Bale.
   - Added temporary local file cleanup after successful Bale mirroring.
-- **Validation:** Added 4 unit tests in `tests/test_master_21_large_file_bot_api.py`. Full test suite: 468 passed, 231 skipped (100% pass rate).
+- **Validation:** Added 4 unit tests in `tests/test_master_23_large_file_bot_api.py`. Full test suite: 468 passed, 231 skipped (100% pass rate).
+
+## 2026-10-14 — Antigravity — Direct Verification for Foreign Phone Numbers (MASTER-22)
+- **Direct Verification for Foreign Numbers (`MASTER-22`):**
+  - **Phone Module Core Service (`src/khatmsaz/modules/phone/service.py`):**
+    - Added `is_foreign_phone(raw: str) -> bool`: classifies non-Iranian numbers based on E.164 normalization.
+    - Added `direct_verify_phone`: atomic, advisory-locked direct verification creating `PhoneClaim` with `status=VERIFIED`, setting `UserSettings.contact_phone`, and logging audit without requiring SMS OTP or admin approval.
+  - **Bot Handlers Updated:**
+    - `change_phone.py`: `ensure_creator_phone_verified` directly verifies foreign phones without admin queueing; `receive_new_phone` directly verifies foreign replacement numbers.
+    - `profile.py`: auto-verifies foreign numbers on profile submission.
+    - `registration.py` & `member_registration.py`: sets `foreign_verified_phone` for contact share and manual typing, activating verified claims directly.
+  - **Web Creator Workflow (`src/khatmsaz/web/app.py`):**
+    - Auto-verifies foreign contact phone during web khatm creation.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md`.
+    - Added test suite `tests/test_master_22_foreign_phone_direct_verify.py`. Full test suite: 474 passed, 233 skipped, 0 failures (100% pass rate).
+
+## 2026-10-14 — Antigravity — Admin Panel User Analytics & Devotional Category Reception Breakdown (MASTER-21)
+- **Admin Panel User Analytics & Devotional Breakdown (`MASTER-21`):**
+  - **Comprehensive Reporting Service Engine (`src/khatmsaz/modules/reporting/service.py`):**
+    - Established canonical devotional taxonomy `DEVOTIONAL_METADATA`: قرآن کریم, لعن و برائت, صلوات و اذکار, ادعیه و زیارات, and خطبه‌ها و بیانات.
+    - Implemented `get_system_user_analytics` providing total users, platform identity split (Telegram vs Bale vs Dual-platform), role breakdown, and per-category engaged users, active readers, total khatms, active khatms, total participations, popularity share percentage, and adoption ranking.
+  - **Web Admin Dashboard (`src/khatmsaz/web/app.py` & `src/khatmsaz/web/templates/dashboard.html`):**
+    - Enriched "Total Users" card with inline Telegram vs Bale badges.
+    - Added responsive analytics panel `📊 تحلیل جامع استقبال و تفکیک کاربران` displaying popularity ranking, progress bars, and platform distribution.
+  - **Users 360° Management (`src/khatmsaz/web/templates/users.html`):**
+    - Added high-level summary cards above search form showing platform split, top category, and user counts per devotional family.
+  - **Admin Bot Telemetry (`src/khatmsaz/bot/handlers/admin_bot/handlers.py`):**
+    - Added `admin:user_analytics` callback and commands (`/users_stat`, `/analytics`, `/users`) displaying text breakdown of users and 5 categories.
+    - Enhanced `/status` command with live user summary and top category.
+  - **Master Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_21_ADMIN_PANEL_USER_ANALYTICS_AND_DEVOTIONAL_BREAKDOWN.md`.
+    - Added test suite `tests/test_master_21_user_analytics.py` (5 tests passing).
+  - **Validation:** 461 passed, 231 skipped in pytest (100% pass rate).
 
 ## 2026-10-14 — Antigravity — Real-Time Dual-Platform Media Mirroring (MASTER-20)
 - **Specification:** Formulated `docs/ai/masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and decision `DEC-PY-0128`.
