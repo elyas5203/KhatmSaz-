@@ -1,5 +1,6 @@
 """Conversation for admins to upload Dua media directly via Telegram/Bale."""
 
+import asyncio
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from khatmsaz.bot.filters import AdminFilter
 from khatmsaz.core.db import session_scope
 from khatmsaz.modules.content import service as content_service
+from khatmsaz.modules.content.migrator import mirror_devotional_media_to_bale
 from khatmsaz.modules.identity.models import Platform
 
 
@@ -94,6 +96,18 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                         page_number=page_number, caption=video_caption,
                     )
                     await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> از طریق لینک کانال ثبت شد.")
+                    if platform_val == Platform.TELEGRAM:
+                        asyncio.create_task(
+                            mirror_devotional_media_to_bale(
+                                slug=slug,
+                                kind="VIDEO",
+                                page_number=media.page_number,
+                                asset_ref=media.asset_ref,
+                                caption=video_caption,
+                                notify_chat_id=message.chat.id,
+                                bot=message.bot,
+                            )
+                        )
                     return
 
             file_id = None
@@ -110,6 +124,18 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                     page_number=page_number, caption=video_caption,
                 )
                 await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ذخیره شد.")
+                if platform_val == Platform.TELEGRAM:
+                    asyncio.create_task(
+                        mirror_devotional_media_to_bale(
+                            slug=slug,
+                            kind="VIDEO",
+                            page_number=media.page_number,
+                            asset_ref=media.asset_ref,
+                            caption=video_caption,
+                            notify_chat_id=message.chat.id,
+                            bot=message.bot,
+                        )
+                    )
                 return
 
             text_body = (target_msg.caption or target_msg.text or "").strip()
@@ -124,6 +150,18 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                         page_number=page_number, caption=video_caption,
                     )
                     await message.answer(f"✅ ویدیوی بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+                    if platform_val == Platform.TELEGRAM:
+                        asyncio.create_task(
+                            mirror_devotional_media_to_bale(
+                                slug=slug,
+                                kind="VIDEO",
+                                page_number=media.page_number,
+                                asset_ref=media.asset_ref,
+                                caption=video_caption,
+                                notify_chat_id=message.chat.id,
+                                bot=message.bot,
+                            )
+                        )
                     return
 
         await message.answer("⚠️ ویدیویی یافت نشد. لطفاً روی یک ویدیو ریپلای کنید یا لینک پست را قرار دهید.")
@@ -173,6 +211,18 @@ async def set_pdf_direct(message: Message, command: CommandObject) -> None:
                 page_number=page_number, caption=pdf_caption,
             )
             await message.answer(f"✅ 📄 فایل PDF بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+            if platform_val == Platform.TELEGRAM:
+                asyncio.create_task(
+                    mirror_devotional_media_to_bale(
+                        slug=slug,
+                        kind="PDF",
+                        page_number=media.page_number,
+                        asset_ref=media.asset_ref,
+                        caption=pdf_caption,
+                        notify_chat_id=message.chat.id,
+                        bot=message.bot,
+                    )
+                )
     except Exception as exc:
         await message.answer(f"⚠️ خطا در ثبت فایل PDF: {str(exc)}", parse_mode=None)
 
@@ -221,6 +271,18 @@ async def set_audio_direct(message: Message, command: CommandObject) -> None:
                 page_number=page_number, caption=audio_caption,
             )
             await message.answer(f"✅ 🔊 صوت بخش {media.page_number} برای <code>{slug}</code> با موفقیت ثبت شد.")
+            if platform_val == Platform.TELEGRAM:
+                asyncio.create_task(
+                    mirror_devotional_media_to_bale(
+                        slug=slug,
+                        kind="AUDIO",
+                        page_number=media.page_number,
+                        asset_ref=media.asset_ref,
+                        caption=audio_caption,
+                        notify_chat_id=message.chat.id,
+                        bot=message.bot,
+                    )
+                )
     except Exception as exc:
         await message.answer(f"⚠️ خطا در ثبت صوت: {str(exc)}", parse_mode=None)
 
@@ -321,6 +383,21 @@ async def receive_media(message: Message, state: FSMContext) -> None:
     
     if result:
         await message.answer(f"✅ {result} ثبت شد.")
+        if platform_val == Platform.TELEGRAM and getattr(result, "media", None):
+            m = result.media
+            asyncio.create_task(
+                mirror_devotional_media_to_bale(
+                    slug=slug,
+                    kind=m.kind,
+                    page_number=m.page_number,
+                    asset_ref=m.asset_ref,
+                    caption=m.reciter_label,
+                    reciter_id=m.reciter_id,
+                    reciter_label=m.reciter_label,
+                    notify_chat_id=message.chat.id,
+                    bot=message.bot,
+                )
+            )
     else:
         await message.answer("⚠️ نوع فایل پشتیبانی نشد.")
 

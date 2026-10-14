@@ -1,3 +1,17 @@
+## Current state — 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-16) [Antigravity]
+- **Master Plan & Architecture Authored (`MASTER-16`):** Created `docs/ai/masters/MASTER_16_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and registered `DEC-PY-0128`.
+- **Real-Time Streaming Core (`src/khatmsaz/modules/content/migrator.py`):**
+  - Added `mirror_devotional_media_to_bale`: non-blocking background streaming task that downloads new Telegram assets (supporting direct `file_id` and channel links `tg_forward:@channel:id`), uploads them via multipart stream to the Bale media repository (`bale_media_storage_chat_id`), extracts the permanent Bale `file_id`, auto-cleans the temporary message, and writes the `DevotionalMedia` record with `asset_platform="BALE"`.
+  - Added `upload_to_bale` support for `VIDEO` (`send_video`).
+  - Added `download_asset_bytes` for unified decoding of direct file IDs and channel forwards.
+- **Bot Handler Hooks (`src/khatmsaz/bot/handlers/manage_content.py`):**
+  - Hooked background mirroring into `/set_video`, `/set_pdf`, `/set_audio`, and the `/manage_content` wizard without blocking or delaying Telegram admin interactions.
+- **Bale Session & Admin Filter Improvements:**
+  - Extended `BaleAiohttpSession` in `src/khatmsaz/bot/bale/client.py` to auto-detect video formats (`.mp4`, `.mkv`, `.mov`, `.avi`) as `video/mp4`.
+  - Upgraded `AdminFilter` in `src/khatmsaz/bot/filters.py` to check `settings.super_admin_telegram_chat_ids` and `settings.super_admin_bale_chat_ids` directly.
+  - Included `manage_content` in `dp_admin` in `src/khatmsaz/bootstrap.py` so commands are accepted across both `@Khatm_Saz_bot` and `@khatmsaz_admin_bot`.
+- **Validation:** 8 dedicated unit tests added in `tests/test_realtime_media_mirroring.py` PASS; full test suite `448 passed, 230 deselected in 14.19s` (100% pass rate, zero regressions).
+
 ## Current state — 2026-10-13 — Automated Telegram-to-Bale Media Migration Engine [Antigravity]
 - **Master Plan & Research Executed:** Created `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` detailing the complete architecture for zero-downtime, idempotent cross-platform media streaming (Quran 604 pages image+audio, Khutbah, Dua, Ziyarat).
 - **Core Engine Built (`src/khatmsaz/modules/content/migrator.py`):** Implemented `TelegramToBaleMigrator` supporting direct Telegram-to-RAM streaming (`io.BytesIO`), channel forward extraction, rate-limited upload to a designated Bale storage chat, and automatic Bale `file_id` persistence with `asset_platform="BALE"`.

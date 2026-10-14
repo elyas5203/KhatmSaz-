@@ -263,6 +263,7 @@ async def main() -> None:
 
     # Super Admin commands also available on creator bot for authorized super admins
     dp_creator.include_router(_fresh_router("khatmsaz.bot.handlers.admin"))
+    dp_admin.include_router(_fresh_router("khatmsaz.bot.handlers.manage_content"))
 
     _shared_module_paths = [
         "khatmsaz.bot.handlers.manage_content",

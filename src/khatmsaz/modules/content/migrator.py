@@ -19,8 +19,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from khatmsaz.config import get_settings
+from khatmsaz.core.db import session_scope
 from khatmsaz.core.ids import new_id
 from khatmsaz.modules.content import service as content_service
+from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.content.models import (
     DevotionalAsset,
     DevotionalMedia,
@@ -149,7 +151,7 @@ class TelegramToBaleMigrator:
         return buffer.getvalue()
 
     async def fetch_channel_message_bytes(
-        self, source_chat_id: int, source_message_id: int
+        self, source_chat_id: int | str, source_message_id: int
     ) -> tuple[bytes, str, str]:
         """Forward a channel post to scratch chat to obtain file bytes and kind.
 
@@ -176,6 +178,10 @@ class TelegramToBaleMigrator:
                 kind = "IMAGE"
                 file_id = fwd.photo[-1].file_id
                 filename = f"page_{source_message_id}.jpg"
+            elif fwd.video:
+                kind = "VIDEO"
+                file_id = fwd.video.file_id
+                filename = fwd.video.file_name or f"video_{source_message_id}.mp4"
             elif fwd.audio:
                 kind = "AUDIO"
                 file_id = fwd.audio.file_id
@@ -201,6 +207,39 @@ class TelegramToBaleMigrator:
                 )
             except Exception:
                 pass
+
+    async def download_asset_bytes(
+        self, asset_ref: str, fallback_kind: str = "DOCUMENT"
+    ) -> tuple[bytes, str, str]:
+        """Download bytes for an asset_ref, supporting both direct file_id and tg_forward:@channel:id.
+
+        Returns (file_bytes, kind, filename).
+        """
+        if asset_ref.startswith("tg_forward:"):
+            parts = asset_ref.split(":")
+            if len(parts) >= 3:
+                channel = parts[1]
+                mid = int(parts[2])
+                ch_id: int | str = (
+                    int(channel)
+                    if (channel.isdigit() or (channel.startswith("-") and channel[1:].isdigit()))
+                    else channel
+                )
+                return await self.fetch_channel_message_bytes(ch_id, mid)
+            raise ValueError(f"Malformed tg_forward reference: {asset_ref}")
+
+        file_bytes = await self.download_telegram_file_bytes(asset_ref)
+        ext = (
+            "mp4"
+            if fallback_kind.upper() == "VIDEO"
+            else (
+                "jpg"
+                if fallback_kind.upper() == "IMAGE"
+                else ("mp3" if fallback_kind.upper() == "AUDIO" else "pdf")
+            )
+        )
+        filename = f"media.{ext}"
+        return file_bytes, fallback_kind, filename
 
     async def upload_to_bale(
         self,
@@ -236,6 +275,18 @@ class TelegramToBaleMigrator:
             if not msg.audio:
                 raise RuntimeError("Bale send_audio returned message without audio attribute")
             file_id = msg.audio.file_id
+        elif kind_upper == "VIDEO":
+            msg = await self.bale_bot.send_video(
+                chat_id=self.bale_storage_chat_id,
+                video=input_file,
+                caption=caption,
+            )
+            if msg.video:
+                file_id = msg.video.file_id
+            elif msg.document:
+                file_id = msg.document.file_id
+            else:
+                raise RuntimeError("Bale send_video returned message without video or document attribute")
         else:  # PDF or generic document
             msg = await self.bale_bot.send_document(
                 chat_id=self.bale_storage_chat_id,
@@ -455,9 +506,15 @@ class TelegramToBaleMigrator:
                 continue
 
             try:
-                # 2. Download from Telegram
-                file_bytes = await self.download_telegram_file_bytes(item.asset_ref)
-                ext = "jpg" if item.kind == "IMAGE" else ("mp3" if item.kind == "AUDIO" else "pdf")
+                # 2. Download from Telegram (supporting file_id and tg_forward)
+                file_bytes, _, _ = await self.download_asset_bytes(
+                    item.asset_ref, fallback_kind=item.kind
+                )
+                ext = (
+                    "mp4"
+                    if item.kind == "VIDEO"
+                    else ("jpg" if item.kind == "IMAGE" else ("mp3" if item.kind == "AUDIO" else "pdf"))
+                )
                 filename = f"devotional_{item.devotional_asset_id}_{item.page_number}.{ext}"
                 caption = f"{item.kind} {item.reciter_label or ''}".strip()
                 # 3. Upload to Bale
@@ -508,3 +565,165 @@ class TelegramToBaleMigrator:
             "quran_audio": quran_audio_stats,
             "devotionals": devotional_stats,
         }
+
+
+async def mirror_devotional_media_to_bale(
+    slug: str,
+    kind: str,
+    page_number: int | None,
+    asset_ref: str,
+    caption: str | None = None,
+    reciter_id: str | None = None,
+    reciter_label: str | None = None,
+    notify_chat_id: int | None = None,
+    bot: Bot | None = None,
+) -> str | None:
+    """Real-time background mirroring of newly registered Telegram media to Bale (MASTER-16).
+
+    1. Checks if Bale bot and Bale storage chat are configured.
+    2. Downloads media bytes from Telegram (file_id or tg_forward channel link).
+    3. Uploads to Bale storage chat and extracts the Bale file_id.
+    4. Deletes the temporary message in Bale storage chat.
+    5. Saves or updates record in DevotionalMedia with asset_platform='BALE'.
+    6. Gracefully logs and informs admin without disrupting Telegram flow.
+    """
+    settings = get_settings()
+    if not settings.bale_bot_token or not settings.bale_media_storage_chat_id:
+        logger.info(
+            "Skipping Bale mirroring for %s (%s): Bale bot token or storage chat ID not configured",
+            slug,
+            kind,
+        )
+        return None
+
+    try:
+        from khatmsaz.bot.bale.client import build_bale_bot
+        from khatmsaz.bot.telegram.client import build_telegram_bot
+        from khatmsaz.core.bot_registry import get_registry
+
+        try:
+            reg = get_registry()
+        except RuntimeError:
+            reg = None
+        tg_bot = (reg.get_creator_bot(Platform.TELEGRAM) if reg else None) or bot
+        if not tg_bot:
+            tg_bot = build_telegram_bot()
+
+        bale_bot = reg.get_creator_bot(Platform.BALE) if reg else None
+        if not bale_bot:
+            bale_bot = build_bale_bot()
+
+        migrator = TelegramToBaleMigrator(
+            tg_bot=tg_bot,
+            bale_bot=bale_bot,
+            bale_storage_chat_id=settings.bale_media_storage_chat_id,
+        )
+
+        file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+        ext = (
+            "mp4"
+            if kind.upper() == "VIDEO"
+            else (
+                "jpg"
+                if kind.upper() == "IMAGE"
+                else ("mp3" if kind.upper() == "AUDIO" else "pdf")
+            )
+        )
+        filename = f"devotional_{slug}_{page_number or 1}.{ext}"
+
+        bale_file_id = await migrator.upload_to_bale(
+            file_bytes=file_bytes,
+            kind=kind,
+            filename=filename,
+            caption=caption or reciter_label,
+        )
+
+        async with session_scope() as session:
+            asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))
+            if not asset:
+                title = (
+                    "خطبه فدکیه حضرت زهرا (س)"
+                    if "fadak" in slug
+                    else ("خطبه غدیر پیامبر اکرم (ص)" if "ghadir" in slug else slug)
+                )
+                asset = DevotionalAsset(
+                    id=new_id(),
+                    content_type="DUA",
+                    slug=slug,
+                    title=title,
+                    text_body="",
+                    enabled=True,
+                )
+                session.add(asset)
+                await session.flush()
+
+            existing_bale = await session.scalar(
+                select(DevotionalMedia).where(
+                    DevotionalMedia.devotional_asset_id == asset.id,
+                    DevotionalMedia.kind == kind.upper(),
+                    DevotionalMedia.reciter_id == (reciter_id or ""),
+                    DevotionalMedia.page_number == (page_number or 0),
+                    DevotionalMedia.asset_platform == "BALE",
+                )
+            )
+            if existing_bale:
+                existing_bale.asset_ref = bale_file_id
+                if caption or reciter_label:
+                    existing_bale.reciter_label = caption or reciter_label
+            else:
+                new_media = DevotionalMedia(
+                    id=new_id(),
+                    devotional_asset_id=asset.id,
+                    kind=kind.upper(),
+                    reciter_id=reciter_id or "",
+                    reciter_label=caption or reciter_label,
+                    page_number=page_number or 0,
+                    asset_ref=bale_file_id,
+                    asset_platform="BALE",
+                )
+                session.add(new_media)
+            await session.commit()
+
+        logger.info(
+            "Successfully mirrored %s %s (part %s) to Bale: file_id=%s",
+            slug,
+            kind,
+            page_number,
+            bale_file_id,
+        )
+
+        if notify_chat_id and bot:
+            try:
+                kind_fa = (
+                    "ویدیو"
+                    if kind.upper() == "VIDEO"
+                    else ("فایل PDF" if kind.upper() == "PDF" else "صوت")
+                )
+                part_text = f" بخش {page_number}" if page_number else ""
+                await bot.send_message(
+                    chat_id=notify_chat_id,
+                    text=f"🟢 {kind_fa}{part_text} به صورت خودکار در پیام‌رسان بله نیز همگام‌سازی و بارگذاری شد.",
+                )
+            except Exception:
+                pass
+
+        return bale_file_id
+    except Exception as exc:
+        logger.error(
+            "Failed mirroring devotional media %s (%s, part %s) to Bale: %s",
+            slug,
+            kind,
+            page_number,
+            exc,
+            exc_info=True,
+        )
+        if notify_chat_id and bot:
+            try:
+                await bot.send_message(
+                    chat_id=notify_chat_id,
+                    text=f"⚠️ همگام‌سازی خودکار در بله با خطا مواجه شد:\n<code>{exc}</code>\nمحتوا در تلگرام ثبت است و بعداً نیز قابل همگام‌سازی است.",
+                )
+            except Exception:
+                pass
+        return None
+

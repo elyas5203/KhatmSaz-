@@ -48,6 +48,8 @@ class BaleAiohttpSession(AiohttpSession):
                     content_type = "audio/ogg"
                 elif lower_fname.endswith(".pdf"):
                     content_type = "application/pdf"
+                elif lower_fname.endswith((".mp4", ".mkv", ".mov", ".avi")):
+                    content_type = "video/mp4"
                 form.add_field(
                     key,
                     value.read(bot),

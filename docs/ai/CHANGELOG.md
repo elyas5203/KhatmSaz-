@@ -1,3 +1,11 @@
+## 2026-10-14 — Antigravity — Real-Time Dual-Platform Media Mirroring (MASTER-16)
+- **Specification:** Formulated `docs/ai/masters/MASTER_16_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and decision `DEC-PY-0128`.
+- **Real-Time Mirroring Service (`src/khatmsaz/modules/content/migrator.py`):** Added `mirror_devotional_media_to_bale` background task for auto-syncing newly registered media in Telegram directly into Bale with permanent `file_id` caching.
+- **Video & Channel Support:** Added video mime type support in `BaleAiohttpSession` (`video/mp4`), `upload_to_bale` video handling (`send_video`), and channel post link extraction (`tg_forward:@channel:id`).
+- **Bot Handlers:** Hooked background mirroring into `/set_video`, `/set_pdf`, `/set_audio`, and `/manage_content` wizard.
+- **Admin Routing:** Upgraded `AdminFilter` to validate configured super admin chat IDs, and included `manage_content` in `dp_admin` for `@khatmsaz_admin_bot`.
+- **Validation:** Added 8 unit tests in `tests/test_realtime_media_mirroring.py`. Full non-integration suite `448 passed` cleanly.
+
 ## 2026-10-13 — Antigravity — Telegram-to-Bale Media Migration Engine & CLI Pipeline
 - **Master Plan:** Formulated `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and decision `DEC-PY-0127`.
 - **Core Migrator Service (`src/khatmsaz/modules/content/migrator.py`):** Built `TelegramToBaleMigrator` engine streaming Quran 604 pages (images + Parhizgar audio) and devotional assets (Dua, Ziyarat, Khutbah) directly to a dedicated Bale media storage chat, capturing generated `file_id`s, and registering in `quran_page_assets` and `devotional_media` with `asset_platform="BALE"`.

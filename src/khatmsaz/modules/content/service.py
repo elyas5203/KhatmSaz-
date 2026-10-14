@@ -1068,9 +1068,18 @@ async def set_user_favorite(session: AsyncSession, user_id, reciter_id: str) -> 
     await session.flush()
 
 
+class AppendMediaResult(str):
+    media: DevotionalMedia | None = None
+
+    def __new__(cls, content: str, media: DevotionalMedia | None = None):
+        obj = super().__new__(cls, content)
+        obj.media = media
+        return obj
+
+
 async def append_devotional_media_from_message(
     session: AsyncSession, slug: str, message, platform: "Platform | str"  # type: ignore
-) -> str | None:
+) -> AppendMediaResult | None:
     """Extracts media/text from an aiogram Message and appends it to a devotional asset."""
     from aiogram.types import Message
     msg: Message = message
@@ -1120,14 +1129,14 @@ async def append_devotional_media_from_message(
             else:
                 asset.text_body = text
             await session.flush()
-            return "TEXT"
+            return AppendMediaResult("TEXT", None)
         
     if kind and file_id:
         if kind == "PDF":
-            await set_devotional_pdf(
+            media = await set_devotional_pdf(
                 session, slug=slug, asset_ref=file_id, asset_platform=platform_val
             )
-            return "PDF"
+            return AppendMediaResult("PDF", media)
         if kind == "AUDIO":
             existing_audios = await list_devotional_audio_variants(session, slug, platform_val)
             reciter_id = "" if not existing_audios else f"reciter_{len(existing_audios) + 1}"
@@ -1136,7 +1145,7 @@ async def append_devotional_media_from_message(
                 or getattr(getattr(msg, "audio", None), "title", None)
                 or (f"مداح {len(existing_audios) + 1}" if existing_audios else None)
             )
-            await add_devotional_audio_variant(
+            media = await add_devotional_audio_variant(
                 session,
                 slug=slug,
                 asset_ref=file_id,
@@ -1144,7 +1153,7 @@ async def append_devotional_media_from_message(
                 reciter_id=reciter_id,
                 reciter_label=reciter_label,
             )
-            return "AUDIO"
+            return AppendMediaResult("AUDIO", media)
         page_num = 0
         caption_label = (getattr(msg, "caption", None) or "").strip() or None
         if kind in ("IMAGE", "VIDEO"):
@@ -1171,7 +1180,8 @@ async def append_devotional_media_from_message(
         )
         session.add(media)
         await session.flush()
-        return f"{kind} (بخش {page_num})" if page_num > 0 else kind
+        label = f"{kind} (بخش {page_num})" if page_num > 0 else kind
+        return AppendMediaResult(label, media)
         
     return None
 
