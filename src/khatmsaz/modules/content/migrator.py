@@ -719,9 +719,24 @@ async def mirror_devotional_media_to_bale(
         )
         if notify_chat_id and bot:
             try:
+                err_text = str(exc)
+                if "file is too big" in err_text.lower():
+                    friendly_msg = (
+                        "⚠️ <b>عدم امکان همگام‌سازی خودکار در بله به‌دلیل محدودیت حجم تلگرام:</b>\n\n"
+                        "سرورهای تلگرام به ربات‌ها اجازه دانلود فایل‌های بالای <b>۲۰ مگابایت</b> را نمی‌دهند.\n\n"
+                        "✅ این ویدیو با موفقیت کامل در <b>تلگرام</b> ذخیره شده و برای اعضا فعال است.\n"
+                        "🟢 برای پیام‌رسان <b>بله</b>، کافیست همین ویدیو را یک‌بار در بله برای بات ارسال کرده و روی آن دستور زیر را ریپلای فرمایید:\n"
+                        f"<code>/set_video {slug} {page_number or 1}</code>"
+                    )
+                else:
+                    friendly_msg = (
+                        f"⚠️ همگام‌سازی خودکار در بله با خطا مواجه شد:\n"
+                        f"<code>{exc}</code>\n"
+                        "محتوا در تلگرام ثبت است و بعداً نیز قابل همگام‌سازی است."
+                    )
                 await bot.send_message(
                     chat_id=notify_chat_id,
-                    text=f"⚠️ همگام‌سازی خودکار در بله با خطا مواجه شد:\n<code>{exc}</code>\nمحتوا در تلگرام ثبت است و بعداً نیز قابل همگام‌سازی است.",
+                    text=friendly_msg,
                 )
             except Exception:
                 pass
