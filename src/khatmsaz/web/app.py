@@ -753,8 +753,29 @@ async def payping_callback(request: Request):
     )
 
 
+@app.get("/admin", response_class=HTMLResponse)
+@app.get("/admin/", response_class=HTMLResponse)
+async def admin_url_redirect(request: Request):
+    return RedirectResponse("/", status_code=303)
+
+
 @app.get("/login", response_class=HTMLResponse)
 async def login(request: Request, token: str = ""):
+    if token:
+        async with session_scope() as session:
+            admin = await session_service.authenticate_admin(session, token)
+            if admin is not None:
+                response = RedirectResponse("/", status_code=303)
+                response.set_cookie(
+                    COOKIE_NAME,
+                    token,
+                    max_age=8 * 60 * 60,
+                    httponly=True,
+                    samesite="lax",
+                    secure=True,
+                    path="/",
+                )
+                return response
     return templates.TemplateResponse(
         request=request,
         name="login.html",
@@ -788,9 +809,28 @@ async def telegram_creator_mini_app(request: Request):
 
 
 async def _authenticate_telegram_mini_app(request: Request, init_data: str, *, purpose: str):
-    try:
-        signed_user = validate_telegram_init_data(init_data, get_settings().telegram_bot_token)
-    except InvalidTelegramInitData:
+    settings = get_settings()
+    candidate_tokens: list[str] = []
+    if purpose == "admin":
+        if settings.admin_bot_token:
+            candidate_tokens.append(settings.admin_bot_token)
+        if settings.telegram_bot_token:
+            candidate_tokens.append(settings.telegram_bot_token)
+    else:
+        if settings.telegram_bot_token:
+            candidate_tokens.append(settings.telegram_bot_token)
+        if settings.admin_bot_token:
+            candidate_tokens.append(settings.admin_bot_token)
+
+    signed_user = None
+    for bot_tok in candidate_tokens:
+        try:
+            signed_user = validate_telegram_init_data(init_data, bot_tok)
+            break
+        except InvalidTelegramInitData:
+            continue
+
+    if signed_user is None:
         return _mini_app_page(
             request, purpose=purpose,
             error="ورود معتبر نیست یا زمان آن گذشته است. پنجره را ببندید و دوباره از داخل بات باز کنید.",

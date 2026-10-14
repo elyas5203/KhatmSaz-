@@ -1,3 +1,30 @@
+## Current state — 2026-10-14 — Admin Bot & Panel Access Redesign, Web Dual Auth, and Creator Panel Button Guard (MASTER-19) [Antigravity]
+- **Admin Bot & Panel Access Resolution (`MASTER-19`):**
+  - **Owner Mandate:** "بات ادمین درست کار نمیکنه من دسترسی به پنل هم ندارم چیزی برام نمیفرسته / بعد یمورد دیگ اون دکمه ک تو بات ختم ساز هست و پنل سازده هاست اون دکمشم میخوام فعلا مخفی بشه برام هم تویه بله هم تلگرام".
+  - **Mini App Multi-Token Auth (`web/app.py`):**
+    - `_authenticate_telegram_mini_app` previously only validated initData using `telegram_bot_token`. When opened from `@khatmsaz_admin_bot`, the HMAC check failed with 401. Updated to test against candidate tokens (`admin_bot_token` and `telegram_bot_token`).
+  - **Direct Browser Login / Magic Link (`web/app.py` & `web/templates/login.html`):**
+    - Added direct session token login to `/login?token=...`: authenticates token against `session_service.authenticate_admin`, issues `khatmsaz_admin_session` cookie and redirects to `/` with HTTP 303.
+    - Added `/admin` and `/admin/` redirects to `/` (eliminating 404).
+  - **Admin Bot Dashboard & Fallback (`bot/handlers/admin_bot/handlers.py`):**
+    - Added `/web_login`, `/panel`, `/web`, `/login` commands and inline callback `admin:web_link` which generates an 8-hour secure one-time login link for browser access alongside the Telegram Mini App button.
+    - Updated `_build_dashboard_keyboard` to surface «🌐 دریافت لینک ورود به پنل (مرورگر / وب)» and «📱 ورود سریع با مینی‌اپ تلگرام».
+    - Added fallback message handler `@router.message()` so any message from an authorized admin brings up the dashboard and the bot is never silent.
+    - Updated `_is_super_admin` to auto-promote configured IDs in `SUPER_ADMIN_TELEGRAM_CHAT_IDS` to `SUPER_ADMIN` in DB.
+    - Enhanced `_reject_unauthorized` to display the user's numeric Telegram chat ID for easy onboarding.
+- **Creator Panel Button Hiding (`MASTER-19`):**
+  - Completely hidden the Creator Mini App button (`creator:web_login`) from in-bot keyboards across Telegram and Bale, even for admins:
+    - `src/khatmsaz/bot/handlers/settings_menu.py`: `_can_open_creator_panel` returns `False`.
+    - `src/khatmsaz/bot/handlers/panel.py`: `creator_panel_keyboard` excludes `creator:web_login`.
+    - `src/khatmsaz/bot/keyboards.py`: `help_manage_actions_keyboard` excludes `creator:web_login`.
+- **Bug Fix in Member Bot Navigation (`keyboards.py:1202`):**
+  - Fixed `AttributeError: 'NoneType' object has no attribute 'value'` when role is `None` in `bail_if_menu_button` (`getattr(role, "value", role) == "SUPER_ADMIN"`).
+- **Master Documentation & Tests:**
+  - Authored `docs/ai/masters/MASTER_19_ADMIN_BOT_ACCESS_AND_CREATOR_PANEL_BUTTON_GUARD.md`.
+  - Added test suite `tests/test_master_19_admin_access_and_creator_guard.py`.
+  - Updated `tests/test_help.py`, `tests/test_mini_app_entry.py`, `tests/test_master_10_broadcast_receipt_and_creator_guard.py`.
+- **Validation:** 456 passed, 231 skipped in pytest (100% pass rate).
+
 ## Current state — 2026-10-13 — Full Unified Collective Progression Across All Khatms (MASTER-18 Implementation) [Antigravity]
 - **Unified Collective Progression Implemented (`MASTER-18`):**
   - **Owner Mandate:** The owner formally rejected the legacy Personal Journey Rotation model ("این مدل اشتباهه باید همشون ی ختم رو ببرن جلو عین همون قبلی؛ خطبه بخش میگیرن، قران صفحه میگیرن اینطوریه").

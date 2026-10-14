@@ -78,13 +78,8 @@ async def _lang_for(chat_id, bot) -> str:
 
 
 def _can_open_creator_panel(bot, user) -> bool:
-    """Super-Admins on the creator bot may open the Creator Mini App
-    (DEC-PY-0121 / MASTER-10). Regular creators are temporarily blocked while
-    the creator panel is undergoing modernization."""
-    from khatmsaz.modules.identity.models import UserRole
-    if is_member_bot(bot):
-        return False
-    return getattr(user, "role", None) == UserRole.SUPER_ADMIN
+    """MASTER-19: Creator panel button in settings is hidden per user request."""
+    return False
 
 
 @router.message(F.text.in_(SETTINGS_BUTTON_TEXTS))

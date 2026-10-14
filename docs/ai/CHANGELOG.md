@@ -1,3 +1,26 @@
+## 2026-10-14 — Antigravity — Admin Bot Access, Browser Token Login & Creator Panel Button Guard (MASTER-19)
+- **Admin Bot & Panel Access Resolution (`MASTER-19`):**
+  - **Mini App Multi-Token Auth (`src/khatmsaz/web/app.py`):** Added candidate token verification against `admin_bot_token` and `telegram_bot_token` in `_authenticate_telegram_mini_app`, fixing 401 signature validation errors for `@khatmsaz_admin_bot`.
+  - **Direct Browser Login / Magic Link (`src/khatmsaz/web/app.py`):** Enabled `/login?token=<raw_token>` to authenticate admin directly via `session_service.authenticate_admin` and set `khatmsaz_admin_session` cookie. Added `/admin` and `/admin/` redirects to `/`.
+  - **Admin Bot Dashboard & Fallback (`src/khatmsaz/bot/handlers/admin_bot/handlers.py`):**
+    - Added `/web_login`, `/panel`, `/web`, `/login` commands and inline callback `admin:web_link` generating 8-hour direct browser login links.
+    - Updated `_build_dashboard_keyboard` to expose browser link generation and quick mini-app button.
+    - Added fallback message handler `@router.message()` so arbitrary text messages from authorized admins trigger the dashboard rather than silence.
+    - Updated `_is_super_admin` to auto-promote configured IDs in `SUPER_ADMIN_TELEGRAM_CHAT_IDS` to `SUPER_ADMIN` in DB.
+    - Enhanced `_reject_unauthorized` to display the sender's numeric Telegram chat ID.
+- **Creator Panel Button Hiding (`MASTER-19`):**
+  - Completely hidden the Creator Mini App button (`creator:web_login`) from in-bot keyboards across Telegram and Bale, even for admins:
+    - `src/khatmsaz/bot/handlers/settings_menu.py`: `_can_open_creator_panel` returns `False`.
+    - `src/khatmsaz/bot/handlers/panel.py`: `creator_panel_keyboard` excludes `creator:web_login`.
+    - `src/khatmsaz/bot/keyboards.py`: `help_manage_actions_keyboard` excludes `creator:web_login`.
+- **Bug Fix in Member Bot Navigation (`keyboards.py:1202`):**
+  - Fixed `AttributeError: 'NoneType' object has no attribute 'value'` when role is `None` in `bail_if_menu_button`.
+- **Master Documentation & Tests:**
+  - Authored `docs/ai/masters/MASTER_19_ADMIN_BOT_ACCESS_AND_CREATOR_PANEL_BUTTON_GUARD.md`.
+  - Added test suite `tests/test_master_19_admin_access_and_creator_guard.py`.
+  - Updated `tests/test_help.py`, `tests/test_mini_app_entry.py`, `tests/test_master_10_broadcast_receipt_and_creator_guard.py`.
+- **Validation:** 456 passed, 231 skipped in pytest (100% pass rate).
+
 ## 2026-10-13 — Antigravity — Full Unified Collective Progression Across All Khatms (MASTER-18)
 - **Unified Collective Progression Implemented (`MASTER-18`):**
   - Eliminated the Personal Journey Rotation model per owner's explicit mandate.
