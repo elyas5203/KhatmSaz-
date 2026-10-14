@@ -58,8 +58,10 @@ flowchart TD
 18. 🚀 **[مستر فرزند ۱۸ — طرح معماری، تصمیم‌گیری دامنه‌ای و نقشه راه یکپارچه‌سازی پیشرفت دسته‌جمعی](masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md)**
 19. 📱 **[مستر فرزند ۱۹ — بازطراحی دسترسی بات ادمین، احراز هویت دوگانه وب و محافظت از دکمه پنل سازنده](masters/MASTER_19_ADMIN_BOT_ACCESS_AND_CREATOR_PANEL_BUTTON_GUARD.md)**
 20. 🔄 **[مستر فرزند ۲۰ — آینه‌سازی و همگام‌سازی آنی دوطرفهٔ رسانه‌ها بین تلگرام و بله](masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md)**
-21. ⚡️ **[مستر فرزند ۲۱ — سرور اختصاصی Bot API محلی تلگرام و پشتیبانی از فایل‌های سنگین تا ۲ گیگابایت](masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md)**
-22. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
+21. 📊 **[مستر فرزند ۲۱ — تجمیع کاربران همه بات‌ها و رتبه‌بندی استقبال ۵ دسته‌بندی ختم](masters/MASTER_21_ADMIN_PANEL_USER_ANALYTICS_AND_DEVOTIONAL_BREAKDOWN.md)**
+22. 🌍 **[مستر فرزند ۲۲ — احراز هویت مستقیم شماره‌های خارجی بدون نیاز به تأیید](masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md)**
+23. ⚡️ **[مستر فرزند ۲۳ — سرور اختصاصی Bot API محلی تلگرام و پشتیبانی از فایل‌های سنگین تا ۲ گیگابایت](masters/MASTER_23_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md)**
+24. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
 
 ---
 

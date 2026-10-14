@@ -1,5 +1,5 @@
-## 2026-10-14 — Antigravity — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-21)
-- **Specification & Architectural Decision:** Authored `docs/ai/masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
+## 2026-10-14 — Antigravity — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-23)
+- **Specification & Architectural Decision:** Authored `docs/ai/masters/MASTER_23_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
 - **Local Bot API Server Integration (`src/khatmsaz/config.py` & `src/khatmsaz/bot/telegram/client.py`):** Added support for running against a local Telegram Bot API server (`settings.telegram_api_server_url`, `telegram_api_server_is_local=True`, `telegram_api_id`, `telegram_api_hash`, `telegram_local_bot_api_dir`), allowing downloads and uploads up to 2000 MB (2 GB) and eliminating the 20MB cloud limit.
 - **Zero-RAM Streaming Pipeline (`src/khatmsaz/modules/content/migrator.py`):**
   - Updated `get_telegram_file` to detect local filesystem paths directly when running against a local Bot API, eliminating in-memory buffering for large media files.

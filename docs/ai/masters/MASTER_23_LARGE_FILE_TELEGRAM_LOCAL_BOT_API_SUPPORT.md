@@ -1,5 +1,5 @@
-# 📜 مستر فرزند ۲۱: پشتیبانی از فایل‌های سنگین و حجیم تلگرام (تا ۲ گیگابایت) و سرور اختصاصی Bot API محلی
-**(Child Master 21 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB)**
+# 📜 مستر فرزند ۲۳: پشتیبانی از فایل‌های سنگین و حجیم تلگرام (تا ۲ گیگابایت) و سرور اختصاصی Bot API محلی
+**(Child Master 23 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB)**
 
 > **🔗 موقعیت در درختوارهٔ اسناد (والد و فرزندی):**
 > - **⬆️ سند مادر (والد):** [ADMIN_PANEL_REDESIGN_MASTER.md](../ADMIN_PANEL_REDESIGN_MASTER.md)

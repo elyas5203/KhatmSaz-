@@ -1,5 +1,5 @@
-## Current state — 2026-10-14 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-21) [Antigravity]
-- **Master Plan & Architecture Authored (`MASTER-21`):** Created `docs/ai/masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
+## Current state — 2026-10-14 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-23) [Antigravity]
+- **Master Plan & Architecture Authored (`MASTER-23`):** Created `docs/ai/masters/MASTER_23_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
 - **Local Bot API Integration (`src/khatmsaz/config.py` & `src/khatmsaz/bot/telegram/client.py`):**
   - Added `telegram_api_server_url`, `telegram_api_server_is_local`, `telegram_api_id`, `telegram_api_hash`, `telegram_local_bot_api_dir`.
   - Configured `build_telegram_bot` to use `TelegramAPIServer.from_base(settings.telegram_api_server_url, is_local=True)`.
