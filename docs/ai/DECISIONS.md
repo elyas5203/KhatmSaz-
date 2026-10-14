@@ -3,6 +3,11 @@
 Append-only. Never edit or delete an old decision — if it's superseded, add a
 new entry that says so and link back.
 
+### DEC-PY-0129 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-21)
+
+**Date:** 2026-10-14
+**Owner confirmation:** To eliminate the cloud Telegram Bot API 20MB download restriction on media (`Bad Request: file is too big`), KhatmSaz natively integrates with a local Telegram Bot API server (`aiogram/telegram-bot-api --local`). The local server raises the file download and upload limit to 2000 MB (2 GB). KhatmSaz uses `TelegramAPIServer.from_base(settings.telegram_api_server_url, is_local=True)` and streams files to Bale using `FSInputFile` directly from the local disk filesystem (`/var/lib/telegram-bot-api`), ensuring zero RAM spikes and automated dual-platform content registration for heavy videos and audio files. See `docs/ai/masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md`.
+
 ---
 
 ### DEC-PY-0128 — Real-Time Background Cross-Platform Media Mirroring for Telegram and Bale (MASTER-20)

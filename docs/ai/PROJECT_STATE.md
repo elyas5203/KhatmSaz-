@@ -1,3 +1,15 @@
+## Current state — 2026-10-14 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-21) [Antigravity]
+- **Master Plan & Architecture Authored (`MASTER-21`):** Created `docs/ai/masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
+- **Local Bot API Integration (`src/khatmsaz/config.py` & `src/khatmsaz/bot/telegram/client.py`):**
+  - Added `telegram_api_server_url`, `telegram_api_server_is_local`, `telegram_api_id`, `telegram_api_hash`, `telegram_local_bot_api_dir`.
+  - Configured `build_telegram_bot` to use `TelegramAPIServer.from_base(settings.telegram_api_server_url, is_local=True)`.
+  - Enables downloading and uploading heavy files up to 2000 MB (2 GB), bypassing the cloud Telegram Bot API 20MB limit.
+- **Zero-RAM Streaming Pipeline (`src/khatmsaz/modules/content/migrator.py`):**
+  - Added `get_telegram_file` returning `(None, local_path)` when running with local Bot API, eliminating memory spikes.
+  - Enhanced `upload_to_bale` to accept `file_path`, streaming directly via `FSInputFile` and `BaleAiohttpSession` chunked multipart writer.
+  - Added local disk file cleanup after mirroring.
+- **Validation:** 4 unit tests in `tests/test_master_21_large_file_bot_api.py`. Full test suite: 468 passed, 231 skipped (100% pass rate).
+
 ## Current state — 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-20) [Antigravity]
 - **Master Plan & Architecture Authored (`MASTER-20`):** Created `docs/ai/masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md` and registered `DEC-PY-0128`.
 - **Real-Time Streaming Core (`src/khatmsaz/modules/content/migrator.py`):**

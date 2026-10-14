@@ -56,7 +56,10 @@ flowchart TD
 16. 🇮🇷 **[مستر فرزند ۱۶ — محدودسازی لینک‌های دعوت به زبان فارسی](masters/MASTER_16_RESTRICT_INVITE_LINKS_TO_PERSIAN_ONLY.md)**
 17. 📜 **[مستر فرزند ۱۷ — ممیزی و کالبدشکافی جامع موتورهای پیشرفت و تخصیص سهم در تمامی انواع ختم‌ها](masters/MASTER_17_KHATM_PROGRESSION_AND_ALLOCATION_AUDIT.md)**
 18. 🚀 **[مستر فرزند ۱۸ — طرح معماری، تصمیم‌گیری دامنه‌ای و نقشه راه یکپارچه‌سازی پیشرفت دسته‌جمعی](masters/MASTER_18_UNIFIED_COLLECTIVE_PROGRESSION_DESIGN_AND_ROADMAP.md)**
-19. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
+19. 📱 **[مستر فرزند ۱۹ — بازطراحی دسترسی بات ادمین، احراز هویت دوگانه وب و محافظت از دکمه پنل سازنده](masters/MASTER_19_ADMIN_BOT_ACCESS_AND_CREATOR_PANEL_BUTTON_GUARD.md)**
+20. 🔄 **[مستر فرزند ۲۰ — آینه‌سازی و همگام‌سازی آنی دوطرفهٔ رسانه‌ها بین تلگرام و بله](masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md)**
+21. ⚡️ **[مستر فرزند ۲۱ — سرور اختصاصی Bot API محلی تلگرام و پشتیبانی از فایل‌های سنگین تا ۲ گیگابایت](masters/MASTER_21_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md)**
+22. 🐛 **[مستر گزارش باگ‌ها، دکمه‌های مرده و شکاف‌های پنل ادمین](MASTER_BUG_AND_GAP_REPORT.md)**
 
 ---
 

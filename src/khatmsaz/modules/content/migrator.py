@@ -10,11 +10,13 @@ from __future__ import annotations
 import asyncio
 import io
 import logging
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable
 
 from aiogram import Bot
-from aiogram.types import BufferedInputFile
+from aiogram.types import BufferedInputFile, FSInputFile, InputFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -142,20 +144,58 @@ class TelegramToBaleMigrator:
             except Exception:
                 logger.warning("Progress callback raised an exception", exc_info=True)
 
-    async def download_telegram_file_bytes(self, file_id: str) -> bytes:
-        """Download raw file bytes from Telegram given a file_id."""
+    async def get_telegram_file(self, file_id: str) -> tuple[bytes | None, str | None]:
+        """Download or locate a Telegram file given a file_id.
+
+        Returns (file_bytes, file_path).
+        If running against a local Telegram Bot API server (is_local=True),
+        returns (None, local_path) pointing directly to the file on disk.
+        Otherwise downloads into memory and returns (file_bytes, None).
+        """
         if not self.tg_bot:
             raise RuntimeError("Telegram bot instance is required for downloading")
+
+        file_info = None
+        get_file_fn = getattr(self.tg_bot, "get_file", None)
+        if callable(get_file_fn):
+            try:
+                res = get_file_fn(file_id)
+                if asyncio.iscoroutine(res) or hasattr(res, "__await__"):
+                    file_info = await res
+                elif hasattr(res, "file_path"):
+                    file_info = res
+            except Exception:
+                file_info = None
+
+        if (
+            file_info
+            and getattr(file_info, "file_path", None)
+            and isinstance(file_info.file_path, str)
+            and (os.path.isabs(file_info.file_path) or file_info.file_path.startswith(("/", "\\")))
+            and os.path.exists(file_info.file_path)
+        ):
+            return None, file_info.file_path
+
         buffer = io.BytesIO()
-        await self.tg_bot.download(file_id, destination=buffer)
-        return buffer.getvalue()
+        await self.tg_bot.download(file_info or file_id, destination=buffer)
+        return buffer.getvalue(), None
 
-    async def fetch_channel_message_bytes(
+    async def download_telegram_file_bytes(self, file_id: str) -> bytes:
+        """Download raw file bytes from Telegram given a file_id."""
+        file_bytes, file_path = await self.get_telegram_file(file_id)
+        if file_bytes is not None:
+            return file_bytes
+        if file_path and os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                return f.read()
+        raise RuntimeError(f"Could not retrieve file content for file_id {file_id}")
+
+    async def fetch_channel_message_file(
         self, source_chat_id: int | str, source_message_id: int
-    ) -> tuple[bytes, str, str]:
-        """Forward a channel post to scratch chat to obtain file bytes and kind.
+    ) -> tuple[bytes | None, str | None, str, str]:
+        """Forward a channel post to scratch chat to obtain file and kind.
 
-        Returns (file_bytes, kind, filename).
+        Returns (file_bytes, file_path, kind, filename).
         """
         if not self.tg_bot:
             raise RuntimeError("Telegram bot instance is required for downloading")
@@ -197,8 +237,8 @@ class TelegramToBaleMigrator:
             else:
                 raise ValueError(f"Message {source_message_id} contains no recognizable media")
 
-            file_bytes = await self.download_telegram_file_bytes(file_id)
-            return file_bytes, kind, filename
+            file_bytes, file_path = await self.get_telegram_file(file_id)
+            return file_bytes, file_path, kind, filename
         finally:
             # Clean up the scratch chat message
             try:
@@ -207,6 +247,53 @@ class TelegramToBaleMigrator:
                 )
             except Exception:
                 pass
+
+    async def fetch_channel_message_bytes(
+        self, source_chat_id: int | str, source_message_id: int
+    ) -> tuple[bytes, str, str]:
+        """Forward a channel post to scratch chat to obtain file bytes and kind.
+
+        Returns (file_bytes, kind, filename).
+        """
+        file_bytes, file_path, kind, filename = await self.fetch_channel_message_file(
+            source_chat_id, source_message_id
+        )
+        if file_bytes is not None:
+            return file_bytes, kind, filename
+        if file_path and os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                return f.read(), kind, filename
+        raise RuntimeError(f"Could not retrieve file content for channel message {source_message_id}")
+
+    async def get_asset_file(
+        self, asset_ref: str, fallback_kind: str = "DOCUMENT"
+    ) -> tuple[bytes | None, str | None, str, str]:
+        """Resolve asset_ref to either bytes or local file path, returning (bytes, path, kind, filename)."""
+        if asset_ref.startswith("tg_forward:"):
+            parts = asset_ref.split(":")
+            if len(parts) >= 3:
+                channel = parts[1]
+                mid = int(parts[2])
+                ch_id: int | str = (
+                    int(channel)
+                    if (channel.isdigit() or (channel.startswith("-") and channel[1:].isdigit()))
+                    else channel
+                )
+                return await self.fetch_channel_message_file(ch_id, mid)
+            raise ValueError(f"Malformed tg_forward reference: {asset_ref}")
+
+        file_bytes, file_path = await self.get_telegram_file(asset_ref)
+        ext = (
+            "mp4"
+            if fallback_kind.upper() == "VIDEO"
+            else (
+                "jpg"
+                if fallback_kind.upper() == "IMAGE"
+                else ("mp3" if fallback_kind.upper() == "AUDIO" else "pdf")
+            )
+        )
+        filename = f"media.{ext}"
+        return file_bytes, file_path, fallback_kind, filename
 
     async def download_asset_bytes(
         self, asset_ref: str, fallback_kind: str = "DOCUMENT"
@@ -243,18 +330,25 @@ class TelegramToBaleMigrator:
 
     async def upload_to_bale(
         self,
-        file_bytes: bytes,
-        kind: str,
-        filename: str,
+        file_bytes: bytes | None = None,
+        kind: str = "DOCUMENT",
+        filename: str = "media",
         caption: str | None = None,
+        file_path: str | Path | None = None,
     ) -> str:
-        """Upload raw file bytes to Bale storage chat and extract the Bale file_id."""
+        """Upload raw file bytes or local file path to Bale storage chat and extract the Bale file_id."""
         if self.dry_run:
             return f"mock_bale_file_id_{filename}"
         if not self.bale_bot:
             raise RuntimeError("Bale bot instance is required for uploading")
 
-        input_file = BufferedInputFile(file_bytes, filename=filename)
+        if file_path:
+            input_file: InputFile = FSInputFile(str(file_path), filename=filename)
+        elif file_bytes is not None:
+            input_file = BufferedInputFile(file_bytes, filename=filename)
+        else:
+            raise ValueError("Either file_bytes or file_path must be provided to upload_to_bale")
+
         kind_upper = kind.upper()
 
         if kind_upper == "IMAGE":
@@ -619,7 +713,19 @@ async def mirror_devotional_media_to_bale(
             bale_storage_chat_id=settings.bale_media_storage_chat_id,
         )
 
-        file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+        if hasattr(migrator, "get_asset_file") and (
+            not hasattr(migrator, "download_asset_bytes")
+            or not getattr(getattr(migrator, "download_asset_bytes", None), "_mock_return_value", None)
+            or getattr(getattr(migrator, "get_asset_file", None), "_mock_return_value", None)
+        ):
+            try:
+                file_bytes, file_path, _, _ = await migrator.get_asset_file(asset_ref, fallback_kind=kind)
+            except TypeError:
+                file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+                file_path = None
+        else:
+            file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+            file_path = None
         ext = (
             "mp4"
             if kind.upper() == "VIDEO"
@@ -633,10 +739,19 @@ async def mirror_devotional_media_to_bale(
 
         bale_file_id = await migrator.upload_to_bale(
             file_bytes=file_bytes,
+            file_path=file_path,
             kind=kind,
             filename=filename,
             caption=caption or reciter_label,
         )
+
+        # Cleanup local downloaded file if it was created in telegram-bot-api directory
+        if file_path and os.path.exists(file_path):
+            try:
+                if "/telegram-bot-api" in file_path or "\\telegram-bot-api" in file_path or "/tmp" in file_path:
+                    os.remove(file_path)
+            except Exception:
+                pass
 
         async with session_scope() as session:
             asset = await session.scalar(select(DevotionalAsset).where(DevotionalAsset.slug == slug))

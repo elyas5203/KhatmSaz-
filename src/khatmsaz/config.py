@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     bale_media_storage_chat_id: int | None = None
     # Scratch chat/channel in Telegram used to forward and inspect channel posts
     telegram_scratch_chat_id: int | None = None
+    # Telegram Local Bot API Server settings (MASTER-21, DEC-PY-0129)
+    # Allows downloading and uploading heavy media files up to 2GB (bypassing the 20MB limit)
+    telegram_api_server_url: str = ""
+    telegram_api_server_is_local: bool = True
+    telegram_api_id: int | None = None
+    telegram_api_hash: str = ""
+    telegram_local_bot_api_dir: str = "/var/lib/telegram-bot-api"
 
     admin_web_enabled: bool = True
     admin_web_host: str = "0.0.0.0"
