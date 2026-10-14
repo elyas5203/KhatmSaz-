@@ -14,7 +14,7 @@ import sys
 from uuid import UUID
 
 from aiogram import F, Router
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
@@ -983,9 +983,9 @@ async def admin_test_report_handler(event: Message | CallbackQuery) -> None:
             await event.answer("گزارش آزمایشی ارسال شد ✅")
 
 
-@router.message()
+@router.message(StateFilter(None), ~F.text.startswith("/"))
 async def admin_fallback_message_handler(message: Message) -> None:
-    """Fallback handler so any message sent to the admin bot brings up the dashboard or explains authorization."""
+    """Fallback handler so any non-command message with no active state sent to the admin bot brings up the dashboard or explains authorization."""
     if not await _is_super_admin(message):
         await _reject_unauthorized(message)
         return

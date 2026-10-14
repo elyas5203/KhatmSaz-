@@ -210,10 +210,10 @@ async def main() -> None:
     dp_admin.callback_query.outer_middleware(ModerationMiddleware())
 
     from khatmsaz.bot.handlers.admin_bot import router as admin_bot_router
-    dp_admin.include_router(admin_bot_router)
     dp_admin.include_router(admin_router)
     dp_admin.include_router(broadcast_router)
     dp_admin.include_router(manual_phone_verification_router)
+    dp_admin.include_router(admin_bot_router)
 
     # --- Member Dispatcher ---
     dp_member = Dispatcher(storage=member_storage)

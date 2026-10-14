@@ -120,6 +120,12 @@ async def receive_delivery_hour_button(callback: CallbackQuery, state: FSMContex
     await callback.answer()
 
 
+@router.callback_query(F.data.startswith("join_hour:"))
+async def receive_delivery_hour_fallback(callback: CallbackQuery) -> None:
+    lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
+    await safe_answer_callback(callback, t("join.commitment_expired", lang), show_alert=True)
+
+
 @router.callback_query(F.data.startswith("jhour:"))
 async def receive_stateless_delivery_hour_button(callback: CallbackQuery, state: FSMContext) -> None:
     parts = callback.data.split(":", 2)

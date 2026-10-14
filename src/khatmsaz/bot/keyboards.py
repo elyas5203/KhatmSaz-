@@ -3,6 +3,7 @@ intentionally shallow (DOMAIN_MODEL.md §4) — a new button here is a product
 decision, not just a UI tweak.
 """
 
+import inspect
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
@@ -37,7 +38,14 @@ ABOUT_US_BUTTON_TEXT = t("menu.about_us", "fa")
 ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
 
 CREATE_BUTTON_TEXTS = variants("menu.create")
-MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
+MY_KHATMS_BUTTON_TEXTS = frozenset(variants("menu.my_khatms")) | {
+    "📋 ختم‌های من",
+    "🕋 ختم‌های من",
+    "ختم‌های من",
+    "ختم های من",
+    "لیست ختم‌های من",
+    "فهرست ختم‌های من",
+}
 TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
     "📖 دریافت سهم قرائت",
     "دریافت سهم قرائت",
@@ -51,10 +59,26 @@ TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
     "اعلام انجام قرائت",
 }
 REPORT_BUTTON_TEXTS = variants("menu.report")
-SETTINGS_BUTTON_TEXTS = variants("menu.settings")
-HELP_BUTTON_TEXTS = variants("menu.help")
+SETTINGS_BUTTON_TEXTS = frozenset(variants("menu.settings")) | {
+    "⚙️ تنظیمات",
+    "تنظیمات",
+    "تنظیمات حساب",
+}
+HELP_BUTTON_TEXTS = frozenset(variants("menu.help")) | {
+    "❓ راهنما",
+    "راهنما",
+    "راهنمای بات",
+    "راهنمای کامل",
+}
 PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
-SUPPORT_BUTTON_TEXTS = variants("menu.support")
+SUPPORT_BUTTON_TEXTS = frozenset(variants("menu.support")) | {
+    "📩 پشتیبانی و ارتباط",
+    "پشتیبانی و ارتباط",
+    "پشتیبانی",
+    "ارتباط با پشتیبانی",
+    "تماس با پشتیبانی",
+    "ارتباط با پشتیبان",
+}
 CONTACT_CREATOR_BUTTON_TEXTS = variants("menu.contact_creator")
 CUSTOM_KHATM_BUTTON_TEXTS = variants("menu.custom_khatm")
 CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
@@ -496,11 +520,11 @@ def help_create_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     )
 
 
-def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False, is_member: bool = False) -> InlineKeyboardMarkup:
     buttons = []
     if is_creator or is_admin:
         buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
-    if is_admin:
+    if is_admin and not is_member:
         # MASTER-19: Creator panel button hidden per user request. Admin panel remains reachable via admin bot.
         buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
     buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
@@ -1192,6 +1216,15 @@ async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
     case rather than treating the button label as their answer."""
     text = (message.text or "").strip()
     if text not in RESERVED_MENU_TEXTS and not text.startswith("/"):
+        return False
+    current_state = None
+    if hasattr(state, "get_state"):
+        try:
+            res = state.get_state()
+            current_state = await res if inspect.isawaitable(res) else res
+        except Exception:
+            current_state = None
+    if current_state and "entering_phone" in str(current_state) and text in PHONE_SHARE_BUTTON_TEXTS:
         return False
     await state.clear()
     # Import lazily because navigation.py imports the keyboard builders.

@@ -13,6 +13,7 @@ from khatmsaz.bot.keyboards import (
     help_manage_actions_keyboard,
     help_settings_actions_keyboard,
     help_wallet_actions_keyboard,
+    is_member_bot,
     safe_answer_callback,
 )
 from khatmsaz.core.db import session_scope
@@ -74,7 +75,7 @@ async def help_topic(callback: CallbackQuery) -> None:
         help_wallet_actions_keyboard(lang) if topic == "wallet"
         else help_settings_actions_keyboard(lang) if topic == "settings"
         else help_create_actions_keyboard(lang) if topic == "create"
-        else help_manage_actions_keyboard(lang, is_creator, is_admin) if topic == "manage"
+        else help_manage_actions_keyboard(lang, is_creator, is_admin, is_member=is_member_bot(callback.message.bot)) if topic == "manage"
         else help_keyboard(lang, is_creator, is_admin)
     )
     await callback.message.answer(text, reply_markup=keyboard)

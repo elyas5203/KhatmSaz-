@@ -11,7 +11,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import BufferedInputFile, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+from aiogram.types import BufferedInputFile, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 
 from khatmsaz.bot.keyboards import (
     MY_KHATMS_BUTTON_TEXT, MY_KHATMS_BUTTON_TEXTS, bail_if_menu_button, cancel_khatm_confirm_keyboard, contribute_keyboard,
@@ -111,6 +111,32 @@ async def creator_settings_menu(callback) -> None:
         _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
     await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cs:miss:"))
+async def creator_miss_policy_save(callback: CallbackQuery) -> None:
+    parts = callback.data.split(":")
+    if len(parts) < 5:
+        await safe_answer_callback(callback)
+        return
+    khatm_id = parts[2]
+    misses = int(parts[3])
+    window = int(parts[4])
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    _user_id, khatm = await _owned_khatm_for_callback(callback, khatm_id)
+    if khatm is None:
+        await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
+        return
+    async with session_scope() as session:
+        khatm_db = await khatm_service.get_khatm_for_update(session, khatm.id)
+        if khatm_db:
+            khatm_db.miss_notice_threshold = misses
+            khatm_db.miss_notice_window_days = window
+            khatm = khatm_db
+    await safe_answer_callback(callback, "✅ سیاست دیرکرد با موفقیت ذخیره شد.", show_alert=True)
+    await callback.message.edit_text(
+        _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
+    )
 
 
 @router.callback_query(F.data.startswith("cs:modes:"))
@@ -1256,7 +1282,7 @@ async def list_my_khatms(message: Message) -> None:
     await message.answer(text, reply_markup=keyboard)
 
 
-@router.callback_query(F.data == "mk:root")
+@router.callback_query(F.data.in_({"mk:root", "my_khatms:root", "my_khatms:open"}))
 async def my_khatms_show_root(callback) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -1264,7 +1290,28 @@ async def my_khatms_show_root(callback) -> None:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
         tree = await _build_my_khatms_tree(session, user.id, lang)
     text, keyboard = _render_my_khatms_root(tree, lang)
-    await callback.message.edit_text(text, reply_markup=keyboard)
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data == "my_khatms:created")
+async def my_khatms_show_created_branch(callback) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
+        tree = await _build_my_khatms_tree(session, user.id, lang)
+    if "created" in tree and tree["created"]:
+        text, keyboard = _render_my_khatms_branch(tree, "created", lang)
+    else:
+        text, keyboard = _render_my_khatms_root(tree, lang)
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard)
     await safe_answer_callback(callback)
 
 

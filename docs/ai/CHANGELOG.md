@@ -1,3 +1,28 @@
+## 2026-10-14 — Antigravity — Comprehensive Button & Menu Audit and System-wide Repairs (MASTER-25 & MASTER-26)
+- **Button and Menu Audit & System-wide Repairs (`MASTER-25` & `MASTER-26`):**
+  - **Dead Callbacks Repaired:**
+    - `my_khatms:created` (`creator_daily_report.py:271`): Routed in `my_khatms.py` to immediately show created khatms branch without freezing.
+    - `my_khatms:open` / `my_khatms:root`: Routed in `my_khatms.py` to render root khatms list.
+    - `cs:miss:{khatm_id}:{misses}:{window}`: Implemented `creator_miss_policy_save` in `my_khatms.py` to persist miss policy to Khatm and acknowledge callback.
+    - `join_hour:` (`join_flow.py`): Added stateless fallback callback handler `receive_delivery_hour_fallback` with expiration notification.
+    - `help_manage_actions_keyboard`: Guarded `admin:web_login` with `not is_member`, eliminating dead admin button on member bots.
+  - **Reply Keyboards Enhanced (`keyboards.py`):**
+    - Expanded `MY_KHATMS_BUTTON_TEXTS` to include `{"📋 ختم‌های من", "🕋 ختم‌های من", "ختم‌های من", "ختم های من", "لیست ختم‌های من", "فهرست ختم‌های من"}`.
+    - Expanded `SETTINGS_BUTTON_TEXTS` to include `{"⚙️ تنظیمات", "تنظیمات", "تنظیمات حساب"}`.
+    - Expanded `HELP_BUTTON_TEXTS` to include `{"❓ راهنما", "راهنما", "راهنمای بات", "راهنمای کامل"}`.
+    - Expanded `SUPPORT_BUTTON_TEXTS` to include `{"📩 پشتیبانی و ارتباط", "پشتیبانی و ارتباط", "پشتیبانی", "تماس با پشتیبانی", "ارتباط با پشتیبانی"}`.
+    - Guarded `PHONE_SHARE_BUTTON_TEXTS` in `bail_if_menu_button` during phone entry to avoid interrupting registration.
+  - **FSM State Traps Removed:**
+    - Added `bail_if_menu_button` to `member_commitment.py` (`enter_count`, `enter_log_amount`, `enter_custom_time`).
+    - Added `bail_if_menu_button` to `settings_menu.py` (`save_share_amount`, `save_custom_reminder`).
+  - **Admin Bot Dispatcher Shadowing Fixed:**
+    - Scoped `admin_fallback_message_handler` in `admin_bot/handlers.py` with `StateFilter(None), ~F.text.startswith("/")`.
+    - Reordered `dp_admin` in `bootstrap.py` so specialized routers run before fallback.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_25_COMPREHENSIVE_BUTTON_AND_MENU_AUDIT.md`.
+    - Authored `docs/ai/masters/MASTER_26_MENU_AND_BUTTON_REPAIR_ROADMAP.md`.
+    - Added test suite `tests/test_master_26_menu_and_button_repairs.py` (8/8 passed). Full test suite regression verified.
+
 ## 2026-10-14 — Antigravity — Khatm Niabat Title and Periodic Report Display (MASTER-24)
 - **Khatm Niabat Title & Report Display (`MASTER-24`):**
   - **Core Copy & Disambiguation Helpers (`src/khatmsaz/bot/member_copy.py`):**

@@ -24,6 +24,7 @@ from aiogram.filters import StateFilter
 from aiogram.types import CallbackQuery, Message
 
 from khatmsaz.bot.keyboards import (
+    bail_if_menu_button,
     commitment_count_log_keyboard,
     commitment_freq_keyboard,
     commitment_hour_keyboard,
@@ -211,6 +212,8 @@ async def choose_count(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(CommitFlow.entering_count))
 async def enter_count(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     from khatmsaz.modules.share_occurrence import delivery
     from khatmsaz.bot.member_scope import member_instance_id
     lang = _lang_of(message)
@@ -274,6 +277,8 @@ async def log_custom(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(CommitFlow.entering_log_amount))
 async def enter_log_amount(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     lang = _lang_of(message)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
@@ -438,6 +443,8 @@ async def choose_hour(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(CommitFlow.entering_custom_time))
 async def enter_custom_time(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     lang = _lang_of(message)
     parsed = parse_hhmm(message.text or "")
     if parsed is None:

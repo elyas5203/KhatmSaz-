@@ -17,6 +17,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import (
     SETTINGS_BUTTON_TEXTS,
+    bail_if_menu_button,
     home_keyboard_for_bot,
     is_member_bot,
     main_menu_keyboard,
@@ -347,6 +348,8 @@ async def ask_share_amount(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ReminderSettings.entering_amount)
 async def save_share_amount(message: Message, state: FSMContext):
+    if await bail_if_menu_button(message, state):
+        return
     raw = (message.text or "").strip()
     if not raw.isdecimal() or int(raw) <= 0 or int(raw) > 2147483647:
         await message.answer("لطفاً یک عدد مثبت معتبر بنویسید.")
@@ -412,6 +415,8 @@ async def ask_custom_reminder(callback: CallbackQuery, state: FSMContext) -> Non
 
 @router.message(ReminderSettings.entering_custom_time)
 async def save_custom_reminder(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     raw = (message.text or "").strip().translate(digits).replace(".", ":")
     try:

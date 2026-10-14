@@ -1,3 +1,29 @@
+## Current state — 2026-10-14 — Comprehensive Button & Menu Audit and System-wide Repairs (MASTER-25 & MASTER-26) [Antigravity]
+- **Button and Menu Audit & System-wide Repairs (`MASTER-25` & `MASTER-26`):**
+  - **Owner Mandate:** "با چندتا ساب ایجنت میخوام تک تک دکمه هایی ک تو منو بات ختم ساز و همچنین منوبات های ممبر هست رو بررسی بکنی همشون اینک سالم و کار میکنن... تک تک دکمه ها میخوام تست بشن چون الان بعضی دکمه ها هستن ک من خودم تستکردم و دیدم غیر فعاله... ی فایل مستر با تمام قوانینی ک تاحالا داشتم میسازی برای انالیز و ساخت فایل مستر دیگه ای ک بای از روش کارا انجام بشه".
+  - **Dead Callbacks Repaired:**
+    - `my_khatms:created` (`src/khatmsaz/modules/reporting/creator_daily_report.py:271`): Added handler in `my_khatms.py` to immediately show the creator's created khatms branch without freezing.
+    - `my_khatms:open` / `my_khatms:root`: Added handlers in `my_khatms.py` to safely render the root khatms tree from settings back-buttons or help shortcuts.
+    - `cs:miss:{khatm_id}:{misses}:{window}`: Added handler `creator_miss_policy_save` in `my_khatms.py` to persist `miss_notice_threshold` and `miss_notice_window_days` on `Khatm` and answer the alert.
+    - `join_hour:` (`join_flow.py`): Added stateless fallback handler `receive_delivery_hour_fallback` with user-friendly alert when state is expired or absent, preventing infinite spinner.
+    - `help_manage_actions_keyboard`: Guarded `admin:web_login` with `not is_member`, ensuring member bots never render orphaned admin buttons.
+  - **Reply Menu Keyboard Resilience (`src/khatmsaz/bot/keyboards.py`):**
+    - Expanded `MY_KHATMS_BUTTON_TEXTS` with `{"📋 ختم‌های من", "🕋 ختم‌های من", "ختم‌های من", "ختم های من", "لیست ختم‌های من", "فهرست ختم‌های من"}`.
+    - Expanded `SETTINGS_BUTTON_TEXTS` with `{"⚙️ تنظیمات", "تنظیمات", "تنظیمات حساب"}`.
+    - Expanded `HELP_BUTTON_TEXTS` with `{"❓ راهنما", "راهنما", "راهنمای بات", "راهنمای کامل"}`.
+    - Expanded `SUPPORT_BUTTON_TEXTS` with `{"📩 پشتیبانی و ارتباط", "پشتیبانی و ارتباط", "پشتیبانی", "تماس با پشتیبانی", "ارتباط با پشتیبانی"}`.
+    - Synchronized `RESERVED_MENU_TEXTS` and guarded `PHONE_SHARE_BUTTON_TEXTS` during phone entry.
+  - **FSM State Traps Eliminated:**
+    - Added `bail_if_menu_button` in `member_commitment.py`: `enter_count`, `enter_log_amount`, `enter_custom_time`.
+    - Added `bail_if_menu_button` in `settings_menu.py`: `save_share_amount`, `save_custom_reminder`.
+  - **Admin Bot Shadowing Fixed (`src/khatmsaz/bot/handlers/admin_bot/handlers.py` & `bootstrap.py`):**
+    - Scoped `admin_fallback_message_handler` with `StateFilter(None), ~F.text.startswith("/")` so it never shadows commands or FSM states.
+    - Reordered `dp_admin` routers in `bootstrap.py` to place specific feature routers before fallback.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_25_COMPREHENSIVE_BUTTON_AND_MENU_AUDIT.md`.
+    - Authored `docs/ai/masters/MASTER_26_MENU_AND_BUTTON_REPAIR_ROADMAP.md`.
+    - Added test suite `tests/test_master_26_menu_and_button_repairs.py` (8/8 tests passing). Full suite regression tests pass cleanly.
+
 ## Current state — 2026-10-14 — Khatm Niabat Title and Periodic Report Display (MASTER-24) [Antigravity]
 - **Khatm Niabat Title & Report Display (`MASTER-24`):**
   - **Owner Mandate:** "یک مورد دیگ این گزارش ک داره میفرسته عنوانشو همش نوشته مثلا قران یا فلان، من میخوام اون نیابت باشه، عنوان ختم قران اشتباهه چون اینطوری برای همه ثابت میشه، این خوب نیست بنظرم. برو فایلارو بررسی بکن و بعد برام فایلای مسترشو بروز بکن و یا بساز و بعد درست بکن".
