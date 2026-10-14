@@ -403,3 +403,32 @@ async def build_motivational_progress_snippet(
     except Exception:
         return ""
 
+
+async def get_khatm_identifier(session: AsyncSession, khatm: Khatm, lang: str = "fa") -> tuple[str, str | None, str | None]:
+    """Return (title, creator_display_name, cleaned_niyyat) for disambiguating khatms."""
+    title = (getattr(khatm, "title", None) or "ختم").strip()
+    creator_name = None
+    creator_user_id = getattr(khatm, "creator_user_id", None)
+    if creator_user_id:
+        from khatmsaz.modules.identity.models import User
+        from khatmsaz.modules.khatm.models import CreatorDisplayMode
+        try:
+            creator = await session.get(User, creator_user_id) if hasattr(session, "get") else None
+            mode = getattr(khatm, "creator_display_mode", CreatorDisplayMode.FULL_NAME.value)
+            mode_val = str(getattr(mode, "value", mode)).upper()
+            if mode_val == "ANONYMOUS":
+                creator_name = None
+            elif mode_val == "PSEUDONYM":
+                creator_name = getattr(khatm, "creator_pseudonym", None) or None
+            else:
+                name = getattr(creator, "display_name", "") or ""
+                if mode_val == "FIRST_NAME" and name:
+                    creator_name = name.split()[0]
+                else:
+                    creator_name = name or None
+        except Exception:
+            creator_name = None
+
+    niyyat = (getattr(khatm, "niyyat", None) or "").strip() or None
+    return title, creator_name, niyyat
+

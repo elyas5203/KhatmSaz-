@@ -70,7 +70,7 @@ async def list_member_khatms(message: Message) -> None:
             if is_open:
                 buttons = [
                     [InlineKeyboardButton(
-                        text="📖 " + t("menu.today", lang),
+                        text=t("menu.today", lang),
                         callback_data=f"today_pick:{p.id}",
                     )],
                     [InlineKeyboardButton(
@@ -81,7 +81,7 @@ async def list_member_khatms(message: Message) -> None:
             else:
                 buttons = [
                     [InlineKeyboardButton(
-                        text="📅 " + t("menu.today", lang),
+                        text=t("menu.today", lang),
                         callback_data=f"today_pick:{p.id}",
                     )],
                     # Per-khatm reminder time: someone in several khatms can set a
@@ -96,7 +96,16 @@ async def list_member_khatms(message: Message) -> None:
                     )],
                 ]
             kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-            await message.answer(f"🔹 {khatm.title}", reply_markup=kb)
+            from khatmsaz.bot.member_copy import get_khatm_identifier
+            from html import escape
+            title, creator_name, niyyat = await get_khatm_identifier(session, khatm, lang)
+            card_lines = [f"🔹 <b>{escape(title)}</b>"]
+            if creator_name:
+                card_lines.append(f"👤 <b>از طرف:</b> {escape(creator_name)}")
+            if niyyat:
+                card_lines.append(f"🤲 <b>به نیت:</b> {escape(niyyat)}")
+            card_text = "\n".join(card_lines)
+            await message.answer(card_text, reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("mk_hourmenu:"))

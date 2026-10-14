@@ -41,6 +41,7 @@ from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, U
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+from khatmsaz.modules.session import service as session_service
 from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import WalletReceiptClaim, ReceiptClaimStatus
 from khatmsaz.bot import invite_links
@@ -49,36 +50,43 @@ router = Router(name="admin_bot")
 
 
 async def _is_super_admin(message_or_callback: Message | CallbackQuery) -> bool:
-    """Check if the sender is authorized as a Super Admin."""
+    """Check if the sender is authorized as a Super Admin, auto-promoting configured IDs."""
+    if not message_or_callback.from_user:
+        return False
     chat_id = str(message_or_callback.from_user.id)
     settings = get_settings()
     env_admins = {v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()}
-    if chat_id in env_admins:
-        return True
 
     try:
         async with session_scope() as session:
-            stmt = (
-                select(User.role)
-                .join(PlatformIdentity, PlatformIdentity.user_id == User.id)
-                .where(
-                    PlatformIdentity.platform == Platform.TELEGRAM,
-                    PlatformIdentity.subject == chat_id,
-                )
-            )
-            role = (await session.execute(stmt)).scalar_one_or_none()
-            if role == UserRole.SUPER_ADMIN:
+            user = await identity_service.find_by_platform(session, Platform.TELEGRAM, chat_id)
+            if chat_id in env_admins:
+                if user is None:
+                    user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, chat_id)
+                elif user.role != UserRole.SUPER_ADMIN:
+                    await identity_service.repository.set_role(session, user.id, UserRole.SUPER_ADMIN)
+                    user.role = UserRole.SUPER_ADMIN
+                return True
+            if user and user.role == UserRole.SUPER_ADMIN:
                 return True
     except Exception:
-        pass
+        # Fallback to env check even if database check failed
+        if chat_id in env_admins:
+            return True
 
     return False
 
 
 async def _reject_unauthorized(message_or_callback: Message | CallbackQuery) -> None:
-    text = "⛔️ <b>دسترسی غیرمجاز</b>\n\nاین ربات اختصاصی مدیریت سیستم ختم‌ساز است و شما دسترسی لازم برای استفاده از آن را ندارید."
+    chat_id = str(message_or_callback.from_user.id) if message_or_callback.from_user else "نامشخص"
+    text = (
+        f"⛔️ <b>دسترسی غیرمجاز</b>\n\n"
+        f"این ربات مرکز مدیریت اختصاصی سیستم ختم‌ساز است و حساب شما مجوز مدیریت ندارد.\n\n"
+        f"🆔 <b>شناسه تلگرام شما:</b> <code>{chat_id}</code>\n\n"
+        f"جهت فعال‌سازی دسترسی، این شناسه باید توسط مدیر ارشد در پیکربندی سامانه (<code>SUPER_ADMIN_TELEGRAM_CHAT_IDS</code>) ثبت شود."
+    )
     if isinstance(message_or_callback, CallbackQuery):
-        await message_or_callback.answer("دسترسی غیرمجاز.", show_alert=True)
+        await message_or_callback.answer(f"دسترسی غیرمجاز (شناسه: {chat_id})", show_alert=True)
     else:
         await message_or_callback.answer(text)
 
@@ -140,7 +148,7 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🚨 آخرین خطاها", callback_data="admin:errors"),
         ],
         [
-            InlineKeyboardButton(text="🔄 بروزرسانی آمار", callback_data="admin:refresh"),
+            InlineKeyboardButton(text="🌐 دریافت لینک ورود به پنل (مرورگر / وب)", callback_data="admin:web_link"),
         ],
     ]
 
@@ -148,10 +156,72 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
     if base_url.lower().startswith("https://"):
         login_url = f"{base_url}/mini/admin"
         rows.append([
-            InlineKeyboardButton(text="🌐 ورود به پنل تحت وب", web_app=WebAppInfo(url=login_url))
+            InlineKeyboardButton(text="📱 ورود سریع با مینی‌اپ تلگرام", web_app=WebAppInfo(url=login_url))
         ])
 
+    rows.append([
+        InlineKeyboardButton(text="🔄 بروزرسانی آمار", callback_data="admin:refresh"),
+    ])
+
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _send_web_login_instructions(message: Message, user_id: int | None = None) -> None:
+    chat_id = str(user_id or (message.from_user.id if message.from_user else message.chat.id))
+    settings = get_settings()
+    base_url = settings.admin_web_base_url.rstrip("/")
+    if not base_url:
+        base_url = f"http://{settings.admin_web_host}:{settings.admin_web_port}"
+
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, Platform.TELEGRAM, chat_id)
+        if user is None:
+            user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, chat_id)
+        raw_token = await session_service.issue_admin_session(session, user)
+
+    magic_url = f"{base_url}/login?token={raw_token}"
+    mini_app_url = f"{base_url}/mini/admin"
+
+    text = (
+        f"🔐 <b>ورود به پنل مدیریت ختم‌ساز</b>\n\n"
+        f"مدیر گرامی، شما می‌توانید از دو روش زیر وارد پنل مدیریت سامانه شوید:\n\n"
+        f"۱️⃣ <b>ورود در مرورگر (کامپیوتر یا موبایل):</b>\n"
+        f"روی لینک اختصاصی زیر بزنید یا آن را در نوار آدرس مرورگر خود باز کنید:\n"
+        f"🔗 <code>{magic_url}</code>\n\n"
+        f"۲️⃣ <b>ورود با مینی‌اپ داخل تلگرام:</b>\n"
+        f"دکمهٔ «📱 بازکردن در مینی‌اپ» را در زیر لمس فرمایید.\n\n"
+        f"⏱ <i>لینک ورود مستقیم تا ۸ ساعت معتبر بوده و بدون نیاز به رمز عبور شما را مستقیماً وارد پنل می‌کند.</i>"
+    )
+
+    keyboard_rows = [
+        [InlineKeyboardButton(text="🚀 ورود مستقیم به پنل در مرورگر", url=magic_url)],
+    ]
+    if base_url.lower().startswith("https://"):
+        keyboard_rows.append([
+            InlineKeyboardButton(text="📱 بازکردن در مینی‌اپ تلگرام", web_app=WebAppInfo(url=mini_app_url))
+        ])
+    keyboard_rows.append([
+        InlineKeyboardButton(text="🔙 بازگشت به داشبورد", callback_data="admin:refresh")
+    ])
+
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=keyboard_rows))
+
+
+@router.message(Command("web_login", "panel", "web", "login"))
+async def admin_web_login_command(message: Message) -> None:
+    if not await _is_super_admin(message):
+        await _reject_unauthorized(message)
+        return
+    await _send_web_login_instructions(message)
+
+
+@router.callback_query(F.data == "admin:web_link")
+async def admin_web_login_callback(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+    await _send_web_login_instructions(callback.message, user_id=callback.from_user.id)
+    await callback.answer()
 
 
 @router.message(Command("start", "admin", "menu"))
@@ -260,6 +330,147 @@ async def admin_receipts_handler(event: Message | CallbackQuery) -> None:
 
     if isinstance(event, CallbackQuery):
         await event.answer()
+
+
+@router.callback_query(F.data.startswith("receipt:approve:"))
+async def approve_receipt_admin_bot(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.resolve_or_provision_user(
+            session, platform, callback.from_user.id
+        )
+        if admin_user.role != UserRole.SUPER_ADMIN:
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim, invoice = await wallet_service.approve_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+        new_balance, new_credit = await wallet_service.get_balances(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n✅ <b>تأیید شد:</b> مبلغ {claim.amount_toman:,} تومان توسط {escape(admin_name)} تأیید و به کیف پول کاربر اضافه گردید."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer(f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
+
+    user_notify_text = (
+        "🎉 <b>واریز شما تأیید شد!</b>\n\n"
+        f"مبلغ <b>{claim.amount_toman:,} تومان</b> با موفقیت به موجودی کیف پول شما افزوده شد 🌱\n\n"
+        f"💰 موجودی فعلی کیف پول: <b>{new_balance:,} تومان</b>"
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            for ident in target_identities:
+                if ident.platform == Platform.TELEGRAM:
+                    await creator_bot.send_message(chat_id=int(ident.subject), text=user_notify_text)
+    except Exception:
+        pass
+
+
+@router.callback_query(F.data.startswith("receipt:reject:"))
+async def reject_receipt_admin_bot(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    claim_id_str = callback.data.split(":", 2)[2]
+    try:
+        claim_id = UUID(claim_id_str)
+    except ValueError:
+        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        admin_user = await identity_service.resolve_or_provision_user(
+            session, platform, callback.from_user.id
+        )
+        if admin_user.role != UserRole.SUPER_ADMIN:
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
+
+        claim = await wallet_service.get_receipt_claim(session, claim_id)
+        if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
+            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
+
+        updated_claim = await wallet_service.reject_receipt_claim(
+            session,
+            claim_id=claim.id,
+            admin_user_id=admin_user.id,
+        )
+        target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
+
+    admin_name = callback.from_user.full_name or "مدیر"
+    new_caption = (callback.message.caption or callback.message.text or "")
+    new_caption += f"\n\n❌ <b>رد شد:</b> فیش توسط {escape(admin_name)} رد شد."
+    try:
+        if callback.message.photo:
+            await callback.message.edit_caption(caption=new_caption, reply_markup=None)
+        else:
+            await callback.message.edit_text(text=new_caption, reply_markup=None)
+    except Exception:
+        pass
+
+    await callback.answer("❌ فیش واریزی رد شد.", show_alert=True)
+
+    user_notify_text = (
+        "❌ <b>عدم تأیید فیش واریزی</b>\n\n"
+        f"متأسفانه فیش واریزی ارسالی شما برای مبلغ <b>{claim.amount_toman:,} تومان</b> مورد تأیید قرار نگرفت.\n"
+        "در صورت کسر وجه از حسابتان، لطفاً با پشتیبانی در ارتباط باشید."
+    )
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+        for ident in target_identities:
+            await notify(ident.platform.value, ident.subject, user_notify_text)
+    except Exception:
+        pass
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            for ident in target_identities:
+                if ident.platform == Platform.TELEGRAM:
+                    await creator_bot.send_message(chat_id=int(ident.subject), text=user_notify_text)
+    except Exception:
+        pass
 
 
 # --- La'n Khatms Handlers ---
@@ -660,3 +871,13 @@ async def admin_status_handler(event: Message | CallbackQuery) -> None:
         await event.answer()
     else:
         await message.answer(text, reply_markup=kb)
+
+
+@router.message()
+async def admin_fallback_message_handler(message: Message) -> None:
+    """Fallback handler so any message sent to the admin bot brings up the dashboard or explains authorization."""
+    if not await _is_super_admin(message):
+        await _reject_unauthorized(message)
+        return
+    await admin_start_handler(message)
+

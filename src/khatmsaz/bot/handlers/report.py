@@ -102,11 +102,31 @@ async def today_overview(message: Message, state: FSMContext | None = None) -> N
             await _deliver_open_khatm_flow(message, state, single_part, single_khatm, lang, platform)
             return
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🌱 {khatm.title}", callback_data=f"today_pick:{participation.id}")]
-        for khatm, participation in available
-    ])
-    await message.answer(t("report.today_pick", lang, count=len(available)), reply_markup=keyboard)
+    cards_text = []
+    inline_rows = []
+    from khatmsaz.bot.member_copy import get_khatm_identifier
+    from html import escape
+
+    async with session_scope() as session:
+        for idx, (khatm, participation) in enumerate(available, start=1):
+            title, creator_name, niyyat = await get_khatm_identifier(session, khatm, lang)
+            card_lines = [f"<b>{idx}. 🌱 {escape(title)}</b>"]
+            if creator_name:
+                card_lines.append(f"   👤 {escape(creator_name)}")
+            if niyyat:
+                short_niyyat = niyyat if len(niyyat) <= 60 else (niyyat[:57] + "...")
+                card_lines.append(f"   🤲 <i>{escape(short_niyyat)}</i>")
+            cards_text.append("\n".join(card_lines))
+
+            btn_suffix = f" ({creator_name})" if creator_name else ""
+            btn_text = f"🌱 {khatm.title}{btn_suffix}"
+            if len(btn_text) > 45:
+                btn_text = btn_text[:42] + "..."
+            inline_rows.append([InlineKeyboardButton(text=btn_text, callback_data=f"today_pick:{participation.id}")])
+
+    intro = t("report.today_pick", lang, count=len(available))
+    full_message_text = f"{intro}\n\n" + "\n\n".join(cards_text) if cards_text else intro
+    await message.answer(full_message_text, reply_markup=InlineKeyboardMarkup(inline_keyboard=inline_rows))
 
 
 @router.callback_query(F.data.startswith("today_pick:"))
@@ -207,16 +227,12 @@ async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None 
                 await safe_answer_callback(callback, t("report.today_already_delivered", lang), show_alert=True)
                 return
             from khatmsaz.modules.content import service as content_service
+            from khatmsaz.modules.share_occurrence import delivery
             total_pages = content_service.get_quran_total_pages(khatm)
-            pages = min(
-                participation.open_reading_pages_per_day,
-                total_pages - participation.open_reading_next_page + 1,
-            )
-            if pages <= 0:
-                await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
-                return
-            start = participation.open_reading_next_page
-            end = start + pages - 1
+            default_start = (participation.open_reading_next_page - 1) % total_pages + 1
+            start = await delivery.get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+            pages = participation.open_reading_pages_per_day
+            end = min(total_pages, start + pages - 1)
             from khatmsaz.bot.handlers.portions import _deliver_quran_pages
             delivered = await _deliver_quran_pages(
                 session, callback.message, khatm=khatm, user_id=user.id,
@@ -229,6 +245,7 @@ async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None 
             if reserved is None:
                 await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
                 return
+            participation.open_reading_next_page = (end % total_pages) + 1
             await participation_service.mark_open_reading_sent_now(session, participation.id)
             await callback.message.answer(
                 t("report.today_page_label", lang, title=khatm.title, start=start, end=end),

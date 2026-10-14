@@ -305,7 +305,7 @@ async def test_creator_panel_keyboard_hides_mini_app_from_non_admins():
     ]
     assert "creator:web_login" not in all_callbacks_user
 
-    # Admin
+    # Admin - in MASTER-19, creator:web_login is hidden per user request
     kb_admin = creator_panel_keyboard("fa", is_admin=True)
     all_callbacks_admin = [
         btn.callback_data
@@ -313,4 +313,4 @@ async def test_creator_panel_keyboard_hides_mini_app_from_non_admins():
         for btn in row
         if btn.callback_data
     ]
-    assert "creator:web_login" in all_callbacks_admin
+    assert "creator:web_login" not in all_callbacks_admin

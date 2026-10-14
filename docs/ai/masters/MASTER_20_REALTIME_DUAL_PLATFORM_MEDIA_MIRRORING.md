@@ -1,5 +1,5 @@
-# 📜 مستر فرزند ۱۶: آینه‌سازی و همگام‌سازی آنی دوطرفهٔ رسانه‌ها (Real-Time Dual-Platform Media Mirroring)
-**(Child Master 16 — Real-Time Cross-Platform Media Mirroring for Telegram & Bale)**
+# 📜 مستر فرزند ۲۰: آینه‌سازی و همگام‌سازی آنی دوطرفهٔ رسانه‌ها (Real-Time Dual-Platform Media Mirroring)
+**(Child Master 20 — Real-Time Cross-Platform Media Mirroring for Telegram & Bale)**
 
 > **🔗 موقعیت در درختوارهٔ اسناد (والد و فرزندی):**
 > - **⬆️ سند مادر (والد):** [ADMIN_PANEL_REDESIGN_MASTER.md](../ADMIN_PANEL_REDESIGN_MASTER.md)
@@ -8,6 +8,7 @@
 >   - **[مستر فرزند ۰۹](MASTER_09_BALE_ADAPTER_AND_MARKDOWN_COMPATIBILITY.md):** تطبیق‌دهنده پیام‌رسان بله و Markdown
 >   - **[مستر فرزند ۱۲](MASTER_12_DEDICATED_ADMIN_BOT_AND_LIVE_ERROR_MONITORING.md):** ربات اختصاصی ادمین و لاگینگ پیوسته
 >   - **[مستر فرزند ۱۴](MASTER_14_OPEN_KHATM_COLLECTIVE_PROGRESSION_ENGINE.md):** پیشرفت دسته‌جمعی ختم‌های آزاد
+>   - **[مستر فرزند ۱۹](MASTER_19_ADMIN_BOT_ACCESS_AND_CREATOR_PANEL_BUTTON_GUARD.md):** دسترسی بات ادمین و پنل وب
 >   - **[سند مهاجرت دسته‌ای رسانه‌ها](../TELEGRAM_TO_BALE_MIGRATION_MASTER.md):** موتور مهاجرت کلی تلگرام به بله
 > - **🌱 تصمیم محصول:** `DEC-PY-0128` در [DECISIONS.md](../DECISIONS.md)
 
@@ -19,7 +20,7 @@
 2. سیستم این فایل را فقط برای تلگرام (`asset_platform="TELEGRAM"`) ثبت می‌کرد.
 3. در بله، اعضا به دلیل نبود شناسهٔ بله نمی‌توانستند ویدیو یا فایل را دریافت کنند، مگر آنکه ادمین به صورت دستی دستور مهاجرت دسته‌ای (`/admin_sync_bale`) را اجرا می‌کرد یا فایل را دوباره در بله آپلود می‌کرد.
 
-### ✅ هدف مستر ۱۶:
+### ✅ هدف مستر ۲۰:
 با پیاده‌سازی این مستر:
 - **آینه‌سازی خودکار و درلحظه (Real-Time Background Mirroring):** به محض اینکه ادمین هر ویدیو، فایل PDF یا صوتی را در تلگرام ثبت کند، ربات فوراً آن را در تلگرام ذخیره کرده و به صورت غیرمسدودکننده (Non-blocking Background Task) همان فایل را استریم کرده، به مخزن بله منتقل می‌کند، شناسهٔ بله را استخراج نموده و در جدول `devotional_media` با `asset_platform="BALE"` ثبت می‌نماید.
 - **تجربه کاربری یکپارچه:** ادمین فقط یک‌بار فایل را می‌فرستد و سیستم خودبه‌خود محتوا را برای هر دو پلتفرم (تلگرام + بله) آماده و فعال می‌سازد.

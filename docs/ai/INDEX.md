@@ -1,5 +1,5 @@
-## 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-16)
-- [MASTER_16_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md](masters/MASTER_16_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md) — Real-time background cross-platform media streaming (Telegram to Bale), auto-mirroring on `/set_video`, `/set_pdf`, `/set_audio`, and `/manage_content`, direct multipart upload, automatic cleanup of temporary storage messages, and Super Admin filter auto-authorization across bots.
+## 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-20)
+- [MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md](masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md) — Real-time background cross-platform media streaming (Telegram to Bale), auto-mirroring on `/set_video`, `/set_pdf`, `/set_audio`, and `/manage_content`, direct multipart upload, automatic cleanup of temporary storage messages, and Super Admin filter auto-authorization across bots.
 - تصمیم محصول: `DEC-PY-0128` در [DECISIONS.md](DECISIONS.md).
 
 ## 2026-10-13 — مهاجرت خودکار رسانه‌ها از تلگرام به بله

@@ -132,9 +132,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
 
     "menu.today": {
-        "fa": "📖 اعلام انجام قرائت امروز",
-        "ar": "📖 إعلان إنجاز قراءة اليوم",
-        "en": "📖 Report Today's Recitation",
+        "fa": "📖 دریافت سهم قرائت",
+        "ar": "📖 استلام حصة القراءة",
+        "en": "📖 Receive Recitation Portion",
     },
     "menu.my_khatms": {"fa": "🕋 لیست ختم‌های من", "ar": "🕋 قائمة ختماتي", "en": "🕋 My Khatms List"},
     "menu.report": {"fa": "📈 گزارش عملکرد من", "ar": "📈 تقرير أدائي", "en": "📈 My Performance"},
@@ -3374,9 +3374,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Activates automatically when wallet funds reach {price:,} toman.",
     },
     "report.today_pick": {
-        "fa": "امروز سهم کدام ختم را می‌خواهید زودتر بخوانید؟",
-        "ar": "أي ختمة تريد أن تقرأ حصتها مبكرًا اليوم؟",
-        "en": "Which khatm would you like to read early today?",
+        "fa": "سهم کدام ختم را می‌خواهید دریافت کنید؟",
+        "ar": "أي ختمة تريد استلام حصتها؟",
+        "en": "Which khatm portion would you like to receive?",
     },
     "report.today_already_delivered": {
         "fa": "سهم امروز این ختم قبلاً برایتان فرستاده شده است.",

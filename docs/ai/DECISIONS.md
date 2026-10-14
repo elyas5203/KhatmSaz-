@@ -5,10 +5,10 @@ new entry that says so and link back.
 
 ---
 
-### DEC-PY-0128 — Real-Time Background Cross-Platform Media Mirroring for Telegram and Bale (MASTER-16)
+### DEC-PY-0128 — Real-Time Background Cross-Platform Media Mirroring for Telegram and Bale (MASTER-20)
 
 **Date:** 2026-10-14
-**Owner confirmation:** When an authorized administrator uploads or sets any media (videos via `/set_video`, PDFs via `/set_pdf`, audios via `/set_audio`, or devotional assets via `/manage_content`) on Telegram, the system immediately registers the asset for the source platform, and asynchronously streams the file bytes in the background to Bale (using `BaleAiohttpSession` direct multipart serialization). The resulting Bale `file_id` is registered in `devotional_media` with `asset_platform="BALE"`, and the temporary storage message is removed. The operation is completely non-blocking, fault-tolerant, and delivers seamless zero-bandwidth dual-platform content availability. See `docs/ai/masters/MASTER_16_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md`.
+**Owner confirmation:** When an authorized administrator uploads or sets any media (videos via `/set_video`, PDFs via `/set_pdf`, audios via `/set_audio`, or devotional assets via `/manage_content`) on Telegram, the system immediately registers the asset for the source platform, and asynchronously streams the file bytes in the background to Bale (using `BaleAiohttpSession` direct multipart serialization). The resulting Bale `file_id` is registered in `devotional_media` with `asset_platform="BALE"`, and the temporary storage message is removed. The operation is completely non-blocking, fault-tolerant, and delivers seamless zero-bandwidth dual-platform content availability. See `docs/ai/masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md`.
 
 ---
 

@@ -39,6 +39,10 @@ ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
 CREATE_BUTTON_TEXTS = variants("menu.create")
 MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
 TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
+    "📖 دریافت سهم قرائت",
+    "دریافت سهم قرائت",
+    "📖 دریافت سهم امروز",
+    "دریافت سهم امروز",
     "📖 انجام قرائت امروز",
     "📖 اعلام انجام قرائت امروز",
     "📖 اعلام انجام قرائت",
@@ -497,8 +501,7 @@ def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_
     if is_creator or is_admin:
         buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
     if is_admin:
-        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
-        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
+        # MASTER-19: Creator panel button hidden per user request. Admin panel remains reachable via admin bot.
         buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
     buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -1195,7 +1198,8 @@ async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
     from khatmsaz.bot.navigation import resolve_home_navigation
 
     lang, role, keyboard = await resolve_home_navigation(message)
-    key = "navigation.admin_interrupted" if role.value == "SUPER_ADMIN" else "navigation.interrupted"
+    is_admin = getattr(role, "value", role) == "SUPER_ADMIN"
+    key = "navigation.admin_interrupted" if is_admin else "navigation.interrupted"
     await message.answer(
         t(key, lang),
         reply_markup=keyboard,

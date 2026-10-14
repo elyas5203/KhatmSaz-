@@ -25,14 +25,8 @@ async def _get_context(event):
         return user, settings.language
 
 def creator_panel_keyboard(lang: str, is_admin: bool = False) -> InlineKeyboardMarkup:
-    rows = []
-    if is_admin:
-        # DEC-PY-0121 / MASTER-10: Creator panel is temporarily restricted to SUPER_ADMIN only
-        rows.append([InlineKeyboardButton(
-            text=t("panel.creator.open_mini_app", lang),
-            callback_data="creator:web_login",
-        )])
-    rows.extend([
+    # MASTER-19: Creator panel button hidden per user request
+    rows = [
         [
             InlineKeyboardButton(text=t("menu.create", lang), callback_data="creator_panel:create"),
             InlineKeyboardButton(text=t("menu.my_khatms", lang), callback_data="creator_panel:my_khatms")
@@ -43,7 +37,7 @@ def creator_panel_keyboard(lang: str, is_admin: bool = False) -> InlineKeyboardM
             InlineKeyboardButton(text=t("menu.creator.wallet", lang), callback_data="creator_panel:wallet"),
         ],
         [InlineKeyboardButton(text=t("menu.settings", lang), callback_data="creator_panel:settings")]
-    ])
+    ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 def admin_panel_keyboard(lang: str) -> InlineKeyboardMarkup:

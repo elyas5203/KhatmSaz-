@@ -90,7 +90,7 @@ def test_create_and_manage_help_expose_normal_actions_as_buttons() -> None:
     }
     assert create_callbacks == {"create:start_from_help", "request_khatm:start", "help:home"}
     assert manage_callbacks == {
-        "my_khatms:open", "creator:web_login", "admin:web_login", "help:home"
+        "my_khatms:open", "admin:web_login", "help:home"
     }
 
 

@@ -582,6 +582,13 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
             await callback.answer("شما دسترسی مدیریت برای تأیید این فیش را ندارید.", show_alert=True)
             return
 
+        if admin_user is None:
+            admin_user = await identity_service.resolve_or_provision_user(
+                session, platform, callback.from_user.id
+            )
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
+
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
             await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
@@ -642,6 +649,13 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
         if not is_allowed:
             await callback.answer("شما دسترسی مدیریت ندارید.", show_alert=True)
             return
+
+        if admin_user is None:
+            admin_user = await identity_service.resolve_or_provision_user(
+                session, platform, callback.from_user.id
+            )
+            admin_user.role = UserRole.SUPER_ADMIN
+            await session.flush()
 
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
