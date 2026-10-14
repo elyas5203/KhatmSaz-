@@ -126,3 +126,87 @@ async def test_migrator_get_asset_file_direct_and_channel():
         assert file_path == "/var/lib/telegram-bot-api/videos/test.mp4"
         assert kind == "VIDEO"
         assert filename == "media.mp4"
+
+
+@pytest.mark.asyncio
+async def test_mtproto_download_by_message():
+    """Verify download_telegram_media_by_message interacts with Telethon correctly."""
+    from khatmsaz.modules.content.mtproto import download_telegram_media_by_message
+
+    mock_client = AsyncMock()
+    mock_msg = MagicMock()
+    mock_msg.media = MagicMock()
+    mock_client.get_messages = AsyncMock(return_value=mock_msg)
+    mock_client.download_media = AsyncMock(return_value="/tmp/test_download.mp4")
+
+    with patch("khatmsaz.modules.content.mtproto.TelegramClient", return_value=mock_client), \
+         patch("os.path.exists", return_value=True):
+        result = await download_telegram_media_by_message(
+            bot_token="test_bot_token",
+            chat_id=123456,
+            message_id=789,
+            dest_path="/tmp/test_download.mp4",
+        )
+        assert result == "/tmp/test_download.mp4"
+        mock_client.start.assert_awaited_once_with(bot_token="test_bot_token")
+        mock_client.get_messages.assert_awaited_once_with(123456, ids=789)
+        mock_client.download_media.assert_awaited_once()
+        mock_client.disconnect.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_mtproto_download_by_file_id():
+    """Verify download_telegram_media_by_file_id sends to scratch chat and downloads."""
+    from khatmsaz.modules.content.mtproto import download_telegram_media_by_file_id
+
+    mock_bot = AsyncMock()
+    mock_bot.token = "test_bot_token"
+    mock_sent_msg = MagicMock()
+    mock_sent_msg.chat.id = 99999
+    mock_sent_msg.message_id = 111
+    mock_bot.send_video = AsyncMock(return_value=mock_sent_msg)
+    mock_bot.delete_message = AsyncMock()
+
+    with patch("khatmsaz.modules.content.mtproto.download_telegram_media_by_message", new_callable=AsyncMock) as mock_dl:
+        mock_dl.return_value = "/tmp/downloaded_video.mp4"
+        res = await download_telegram_media_by_file_id(
+            tg_bot=mock_bot,
+            scratch_chat_id=99999,
+            file_id="heavy_video_file_id",
+            kind="VIDEO",
+            dest_path="/tmp/downloaded_video.mp4",
+        )
+        assert res == "/tmp/downloaded_video.mp4"
+        mock_bot.send_video.assert_awaited_once_with(chat_id=99999, video="heavy_video_file_id", caption="[temp_sync]")
+        mock_dl.assert_awaited_once_with(
+            bot_token="test_bot_token",
+            chat_id=99999,
+            message_id=111,
+            dest_path="/tmp/downloaded_video.mp4",
+            api_id=None,
+            api_hash=None,
+        )
+        mock_bot.delete_message.assert_awaited_once_with(chat_id=99999, message_id=111)
+
+
+@pytest.mark.asyncio
+async def test_get_telegram_file_mtproto_fallback():
+    """Verify get_telegram_file falls back to MTProto when bot.download raises 'file is too big'."""
+    mock_tg_bot = AsyncMock()
+    mock_tg_bot.get_file = AsyncMock(return_value=None)
+    mock_tg_bot.download = AsyncMock(side_effect=Exception("TelegramBadRequest: file is too big"))
+
+    migrator = TelegramToBaleMigrator(
+        tg_bot=mock_tg_bot,
+        bale_bot=AsyncMock(),
+        bale_storage_chat_id=123,
+        tg_scratch_chat_id=5490508090,
+    )
+
+    with patch("khatmsaz.modules.content.mtproto.download_telegram_media_by_file_id", new_callable=AsyncMock) as mock_mt:
+        mock_mt.return_value = "/tmp/heavy_file_downloaded.mp4"
+        file_bytes, file_path = await migrator.get_telegram_file("sample_heavy_fid", kind="VIDEO")
+        assert file_bytes is None
+        assert file_path == "/tmp/heavy_file_downloaded.mp4"
+        mock_mt.assert_awaited_once()
+

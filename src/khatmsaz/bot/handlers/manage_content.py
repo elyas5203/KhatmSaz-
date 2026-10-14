@@ -106,6 +106,8 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                                 caption=video_caption,
                                 notify_chat_id=message.chat.id,
                                 bot=message.bot,
+                                source_chat_id=ch,
+                                source_message_id=int(mid),
                             )
                         )
                     return
@@ -134,6 +136,8 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                             caption=video_caption,
                             notify_chat_id=message.chat.id,
                             bot=message.bot,
+                            source_chat_id=target_msg.chat.id,
+                            source_message_id=target_msg.message_id,
                         )
                     )
                 return
@@ -160,6 +164,8 @@ async def set_video_direct(message: Message, command: CommandObject) -> None:
                                 caption=video_caption,
                                 notify_chat_id=message.chat.id,
                                 bot=message.bot,
+                                source_chat_id=ch,
+                                source_message_id=int(mid),
                             )
                         )
                     return
@@ -221,6 +227,8 @@ async def set_pdf_direct(message: Message, command: CommandObject) -> None:
                         caption=pdf_caption,
                         notify_chat_id=message.chat.id,
                         bot=message.bot,
+                        source_chat_id=target_msg.chat.id,
+                        source_message_id=target_msg.message_id,
                     )
                 )
     except Exception as exc:
@@ -281,6 +289,8 @@ async def set_audio_direct(message: Message, command: CommandObject) -> None:
                         caption=audio_caption,
                         notify_chat_id=message.chat.id,
                         bot=message.bot,
+                        source_chat_id=target_msg.chat.id,
+                        source_message_id=target_msg.message_id,
                     )
                 )
     except Exception as exc:
@@ -396,6 +406,8 @@ async def receive_media(message: Message, state: FSMContext) -> None:
                     reciter_label=m.reciter_label,
                     notify_chat_id=message.chat.id,
                     bot=message.bot,
+                    source_chat_id=message.chat.id,
+                    source_message_id=message.message_id,
                 )
             )
     else:

@@ -3,6 +3,13 @@
 Append-only. Never edit or delete an old decision — if it's superseded, add a
 new entry that says so and link back.
 
+### DEC-PY-0130 — Telethon MTProto Downloader for Large Media Files (>20MB up to 2GB) (MASTER-23)
+
+**Date:** 2026-10-14
+**Owner confirmation:** To eliminate the cloud Telegram Bot API 20MB limit without requiring complex custom web registration on `my.telegram.org` or maintaining a local Bot API C++ server, KhatmSaz incorporates the direct MTProto downloader architecture proven in `RazeDehkade` (`MohtavaTelBot`). Using Telethon with official Telegram Desktop credentials (`api_id = 2040`, `api_hash = "b18441a1ff607e10a989891a5462e627"`) and memory session isolation, media is downloaded directly via MTProto by `(chat_id, message_id)`. For existing `file_id` records in the database, the bot sends the asset into its scratch chat, retrieves the resulting message via MTProto, downloads up to 2GB, streams to Bale via `FSInputFile`, and deletes the temporary message. All content (Quran 604 pages + Parhizgar audio and all 31 Devotional media parts) are verified 100% synchronized on Bale.
+
+---
+
 ### DEC-PY-0129 — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-23)
 
 **Date:** 2026-10-14

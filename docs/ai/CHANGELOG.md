@@ -1,3 +1,17 @@
+## 2026-10-14 — Antigravity — Telethon MTProto Downloader for 200MB+ Media & 100% Bale Content Migration (MASTER-23)
+- **Ported MTProto Heavy Media Downloader from RazeDehkade Reference:**
+  - Owner provided reference project `C:\xampp\htdocs\RazeDehkade` capable of downloading 200MB+ files.
+  - Implemented `src/khatmsaz/modules/content/mtproto.py` using Telethon MTProto client with official desktop API credentials (`api_id=2040`, `api_hash="b18441a1ff607e10a989891a5462e627"`) and `MemorySession()`.
+  - Added `download_telegram_media_by_message` and `download_telegram_media_by_file_id` (via scratch chat) to support arbitrary media up to 2000 MB (2GB).
+- **Graceful Zero-Limit Mirroring Integration (`src/khatmsaz/modules/content/migrator.py` & `src/khatmsaz/bot/handlers/manage_content.py`):**
+  - Updated `mirror_devotional_media_to_bale` to accept `source_chat_id` and `source_message_id`.
+  - Handlers `/set_video`, `/set_pdf`, `/set_audio`, and the `/manage_content` wizard pass message context directly, invoking MTProto downloading on heavy media and streaming to Bale without ever throwing the Telegram 20MB limit error.
+  - `get_telegram_file` automatically falls back to MTProto via scratch chat when Bot API returns `file is too big`.
+- **100% Bale Media Synchronization Complete on Live Server:**
+  - Holy Quran: 604/604 images (100%) and 604/604 audio files (100%) verified in Bale database.
+  - Devotional Media: 31/31 media items (100%) including all 5 heavy video parts of `khutbah-fadakiah` (ranging from 15MB to 27MB) successfully migrated to Bale.
+- **Validation:** Added 3 unit tests for MTProto in `tests/test_master_23_large_file_bot_api.py` (total 7 tests in file). Full test suite: 481 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## 2026-10-14 — Antigravity — Telegram Local Bot API & Heavy Media Mirroring up to 2GB (MASTER-23)
 - **Specification & Architectural Decision:** Authored `docs/ai/masters/MASTER_23_LARGE_FILE_TELEGRAM_LOCAL_BOT_API_SUPPORT.md` and registered `DEC-PY-0129`.
 - **Local Bot API Server Integration (`src/khatmsaz/config.py` & `src/khatmsaz/bot/telegram/client.py`):** Added support for running against a local Telegram Bot API server (`settings.telegram_api_server_url`, `telegram_api_server_is_local=True`, `telegram_api_id`, `telegram_api_hash`, `telegram_local_bot_api_dir`), allowing downloads and uploads up to 2000 MB (2 GB) and eliminating the 20MB cloud limit.

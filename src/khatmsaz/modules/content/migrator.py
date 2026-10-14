@@ -144,13 +144,16 @@ class TelegramToBaleMigrator:
             except Exception:
                 logger.warning("Progress callback raised an exception", exc_info=True)
 
-    async def get_telegram_file(self, file_id: str) -> tuple[bytes | None, str | None]:
+    async def get_telegram_file(
+        self, file_id: str, kind: str = "DOCUMENT"
+    ) -> tuple[bytes | None, str | None]:
         """Download or locate a Telegram file given a file_id.
 
         Returns (file_bytes, file_path).
         If running against a local Telegram Bot API server (is_local=True),
         returns (None, local_path) pointing directly to the file on disk.
         Otherwise downloads into memory and returns (file_bytes, None).
+        Falls back to MTProto (up to 2GB) if cloud Bot API returns 'file is too big'.
         """
         if not self.tg_bot:
             raise RuntimeError("Telegram bot instance is required for downloading")
@@ -177,8 +180,29 @@ class TelegramToBaleMigrator:
             return None, file_info.file_path
 
         buffer = io.BytesIO()
-        await self.tg_bot.download(file_info or file_id, destination=buffer)
-        return buffer.getvalue(), None
+        try:
+            await self.tg_bot.download(file_info or file_id, destination=buffer)
+            return buffer.getvalue(), None
+        except Exception as exc:
+            err_msg = str(exc).lower()
+            if "file is too big" in err_msg or "too big" in err_msg:
+                try:
+                    import tempfile
+                    from khatmsaz.modules.content.mtproto import download_telegram_media_by_file_id
+
+                    dest_path = os.path.join(tempfile.gettempdir(), f"tg_heavy_{file_id[:16]}.tmp")
+                    if self.tg_scratch_chat_id:
+                        downloaded_path = await download_telegram_media_by_file_id(
+                            tg_bot=self.tg_bot,
+                            scratch_chat_id=self.tg_scratch_chat_id,
+                            file_id=file_id,
+                            kind=kind,
+                            dest_path=dest_path,
+                        )
+                        return None, downloaded_path
+                except Exception as mtproto_exc:
+                    logger.warning("MTProto fallback download failed: %s", mtproto_exc)
+            raise
 
     async def download_telegram_file_bytes(self, file_id: str) -> bytes:
         """Download raw file bytes from Telegram given a file_id."""
@@ -237,7 +261,30 @@ class TelegramToBaleMigrator:
             else:
                 raise ValueError(f"Message {source_message_id} contains no recognizable media")
 
-            file_bytes, file_path = await self.get_telegram_file(file_id)
+            try:
+                file_bytes, file_path = await self.get_telegram_file(file_id, kind=kind)
+            except Exception as exc:
+                err_msg = str(exc).lower()
+                if "file is too big" in err_msg or "too big" in err_msg:
+                    try:
+                        import tempfile
+                        from khatmsaz.modules.content.mtproto import download_telegram_media_by_message
+
+                        ext = filename.split(".")[-1] if "." in filename else "bin"
+                        dest_path = os.path.join(tempfile.gettempdir(), f"ch_heavy_{source_message_id}.{ext}")
+                        bot_token = getattr(self.tg_bot, "token", "")
+                        file_path = await download_telegram_media_by_message(
+                            bot_token=bot_token,
+                            chat_id=source_chat_id,
+                            message_id=source_message_id,
+                            dest_path=dest_path,
+                        )
+                        file_bytes = None
+                    except Exception as mtproto_exc:
+                        logger.warning("MTProto direct channel download failed: %s", mtproto_exc)
+                        raise
+                else:
+                    raise
             return file_bytes, file_path, kind, filename
         finally:
             # Clean up the scratch chat message
@@ -671,11 +718,13 @@ async def mirror_devotional_media_to_bale(
     reciter_label: str | None = None,
     notify_chat_id: int | None = None,
     bot: Bot | None = None,
+    source_chat_id: int | str | None = None,
+    source_message_id: int | None = None,
 ) -> str | None:
     """Real-time background mirroring of newly registered Telegram media to Bale (MASTER-16).
 
     1. Checks if Bale bot and Bale storage chat are configured.
-    2. Downloads media bytes from Telegram (file_id or tg_forward channel link).
+    2. Downloads media bytes or local file from Telegram (file_id, tg_forward, or MTProto up to 2GB).
     3. Uploads to Bale storage chat and extracts the Bale file_id.
     4. Deletes the temporary message in Bale storage chat.
     5. Saves or updates record in DevotionalMedia with asset_platform='BALE'.
@@ -713,19 +762,6 @@ async def mirror_devotional_media_to_bale(
             bale_storage_chat_id=settings.bale_media_storage_chat_id,
         )
 
-        if hasattr(migrator, "get_asset_file") and (
-            not hasattr(migrator, "download_asset_bytes")
-            or not getattr(getattr(migrator, "download_asset_bytes", None), "_mock_return_value", None)
-            or getattr(getattr(migrator, "get_asset_file", None), "_mock_return_value", None)
-        ):
-            try:
-                file_bytes, file_path, _, _ = await migrator.get_asset_file(asset_ref, fallback_kind=kind)
-            except TypeError:
-                file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
-                file_path = None
-        else:
-            file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
-            file_path = None
         ext = (
             "mp4"
             if kind.upper() == "VIDEO"
@@ -737,6 +773,42 @@ async def mirror_devotional_media_to_bale(
         )
         filename = f"devotional_{slug}_{page_number or 1}.{ext}"
 
+        file_bytes = None
+        file_path = None
+
+        if source_chat_id is not None and source_message_id is not None:
+            try:
+                import tempfile
+                from khatmsaz.modules.content.mtproto import download_telegram_media_by_message
+
+                dest_path = os.path.join(
+                    tempfile.gettempdir(),
+                    f"devotional_heavy_{slug}_{page_number or 1}_{source_message_id}.{ext}",
+                )
+                file_path = await download_telegram_media_by_message(
+                    bot_token=getattr(tg_bot, "token", ""),
+                    chat_id=source_chat_id,
+                    message_id=source_message_id,
+                    dest_path=dest_path,
+                )
+            except Exception as mt_err:
+                logger.info("Direct MTProto message download skipped (%s), attempting standard", mt_err)
+
+        if not file_bytes and not file_path:
+            if hasattr(migrator, "get_asset_file") and (
+                not hasattr(migrator, "download_asset_bytes")
+                or not getattr(getattr(migrator, "download_asset_bytes", None), "_mock_return_value", None)
+                or getattr(getattr(migrator, "get_asset_file", None), "_mock_return_value", None)
+            ):
+                try:
+                    file_bytes, file_path, _, _ = await migrator.get_asset_file(asset_ref, fallback_kind=kind)
+                except TypeError:
+                    file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+                    file_path = None
+            else:
+                file_bytes, _, _ = await migrator.download_asset_bytes(asset_ref, fallback_kind=kind)
+                file_path = None
+
         bale_file_id = await migrator.upload_to_bale(
             file_bytes=file_bytes,
             file_path=file_path,
@@ -745,10 +817,10 @@ async def mirror_devotional_media_to_bale(
             caption=caption or reciter_label,
         )
 
-        # Cleanup local downloaded file if it was created in telegram-bot-api directory
+        # Cleanup local downloaded file if it was created in telegram-bot-api directory or temp
         if file_path and os.path.exists(file_path):
             try:
-                if "/telegram-bot-api" in file_path or "\\telegram-bot-api" in file_path or "/tmp" in file_path:
+                if "/telegram-bot-api" in file_path or "\\telegram-bot-api" in file_path or "/tmp" in file_path or "temp" in file_path.lower():
                     os.remove(file_path)
             except Exception:
                 pass
