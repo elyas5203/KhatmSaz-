@@ -162,7 +162,7 @@ async def test_workflow_transfer_request_and_cancel():
 
 @pytest.mark.asyncio
 async def test_workflow_approve_transfer_closes_link_and_assigns_admin():
-    """Approving transfer sets APPROVED, closes join link, and transfers ownership to admin."""
+    """Approving transfer sets APPROVED, rotates link, sets PUBLIC, and transfers ownership to admin."""
     creator_id = uuid4()
     admin_id = uuid4()
     khatm_id = uuid4()
@@ -178,18 +178,23 @@ async def test_workflow_approve_transfer_closes_link_and_assigns_admin():
     )
 
     mock_session = AsyncMock()
-    with patch("khatmsaz.modules.khatm.service.get_khatm_for_update", new_callable=AsyncMock) as mock_get:
+    with patch("khatmsaz.modules.khatm.service.get_khatm_for_update", new_callable=AsyncMock) as mock_get, \
+         patch("khatmsaz.modules.invitation.service.revoke_all_for_khatm", new_callable=AsyncMock) as mock_revoke, \
+         patch("khatmsaz.modules.invitation.service.create_invitation", new_callable=AsyncMock, return_value="new_admin_token_456"):
         mock_get.return_value = mock_khatm
 
-        approved_khatm, original_id = await workflow_service.approve_khatm_transfer(
+        approved_khatm, original_id, new_token = await workflow_service.approve_khatm_transfer(
             mock_session, khatm_id=khatm_id, admin_user_id=admin_id
         )
         assert original_id == creator_id
+        assert new_token == "new_admin_token_456"
         assert approved_khatm.transfer_request_status == "APPROVED"
-        assert approved_khatm.join_link_closed is True
+        assert approved_khatm.join_link_closed is False
+        assert approved_khatm.visibility == KhatmVisibility.PUBLIC
         assert approved_khatm.creator_user_id == admin_id
         assert approved_khatm.transferred_from_user_id == creator_id
         assert approved_khatm.transferred_to_admin_at is not None
+        mock_revoke.assert_awaited_once_with(mock_session, khatm_id)
 
 
 # ==============================================================================
@@ -225,7 +230,7 @@ async def test_creator_bot_transfer_ask_renders_rule_5():
     assert "بند ۵ قوانین و مقررات ختم‌ساز" in sent_text
     assert "خدمتگزاران تک" in sent_text
     assert "42" in sent_text
-    assert "لینک عضویت جدید فوراً مسدود خواهد شد" in sent_text
+    assert "لینک عضویت قبلی شما منقضی شده" in sent_text
     assert "اعضای قبلی از ختم خارج نخواهند شد" in sent_text
 
 
@@ -266,11 +271,17 @@ async def test_creator_bot_transfer_confirm_alerts_super_admins():
 
 @pytest.mark.asyncio
 async def test_admin_bot_approve_transfer():
-    """Admin approving transfer closes link, reassigns ownership, and updates message."""
+    """Admin approving transfer rotates link, reassigns ownership, makes public, and updates message."""
     khatm_id = uuid4()
     creator_id = uuid4()
     admin_id = uuid4()
-    mock_khatm = SimpleNamespace(id=khatm_id, title="ختم صلوات")
+    mock_khatm = SimpleNamespace(
+        id=khatm_id,
+        title="ختم صلوات",
+        template_type=KhatmTemplateType.SALAWAT,
+        content_category_id=None,
+        allowed_platforms="BOTH",
+    )
     mock_admin = SimpleNamespace(id=admin_id)
 
     cb = FakeCallback(data=f"admin_transfer:approve:{khatm_id}")
@@ -280,15 +291,20 @@ async def test_admin_bot_approve_transfer():
          patch("khatmsaz.bot.handlers.admin_bot.handlers.session_scope", return_value=scope), \
          patch("khatmsaz.modules.identity.service.find_by_platform", new_callable=AsyncMock, return_value=mock_admin), \
          patch("khatmsaz.modules.khatm_workflow.service.approve_khatm_transfer", new_callable=AsyncMock) as mock_approve, \
+         patch("khatmsaz.bot.invite_links.resolve_khatm_category_value", new_callable=AsyncMock, return_value="salawat"), \
+         patch("khatmsaz.bot.invite_links.build_member_invite_links", return_value={"fa": "https://t.me/salawat_bot?start=new_tok"}), \
+         patch("khatmsaz.bot.invite_links.format_invite_lines", return_value="🔗 https://t.me/salawat_bot?start=new_tok"), \
          patch("khatmsaz.modules.audit_log.service.record", new_callable=AsyncMock):
 
-        mock_approve.return_value = (mock_khatm, creator_id)
+        mock_approve.return_value = (mock_khatm, creator_id, "new_tok")
         await approve_transfer_callback(cb)
 
     assert cb.answered is True
     sent_text = cb.message.answers[-1][0]
     assert "با موفقیت به خدمتگزاران تک واگذار شد" in sent_text
-    assert "لینک عضویت بسته شد" in sent_text
+    assert "عمومی (Public)" in sent_text
+    assert "لینک قبلی سازنده:</b> منقضی و لغو گردید" in sent_text
+    assert "https://t.me/salawat_bot?start=new_tok" in sent_text
 
 
 # ==============================================================================
@@ -429,7 +445,7 @@ def test_web_admin_transfer_approve_route():
     with patch("khatmsaz.web.app._admin", new_callable=AsyncMock, return_value=(mock_admin, "raw_session")), \
          patch("khatmsaz.web.app._valid_csrf", return_value=True), \
          patch("khatmsaz.web.app.session_scope", return_value=scope), \
-         patch("khatmsaz.modules.khatm_workflow.service.approve_khatm_transfer", new_callable=AsyncMock, return_value=(mock_khatm, creator_id)), \
+         patch("khatmsaz.modules.khatm_workflow.service.approve_khatm_transfer", new_callable=AsyncMock, return_value=(mock_khatm, creator_id, "new_tok")), \
          patch("khatmsaz.modules.audit_log.service.record", new_callable=AsyncMock):
 
         res = client.post(
@@ -445,7 +461,7 @@ def test_web_templates_contain_transfer_management_elements():
     """creator_khatm_detail.html, khatm_detail.html and khatms.html must contain transfer cards and badges."""
     with open("src/khatmsaz/web/templates/creator_khatm_detail.html", "r", encoding="utf-8") as f:
         creator_detail = f.read()
-    assert "واگذاری مدیریت ختم و بستن عضوگیری جدید (بند ۵ قوانین)" in creator_detail
+    assert "واگذاری مدیریت ختم و تبدیل به ختم عمومی (بند ۵ قوانین)" in creator_detail
     assert "/transfer/request" in creator_detail
     assert "/transfer/cancel" in creator_detail
 

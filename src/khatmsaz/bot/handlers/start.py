@@ -32,7 +32,7 @@ from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.bot_registry.models import BotRole
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
-from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmTemplateType, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import CreatorDisplayMode, Khatm, KhatmStatus, KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_workflow import service as workflow_service
@@ -206,6 +206,35 @@ async def handle_start_with_payload(message: Message, command: CommandObject, st
             token = payload.removeprefix("join_")
             try:
                 khatm_id = await invitation_service.resolve_khatm_id(session, token)
+            except invitation_service.InvitationTransferredError as err:
+                khatm = await khatm_service.get_khatm(session, err.khatm_id)
+                if khatm is None or khatm.status != KhatmStatus.ACTIVE:
+                    await message.answer(
+                        t("join.error.invalid_link", lang),
+                        reply_markup=home_markup_for_role(lang, user.role),
+                    )
+                    return
+
+                new_token = await invitation_service.get_or_create_for_khatm(session, khatm.id, khatm.creator_user_id)
+                from khatmsaz.bot import invite_links
+                khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+                by_lang = invite_links.build_member_invite_links(khatm_bot_cat, new_token)
+                new_links_formatted = invite_links.format_invite_lines(by_lang)
+
+                from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+                kb = InlineKeyboardMarkup(
+                    inline_keyboard=[
+                        [InlineKeyboardButton(text="🌱 پیوستن به این ختم عمومی", callback_data=f"public_join:{khatm.id}")],
+                    ]
+                )
+                await message.answer(
+                    "📢 <b>مدیریت این ختم به مجموعه «خدمتگزاران تک» واگذار شده است</b>\n\n"
+                    f"ختم «{escape(khatm.title)}» با تصمیم سازنده و تأیید پشتیبانی، به یک <b>ختم عمومی</b> تبدیل شده و لینک ورود قبلی منقضی گردیده است.\n\n"
+                    "شما می‌توانید با لینک عمومی جدید و یا دکمه زیر، وارد این ختم عمومی شوید:\n\n"
+                    f"{new_links_formatted}",
+                    reply_markup=kb,
+                )
+                return
             except InvitationNotFoundError:
                 await message.answer(
                     t("join.error.invalid_link", lang),

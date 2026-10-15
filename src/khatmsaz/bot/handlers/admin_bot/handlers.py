@@ -742,12 +742,12 @@ async def _render_pending_transfers(event: Message | CallbackQuery) -> None:
             f"▫️ <b>سازنده فعلی:</b> {escape(user.display_name or 'نامشخص')} (شناسه: <code>{user.id}</code>)\n"
             f"▫️ <b>تعداد اعضا:</b> {members_count} نفر\n"
             f"▫️ <b>دلیل/توضیح:</b> {escape(khatm.transfer_request_reason or '—')}\n\n"
-            "با تأیید، لینک عضویت بسته شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی بدون توقف به تلاوت ادامه می‌دهند."
+            "با تأیید، لینک قبلی منقضی شده، لینک جدید صادر می‌شود، ختم به صورت عمومی درمی‌آید و مدیریت به خدمتگزاران تک واگذار خواهد شد (اعضای قبلی بدون وقفه ادامه می‌دهند)."
         )
         markup = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
-                    InlineKeyboardButton(text="✅ تأیید واگذاری و بستن لینک", callback_data=f"admin_transfer:approve:{khatm.id}"),
+                    InlineKeyboardButton(text="✅ تأیید واگذاری و عمومی‌سازی", callback_data=f"admin_transfer:approve:{khatm.id}"),
                     InlineKeyboardButton(text="❌ رد درخواست", callback_data=f"admin_transfer:reject:{khatm.id}"),
                 ]
             ]
@@ -778,7 +778,7 @@ async def approve_transfer_callback(callback: CallbackQuery) -> None:
         from uuid import uuid4
         admin_id = admin_user.id if admin_user else uuid4()
         try:
-            khatm, original_creator_id = await workflow_service.approve_khatm_transfer(
+            khatm, original_creator_id, new_token = await workflow_service.approve_khatm_transfer(
                 session, khatm_id=khatm_id, admin_user_id=admin_id
             )
         except workflow_service.KhatmTransferError as exc:
@@ -786,17 +786,26 @@ async def approve_transfer_callback(callback: CallbackQuery) -> None:
             return
 
         khatm_title = khatm.title
+        from khatmsaz.bot import invite_links
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+        by_lang = invite_links.build_member_invite_links(khatm_bot_cat, new_token)
+        new_links_formatted = invite_links.format_invite_lines(by_lang)
+
         await audit_service.record(
             session, actor_user_id=admin_id, target_khatm_id=khatm.id,
             action="KHATM_TRANSFER_APPROVE", details={"khatm_id": str(khatm.id), "from_user_id": str(original_creator_id)},
         )
 
     await callback.message.edit_text(
-        f"✅ <b>مدیریت ختم «{escape(khatm_title)}» با موفقیت به خدمتگزاران تک واگذار شد.</b>\n"
-        f"لینک عضویت بسته شد و اعضای قبلی همچنان به تلاوت روزانه خود ادامه می‌دهند.\n"
-        f"پیام اطلاع‌رسانی برای سازنده ارسال گردید."
+        f"✅ <b>مدیریت ختم «{escape(khatm_title)}» با موفقیت به خدمتگزاران تک واگذار شد.</b>\n\n"
+        "▫️ <b>وضعیت ختم:</b> عمومی (Public) 🌐\n"
+        "▫️ <b>لینک قبلی سازنده:</b> منقضی و لغو گردید ⛔\n"
+        "▫️ <b>اعضای قبلی:</b> بدون وقفه در ختم باقی ماندند.\n\n"
+        f"🔗 <b>لینک ورود عمومی جدید (تحت مدیریت تک):</b>\n"
+        f"{new_links_formatted}\n\n"
+        "پیام اطلاع‌رسانی برای سازنده قبلی ارسال گردید."
     )
-    await callback.answer("واگذاری تأیید و لینک بسته شد ✅")
+    await callback.answer("واگذاری تأیید، لینک جدید صادر و ختم عمومی شد ✅")
 
     # Notify creator via creator bot
     try:
@@ -813,8 +822,8 @@ async def approve_transfer_callback(callback: CallbackQuery) -> None:
                             text=(
                                 "✅ <b>درخواست واگذاری مدیریت ختم تأیید شد</b>\n\n"
                                 f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» بررسی و تأیید شد.\n\n"
-                                "▫️ لینک عضویت جدید برای این ختم بسته شد.\n"
-                                "▫️ ادامه نظارت و مدیریت به مجموعه خدمتگزاران تک واگذار گردید.\n"
+                                "▫️ لینک عضویت قبلی شما منقضی گردید و لینک ورود به ختم تغییر یافت.\n"
+                                "▫️ این ختم به صورت <b>عمومی</b> تحت نظارت مجموعه خدمتگزاران تک ادامه می‌یابد.\n"
                                 "▫️ اعضای فعلی شما با آرامش خاطر به تلاوت روزانه خود ادامه می‌دهند.\n\n"
                                 "از زحمات و همراهی خالصانه شما سپاسگزاریم. اجرکم عندالله 🌸"
                             ),

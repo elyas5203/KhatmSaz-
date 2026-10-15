@@ -602,11 +602,14 @@ async def cancel_khatm_transfer_request(
 
 async def approve_khatm_transfer(
     session: AsyncSession, *, khatm_id, admin_user_id, admin_note: str | None = None
-) -> tuple[Khatm, UUID]:
-    """Approve delegation of khatm management to Khedmatgozaran Tak (Rule 5).
-    Closes the invite link for new members, preserves active participants without interruption,
-    and assigns creator_user_id to the service admin.
-    Returns (khatm, original_creator_user_id).
+) -> tuple[Khatm, UUID, str]:
+    """Approve delegation of khatm management to Khedmatgozaran Tak (Rule 5 & MASTER-34).
+    1. Retires/revokes previous invite links created by original creator.
+    2. Converts khatm visibility to PUBLIC so it can be discovered in public directories.
+    3. Issues a new public invitation link under Admin ownership.
+    4. Preserves active participants without interruption.
+    5. Reassigns creator_user_id to the service admin.
+    Returns (khatm, original_creator_user_id, new_invitation_token).
     """
     khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
     if khatm is None:
@@ -618,11 +621,20 @@ async def approve_khatm_transfer(
     admin_uuid = UUID(str(admin_user_id)) if not isinstance(admin_user_id, UUID) else admin_user_id
 
     khatm.transfer_request_status = "APPROVED"
-    khatm.join_link_closed = True
+    khatm.join_link_closed = False
+    khatm.visibility = KhatmVisibility.PUBLIC
     khatm.transferred_to_admin_at = datetime.now(timezone.utc)
     khatm.transferred_from_user_id = original_creator_id
     khatm.creator_user_id = admin_uuid
-    return khatm, original_creator_id
+
+    # 1. Invalidate all previous invitations
+    await invitation_service.revoke_all_for_khatm(session, khatm.id)
+
+    # 2. Generate new active public invitation token under admin
+    new_token = await invitation_service.create_invitation(session, khatm.id, admin_uuid)
+
+    return khatm, original_creator_id, new_token
+
 
 
 async def reject_khatm_transfer(

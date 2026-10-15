@@ -26,6 +26,13 @@ class InvitationExpiredError(Exception):
     pass
 
 
+class InvitationTransferredError(Exception):
+    """Raised when an invitation was cancelled because the khatm was transferred to Admin and made public."""
+    def __init__(self, khatm_id):
+        self.khatm_id = khatm_id
+        super().__init__(f"khatm {khatm_id} was transferred to admin and made public")
+
+
 async def create_invitation(session: AsyncSession, khatm_id, created_by_user_id) -> str:
     token = generate_token()
     expires_at = datetime.now(timezone.utc) + _NO_PRACTICAL_EXPIRY
@@ -33,13 +40,25 @@ async def create_invitation(session: AsyncSession, khatm_id, created_by_user_id)
     return token  # raw token — returned to the caller once, never stored
 
 
+async def revoke_all_for_khatm(session: AsyncSession, khatm_id) -> int:
+    """Revoke all active invitation links for a khatm."""
+    return await repository.cancel_all_for_khatm(session, khatm_id)
+
+
 async def resolve_khatm_id(session: AsyncSession, token: str):
     invitation = await repository.get_by_token_hash(session, hash_token(token))
-    if invitation is None or invitation.cancelled_at is not None:
+    if invitation is None:
+        raise InvitationNotFoundError()
+    if invitation.cancelled_at is not None:
+        from khatmsaz.modules.khatm.models import Khatm
+        khatm = await session.get(Khatm, invitation.khatm_id)
+        if khatm is not None and getattr(khatm, "transfer_request_status", "NONE") == "APPROVED":
+            raise InvitationTransferredError(khatm_id=khatm.id)
         raise InvitationNotFoundError()
     if invitation.expires_at < datetime.now(timezone.utc):
         raise InvitationExpiredError()
     return invitation.khatm_id
+
 
 
 async def mark_accepted(session: AsyncSession, token: str, user_id) -> None:

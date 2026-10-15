@@ -313,15 +313,15 @@
         <div>
           <div class="flex items-center gap-2">
             <span class="text-lg">🤝</span>
-            <h4 class="text-sm font-black text-white">واگذاری مدیریت ختم و بستن عضوگیری جدید (بند ۵ قوانین)</h4>
+            <h4 class="text-sm font-black text-white">واگذاری مدیریت ختم و تبدیل به ختم عمومی (بند ۵ قوانین)</h4>
             {% if transfer_status == 'PENDING' %}
             <span class="status-badge status-draft text-[0.65rem]">در انتظار تأیید پشتیبانی</span>
             {% elif transfer_status == 'APPROVED' %}
-            <span class="status-badge status-active text-[0.65rem]">واگذار شده به خدمتگزاران تک</span>
+            <span class="status-badge status-active text-[0.65rem]">واگذار شده به خدمتگزاران تک (عمومی)</span>
             {% endif %}
           </div>
           <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
-            مطابق بند ۵ قوانین، در صورتی که امکان یا توانایی مدیریت این ختم را ندارید، می‌توانید با ثبت درخواست، ادامه مدیریت را به مجموعه خدمتگزاران تک بسپارید. با این کار لینک ورود اعضای جدید مسدود می‌شود اما اعضای فعلی بدون توقف به قرائت خود ادامه می‌دهند.
+            مطابق بند ۵ قوانین، در صورتی که امکان یا توانایی مدیریت این ختم را ندارید، می‌توانید با ثبت درخواست، ادامه مدیریت را به مجموعه خدمتگزاران تک بسپارید. با این کار، لینک ورود قبلی شما منقضی شده و ختم به یک ختم عمومی با لینک جدید تبدیل می‌شود اما اعضای فعلی بدون توقف به قرائت خود ادامه می‌دهند.
           </p>
         </div>
 
@@ -341,7 +341,7 @@
         </form>
         {% elif transfer_status == 'APPROVED' %}
         <div class="text-xs text-emerald-400 font-bold flex items-center gap-1.5 flex-none bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
-          <span>✅ مدیریت به پشتیبانی واگذار شد</span>
+          <span>✅ مدیریت واگذار شد (ختم عمومی شد)</span>
         </div>
         {% endif %}
       </div>

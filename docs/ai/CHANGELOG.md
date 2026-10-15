@@ -1,3 +1,20 @@
+## 2026-10-15 — Antigravity — Khatm Public Conversion and Link Rotation upon Management Delegation (Rule 5) (MASTER-35)
+- **Link Invalidation & Rotation on Delegation:**
+  - `src/khatmsaz/modules/invitation/repository.py`: Added `cancel_all_for_khatm` to mark all active invitation tokens for a khatm as cancelled (`cancelled_at = now()`).
+  - `src/khatmsaz/modules/invitation/service.py`: Added `revoke_all_for_khatm` and custom exception `InvitationTransferredError`. Updated `resolve_khatm_id` to intercept cancelled tokens of transferred approved khatms.
+  - `src/khatmsaz/modules/khatm_workflow/service.py`: Updated `approve_khatm_transfer` to revoke all previous creator links, generate a brand new invitation token for the Admin (`خدمتگزاران تک`), and return `(khatm, original_creator_id, new_token)`.
+- **Public Conversion & Member Continuity:**
+  - Updated `approve_khatm_transfer` to set `khatm.visibility = KhatmVisibility.PUBLIC` and `khatm.join_link_closed = False`.
+  - Member Bot (`src/khatmsaz/bot/handlers/member_start.py`): Catches `InvitationTransferredError`. If the user is an active participant, they continue uninterrupted. If a new user, they receive a Persian notice explaining the transfer to Tak, formatted public links, and an inline `[🌱 پیوستن به این ختم عمومی]` button.
+  - General/Creator Bot (`src/khatmsaz/bot/handlers/start.py`): Catches `InvitationTransferredError` and provides member links.
+  - Keyboards (`src/khatmsaz/bot/keyboards.py`): `public_khatms_keyboard` adds badge `🤝 [عمومی - تک] ` for transferred approved khatms.
+  - Admin Bot (`src/khatmsaz/bot/handlers/admin_bot/handlers.py`): Formats and outputs the new public deep links upon approval and alerts the original creator of link rotation and public status.
+  - Web Panels (`src/khatmsaz/web`): Updated cards, badges, and action buttons in `creator_khatm_detail.html`, `khatm_detail.html`, and `khatms.html`.
+- **Documentation & Tests:**
+  - Authored `docs/ai/masters/MASTER_35_KHATM_PUBLIC_CONVERSION_AND_LINK_ROTATION_ON_TRANSFER.md`.
+  - Authored `tests/test_master_35_khatm_public_link_rotation.py` (7 tests).
+  - Updated `tests/test_master_33_khatm_transfer.py` (13 tests). Total: 20/20 pass.
+
 ## 2026-10-15 — Foreign contact fix deployed [Codex]
 - Deployed `f594090` to the VPS and restarted `khatmsaz.service`; service is active. Production database was already at Alembic head, so no migration ran. Manual Telegram contact QA is pending.
 

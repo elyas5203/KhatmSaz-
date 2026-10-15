@@ -1656,13 +1656,13 @@ async def creator_khatm_transfer_request(
                 f"▫️ <b>سازنده فعلی:</b> {escape(creator.display_name or 'نامشخص')} (شناسه: <code>{creator.id}</code>)\n"
                 f"▫️ <b>تعداد اعضا:</b> {members_count} نفر\n"
                 f"▫️ <b>نوع:</b> {khatm.template_type.value} / {khatm.khatm_type.value}\n\n"
-                "با تأیید، لینک عضویت بسته شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی به تلاوت ادامه می‌دهند."
+                "با تأیید: لینک قبلی منقضی شده، لینک جدید صادر می‌شود، ختم به صورت عمومی درمی‌آید و مدیریت به خدمتگزاران تک واگذار خواهد شد (اعضای قبلی بدون وقفه ادامه می‌دهند)."
             )
             admin_kb = InlineKeyboardMarkup(
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(
-                            text="✅ تأیید واگذاری و بستن لینک",
+                            text="✅ تأیید واگذاری و عمومی‌سازی",
                             callback_data=f"admin_transfer:approve:{khatm.id}",
                         ),
                         InlineKeyboardButton(
@@ -2580,7 +2580,7 @@ async def admin_approve_khatm_transfer(
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     async with session_scope() as session:
         try:
-            khatm, original_creator_id = await workflow_service.approve_khatm_transfer(
+            khatm, original_creator_id, new_token = await workflow_service.approve_khatm_transfer(
                 session, khatm_id=khatm_id, admin_user_id=admin.id
             )
             khatm_title = khatm.title
@@ -2607,8 +2607,8 @@ async def admin_approve_khatm_transfer(
                             text=(
                                 "✅ <b>درخواست واگذاری مدیریت ختم تأیید شد</b>\n\n"
                                 f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» بررسی و تأیید شد.\n\n"
-                                "▫️ لینک عضویت جدید برای این ختم بسته شد.\n"
-                                "▫️ ادامه نظارت و مدیریت به مجموعه خدمتگزاران تک واگذار گردید.\n"
+                                "▫️ لینک عضویت قبلی شما منقضی گردید و لینک ورود به ختم تغییر یافت.\n"
+                                "▫️ این ختم به صورت <b>عمومی</b> تحت نظارت مجموعه خدمتگزاران تک ادامه می‌یابد.\n"
                                 "▫️ اعضای فعلی شما با آرامش خاطر به تلاوت روزانه خود ادامه می‌دهند.\n\n"
                                 "از زحمات و همراهی خالصانه شما سپاسگزاریم. اجرکم عندالله 🌸"
                             ),

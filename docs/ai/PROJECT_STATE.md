@@ -1,3 +1,22 @@
+## Current state — 2026-10-15 — Khatm Public Conversion and Link Rotation upon Management Delegation (Rule 5) (MASTER-35) [Antigravity]
+- **Khatm Public Conversion & Link Rotation on Transfer (`MASTER-35`):**
+  - **Owner Mandate:**
+    - "لینک ورودش فرق بکنه و ختم هم عمومی بشه فایل مسترشو بساز و خیلی دقیق درستش بکن بعد تمام بخش های مرتبط بهشم میخوام پیاده سازی بکنی تو تمام بات ها و توابع و ... /goal"
+  - **Link Rotation & Revocation Architecture:**
+    - `src/khatmsaz/modules/invitation/repository.py`: Added `cancel_all_for_khatm(session, khatm_id)` setting `cancelled_at = now()`.
+    - `src/khatmsaz/modules/invitation/service.py`: Added `revoke_all_for_khatm(session, khatm_id)`. Updated `resolve_khatm_id`: when a cancelled token belongs to an approved transferred khatm, raises `InvitationTransferredError(khatm_id)`.
+    - `src/khatmsaz/modules/khatm_workflow/service.py`: In `approve_khatm_transfer`, revokes old creator links, issues a new admin invitation token, sets `khatm.visibility = KhatmVisibility.PUBLIC` and `khatm.join_link_closed = False`. Returns `(khatm, original_creator_id, new_token)`.
+  - **Public Conversion & Member Continuity:**
+    - Member Bot (`member_start.py`): Catches `InvitationTransferredError`. Active members clicking old link are welcomed and continue uninterrupted. Non-members receive clear Persian explanation of the transfer, formatted new public links, and inline button `[🌱 پیوستن به این ختم عمومی]`.
+    - Creator/General Bot (`start.py`): Catches `InvitationTransferredError` and informs user of transfer to Tak with active links.
+    - Public Discovery Keyboard (`keyboards.py`): Updated `public_khatms_keyboard` to display `🤝 [عمومی - تک] ` prefix for transferred approved khatms.
+    - Admin Bot (`admin_bot/handlers.py`): `approve_transfer_callback` displays the new public invite links in admin response and notifies original creator of public status and new link rotation.
+    - Web Admin & Creator Panels: Updated badges and texts to reflect public status and link rotation.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_35_KHATM_PUBLIC_CONVERSION_AND_LINK_ROTATION_ON_TRANSFER.md`.
+    - Authored comprehensive test suite `tests/test_master_35_khatm_public_link_rotation.py` (7/7 pass).
+    - Updated `tests/test_master_33_khatm_transfer.py` (13/13 pass). Total: 20/20 pass.
+
 ## Current state — 2026-10-15 — Foreign contact fix deployed to VPS [Codex]
 - Owner authorized deployment. Fast-forwarded `update_khatm_wizard_flow` from `4eb3a82` to `f594090` on the VPS; restarted `khatmsaz.service`. The service reported `active/running` with exit status 0 after restart, and the deployed checkout matched `f594090`.
 - Production `alembic current` reported `khatm2026101501 (head)` before and after pull. This correction contains no migration; no database upgrade or data mutation was run. A journal scan since restart found no new `ERROR`, `Traceback` or exception entry; its only text match was the startup mention of `logs/errors.log`.

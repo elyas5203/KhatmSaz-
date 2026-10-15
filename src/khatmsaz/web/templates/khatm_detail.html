@@ -94,17 +94,17 @@
         <strong class="text-sm font-bold text-amber-300">درخواست واگذاری مدیریت ختم به خدمتگزاران تک (بند ۵ قوانین)</strong>
       </div>
       <p class="text-xs text-slate-300 mt-1">
-        سازنده ختم درخواست واگذاری مدیریت را ثبت کرده است. با تأیید، لینک عضویت جدید مسدود شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی به تلاوت خود ادامه می‌دهند.
+        سازنده ختم درخواست واگذاری مدیریت را ثبت کرده است. با تأیید، لینک قبلی منقضی شده، لینک جدید صادر می‌گردد و ختم به صورت عمومی درمی‌آید (اعضای قبلی بدون توقف به تلاوت ادامه می‌دهند).
         {% if khatm.transfer_request_reason %}
         <br><span class="text-amber-400">توضیح سازنده: {{ khatm.transfer_request_reason }}</span>
         {% endif %}
       </p>
     </div>
     <div class="flex items-center gap-2 flex-none">
-      <form method="post" action="/khatms/{{ khatm.id }}/transfer/approve" onsubmit="return confirm('آیا از تأیید واگذاری و بستن لینک عضویت اطمینان دارید؟');">
+      <form method="post" action="/khatms/{{ khatm.id }}/transfer/approve" onsubmit="return confirm('آیا از تأیید واگذاری، صدور لینک جدید و عمومی‌سازی ختم اطمینان دارید؟');">
         <input type="hidden" name="csrf" value="{{ csrf }}">
         <button type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition-all cursor-pointer">
-          ✅ تأیید واگذاری و بستن لینک
+          ✅ تأیید واگذاری و عمومی‌سازی
         </button>
       </form>
       <form method="post" action="/khatms/{{ khatm.id }}/transfer/reject">
@@ -118,7 +118,7 @@
   {% elif transfer_status == 'APPROVED' %}
   <div class="mt-4 p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
     <span>🤝</span>
-    <span>مدیریت این ختم طبق بند ۵ قوانین به مجموعه خدمتگزاران تک واگذار گردیده و لینک عضویت جدید بسته شده است.</span>
+    <span>مدیریت این ختم طبق بند ۵ قوانین به مجموعه خدمتگزاران تک واگذار گردیده، لینک ورود قدیمی منقضی شده و ختم به صورت عمومی درآمده است.</span>
   </div>
   {% endif %}
 

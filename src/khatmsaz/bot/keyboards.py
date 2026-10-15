@@ -675,12 +675,13 @@ def visibility_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def public_khatms_keyboard(khatms) -> InlineKeyboardMarkup | None:
     if not khatms:
         return None
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=f"🌱 پیوستن به «{khatm.title[:40]}»", callback_data=f"public_join:{khatm.id}")]
-            for khatm in khatms
-        ]
-    )
+    rows = []
+    for khatm in khatms:
+        is_transferred = getattr(khatm, "transfer_request_status", "NONE") == "APPROVED"
+        prefix = "🤝 [عمومی - تک] " if is_transferred else "🌱 پیوستن به "
+        rows.append([InlineKeyboardButton(text=f"{prefix}«{khatm.title[:35]}»", callback_data=f"public_join:{khatm.id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
 
 
 def advertising_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
