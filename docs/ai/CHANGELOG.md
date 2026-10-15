@@ -1,3 +1,6 @@
+## 2026-10-15 — Foreign contact fix deployed [Codex]
+- Deployed `f594090` to the VPS and restarted `khatmsaz.service`; service is active. Production database was already at Alembic head, so no migration ran. Manual Telegram contact QA is pending.
+
 ## 2026-10-15 — Immediate foreign Telegram contact registration [Codex]
 - Self-shared foreign Telegram contacts now normalize numbers without `+` and save the verified phone immediately in registration and profile flows. Iranian creator phones retain OTP; MASTER-22's other foreign paths remain intact.
 - Added contact-flow tests and `MASTER_34_FOREIGN_SHARED_CONTACT_IMMEDIATE.md`; no schema change.

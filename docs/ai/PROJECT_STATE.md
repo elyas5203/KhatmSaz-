@@ -1,3 +1,8 @@
+## Current state — 2026-10-15 — Foreign contact fix deployed to VPS [Codex]
+- Owner authorized deployment. Fast-forwarded `update_khatm_wizard_flow` from `4eb3a82` to `f594090` on the VPS; restarted `khatmsaz.service`. The service reported `active/running` with exit status 0 after restart, and the deployed checkout matched `f594090`.
+- Production `alembic current` reported `khatm2026101501 (head)` before and after pull. This correction contains no migration; no database upgrade or data mutation was run. A journal scan since restart found no new `ERROR`, `Traceback` or exception entry; its only text match was the startup mention of `logs/errors.log`.
+- Local release gate on the rebased production code: 558 passed, 233 integration tests skipped, six existing warnings. Manual foreign/Iranian Telegram contact QA remains for a real account; no test contact was sent to a live user.
+
 ## Current state — 2026-10-15 — Immediate foreign Telegram contact registration [Codex]
 - Owner asked to deploy the foreign share-button fix. Production checkout advanced to `update_khatm_wizard_flow` at `4eb3a82` while this work was in progress. Rebasing preserved the concurrent MASTER-33 transfer feature and its migration; this correction lives on top of that production commit and preserves MASTER-22's typed, change-phone and web paths.
 - Telegram registration, member registration and profile now normalize shared international contacts without `+`, require the contact's user ID to match its sender, and call `direct_verify_phone` at contact receipt. Iranian contacts keep creator OTP. Repeated final-form verification is skipped for the already registered shared phone; a changed registration phone revokes its previous claim.

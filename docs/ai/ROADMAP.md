@@ -2,7 +2,8 @@
 - [x] Adapt the fix to the production branch and document DEC-PY-0129 / MASTER-34.
 - [x] Add focused contact normalization and immediate-registration tests.
 - [x] Full local test gate on the production base: 558 PASS / 233 integration SKIP; one Alembic head.
-- [ ] Deploy and verify server service/log health.
+- [x] Deploy commit `f594090` and verify server service/log health.
+- [ ] Verify the foreign and Iranian share-button flows with real Telegram accounts.
 
 ## 2026-10-13 — Automated Telegram-to-Bale media migration pipeline [Antigravity]
 - [x] Publish `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and record decision DEC-PY-0127.
