@@ -55,17 +55,25 @@
   </form>
 </section>
 
-<!-- Add New Content Form -->
-<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
-  <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
-    <div>
-      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">استودیو ثبت محتوا</p>
-      <h2 class="text-xl font-extrabold text-white">➕ افزودن دعا، زیارت، خطبه یا لعن جدید</h2>
+<!-- Add New Content Form with Progressive Disclosure -->
+<details class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5 group/add">
+  <summary class="cursor-pointer list-none flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">➕</div>
+      <div>
+        <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-0.5">استودیو ثبت محتوا</p>
+        <h2 class="text-base sm:text-lg font-extrabold text-white">افزودن دعا، زیارت، خطبه یا لعن جدید</h2>
+      </div>
     </div>
-    {{ tooltip("پس از ثبت در این بخش، می‌توانید از طریق صفحه دسته‌ها آن را به عنوان گزینه منوی ربات فعال نمایید.") }}
-  </div>
+    <div class="flex items-center gap-2">
+      <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 group-open/add:hidden">
+        + فرم ثبت جدید
+      </span>
+      <span class="text-emerald-400 text-xl transition-transform group-open/add:rotate-180 hidden group-open/add:inline-block">⌄</span>
+    </div>
+  </summary>
 
-  <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+  <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6 pt-6 border-t border-white/5">
     <input type="hidden" name="csrf" value="{{ csrf }}">
 
     <div class="space-y-1">
@@ -84,13 +92,13 @@
     </div>
 
     <div class="space-y-1 md:col-span-3">
-      <label class="text-xs font-bold text-slate-300">شناسهٔ داخلی (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی مثل dua-ahd. این شناسه فقط برای سیستم است؛ در صفحهٔ دسته‌ها نام فارسی را از فهرست انتخاب می‌کنید.") }}</label>
+      <label class="text-xs font-bold text-slate-300">شناسهٔ داخلی (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی مثل dua-ahd. این شناسه فقط برای آدرس‌دهی داخلی است.") }}</label>
       <input name="slug" required maxlength="100" placeholder="dua-ahd" class="input-field" dir="ltr" pattern="[a-z0-9\-]+">
     </div>
 
     <div class="space-y-1 md:col-span-3">
-      <label class="text-xs font-bold text-slate-300">متن کامل (عربی و ترجمه) {{ tooltip("متن کامل را اینجا وارد کنید. سیستم برای متون طولانی خودکار پیام‌ها را بخش‌بندی می‌کند.") }}</label>
-      <textarea name="text_body" rows="8" required placeholder="متن کامل محتوا را اینجا وارد فرمایید..." class="input-field font-mono text-sm leading-loose"></textarea>
+      <label class="text-xs font-bold text-slate-300">متن کامل (عربی و ترجمه) {{ tooltip("متن کامل را اینجا وارد کنید. سیستم خودکار پیام‌ها را بخش‌بندی می‌کند.") }}</label>
+      <textarea name="text_body" rows="6" required placeholder="متن کامل محتوا را اینجا وارد فرمایید..." class="input-field font-mono text-sm leading-loose"></textarea>
     </div>
 
     <div class="space-y-1 md:col-span-3 sm:col-span-1">
@@ -106,7 +114,7 @@
       <button type="submit" class="btn px-8 shadow-lg shadow-emerald-900/20">ثبت محتوای جدید</button>
     </div>
   </form>
-</section>
+</details>
 
 <!-- Content Groups Accordions -->
 <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
@@ -118,7 +126,7 @@
   <div class="flex flex-col gap-6">
     {% for type_key, type_items in grouped_items.items() %}
     {% set group_name = {'DUA': '🤲 دعاها', 'ZIYARAT': '🕌 زیارت‌ها', 'KHUTBAH': '🎤 خطبه‌ها (فدکیه و...)', 'LAAN': '🔥 لعن‌ها'}[type_key] %}
-    <details class="group rounded-2xl border border-slate-700/50 bg-slate-900/40" {% if loop.first or type_key == 'KHUTBAH' %}open{% endif %}>
+    <details class="group/cat rounded-2xl border border-slate-700/50 bg-slate-900/40" {% if loop.first or type_key == 'KHUTBAH' %}open{% endif %}>
       <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none rounded-2xl hover:bg-slate-800/40 transition-colors">
         <div>
           <div class="flex items-center gap-3">
@@ -127,7 +135,7 @@
           </div>
           <p class="text-xs text-slate-400 mt-1">{{ type_items|length }} فرزند — فرم هر مورد فقط هنگام نیاز باز می‌شود</p>
         </div>
-        <span class="text-emerald-400 text-xl transition-transform group-open:rotate-180">⌄</span>
+        <span class="text-emerald-400 text-xl transition-transform group-open/cat:rotate-180">⌄</span>
       </summary>
 
       <div class="px-5 pb-5 flex flex-col gap-5 border-t border-slate-800 pt-4">
@@ -170,7 +178,7 @@
             <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
               <h5 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
                 <span>📁 فایل‌های چندرسانه‌ای ضمیمه (`DevotionalMedia`)</span>
-                {{ tooltip("ویدیوهای ۵ بخش خطبه فدکیه به همراه کپشن کامل، صوت مداحان مختلف، تصاویر و PDF را در این بخش مدیریت کنید.") }}
+                {{ tooltip("فایل‌های صوتی، تصویری، ویدیویی و اسناد ضمیمه برای «" ~ item.title ~ "» را در این بخش مدیریت کنید.") }}
               </h5>
 
               {% if item.media_items %}

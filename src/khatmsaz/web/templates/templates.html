@@ -31,17 +31,22 @@
 </div>
 {% endif %}
 
-<!-- Add / Edit Template Form -->
-<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
-  <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+<!-- Add / Edit Template Form with Progressive Disclosure -->
+<details class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5 group/add" id="templateFormDetails">
+  <summary class="cursor-pointer list-none flex items-center justify-between">
     <div>
-      <h2 class="text-xl font-extrabold text-white">➕ ثبت نسخه جدید قالب پیام</h2>
-      <p class="text-xs text-slate-400 mt-1">با ثبت نسخه جدید، شماره نسخه به طور خودکار افزایش یافته و بلافاصله به عنوان متن پیش‌فرض سیستم فعال می‌شود.</p>
+      <h2 class="text-base sm:text-lg font-extrabold text-white">➕ ثبت نسخه جدید قالب پیام</h2>
+      <p class="text-xs text-slate-400 mt-1">با ثبت نسخه جدید، شماره نسخه خودکار افزایش یافته و بلافاصله فعال می‌شود.</p>
     </div>
-    {{ tooltip("سیستم همیشه از بالاترین شماره نسخه فعال برای هر کلید و زبان استفاده می‌کند.") }}
-  </div>
+    <div class="flex items-center gap-2">
+      <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 group-open/add:hidden">
+        + ویرایشگر پیام جدید
+      </span>
+      <span class="text-emerald-400 text-xl transition-transform group-open/add:rotate-180 hidden group-open/add:inline-block">⌄</span>
+    </div>
+  </summary>
 
-  <form method="post" action="/templates/save" class="space-y-4">
+  <form method="post" action="/templates/save" class="space-y-4 mt-6 pt-6 border-t border-white/5">
     <input type="hidden" name="csrf" value="{{ csrf }}">
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -71,7 +76,7 @@
       </button>
     </div>
   </form>
-</section>
+</details>
 
 <!-- Existing Templates Grid -->
 <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
@@ -122,6 +127,8 @@
 
 <script>
 function populateTemplateForm(key, locale, body) {
+  var details = document.getElementById('templateFormDetails');
+  if (details) details.open = true;
   document.getElementById('templateKeyInput').value = key;
   document.getElementById('templateLocaleSelect').value = locale;
   document.getElementById('templateBodyTextarea').value = body;

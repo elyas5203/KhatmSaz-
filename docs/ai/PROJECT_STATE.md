@@ -1,3 +1,33 @@
+## Current state — 2026-10-15 — Admin Web Panel Comprehensive Redesign & Progressive Disclosure Audit (MASTER-37) [Antigravity]
+- **Admin Web Panel UI/UX Pro Max Overhaul (`MASTER-37`):**
+  - **Owner Mandates:**
+    - "این علامت سواله تو حالت بزرگ چرا همش درحال نمایشه رو اعصابه"
+    - "بعد ببین من میخوام پنل ادمین رو کامل بکوبی و بسازی خیلی کارباهاش سخته؛ با اسکیل‌های ui ux pro max میخوام بکوبی بسازیش من یاد ندارم الان با این کار بکنم؛ بعد همینطوری ببین همه چیزش فعاله و درست لینک شده یا نه؛ اگر چیزی اضافه ست پاک کن؛ بعد همه چیز خلاصه باشه بعد میزنی روش کلیک میکنی بزرگ بشه جزئیاتش بیاد؛ بعد خیلی ساده باشه الان واقعا سخته؛ اول میخوام با ساب ایجنت‌ها بری بررسی بکنی و ی فایل مستر بسازی برای کارهای ایندت؛ درواقع اول ی فایل مستر میسازی برای تحلیل خط به خط و فکر کردن و... ی ساب ایجنت یوزر خیلی خنگ باشه، یکی تحلیل‌گر رفتار باشه، یکی یو آی دیزاینر باشه، یکی یو ایکس دیزاینر، یکی نقاد، یکی منتقد، یکی ایده‌دهنده؛ اینطوری میخوام تحلیل بکنی بعد با استفاده از اطلاعات اونا ی فایل مستر بسازی... تو فایل مستر خیلی دقیق نباید‌ها رو میخوام بنویسی تمام نبایدها رو بنویسی برام"
+  - **Persistent Question Mark Tooltip Bug Root Cause & Permanent Fix:**
+    - Fixed outer accordion `class="group"` colliding with tooltip `class="group hover:opacity-100"`.
+    - Namespaced tooltip group in `components.html` to `group/tip` and `group-hover/tip:opacity-100 invisible group-hover/tip:visible`.
+    - Namespaced outer accordions to `group/cat` and `group-open/cat:rotate-180`. Tooltips now only trigger when hovering the `؟` icon itself.
+  - **Critical Line-by-Line Bug Fixes Discovered During Audit:**
+    - `finance.html` line 297: Fixed severe Jinja syntax error in invoice refund action (`/finance/invoices/{ invoice.id }/refund` -> `{{ invoice.id }}`) which previously caused 404 errors.
+    - `khatm_detail.html` lines 68-85: Added missing submit button (`ثبت وضعیت`) inside the status changer form so admins can now save status updates.
+    - `users.html`: Replaced confusing `UUID` jargon with plain Persian `کد سیستمی`.
+    - `tests/test_home_menu.py`: Aligned creator settings back button expectation to `my_khatms:manage:khatm-id`.
+  - **Progressive Disclosure Architecture (Glance ➔ Inspect ➔ Act):**
+    - `khatms.html`: Replaced dense repetitive rows with expandable Smart Khatm Cards with 2-second glance summary (family emoji, title, member count, status badge) and smooth click-to-expand drawer with details and actions.
+    - `devotionals.html`: Wrapped bulky new content creation form in progressive collapsible `<details class="group/add">` with clear toggle.
+    - `categories.html`: Converted direct creation form to collapsible card and isolated category group accordions.
+    - `quran.html`: Wrapped asset upload/replace form in clean collapsible details card.
+    - `templates.html`: Wrapped message editor form in collapsible card, opening automatically upon clicking "ویرایش" on any template card.
+  - **Non-Negotiables & Guardrails (نبایدها):**
+    - Strictly maintained 100% of FastAPI routes, parameter names, and HTTP methods in `app.py`.
+    - Preserved all CSRF tokens and form validations.
+    - Kept zero changes to SQLAlchemy models, migrations, or database schemas.
+    - Preserved Telegram/Bale bot polling and all domain business rules.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_37_ADMIN_PANEL_COMPREHENSIVE_REDESIGN_AND_AUDIT.md`.
+    - Authored test suite `tests/test_master_37_admin_panel_redesign.py` (6/6 pass).
+    - Full pytest suite verification: 579 passed, 0 failures.
+
 ## Current state — 2026-10-15 — Purge Khatm Cancellation & Complete Creator Bot Button Audit & Repair (MASTER-36) [Antigravity]
 - **Khatm Cancellation Purge & Button Repairs (`MASTER-36`):**
   - **Owner Mandate:**

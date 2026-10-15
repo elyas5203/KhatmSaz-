@@ -1,3 +1,23 @@
+## 2026-10-15 — Antigravity — Admin Web Panel Comprehensive Redesign & Progressive Disclosure Audit (MASTER-37)
+- **Persistent Question Mark Tooltip Bug Root Cause & Permanent Fix:**
+  - `src/khatmsaz/web/templates/components.html`: Namespaced tooltip macro to `group/tip` and `group-hover/tip:opacity-100 group-hover/tip:visible`.
+  - `src/khatmsaz/web/templates/devotionals.html` & `categories.html`: Namespaced accordions to `group/cat` and `group-open/cat:rotate-180`, isolating the tooltip hover boundary so tooltips no longer float permanently on desktop screens.
+- **Critical Template Line-by-Line Bug Fixes:**
+  - `src/khatmsaz/web/templates/finance.html`: Fixed Jinja syntax bug on line 297 (`{ invoice.id }` -> `{{ invoice.id }}`) in refund form action which caused 404/unprocessable errors.
+  - `src/khatmsaz/web/templates/khatm_detail.html`: Added missing `<button type="submit">` (`ثبت وضعیت`) to status changer form so admins can persist status modifications.
+  - `src/khatmsaz/web/templates/users.html`: Replaced `UUID` jargon with Persian `کد سیستمی`.
+  - `tests/test_home_menu.py`: Updated creator settings back button assertion to match `my_khatms:manage:khatm-id`.
+- **Progressive Disclosure Architecture (Glance ➔ Inspect ➔ Act):**
+  - `src/khatmsaz/web/templates/khatms.html`: Upgraded dense list to Smart Khatm Cards with 2-second glance summary and smooth click-to-expand details and actions.
+  - `src/khatmsaz/web/templates/devotionals.html`: Wrapped bulky new devotional form in progressive collapsible `<details class="group/add">`.
+  - `src/khatmsaz/web/templates/categories.html`: Made add category form collapsible and isolated category group accordions.
+  - `src/khatmsaz/web/templates/quran.html`: Made page asset registration form collapsible.
+  - `src/khatmsaz/web/templates/templates.html`: Wrapped template editor in collapsible details that auto-expands on edit button click.
+- **Documentation & Verification:**
+  - Authored `docs/ai/masters/MASTER_37_ADMIN_PANEL_COMPREHENSIVE_REDESIGN_AND_AUDIT.md`.
+  - Authored `tests/test_master_37_admin_panel_redesign.py` (6/6 pass).
+  - Executed full pytest suite: 579 passed, 0 failures.
+
 ## 2026-10-15 — Antigravity — Purge Khatm Cancellation & Complete Creator Bot Button Audit & Repair (MASTER-36)
 - **Purge "لغو ختم":**
   - Removed `can_cancel` parameter and `🗑 لغو ختم` button from `creator_khatm_keyboard` in `src/khatmsaz/bot/keyboards.py`.

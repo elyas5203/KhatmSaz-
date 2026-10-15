@@ -294,7 +294,7 @@
             </td>
             <td class="py-3 px-3 text-left">
               {% if invoice.status == 'PAID' %}
-              <form method="post" action="/finance/invoices/{ invoice.id }/refund" onsubmit="return confirm('آیا از استرداد این مبلغ به کیف پول کاربر مطمئن هستید؟')">
+              <form method="post" action="/finance/invoices/{{ invoice.id }}/refund" onsubmit="return confirm('آیا از استرداد این مبلغ به کیف پول کاربر مطمئن هستید؟')">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-[0.68rem] transition-all cursor-pointer">
                   ↩️ استرداد وجه

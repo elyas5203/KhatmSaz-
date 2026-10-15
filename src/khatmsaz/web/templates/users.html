@@ -116,7 +116,7 @@
 
       <!-- Identity Details -->
       <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 space-y-1.5 text-xs">
-        <p class="text-[0.65rem] text-slate-500 font-mono truncate" dir="ltr" title="{{ user.id }}">UUID: {{ user.id }}</p>
+        <p class="text-[0.65rem] text-slate-500 font-mono truncate" dir="ltr" title="{{ user.id }}">کد سیستمی: {{ user.id }}</p>
         {% for ident in user.platform_identities %}
         <p class="text-slate-300 font-mono text-[0.7rem] flex items-center justify-between" dir="ltr">
           <span class="text-sky-400 font-bold">{{ ident.platform.value }}: {{ ident.subject }}</span>

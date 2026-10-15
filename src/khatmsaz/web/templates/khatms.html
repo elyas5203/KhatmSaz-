@@ -71,57 +71,104 @@
   <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-lg shadow-emerald-500/20 cursor-pointer">جست‌وجو و فیلتر</button>
 </form>
 
-<!-- Khatms List -->
-<section class="glass-panel rounded-3xl overflow-hidden mb-8 border border-white/5">
-  <div class="flex flex-col divide-y divide-white/5">
+<!-- Khatms List with Progressive Disclosure -->
+<section class="mb-8">
+  <div class="space-y-3">
     {% for row in enriched_rows %}
     {% set item = row.khatm %}
     {% set members = row.members %}
-    <a href="/khatms/{{ item.id }}" class="flex flex-col sm:flex-row sm:items-center justify-between p-5 hover:bg-white/5 transition-colors group gap-4">
-      <div class="min-w-0">
-        <div class="flex items-center gap-2 mb-1.5 flex-wrap">
-          <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">{{ row.family_label }}</span>
-          <span class="px-2 py-0.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400">{{ fa_label(item.khatm_type) }}</span>
-          {% if item.pending_lan_approval %}
-          <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">⚠️ منتظر تأیید لعن</span>
-          {% endif %}
-          {% set transfer_status = (item.transfer_request_status if item.transfer_request_status is defined and item.transfer_request_status else 'NONE') %}
-          {% if transfer_status == 'PENDING' %}
-          <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🤝 درخواست واگذاری</span>
-          {% elif transfer_status == 'APPROVED' %}
-          <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🤝 عمومی (واگذار شده به تک)</span>
-          {% endif %}
+    <article class="glass-card rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all overflow-hidden">
+      <!-- Glance Summary (Always visible, scan in 2 seconds) -->
+      <div class="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer select-none"
+           onclick="toggleKhatmDisclosure('khatm-{{ item.id }}')">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="w-11 h-11 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-2xl shrink-0 shadow-sm">
+            {{ row.family_emoji }}
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-[0.7rem] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                {{ row.family_label }}
+              </span>
+              <span class="text-[0.7rem] text-slate-400 font-medium px-2 py-0.5 rounded-lg bg-slate-800/60">
+                {{ fa_label(item.khatm_type) }}
+              </span>
+              {% if item.pending_lan_approval %}
+              <span class="text-[0.68rem] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-500/30">
+                ⚠️ در انتظار تأیید لعن
+              </span>
+              {% endif %}
+              {% set transfer_status = (item.transfer_request_status if item.transfer_request_status is defined and item.transfer_request_status else 'NONE') %}
+              {% if transfer_status == 'PENDING' %}
+              <span class="text-[0.68rem] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-500/30">
+                🤝 درخواست واگذاری به تک
+              </span>
+              {% elif transfer_status == 'APPROVED' %}
+              <span class="text-[0.68rem] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-lg font-bold border border-emerald-500/30">
+                🤝 واگذار شده (عمومی)
+              </span>
+              {% endif %}
+            </div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white truncate hover:text-emerald-300 transition-colors">
+              {{ item.title }}
+            </h3>
+          </div>
         </div>
-        <h3 class="font-extrabold text-base sm:text-lg text-white group-hover:text-emerald-400 transition-colors truncate">{{ item.title }}</h3>
-        <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium mt-1">
-          <span class="text-emerald-400 font-bold">👥 {{ members }} عضو فعال</span>
-          <span class="text-slate-600">·</span>
-          <span>سازنده: {{ row.creator.display_name if row.creator else 'مدیریت سامانه' }}</span>
-          {% if item.repetition_target %}
-          <span class="text-slate-600">·</span>
-          <span>هدف: {{ "{:,}".format(item.repetition_target) }}</span>
+
+        <!-- Glance Meta & Expand Chevron -->
+        <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+          <div class="text-left hidden md:block">
+            <span class="text-[0.7rem] text-slate-400 block font-bold">اعضای فعال</span>
+            <strong class="text-sm font-mono text-emerald-400 font-extrabold">{{ members }} نفر</strong>
+          </div>
+
+          {% if item.status.value == 'ACTIVE' %}
+          <span class="px-3 py-1 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 whitespace-nowrap">✅ فعال</span>
+          {% elif item.status.value == 'COMPLETED' %}
+          <span class="px-3 py-1 bg-sky-500/15 text-sky-400 text-xs font-bold rounded-xl border border-sky-500/30 whitespace-nowrap">🏆 تکمیل</span>
+          {% elif item.status.value == 'CANCELLED' %}
+          <span class="px-3 py-1 bg-rose-500/15 text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30 whitespace-nowrap">⛔ لغو</span>
+          {% else %}
+          <span class="px-3 py-1 bg-slate-500/15 text-slate-400 text-xs font-bold rounded-xl border border-slate-500/30 whitespace-nowrap">{{ fa_label(item.status) }}</span>
           {% endif %}
+
+          <button type="button" class="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 flex items-center justify-center transition-transform duration-200" id="chevron-khatm-{{ item.id }}">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+          </button>
         </div>
       </div>
-      
-      <div class="flex items-center gap-3 self-end sm:self-center">
-        {% if item.status.value == 'ACTIVE' %}
-        <span class="px-3.5 py-1.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 whitespace-nowrap">✅ فعال</span>
-        {% elif item.status.value == 'COMPLETED' %}
-        <span class="px-3.5 py-1.5 bg-sky-500/10 text-sky-400 text-xs font-bold rounded-xl border border-sky-500/30 whitespace-nowrap">🏆 تکمیل‌شده</span>
-        {% elif item.status.value == 'CANCELLED' %}
-        <span class="px-3.5 py-1.5 bg-rose-500/10 text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30 whitespace-nowrap">⛔ لغوشده</span>
-        {% else %}
-        <span class="px-3.5 py-1.5 bg-slate-500/10 text-slate-400 text-xs font-bold rounded-xl border border-slate-500/30 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% endif %}
-        
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-slate-800 text-slate-400 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-all">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-        </span>
+
+      <!-- Inspect & Act Layer (Hidden by default, smooth expand on click) -->
+      <div id="body-khatm-{{ item.id }}" class="hidden px-5 pb-5 pt-3 border-t border-slate-800/60 bg-slate-950/40 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">سازنده ختم:</span>
+            <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'مدیریت سامانه' }}</strong>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">هدف تعهد / ذکر:</span>
+            <strong class="text-slate-200 font-mono">{{ "{:,}".format(item.repetition_target) if item.repetition_target else 'شمارنده آزاد' }}</strong>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">نیت ختم:</span>
+            <span class="text-slate-300 truncate block">{{ item.niyyat or 'عمومی و فرج' }}</span>
+          </div>
+        </div>
+
+        <!-- Quick Action Footer -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/40">
+          <span class="text-[0.7rem] text-slate-500 font-mono" dir="ltr">کد رهگیری: {{ item.id }}</span>
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <a href="/khatms/{{ item.id }}" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all shadow-md flex items-center gap-1.5">
+              <span>ورود به مدیریت و اعضا</span>
+              <span>←</span>
+            </a>
+          </div>
+        </div>
       </div>
-    </a>
+    </article>
     {% else %}
-    <div class="p-12 text-center">
+    <div class="p-12 text-center glass-panel rounded-3xl border border-white/5">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
       <p class="text-slate-400 font-medium">هیچ ختمی با فیلترهای انتخابی یافت نشد.</p>
     </div>
@@ -270,6 +317,18 @@ function toggleCommitmentFields(type) {
     policy.disabled = true;
   } else {
     policy.disabled = false;
+  }
+}
+function toggleKhatmDisclosure(id) {
+  var body = document.getElementById('body-' + id);
+  var chevron = document.getElementById('chevron-' + id);
+  if (!body) return;
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    body.classList.add('hidden');
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
   }
 }
 </script>
