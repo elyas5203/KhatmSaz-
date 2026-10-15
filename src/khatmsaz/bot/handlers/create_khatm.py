@@ -20,6 +20,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, URLInputFile
 from datetime import datetime
+from html import escape
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from khatmsaz.bot.keyboards import (
@@ -36,6 +38,7 @@ from khatmsaz.bot.keyboards import (
     creator_display_keyboard,
     start_schedule_keyboard,
     reminder_tone_keyboard,
+    rules_agreement_keyboard,
     main_menu_keyboard,
     safe_answer_callback,
     safe_clear_inline_keyboard,
@@ -96,6 +99,7 @@ class CreateKhatm(StatesGroup):
     entering_start_at = State()
     entering_coupon = State()
     confirming = State()
+    confirming_rules = State()
     editing_title = State()
     choosing_invite_platform = State()
     choosing_invite_languages = State()
@@ -1859,6 +1863,11 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
         await _ask_reminder_tone(message, state)
     elif current == CreateKhatm.confirming.state:
         await _show_visibility_step(message, state)
+    elif current == CreateKhatm.confirming_rules.state:
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        await _show_confirmation(
+            message, state, platform=platform, platform_subject=str(callback.from_user.id),
+        )
     elif current in {CreateKhatm.entering_coupon.state, CreateKhatm.editing_title.state}:
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
         await _show_confirmation(
@@ -2030,8 +2039,49 @@ async def confirm_wizard(callback: CallbackQuery, state: FSMContext) -> None:
             await state.update_data(**data, resume_khatm_creation=True)
         await safe_answer_callback(callback)
         return
+    await _show_rules_agreement_step(callback.message, state, lang)
+    await safe_answer_callback(callback)
+
+
+async def _show_rules_agreement_step(message: Message, state: FSMContext, lang: str) -> None:
+    await state.set_state(CreateKhatm.confirming_rules)
+    await _wiz(
+        message,
+        state,
+        t("create_khatm.rules_text", lang),
+        reply_markup=rules_agreement_keyboard(lang),
+    )
+
+
+@router.callback_query(F.data == "ck:accept_rules", StateFilter(CreateKhatm.confirming_rules))
+async def accept_rules_and_finish_khatm(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    data = await state.get_data()
+    from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
+
+    verified = await ensure_creator_phone_verified(callback.message, state)
+    await safe_clear_inline_keyboard(callback.message)
+    if not verified:
+        if await state.get_state() is not None:
+            await state.update_data(**data, resume_khatm_creation=True, rules_accepted=True)
+        await safe_answer_callback(callback)
+        return
+    await state.update_data(
+        rules_accepted=True,
+        rules_accepted_at=datetime.now(ZoneInfo("Asia/Tehran")).isoformat(),
+    )
     await state.set_state(None)
     await _finish_creating_khatm(callback.message, state, lang, data)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data == "ck:back_to_confirm", StateFilter(CreateKhatm.confirming_rules))
+async def back_to_confirm_details(callback: CallbackQuery, state: FSMContext) -> None:
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    await safe_clear_inline_keyboard(callback.message)
+    await _show_confirmation(
+        callback.message, state, platform=platform, platform_subject=str(callback.from_user.id)
+    )
     await safe_answer_callback(callback)
 
 from khatmsaz.core.bot_registry import get_registry
@@ -2314,8 +2364,68 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         card_text,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
+    video_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🎬 سفارش ساخت ویدیوی اختصاصی ختم",
+                    callback_data=f"khatm_video:{khatm.id}",
+                )
+            ]
+        ]
+    )
+    await target_msg.answer(
+        f"💡 در صورت تمایل به ساخت تیزر مذهبی و کلیپ اختصاصی برای «{escape(khatm.title)}»، روی دکمهٔ زیر بزنید:",
+        reply_markup=video_kb,
+    )
     if other_langs_btn is not None:
         await target_msg.answer(t("create_khatm.other_lang_hint", lang), reply_markup=other_langs_btn)
+
+
+@router.callback_query(F.data.startswith("khatm_video:"))
+async def on_khatm_video_click(callback: CallbackQuery, state: FSMContext) -> None:
+    parts = callback.data.split(":")
+    khatm_id = parts[1] if len(parts) > 1 else ""
+    title = "ختم"
+    if khatm_id:
+        try:
+            async with session_scope() as session:
+                k = await session.get(Khatm, UUID(khatm_id) if isinstance(khatm_id, str) and len(khatm_id) == 36 else khatm_id)
+                if k and isinstance(getattr(k, "title", None), str):
+                    title = k.title
+        except Exception:
+            pass
+    msg_text = (
+        f"🎬 <b>سفارش ساخت ویدیوی اختصاصی برای «{escape(title)}»</b>\n\n"
+        "جهت سفارش طراحی تیزر مذهبی، ویدیوی موشن‌گرافی یا کلیپ اختصاصی برای معرفی ختم خود، لطفاً با تیم پشتیبانی خدمتگزاران تک در ارتباط باشید:\n\n"
+        "📞 <b>ارتباط مستقیم در تلگرام و بله:</b>\n"
+        "<code>+989051240561</code>\n\n"
+        "تیم فنی پس از بررسی، تیزر اختصاصی ختم شما را طراحی و ارسال می‌نماید."
+    )
+    close_kb = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="💬 ارتباط در تلگرام", url="https://t.me/+989051240561"),
+            ],
+            [
+                InlineKeyboardButton(text="✖️ بستن پیام", callback_data="ck:close_video_msg"),
+            ],
+        ]
+    )
+    try:
+        await callback.message.answer(msg_text, reply_markup=close_kb)
+    except Exception:
+        await callback.message.answer(msg_text)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data == "ck:close_video_msg")
+async def on_close_video_msg(callback: CallbackQuery) -> None:
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await safe_answer_callback(callback)
 
 
 async def notify_creator_laan_decision(

@@ -704,6 +704,29 @@ def confirm_keyboard(*, allow_coupon: bool = False, lang: str = "fa") -> InlineK
     )
 
 
+def rules_agreement_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("ck.accept_rules", lang),
+                    callback_data="ck:accept_rules",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("ck.back_to_confirm", lang),
+                    callback_data="ck:back_to_confirm",
+                ),
+                InlineKeyboardButton(
+                    text=t("ck.cancel", lang),
+                    callback_data="ck:cancel",
+                ),
+            ],
+        ]
+    )
+
+
 def edit_khatm_fields_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[

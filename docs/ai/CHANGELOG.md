@@ -1,3 +1,21 @@
+## 2026-10-15 — Antigravity — Mandatory Terms & Rules Agreement during Khatm Creation (Bot & Web) and Video Creation & Support Channels (MASTER-32)
+- **Bot Creation Wizard FSM Terms Gating:**
+  - Added `confirming_rules = State()` to `CreateKhatm(StatesGroup)` in `src/khatmsaz/bot/handlers/create_khatm.py`.
+  - Added `rules_agreement_keyboard` in `src/khatmsaz/bot/keyboards.py` with `[✅ قوانین و مقررات را خواندم و می‌پذیرم]` (`ck:accept_rules`), `[⬅️ بازگشت به مشخصات]`, and `[❌ انصراف]`.
+  - Routed `ck:confirm` to `_show_rules_agreement_step` displaying the 6 rules, advertising clauses, and technical support contact.
+  - Gated Khatm creation behind `ck:accept_rules`: Khatm is only created and invite cards issued once rules are explicitly confirmed.
+- **Creator Web Panel Form Enforcement:**
+  - Added Step 4 "قوانین و مقررات ایجاد و مدیریت ختم" glass-card scrollbox in `src/khatmsaz/web/templates/creator_khatm_new.html`.
+  - Added mandatory checkbox `<input type="checkbox" name="accept_rules" id="accept_rules" required value="1">`.
+  - Enforced `accept_rules` validation in `creator_khatm_create` (`src/khatmsaz/web/app.py`), redirecting to `?error=terms_required` on missing confirmation.
+- **Dedicated Video Creation & Technical Support Options:**
+  - Added interactive teaser video button `[🎬 سفارش ساخت ویدیوی اختصاصی ختم]` (`khatm_video:{id}`) sent right after invitation cards in `finish_invite_links`.
+  - Implemented callback handler providing video order guidance and direct links to Telegram/Bale support at `+98 905 124 0561`.
+  - Added video creation & technical support banner in `src/khatmsaz/web/templates/creator_khatm_detail.html`.
+- **Documentation & Verification:**
+  - Authored `docs/ai/masters/MASTER_32_KHATM_CREATION_TERMS_AND_RULES_AGREEMENT.md`.
+  - Authored test suite `tests/test_master_32_khatm_creation_terms_agreement.py` (7/7 passed). All 53 master tests passing 100%.
+
 ## 2026-10-15 — Antigravity — Broadcast Entitlement, In-Bot Moderation with Photo & Inline Buttons, and Web Media Preview (MASTER-31)
 - **Broadcast Entitlement (Removal of PRO Requirement):**
   - Removed `plan != PlanTier.PRO` requirement from `submit()` in `src/khatmsaz/modules/broadcast/service.py`. Any creator with sufficient wallet funds can send broadcast messages.

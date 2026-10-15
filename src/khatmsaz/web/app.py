@@ -1139,6 +1139,7 @@ async def creator_khatm_create(
     amount: int | None = Form(None),
     category_id: str = Form(""),
     visibility: str = Form("UNLISTED"),
+    accept_rules: str = Form(""),
 ):
     creator, raw, lang = await _creator(request)
     if creator is None:
@@ -1147,6 +1148,8 @@ async def creator_khatm_create(
         return HTMLResponse(web_t("web.creator.create_role_required", lang), status_code=403)
     if not _valid_csrf(raw, csrf):
         return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    if not accept_rules or accept_rules.strip() not in {"1", "on", "true"}:
+        return RedirectResponse("/creator/khatms/new?error=terms_required", status_code=303)
 
     try:
         mode = KhatmTypeEnum(khatm_type)

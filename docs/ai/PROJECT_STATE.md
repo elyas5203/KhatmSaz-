@@ -1,3 +1,23 @@
+## Current state — 2026-10-15 — Mandatory Terms & Rules Agreement during Khatm Creation (Bot & Web) and Video Creation & Support Channels (MASTER-32) [Antigravity]
+- **Khatm Creation Terms & Rules Agreement & Video Creation Channels (`MASTER-32`):**
+  - **Owner Mandate:** "میخوام یک پیامی به سازنده ختم نشون داده بشه موقع ساخت ختم اون اخرش و باید تایید قوانین رو بزنه ی همچین دکمه ای تا لینک ختم براش ساخته بشه. قوانین و مقررات: ۱. اعضای هر ختم متعلق به سازنده آن ختم هستند... ۲. ارسال پیام گروهی... ۳. بابت تامین هزینه های سرور... ۴. تایید پیام قبل از ارسال... ۵. غیرفعال کردن ختم و انتقال مدیریت... ۶. درخواست توسعه و افزایش امکانات ربات‌ها از طریق پیام به 09051240561... بعد میخوام ی ساخت ویدیو هم باز بکنم برایشون ینی بزنم همون".
+  - **Bot Creation Wizard FSM Gating (`src/khatmsaz/bot/handlers/create_khatm.py` & `keyboards.py`):**
+    - Added `confirming_rules = State()` to `CreateKhatm(StatesGroup)`.
+    - Clicking `[📋 قوانین و تأیید نهایی]` (`ck:confirm`) now routes through `_show_rules_agreement_step` displaying the full 6 rules and key support number `+98 905 124 0561`.
+    - Added `rules_agreement_keyboard(lang)` providing `[✅ قوانین و مقررات را خواندم و می‌پذیرم]` (`ck:accept_rules`), `[⬅️ بازگشت به مشخصات]` (`ck:back_to_confirm`), and `[❌ انصراف]` (`ck:cancel`).
+    - Khatm creation and invite card issuance are strictly gated: only when `ck:accept_rules` is clicked does `_finish_creating_khatm` create and activate the khatm, recording `rules_accepted=True` and `rules_accepted_at`.
+  - **Creator Web Panel Form Enforcement (`src/khatmsaz/web/templates/creator_khatm_new.html` & `app.py`):**
+    - Embedded Step 4 "قوانین و مقررات ایجاد و مدیریت ختم" as a styled glass-panel scrollbox with the 6 rules.
+    - Added mandatory checkbox `<input type="checkbox" name="accept_rules" id="accept_rules" required value="1">`.
+    - Enforced validation in `/creator/khatms/create`: redirects to `?error=terms_required` if rules are not accepted.
+  - **Custom Video Creation & Technical Support Options:**
+    - Bot sends dedicated teaser video button `[🎬 سفارش ساخت ویدیوی اختصاصی ختم]` (`khatm_video:{id}`) right after the invitation card in `finish_invite_links`.
+    - Implemented `on_khatm_video_click` and `on_close_video_msg` presenting technical order guidance and direct link to `https://t.me/+989051240561`.
+    - Added video creation & technical support banner to Creator Web Panel (`src/khatmsaz/web/templates/creator_khatm_detail.html`).
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_32_KHATM_CREATION_TERMS_AND_RULES_AGREEMENT.md`.
+    - Authored test suite `tests/test_master_32_khatm_creation_terms_agreement.py` (7/7 passed). Full master test suite: 53 passed (100% PASS).
+
 ## Current state — 2026-10-15 — Broadcast Entitlement (All Funded Creators), In-Bot Moderation with Photo & Inline Buttons, and Web Media Preview (MASTER-31) [Antigravity]
 - **Broadcast Entitlement, In-Bot Moderation with Photo & Web Media Preview (`MASTER-31`):**
   - **Owner Mandate:** "نه اشتباهه دسترسی به پیام گروهی برای پلن حرفه ای نه کسی بستشو بخره میتونه پیام گروهی بفرسته. فایل مستر رو بررسی بکن و فایل مستر اینم بساز یا ادیت بکن تا درست پیاده سازیش بکنی برام خیلی خرابه این. من عکسشو نمیتونم ببینم بعد میخوام تو همون بات ادمین بتونم تایید و رد بکنم".
