@@ -414,6 +414,9 @@ async def choose_category_group(callback: CallbackQuery, state: FSMContext) -> N
     except (ValueError, IndexError):
         await safe_answer_callback(callback, t("create_khatm.category_gone", lang), show_alert=True)
         return
+    if group == KhatmCategoryGroup.LAAN:
+        await safe_answer_callback(callback, "امکان ساخت ختم لعن در حال حاضر غیرفعال است.", show_alert=True)
+        return
     await _show_category_group(callback, state, group)
 
 
@@ -421,6 +424,9 @@ async def _show_category_group(
     callback: CallbackQuery, state: FSMContext, group: KhatmCategoryGroup
 ) -> None:
     lang = await _lang(state)
+    if group == KhatmCategoryGroup.LAAN:
+        await safe_answer_callback(callback, "امکان ساخت ختم لعن در حال حاضر غیرفعال است.", show_alert=True)
+        return
     await state.update_data(
         template_type=KhatmTemplateType.SALAWAT.value,
         category_group=group.value,
@@ -440,27 +446,6 @@ async def _show_category_group(
             await safe_answer_callback(callback)
             return
         await _ask_mode(callback.message, state)
-        await safe_answer_callback(callback)
-        return
-
-    # Owner decision (2026-10-13, DEC-PY-0123, MASTER-11/12):
-    # La'an has no preset categories; ask title and recitation text interactively.
-    if group == KhatmCategoryGroup.LAAN:
-        data = (await state.get_data()) if hasattr(state, "get_data") else {}
-        if data.get("editing_from_confirm"):
-            title = _default_khatm_title(data, lang)
-            await state.update_data(title=title, editing_from_confirm=False)
-            platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-            await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
-            await safe_answer_callback(callback)
-            return
-        await state.set_state(CreateKhatm.entering_laan_title)
-        prompt_text = (
-            "⚔️ <b>عنوان ختم لعنتون چیه؟</b>\n\n"
-            "لطفاً عنوان مورد نظر خود برای این ختم را بنویسید:\n"
-            "<i>(مثلاً: ختم لعن بر دشمنان اهل بیت علیهم‌السلام)</i>"
-        )
-        await _wiz(callback.message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
         await safe_answer_callback(callback)
         return
 
@@ -551,40 +536,16 @@ async def enter_custom_dua_title(message: Message, state: FSMContext) -> None:
 
 @router.message(StateFilter(CreateKhatm.entering_laan_title))
 async def enter_laan_title(message: Message, state: FSMContext) -> None:
-    if await bail_if_menu_button(message, state):
-        return
     lang = await _lang(state)
-    raw = (message.text or "").strip()
-    if not raw or raw.startswith("/"):
-        await _wizard_error(message, state, "لطفاً یک عنوان معتبر برای ختم وارد نمایید.")
-        return
-    await state.update_data(title=raw)
-    await state.set_state(CreateKhatm.entering_laan_text)
-    prompt_text = (
-        "📜 <b>متن ختم لعن رو بفرستید:</b>\n\n"
-        "متن دقیق ذکری که اعضا باید قرائت کنند را وارد نمایید:\n"
-        "<i>(این ذکر دقیقاً در سهم‌های روزانه نمایش داده خواهد شد)</i>"
-    )
-    await _wiz(message, state, prompt_text, reply_markup=create_wizard_back_keyboard(lang))
+    await state.clear()
+    await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
 
 
 @router.message(StateFilter(CreateKhatm.entering_laan_text))
 async def enter_laan_text(message: Message, state: FSMContext) -> None:
-    if await bail_if_menu_button(message, state):
-        return
     lang = await _lang(state)
-    raw = (message.text or "").strip()
-    if not raw or raw.startswith("/"):
-        await _wizard_error(message, state, "لطفاً متن ذکر لعن را وارد نمایید.")
-        return
-    await state.update_data(recitation_text=raw)
-    data = await state.get_data()
-    if data.get("editing_from_confirm"):
-        await state.update_data(editing_from_confirm=False)
-        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-        await _show_confirmation(message, state, platform=platform, platform_subject=str(message.chat.id))
-        return
-    await _ask_mode(message, state)
+    await state.clear()
+    await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
 
 
 @router.callback_query(F.data.startswith("ck:cat:"), StateFilter(CreateKhatm.choosing_category))
@@ -1932,6 +1893,10 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
     normal confirm path and the post-verification resume path (see
     `_resume_khatm_creation_if_pending` below) can share the exact same
     creation logic instead of duplicating it."""
+    if data.get("category_group") == KhatmCategoryGroup.LAAN.value:
+        await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
+        return
+
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     price = get_settings().khatm_creation_price_toman
 

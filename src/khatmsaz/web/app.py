@@ -44,7 +44,7 @@ from khatmsaz.modules.content.models import QuranPageAsset
 from khatmsaz.modules.creator_request import service as creator_request_service
 from khatmsaz.modules.creator_request.models import CreatorRequest, CreatorRequestStatus
 from khatmsaz.modules.identity import service as identity_service
-from khatmsaz.modules.identity.models import Platform, User, UserRole
+from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
 from khatmsaz.modules.invitation.service import InvitationExpiredError, InvitationNotFoundError
 from khatmsaz.modules.khatm import service as khatm_service
@@ -1153,7 +1153,9 @@ async def creator_khatm_create(
         selected_visibility = KhatmVisibility(visibility)
     except ValueError:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
-    if content_kind not in {"quran", "salawat", "dua", "laan", "khutbah"}:
+    if content_kind == "laan":
+        return HTMLResponse("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", status_code=400)
+    if content_kind not in {"quran", "salawat", "dua", "khutbah"}:
         return RedirectResponse("/creator/khatms/new?error=invalid", status_code=303)
     if content_kind != "quran" and (amount is None or amount <= 0):
         return RedirectResponse("/creator/khatms/new?error=amount", status_code=303)
@@ -1415,9 +1417,25 @@ async def _load_creator_member_rows(
         )
     member_records = list((await session.execute(member_stmt)).all())
     participation_ids = [membership.id for membership, _, _ in member_records]
+    user_ids = [user.id for _, user, _ in member_records]
     completed_by_participation = {}
+    debt_by_participation = {}
     misses_by_participation = {}
     contributions_by_participation = {}
+    identities_by_user = {}
+
+    if user_ids:
+        ident_records = list(
+            (
+                await session.execute(
+                    select(PlatformIdentity).where(PlatformIdentity.user_id.in_(user_ids))
+                )
+            ).scalars().all()
+        )
+        for ident in ident_records:
+            if ident.user_id not in identities_by_user:
+                identities_by_user[ident.user_id] = ident
+
     if participation_ids:
         completed_by_participation = dict(
             (
@@ -1426,6 +1444,18 @@ async def _load_creator_member_rows(
                     .where(
                         KhatmPortion.participation_id.in_(participation_ids),
                         KhatmPortion.status == PortionStatus.COMPLETED,
+                    )
+                    .group_by(KhatmPortion.participation_id)
+                )
+            ).all()
+        )
+        debt_by_participation = dict(
+            (
+                await session.execute(
+                    select(KhatmPortion.participation_id, func.count())
+                    .where(
+                        KhatmPortion.participation_id.in_(participation_ids),
+                        KhatmPortion.status == PortionStatus.ASSIGNED,
                     )
                     .group_by(KhatmPortion.participation_id)
                 )
@@ -1457,19 +1487,30 @@ async def _load_creator_member_rows(
                 )
             ).all()
         }
-    return [
-        {
-            "membership": membership,
-            "user": user,
-            "settings": settings,
-            "joined_at": _tehran_time(membership.joined_at),
-            "completed": int(completed_by_participation.get(membership.id, 0)),
-            "misses": int(misses_by_participation.get(membership.id, 0)),
-            "contribution": contributions_by_participation.get(membership.id, (0.0, 0.0))[0],
-            "surplus": contributions_by_participation.get(membership.id, (0.0, 0.0))[1],
-        }
-        for membership, user, settings in member_records
-    ]
+
+    rows = []
+    for membership, user, settings in member_records:
+        completed_val = int(completed_by_participation.get(membership.id, 0))
+        if completed_val == 0:
+            completed_val = int(contributions_by_participation.get(membership.id, (0.0, 0.0))[0])
+        debt_val = int(debt_by_participation.get(membership.id, 0))
+        rows.append(
+            {
+                "membership": membership,
+                "user": user,
+                "settings": settings,
+                "account": identities_by_user.get(user.id),
+                "joined_at": _tehran_time(membership.joined_at),
+                "completed": completed_val,
+                "read_count": completed_val,
+                "debt_count": debt_val,
+                "is_debtor": debt_val > 0,
+                "misses": int(misses_by_participation.get(membership.id, 0)),
+                "contribution": contributions_by_participation.get(membership.id, (0.0, 0.0))[0],
+                "surplus": contributions_by_participation.get(membership.id, (0.0, 0.0))[1],
+            }
+        )
+    return rows
 
 
 @app.get("/creator/khatms/{khatm_id}", response_class=HTMLResponse)
@@ -2222,9 +2263,13 @@ async def admin_create_khatm(
         selected_visibility = KhatmVisibility(visibility)
     except ValueError:
         return RedirectResponse("/khatms?saved=error", status_code=303)
+    if content_kind == "laan":
+        return HTMLResponse("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", status_code=400)
+    if content_kind not in {"quran", "salawat", "dua", "khutbah"}:
+        return RedirectResponse("/khatms?saved=error", status_code=303)
     async with session_scope() as session:
         category = None
-        if content_kind in {"dua", "laan", "khutbah"} and category_id.strip():
+        if content_kind in {"dua", "khutbah"} and category_id.strip():
             try:
                 category = await category_service.get(session, UUID(category_id.strip()))
             except ValueError:

@@ -1,3 +1,22 @@
+## Current state — 2026-10-15 — Khatm Detail Debt Count Fix & Global Disabling of La'an Khatm Creation (MASTER-30) [Antigravity]
+- **Khatm Detail Member Debt Count UndefinedError Fix & Global La'an Khatm Creation Disabling (`MASTER-30`):**
+  - **Owner Mandate:** "این ارور رو هم درست بکن برام. کلا ساخت ختم لعن رو فعلا وردار و غیر فعالش بکن برام. اشتباهه کسی نتونه انتخاب بکنه و بسازه."
+  - **Khatm Detail Template Error Fix:**
+    - Root cause: `/khatms/{khatm_id}` raised `jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'debt_count'` on line 282 of `khatm_detail.html` because `_load_creator_member_rows` omitted `debt_count`, `read_count`, `is_debtor`, and `account`.
+    - Enriched `_load_creator_member_rows` (`src/khatmsaz/web/app.py`) to query outstanding assigned portions count as `debt_count` (`PortionStatus.ASSIGNED`), completed portions count as `read_count`, boolean `is_debtor`, and user platform from `PlatformIdentity` as `account`.
+    - Hardened `src/khatmsaz/web/templates/khatm_detail.html` to defensively use `row.get('debt_count', 0)` and `row.get('read_count', ...)` preventing any runtime Jinja2 undefined errors.
+  - **Global Disabling of Khatm La'an Creation:**
+    - Removed `[🗡 ختم لعن]` button from `template_choice_keyboard` in `src/khatmsaz/bot/keyboards.py`.
+    - Blocked `ck:group:LAAN` callback query in `choose_category_group` and `_show_category_group` in `src/khatmsaz/bot/handlers/create_khatm.py`.
+    - Blocked FSM states `entering_laan_title` and `entering_laan_text` to immediately clear state and inform the user.
+    - Added defense-in-depth rejection in `_finish_creating_khatm` if `category_group == LAAN`.
+    - Removed `laan` option and `<optgroup label="لعن">` from Creator Web Panel (`src/khatmsaz/web/templates/creator_khatm_new.html`) and updated `sync()` script.
+    - Removed `<option value="laan">` from Admin Web Panel (`src/khatmsaz/web/templates/khatms.html`).
+    - Added HTTP 400 rejection in `/creator/khatms/create` and `/khatms/create` endpoints in `src/khatmsaz/web/app.py`.
+  - **Master Document & Test Suite:**
+    - Authored `docs/ai/masters/MASTER_30_KHATM_DETAIL_DEBT_COUNT_FIX_AND_LAAN_CREATION_DISABLING.md`.
+    - Authored test suite `tests/test_master_30_khatm_detail_debt_and_disable_laan.py` (5/5 passed).
+
 ## Current state — 2026-10-15 — Broadcast Dynamic Package Size Architecture & Ad Reward Removal (MASTER-29) [Antigravity]
 - **Broadcast Dynamic Package Size & Ad Reward Removal (`MASTER-29`):**
   - **Owner Mandate:** "این نرخ پاداش میخوام حدف بشه برام به صورت کامل اینو نمیخوام. بعد تعداد بسته هم بتونم مشخص بکنم که مثلا 100 تا باشه یا 1000 یا 7374 اینطوری میخوام باشه. بعد ی طوری درست بکن ک همه جا درست باشه فایل مسترشم درست بکن برام".

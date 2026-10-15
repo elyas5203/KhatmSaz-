@@ -40,8 +40,8 @@
       <h2 class="text-sm sm:text-base font-black text-white">موضوع و قالب ختم را انتخاب کنید</h2>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
-      {% for value, icon, label in [('quran','📖','قرآن کریم'),('salawat','🕊','صلوات'),('dua','🤲','دعا و زیارت'),('laan','✨','لعن'),('khutbah','🎤','خطبه (فدکیه)')] %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {% for value, icon, label in [('quran','📖','قرآن کریم'),('salawat','🕊','صلوات'),('dua','🤲','دعا و زیارت'),('khutbah','🎤','خطبه (فدکیه)')] %}
       <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/15 has-[:checked]:text-white flex flex-col items-center text-center group">
         <input type="radio" name="content_kind" value="{{ value }}" class="sr-only" {% if loop.first %}checked{% endif %}>
         <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">{{ icon }}</span>
@@ -50,15 +50,12 @@
       {% endfor %}
     </div>
 
-    <!-- Dynamic Sub-category Dropdown (for Dua, Laan, Khutbah) -->
+    <!-- Dynamic Sub-category Dropdown (for Dua, Khutbah) -->
     <div id="category-wrap" class="mt-5 hidden pt-4 border-t border-white/5">
       <label class="block text-xs font-bold text-slate-300 mb-2">انتخاب عنوان مشخص دعا / زیارت / خطبه:</label>
       <select name="category_id" id="category-id" class="input-field max-w-md">
         <optgroup label="دعا و زیارت" id="dua-options">
           {% for item in dua_categories %}<option value="{{ item.id }}" data-kind="dua">{{ item.title }}</option>{% endfor %}
-        </optgroup>
-        <optgroup label="لعن" id="laan-options">
-          {% for item in laan_categories %}<option value="{{ item.id }}" data-kind="laan">{{ item.title }}</option>{% endfor %}
         </optgroup>
         <optgroup label="خطبه‌ها" id="khutbah-options">
           {% for item in khutbah_categories %}<option value="{{ item.id }}" data-kind="khutbah">{{ item.title }}</option>{% endfor %}
@@ -190,7 +187,7 @@
     editionWrap.classList.toggle('hidden', kind !== 'quran');
     amountWrap.classList.toggle('hidden', kind === 'quran');
 
-    if (kind === 'salawat' || kind === 'laan') {
+    if (kind === 'salawat') {
       amountLabel.textContent = 'تعداد کل ذکر هدف (مثلاً ۱۴۰۰۰ یا ۱۰۰۰۰۰):';
     } else if (kind === 'khutbah') {
       amountLabel.textContent = 'تعداد دور خواندن خطبه (هر دور = ۵ بخش کامل):';
@@ -198,7 +195,7 @@
       amountLabel.textContent = 'تعداد دور قرائت دعا یا زیارت:';
     }
 
-    const needsCat = ['dua','laan','khutbah'].includes(kind);
+    const needsCat = ['dua','khutbah'].includes(kind);
     categoryWrap.classList.toggle('hidden', !needsCat);
 
     if (needsCat) {

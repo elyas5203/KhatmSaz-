@@ -1,3 +1,18 @@
+## 2026-10-15 — Antigravity — Khatm Detail Debt Count Fix & Global Disabling of La'an Khatm Creation (MASTER-30)
+- **Khatm Detail Member Debt Count UndefinedError Fix & Global La'an Khatm Creation Disabling (`MASTER-30`):**
+  - **Fixed `jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'debt_count'`:**
+    - Enriched `_load_creator_member_rows` in `src/khatmsaz/web/app.py` with `debt_count`, `read_count`, `is_debtor`, and `account` (from `PlatformIdentity`).
+    - Made `src/khatmsaz/web/templates/khatm_detail.html` defensively access `row.get('debt_count', 0)` and `row.get('read_count', ...)`.
+  - **Global Disabling of Khatm La'an Creation:**
+    - Removed `ck:group:LAAN` button from `template_choice_keyboard` in `src/khatmsaz/bot/keyboards.py`.
+    - Blocked `ck:group:LAAN` callback query and FSM states (`entering_laan_title`, `entering_laan_text`) in `src/khatmsaz/bot/handlers/create_khatm.py`.
+    - Added guard in `_finish_creating_khatm` blocking `category_group == LAAN`.
+    - Removed `laan` from `src/khatmsaz/web/templates/creator_khatm_new.html` and `src/khatmsaz/web/templates/khatms.html`.
+    - Added HTTP 400 rejection in `/creator/khatms/create` and `/khatms/create` endpoints in `src/khatmsaz/web/app.py`.
+  - **Documentation & Verification:**
+    - Authored `docs/ai/masters/MASTER_30_KHATM_DETAIL_DEBT_COUNT_FIX_AND_LAAN_CREATION_DISABLING.md`.
+    - Authored test suite `tests/test_master_30_khatm_detail_debt_and_disable_laan.py` (5/5 passed).
+
 ## 2026-10-15 — Antigravity — Broadcast Dynamic Package Size & Ad Reward Removal (MASTER-29)
 - **Broadcast Dynamic Package Size & Ad Reward Removal (`MASTER-29`):**
   - **Abolished Advertising Rewards:**

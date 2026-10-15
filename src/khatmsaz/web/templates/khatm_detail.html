@@ -255,7 +255,7 @@
             <span class="text-[0.65rem] text-slate-500 font-mono" dir="ltr">{{ user.id }}</span>
           </td>
           <td class="py-3 px-3">
-            {% if row.account %}
+            {% if row.get('account') %}
             <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold">{{ row.account.platform.value }}</span>
             {% else %}
             <span class="text-slate-600">-</span>
@@ -272,14 +272,14 @@
             {% endif %}
           </td>
           <td class="py-3 px-3 text-center font-mono font-bold text-emerald-400">
-            {{ row.read_count }}
+            {{ row.get('read_count', row.get('completed', 0)) }}
           </td>
-          <td class="py-3 px-3 text-center font-mono font-bold {% if row.is_debtor %}text-rose-400{% else %}text-slate-500{% endif %}">
-            {{ row.debt_count }}
+          <td class="py-3 px-3 text-center font-mono font-bold {% if row.get('is_debtor') or row.get('debt_count', 0) > 0 %}text-rose-400{% else %}text-slate-500{% endif %}">
+            {{ row.get('debt_count', 0) }}
           </td>
           <td class="py-3 px-3 text-left">
             <div class="flex items-center justify-end gap-2">
-              {% if row.debt_count > 0 %}
+              {% if row.get('debt_count', 0) > 0 %}
               <form method="post" action="/khatms/{{ khatm.id }}/members/{{ membership.id }}/complete-share">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
                 <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[0.7rem] font-bold transition-all cursor-pointer" title="ثبت دستی انجام سهم باز این عضو">
