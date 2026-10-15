@@ -80,6 +80,17 @@ async def handle_member_start_with_payload(message: Message, command: CommandObj
                 await message.answer(t("join.error.khatm_ended", lang), reply_markup=member_menu_keyboard(lang))
                 return
 
+            if getattr(khatm, "join_link_closed", False):
+                existing_p = await participation_service.get_active(session, khatm.id, user.id)
+                if existing_p is None:
+                    await message.answer(
+                        "⚠️ <b>امکان عضویت جدید در این ختم وجود ندارد</b>\n\n"
+                        "لینک عضویت این ختم توسط مدیریت بسته شده است و اعضای قبلی در حال تکمیل قرائت روزانه خود هستند.\n\n"
+                        "جهت شرکت در سایر ختم‌ها می‌توانید از منوی اصلی ربات اقدام فرمایید.",
+                        reply_markup=member_menu_keyboard(lang),
+                    )
+                    return
+
             if not await _matches_member_bot(session, khatm, bot_category):
                 await message.answer(t("join.error.wrong_bot", lang), reply_markup=member_menu_keyboard(lang))
                 return

@@ -1,3 +1,18 @@
+## 2026-10-15 — Antigravity — Video Feature Removal & Khatm Deactivation / Management Delegation to Service Admin (Rule 5) (MASTER-33)
+- **Video Feature Complete Removal:**
+  - Removed `video_kb`, `on_khatm_video_click`, and `on_close_video_msg` from `src/khatmsaz/bot/handlers/create_khatm.py`.
+  - Removed video creation order banner from `src/khatmsaz/web/templates/creator_khatm_detail.html`.
+  - Updated `tests/test_master_32_khatm_creation_terms_agreement.py`.
+- **Khatm Deactivation & Delegation of Management to Service Admin (Rule 5):**
+  - **Schema & Migration:** Added `join_link_closed`, `transfer_request_status`, `transfer_request_reason`, `transfer_requested_at`, `transferred_to_admin_at`, `transferred_from_user_id` to `Khatm` model (`src/khatmsaz/modules/khatm/models.py`), created migration `migrations/versions/khatm2026101501_add_transfer_and_deactivation.py`, and bootstrap self-healing DDL.
+  - **Workflow Service:** Added `request_khatm_transfer`, `cancel_khatm_transfer_request`, `approve_khatm_transfer` (closes join link, reassigns ownership to admin), and `reject_khatm_transfer`. Hardened `_complete_join` to prevent new members from joining closed links while leaving existing active participants unaffected.
+  - **Creator Bot:** Added `[🤝 واگذاری مدیریت به پشتیبانی]` / `[⏳ لغو درخواست واگذاری مدیریت]` buttons and Rule 5 terms agreement modal with automatic superadmin alert.
+  - **Admin Bot:** Added pending transfer counter to main dashboard, transfer moderation browser, and `[✅ تأیید واگذاری و بستن لینک]` / `[❌ رد درخواست]` buttons with automated creator notifications.
+  - **Web Dashboards:** Added transfer request cards, badges, and moderation controls to creator and admin web interfaces.
+- **Documentation & Tests:**
+  - Authored `docs/ai/masters/MASTER_33_KHATM_DEACTIVATION_AND_ADMIN_TRANSFER.md`.
+  - Authored test suite `tests/test_master_33_khatm_transfer.py` (13/13 passed).
+
 ## 2026-10-15 — Antigravity — Mandatory Terms & Rules Agreement during Khatm Creation (Bot & Web) and Video Creation & Support Channels (MASTER-32)
 - **Bot Creation Wizard FSM Terms Gating:**
   - Added `confirming_rules = State()` to `CreateKhatm(StatesGroup)` in `src/khatmsaz/bot/handlers/create_khatm.py`.

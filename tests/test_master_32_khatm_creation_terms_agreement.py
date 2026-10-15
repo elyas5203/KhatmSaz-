@@ -15,7 +15,6 @@ from khatmsaz.bot.handlers.create_khatm import (
     accept_rules_and_finish_khatm,
     back_to_confirm_details,
     confirm_wizard,
-    on_khatm_video_click,
 )
 from khatmsaz.bot.keyboards import confirm_keyboard, rules_agreement_keyboard
 from khatmsaz.i18n import t
@@ -185,22 +184,6 @@ async def test_back_to_confirm_details_from_rules():
         mock_show.assert_awaited_once()
 
 
-@pytest.mark.asyncio
-async def test_khatm_video_callback_provides_support_number():
-    """Clicking 'khatm_video:...' returns guidance and contact number +989051240561."""
-    callback = FakeCallback(data="khatm_video:test-khatm-uuid")
-    state = FakeFSMContext(data={"lang": "fa"})
-    scope, _ = _fake_session_scope()
-
-    with patch("khatmsaz.bot.handlers.create_khatm.session_scope", return_value=scope):
-        await on_khatm_video_click(callback, state)
-
-    assert len(callback.message.answers) >= 1
-    sent_text = callback.message.answers[-1][0]
-    assert "سفارش ساخت ویدیوی اختصاصی" in sent_text
-    assert "+989051240561" in sent_text
-
-
 def test_web_creator_khatm_create_requires_accept_rules():
     """Submitting creator khatm create form without accept_rules redirects with terms_required error."""
     client = TestClient(app)
@@ -270,8 +253,8 @@ def test_web_creator_khatm_create_accepts_when_rules_checked():
         assert "/creator/khatms/new?error=phone" in res.headers["location"]
 
 
-def test_web_templates_contain_terms_and_video_support():
-    """HTML templates must render the 6 terms, the accept_rules checkbox, and the video support banner."""
+def test_web_templates_contain_terms():
+    """HTML templates must render the 6 terms and the accept_rules checkbox."""
     with open("src/khatmsaz/web/templates/creator_khatm_new.html", "r", encoding="utf-8") as f:
         new_html = f.read()
 
@@ -282,9 +265,3 @@ def test_web_templates_contain_terms_and_video_support():
     assert "خدمتگزاران تک" in new_html
     assert "+98 905 124 0561" in new_html
     assert "terms_required" in new_html
-
-    with open("src/khatmsaz/web/templates/creator_khatm_detail.html", "r", encoding="utf-8") as f:
-        detail_html = f.read()
-
-    assert "سفارش ساخت ویدیوی اختصاصی و تیزر معرفی ختم" in detail_html
-    assert "+98 905 124 0561" in detail_html

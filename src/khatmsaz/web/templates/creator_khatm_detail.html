@@ -116,22 +116,6 @@
   </div>
 </section>
 
-<!-- Custom Video Order & Technical Support Banner -->
-<section class="glass-panel p-4 sm:p-5 rounded-2xl mb-6 border border-emerald-500/20 bg-gradient-to-r from-emerald-950/20 via-slate-900/40 to-slate-900/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-  <div class="flex items-center gap-3">
-    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-lg flex-none">
-      🎬
-    </div>
-    <div>
-      <h3 class="text-xs sm:text-sm font-black text-white">سفارش ساخت ویدیوی اختصاصی و تیزر معرفی ختم</h3>
-      <p class="text-[0.75rem] text-slate-300 mt-0.5">برای ساخت کلیپ موشن‌گرافی اختصاصی یا درخواست امکانات فنی جدید برای این ختم، به پشتیبانی در تلگرام یا بله پیام دهید.</p>
-    </div>
-  </div>
-  <a href="https://t.me/+989051240561" target="_blank" class="btn-ghost text-xs flex items-center justify-center gap-1.5 flex-none py-2 px-3.5 border-emerald-500/30 text-emerald-300 hover:text-white">
-    <span>📞 پیام به پشتیبانی فنی (+98 905 124 0561)</span>
-  </a>
-</section>
-
 <!-- Tabs Navigation Header -->
 <div class="flex gap-2 p-1.5 rounded-2xl glass-panel mb-6 max-w-xl">
   <button type="button" onclick="switchTab('stats')" id="tab-btn-stats" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold text-center transition-all bg-emerald-500 text-white shadow-lg shadow-emerald-950/30">
@@ -321,6 +305,47 @@
         </button>
       </div>
     </form>
+
+    <!-- Rule 5: Khatm Deactivation & Management Delegation -->
+    {% set transfer_status = (khatm.transfer_request_status if khatm.transfer_request_status is defined and khatm.transfer_request_status else 'NONE') %}
+    <div class="glass-card p-5 sm:p-6 rounded-2xl border {% if transfer_status == 'PENDING' %}border-amber-500/30 bg-amber-950/10{% elif transfer_status == 'APPROVED' %}border-emerald-500/30 bg-emerald-950/10{% else %}border-white/10 bg-slate-900/40{% endif %} mt-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-lg">🤝</span>
+            <h4 class="text-sm font-black text-white">واگذاری مدیریت ختم و بستن عضوگیری جدید (بند ۵ قوانین)</h4>
+            {% if transfer_status == 'PENDING' %}
+            <span class="status-badge status-draft text-[0.65rem]">در انتظار تأیید پشتیبانی</span>
+            {% elif transfer_status == 'APPROVED' %}
+            <span class="status-badge status-active text-[0.65rem]">واگذار شده به خدمتگزاران تک</span>
+            {% endif %}
+          </div>
+          <p class="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+            مطابق بند ۵ قوانین، در صورتی که امکان یا توانایی مدیریت این ختم را ندارید، می‌توانید با ثبت درخواست، ادامه مدیریت را به مجموعه خدمتگزاران تک بسپارید. با این کار لینک ورود اعضای جدید مسدود می‌شود اما اعضای فعلی بدون توقف به قرائت خود ادامه می‌دهند.
+          </p>
+        </div>
+
+        {% if transfer_status in ['NONE', 'REJECTED'] %}
+        <form method="post" action="/creator/khatms/{{ khatm.id }}/transfer/request" onsubmit="return confirm('آیا از ارسال درخواست واگذاری مدیریت ختم به خدمتگزاران تک اطمینان دارید؟');" class="flex-none">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="btn-ghost text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 py-2 px-3.5 whitespace-nowrap">
+            <span>درخواست واگذاری مدیریت</span>
+          </button>
+        </form>
+        {% elif transfer_status == 'PENDING' %}
+        <form method="post" action="/creator/khatms/{{ khatm.id }}/transfer/cancel" class="flex-none">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit" class="btn-ghost text-xs border-rose-500/40 text-rose-300 hover:bg-rose-500/20 py-2 px-3.5 whitespace-nowrap">
+            <span>لغو درخواست واگذاری</span>
+          </button>
+        </form>
+        {% elif transfer_status == 'APPROVED' %}
+        <div class="text-xs text-emerald-400 font-bold flex items-center gap-1.5 flex-none bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+          <span>✅ مدیریت به پشتیبانی واگذار شد</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 

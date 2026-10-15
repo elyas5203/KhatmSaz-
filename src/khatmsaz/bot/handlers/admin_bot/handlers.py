@@ -9,9 +9,12 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 from html import escape
+import logging
 import os
 import sys
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, StateFilter
@@ -40,8 +43,11 @@ from khatmsaz.modules.broadcast.delivery import deliver_broadcast
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
+from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+from khatmsaz.modules.khatm_workflow import service as workflow_service
+from khatmsaz.modules.participation import service as participation_service
 from khatmsaz.modules.reporting import service as reporting_service
 from khatmsaz.modules.session import service as session_service
 from khatmsaz.modules.wallet import service as wallet_service
@@ -100,6 +106,7 @@ async def _fetch_dashboard_counts() -> dict[str, int]:
         "pending_receipts": 0,
         "pending_laan": 0,
         "pending_broadcasts": 0,
+        "pending_transfers": 0,
         "active_khatms": 0,
         "total_users": 0,
     }
@@ -120,11 +127,17 @@ async def _fetch_dashboard_counts() -> dict[str, int]:
             # 3. Pending broadcasts
             counts["pending_broadcasts"] = len(await broadcast_service.list_pending_review(session))
 
-            # 4. Active khatms
+            # 4. Pending Khatm transfers (Rule 5)
+            t_stmt = select(func.count(Khatm.id)).where(
+                Khatm.transfer_request_status == "PENDING"
+            )
+            counts["pending_transfers"] = (await session.execute(t_stmt)).scalar() or 0
+
+            # 5. Active khatms
             k_stmt = select(func.count(Khatm.id)).where(Khatm.status == KhatmStatus.ACTIVE)
             counts["active_khatms"] = (await session.execute(k_stmt)).scalar() or 0
 
-            # 5. Total users
+            # 6. Total users
             u_stmt = select(func.count(User.id))
             counts["total_users"] = (await session.execute(u_stmt)).scalar() or 0
     except Exception:
@@ -136,6 +149,7 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
     receipts_btn = f"🧾 فیش‌های واریزی ({counts['pending_receipts']})"
     laan_btn = f"⚔️ ختم‌های لعن ({counts['pending_laan']})"
     broadcast_btn = f"📢 پیام‌های همگانی ({counts['pending_broadcasts']})"
+    transfers_btn = f"🤝 واگذاری مدیریت ({counts['pending_transfers']})"
 
     rows = [
         [
@@ -144,14 +158,17 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text=broadcast_btn, callback_data="admin:broadcasts"),
+            InlineKeyboardButton(text=transfers_btn, callback_data="admin:transfers"),
+        ],
+        [
             InlineKeyboardButton(text="👥 تفکیک کاربران و دسته‌ها", callback_data="admin:user_analytics"),
-        ],
-        [
             InlineKeyboardButton(text="📊 وضعیت زنده سرور", callback_data="admin:status"),
-            InlineKeyboardButton(text="📑 مشاهده لاگ‌ها", callback_data="admin:logs"),
         ],
         [
+            InlineKeyboardButton(text="📑 مشاهده لاگ‌ها", callback_data="admin:logs"),
             InlineKeyboardButton(text="🚨 آخرین خطاها", callback_data="admin:errors"),
+        ],
+        [
             InlineKeyboardButton(text="🌐 دریافت لینک ورود به پنل (مرورگر / وب)", callback_data="admin:web_link"),
         ],
     ]
@@ -678,6 +695,197 @@ async def reject_laan_callback(callback: CallbackQuery) -> None:
                     pass
     except Exception:
         pass
+
+
+# --- Khatm Management Transfer Handlers (Rule 5) ---
+
+@router.message(Command("transfers"))
+@router.callback_query(F.data == "admin:transfers")
+async def show_pending_transfers(event: Message | CallbackQuery) -> None:
+    if not await _is_super_admin(event):
+        await _reject_unauthorized(event)
+        return
+    await _render_pending_transfers(event)
+
+
+async def _render_pending_transfers(event: Message | CallbackQuery) -> None:
+    message = event.message if isinstance(event, CallbackQuery) else event
+
+    async with session_scope() as session:
+        stmt = (
+            select(Khatm, User)
+            .join(User, User.id == Khatm.creator_user_id)
+            .where(Khatm.transfer_request_status == "PENDING")
+            .order_by(Khatm.transfer_requested_at.asc())
+            .limit(10)
+        )
+        items = (await session.execute(stmt)).all()
+
+    if not items:
+        text = "✅ <b>هیچ درخواست واگذاری مدیریتی در انتظار بررسی نیست.</b>\nتمام درخواست‌ها رسیدگی شده‌اند."
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به منو", callback_data="admin:refresh")]])
+        if isinstance(event, CallbackQuery):
+            await message.edit_text(text, reply_markup=kb)
+            await event.answer()
+        else:
+            await message.answer(text, reply_markup=kb)
+        return
+
+    for khatm, user in items:
+        async with session_scope() as session:
+            members_count = await participation_service.count_for_khatm(session, khatm.id)
+
+        text = (
+            "🤝 <b>درخواست واگذاری مدیریت ختم (بند ۵ قوانین)</b>\n\n"
+            f"▫️ <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+            f"▫️ <b>کد ختم:</b> <code>{khatm.id}</code>\n"
+            f"▫️ <b>سازنده فعلی:</b> {escape(user.display_name or 'نامشخص')} (شناسه: <code>{user.id}</code>)\n"
+            f"▫️ <b>تعداد اعضا:</b> {members_count} نفر\n"
+            f"▫️ <b>دلیل/توضیح:</b> {escape(khatm.transfer_request_reason or '—')}\n\n"
+            "با تأیید، لینک عضویت بسته شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی بدون توقف به تلاوت ادامه می‌دهند."
+        )
+        markup = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="✅ تأیید واگذاری و بستن لینک", callback_data=f"admin_transfer:approve:{khatm.id}"),
+                    InlineKeyboardButton(text="❌ رد درخواست", callback_data=f"admin_transfer:reject:{khatm.id}"),
+                ]
+            ]
+        )
+        await message.answer(text, reply_markup=markup)
+
+    if isinstance(event, CallbackQuery):
+        await event.answer()
+
+
+@router.callback_query(F.data.startswith("admin_transfer:approve:"))
+async def approve_transfer_callback(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    raw_id = callback.data.split(":", 2)[2]
+    try:
+        khatm_id = UUID(raw_id)
+    except ValueError:
+        await callback.answer("شناسه معتبر نیست.", show_alert=True)
+        return
+
+    async with session_scope() as session:
+        admin_user = await identity_service.find_by_platform(
+            session, Platform.TELEGRAM, str(callback.from_user.id)
+        )
+        from uuid import uuid4
+        admin_id = admin_user.id if admin_user else uuid4()
+        try:
+            khatm, original_creator_id = await workflow_service.approve_khatm_transfer(
+                session, khatm_id=khatm_id, admin_user_id=admin_id
+            )
+        except workflow_service.KhatmTransferError as exc:
+            await callback.answer(f"خطا: {str(exc)}", show_alert=True)
+            return
+
+        khatm_title = khatm.title
+        await audit_service.record(
+            session, actor_user_id=admin_id, target_khatm_id=khatm.id,
+            action="KHATM_TRANSFER_APPROVE", details={"khatm_id": str(khatm.id), "from_user_id": str(original_creator_id)},
+        )
+
+    await callback.message.edit_text(
+        f"✅ <b>مدیریت ختم «{escape(khatm_title)}» با موفقیت به خدمتگزاران تک واگذار شد.</b>\n"
+        f"لینک عضویت بسته شد و اعضای قبلی همچنان به تلاوت روزانه خود ادامه می‌دهند.\n"
+        f"پیام اطلاع‌رسانی برای سازنده ارسال گردید."
+    )
+    await callback.answer("واگذاری تأیید و لینک بسته شد ✅")
+
+    # Notify creator via creator bot
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            async with session_scope() as session:
+                idents = await identity_service.list_identities_for_user(session, original_creator_id)
+            for ident in idents:
+                if ident.platform == Platform.TELEGRAM and ident.subject.isdigit():
+                    try:
+                        await creator_bot.send_message(
+                            chat_id=int(ident.subject),
+                            text=(
+                                "✅ <b>درخواست واگذاری مدیریت ختم تأیید شد</b>\n\n"
+                                f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» بررسی و تأیید شد.\n\n"
+                                "▫️ لینک عضویت جدید برای این ختم بسته شد.\n"
+                                "▫️ ادامه نظارت و مدیریت به مجموعه خدمتگزاران تک واگذار گردید.\n"
+                                "▫️ اعضای فعلی شما با آرامش خاطر به تلاوت روزانه خود ادامه می‌دهند.\n\n"
+                                "از زحمات و همراهی خالصانه شما سپاسگزاریم. اجرکم عندالله 🌸"
+                            ),
+                        )
+                    except Exception as err:
+                        logger.warning("Could not send transfer approval notice to creator %s: %s", ident.subject, err)
+    except Exception as exc:
+        logger.warning("Error notifying creator about transfer approval: %s", exc)
+
+
+@router.callback_query(F.data.startswith("admin_transfer:reject:"))
+async def reject_transfer_callback(callback: CallbackQuery) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+
+    raw_id = callback.data.split(":", 2)[2]
+    try:
+        khatm_id = UUID(raw_id)
+    except ValueError:
+        await callback.answer("شناسه معتبر نیست.", show_alert=True)
+        return
+
+    async with session_scope() as session:
+        admin_user = await identity_service.find_by_platform(
+            session, Platform.TELEGRAM, str(callback.from_user.id)
+        )
+        from uuid import uuid4
+        admin_id = admin_user.id if admin_user else uuid4()
+        try:
+            khatm, original_creator_id = await workflow_service.reject_khatm_transfer(
+                session, khatm_id=khatm_id, admin_user_id=admin_id
+            )
+        except workflow_service.KhatmTransferError as exc:
+            await callback.answer(f"خطا: {str(exc)}", show_alert=True)
+            return
+
+        khatm_title = khatm.title
+        await audit_service.record(
+            session, actor_user_id=admin_id, target_khatm_id=khatm.id,
+            action="KHATM_TRANSFER_REJECT", details={"khatm_id": str(khatm.id)},
+        )
+
+    await callback.message.edit_text(
+        f"❌ درخواست واگذاری مدیریت ختم «{escape(khatm_title)}» رد شد.\n"
+        f"اطلاع‌رسانی به سازنده ارسال گردید."
+    )
+    await callback.answer("درخواست واگذاری رد شد ❌")
+
+    # Notify creator
+    try:
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            async with session_scope() as session:
+                idents = await identity_service.list_identities_for_user(session, original_creator_id)
+            for ident in idents:
+                if ident.platform == Platform.TELEGRAM and ident.subject.isdigit():
+                    try:
+                        await creator_bot.send_message(
+                            chat_id=int(ident.subject),
+                            text=(
+                                "❌ <b>درخواست واگذاری مدیریت ختم رد شد</b>\n\n"
+                                f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» توسط پشتیبانی بررسی و رد گردید.\n\n"
+                                "جهت کسب اطلاعات بیشتر یا هماهنگی، لطفاً با پشتیبانی در ارتباط باشید."
+                            ),
+                        )
+                    except Exception as err:
+                        logger.warning("Could not send transfer rejection notice to creator %s: %s", ident.subject, err)
+    except Exception as exc:
+        logger.warning("Error notifying creator about transfer rejection: %s", exc)
 
 
 # --- Broadcasts Handlers ---

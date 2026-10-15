@@ -1028,7 +1028,7 @@ def leave_all_keyboard(targets: list[tuple[str, str]]) -> InlineKeyboardMarkup |
 
 
 def creator_khatm_keyboard(
-    khatm_id: str, *, can_cancel: bool = True, lang: str = "fa"
+    khatm_id: str, *, can_cancel: bool = True, transfer_status: str = "NONE", lang: str = "fa"
 ) -> InlineKeyboardMarkup:
     rows = [
         [
@@ -1043,9 +1043,31 @@ def creator_khatm_keyboard(
     ]
     if can_cancel:
         rows[-1].append(InlineKeyboardButton(text=t("cs.cancel_khatm", lang), callback_data=f"cancel_khatm_ask:{khatm_id}"))
+    if transfer_status == "PENDING":
+        rows.append([
+            InlineKeyboardButton(text="⏳ لغو درخواست واگذاری مدیریت", callback_data=f"khatm_transfer_cancel:{khatm_id}")
+        ])
+    elif transfer_status != "APPROVED":
+        rows.append([
+            InlineKeyboardButton(text="🤝 واگذاری مدیریت به پشتیبانی", callback_data=f"khatm_transfer_ask:{khatm_id}")
+        ])
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
+
+
+def khatm_transfer_confirm_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ تأیید و ارسال درخواست به پشتیبانی", callback_data=f"khatm_transfer_confirm:{khatm_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="🔙 انصراف", callback_data=f"khatm_transfer_dismiss:{khatm_id}"),
+            ],
+        ]
+    )
+
 
 
 def creator_settings_keyboard(

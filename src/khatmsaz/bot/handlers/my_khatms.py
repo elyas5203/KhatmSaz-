@@ -23,6 +23,7 @@ from khatmsaz.bot.keyboards import (
     creator_member_detail_keyboard,
     creator_member_remove_step1_keyboard,
     creator_member_remove_step2_keyboard,
+    khatm_transfer_confirm_keyboard,
     main_menu_keyboard, safe_answer_callback,
     safe_clear_inline_keyboard,
 )
@@ -1743,6 +1744,7 @@ async def open_creator_management(callback) -> None:
         reply_markup=creator_khatm_keyboard(
             khatm_id,
             can_cancel=khatm.status.value == "ACTIVE",
+            transfer_status=getattr(khatm, "transfer_request_status", "NONE"),
             lang=lang,
         ),
     )
@@ -1786,6 +1788,7 @@ async def toggle_completion_announcement(callback) -> None:
         reply_markup=creator_khatm_keyboard(
             str(updated.id),
             can_cancel=updated.status.value == "ACTIVE",
+            transfer_status=getattr(updated, "transfer_request_status", "NONE"),
             lang=lang,
         )
     )
@@ -1864,3 +1867,127 @@ async def confirm_cancel_khatm(callback) -> None:
         reply_markup=main_menu_keyboard(lang),
     )
     await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("khatm_transfer_ask:"))
+async def on_khatm_transfer_ask(callback: CallbackQuery) -> None:
+    """Prompt creator with Rule 5 terms when requesting khatm management transfer."""
+    khatm_id = callback.data.split(":", 1)[1]
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    _user_id, khatm = await _owned_khatm_for_callback(callback, khatm_id)
+    if khatm is None:
+        await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
+        return
+
+    async with session_scope() as session:
+        members_count = await participation_service.count_for_khatm(session, khatm.id)
+
+    msg_text = (
+        "🤝 <b>درخواست غیرفعال‌سازی و واگذاری مدیریت ختم به پشتیبانی</b>\n\n"
+        "مطابق <b>بند ۵ قوانین و مقررات ختم‌ساز</b>:\n"
+        "<i>«در صورتی که سازنده ختم بخواهد ختم خود را غیرفعال کند و توان مدیریت آن را نداشته باشد، لازم است درخواست خود را به پشتیبانی خدمتگزاران تک ارسال نماید. بعد از بسته شدن لینک ختم، مدیریت ختم به مجموعه خدمتگزاران تک منتقل می‌گردد و اعضای قبلی می‌توانند به ختم خود ادامه دهند.»</i>\n\n"
+        f"▫️ <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+        f"▫️ <b>تعداد اعضای فعال:</b> {members_count} نفر\n\n"
+        "⚠️ <b>پیامدهای تأیید این درخواست:</b>\n"
+        "۱. لینک عضویت جدید فوراً مسدود خواهد شد تا عضو جدید وارد نشود.\n"
+        "۲. اعضای قبلی از ختم خارج نخواهند شد و بدون هیچ وقفه‌ای به قرائت روزانه ادامه می‌دهند.\n"
+        "۳. نظارت و مدیریت ختم به تیم خدمتگزاران تک واگذار خواهد شد.\n\n"
+        "آیا از ثبت و ارسال این درخواست به پشتیبانی اطمینان دارید؟"
+    )
+    await callback.message.answer(
+        msg_text,
+        reply_markup=khatm_transfer_confirm_keyboard(str(khatm.id), lang),
+    )
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("khatm_transfer_dismiss:"))
+async def on_khatm_transfer_dismiss(callback: CallbackQuery) -> None:
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await safe_answer_callback(callback, "عملیات واگذاری لغو گردید.")
+
+
+@router.callback_query(F.data.startswith("khatm_transfer_confirm:"))
+async def on_khatm_transfer_confirm(callback: CallbackQuery) -> None:
+    """Submit transfer request and alert super admins via @khatmsaz_admin_bot."""
+    khatm_id = callback.data.split(":", 1)[1]
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        if user is None:
+            await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
+            return
+        try:
+            khatm = await workflow_service.request_khatm_transfer(
+                session, khatm_id=khatm_id, creator_user_id=user.id
+            )
+            members_count = await participation_service.count_for_khatm(session, khatm.id)
+        except workflow_service.KhatmTransferError as exc:
+            await safe_answer_callback(callback, f"⚠️ خطا: {str(exc)}", show_alert=True)
+            return
+
+        # Notify super admins via @khatmsaz_admin_bot
+        creator_name = user.display_name or str(callback.from_user.id)
+        admin_alert_text = (
+            "🤝 <b>درخواست واگذاری مدیریت ختم (بند ۵ قوانین)</b>\n\n"
+            f"▫️ <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+            f"▫️ <b>کد ختم:</b> <code>{khatm.id}</code>\n"
+            f"▫️ <b>سازنده فعلی:</b> {escape(creator_name)} (شناسه: <code>{user.id}</code>)\n"
+            f"▫️ <b>تعداد اعضا:</b> {members_count} نفر\n"
+            f"▫️ <b>نوع:</b> {khatm.template_type.value} / {khatm.khatm_type.value}\n\n"
+            "با تأیید، لینک عضویت بسته شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی به تلاوت ادامه می‌دهند."
+        )
+        admin_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ تأیید واگذاری و بستن لینک",
+                        callback_data=f"admin_transfer:approve:{khatm.id}",
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ رد درخواست",
+                        callback_data=f"admin_transfer:reject:{khatm.id}",
+                    ),
+                ]
+            ]
+        )
+        await notify_super_admins(admin_alert_text, reply_markup=admin_kb, session=session)
+
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(
+        f"✅ درخواست واگذاری مدیریت ختم «{escape(khatm.title)}» با موفقیت ثبت شد و برای پشتیبانی خدمتگزاران تک ارسال گردید.\n\n"
+        "پس از بررسی، نتیجه از طریق همین ربات به اطلاع شما خواهد رسید.",
+        reply_markup=main_menu_keyboard(lang),
+    )
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("khatm_transfer_cancel:"))
+async def on_khatm_transfer_cancel(callback: CallbackQuery) -> None:
+    """Cancel a pending transfer request while it is still under review."""
+    khatm_id = callback.data.split(":", 1)[1]
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        if user is None:
+            await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
+            return
+        try:
+            khatm = await workflow_service.cancel_khatm_transfer_request(
+                session, khatm_id=khatm_id, creator_user_id=user.id
+            )
+        except workflow_service.KhatmTransferError as exc:
+            await safe_answer_callback(callback, f"⚠️ خطا: {str(exc)}", show_alert=True)
+            return
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(
+        f"✅ درخواست واگذاری مدیریت ختم «{escape(khatm.title)}» لغو شد و ختم همچنان تحت مدیریت شماست.",
+        reply_markup=main_menu_keyboard(lang),
+    )
+    await safe_answer_callback(callback)
+

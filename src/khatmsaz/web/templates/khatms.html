@@ -85,6 +85,12 @@
           {% if item.pending_lan_approval %}
           <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">⚠️ منتظر تأیید لعن</span>
           {% endif %}
+          {% set transfer_status = (item.transfer_request_status if item.transfer_request_status is defined and item.transfer_request_status else 'NONE') %}
+          {% if transfer_status == 'PENDING' %}
+          <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">🤝 درخواست واگذاری</span>
+          {% elif transfer_status == 'APPROVED' %}
+          <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">🤝 واگذار شده به تک</span>
+          {% endif %}
         </div>
         <h3 class="font-extrabold text-base sm:text-lg text-white group-hover:text-emerald-400 transition-colors truncate">{{ item.title }}</h3>
         <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium mt-1">

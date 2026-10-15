@@ -482,6 +482,14 @@ async def resume_join_after_registration(
     except JoinRequiresApprovalError as exc:
         await _request_private_join(message, session, exc.khatm, user_id, _lang)
         return
+    except workflow_service.KhatmJoinLinkClosedError:
+        await message.answer(
+            "⚠️ <b>امکان عضویت جدید در این ختم وجود ندارد</b>\n\n"
+            "لینک عضویت این ختم توسط مدیریت بسته شده است و اعضای قبلی در حال تکمیل قرائت روزانه خود هستند.\n\n"
+            "جهت شرکت در سایر ختم‌ها می‌توانید از منوی اصلی ربات اقدام فرمایید.",
+            reply_markup=get_fallback_markup(),
+        )
+        return
     except workflow_service.KhatmUnavailableError:
         await message.answer(t("join.error.khatm_ended", _lang), reply_markup=get_fallback_markup())
         return

@@ -2364,68 +2364,8 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
         card_text,
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
-    video_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="🎬 سفارش ساخت ویدیوی اختصاصی ختم",
-                    callback_data=f"khatm_video:{khatm.id}",
-                )
-            ]
-        ]
-    )
-    await target_msg.answer(
-        f"💡 در صورت تمایل به ساخت تیزر مذهبی و کلیپ اختصاصی برای «{escape(khatm.title)}»، روی دکمهٔ زیر بزنید:",
-        reply_markup=video_kb,
-    )
     if other_langs_btn is not None:
         await target_msg.answer(t("create_khatm.other_lang_hint", lang), reply_markup=other_langs_btn)
-
-
-@router.callback_query(F.data.startswith("khatm_video:"))
-async def on_khatm_video_click(callback: CallbackQuery, state: FSMContext) -> None:
-    parts = callback.data.split(":")
-    khatm_id = parts[1] if len(parts) > 1 else ""
-    title = "ختم"
-    if khatm_id:
-        try:
-            async with session_scope() as session:
-                k = await session.get(Khatm, UUID(khatm_id) if isinstance(khatm_id, str) and len(khatm_id) == 36 else khatm_id)
-                if k and isinstance(getattr(k, "title", None), str):
-                    title = k.title
-        except Exception:
-            pass
-    msg_text = (
-        f"🎬 <b>سفارش ساخت ویدیوی اختصاصی برای «{escape(title)}»</b>\n\n"
-        "جهت سفارش طراحی تیزر مذهبی، ویدیوی موشن‌گرافی یا کلیپ اختصاصی برای معرفی ختم خود، لطفاً با تیم پشتیبانی خدمتگزاران تک در ارتباط باشید:\n\n"
-        "📞 <b>ارتباط مستقیم در تلگرام و بله:</b>\n"
-        "<code>+989051240561</code>\n\n"
-        "تیم فنی پس از بررسی، تیزر اختصاصی ختم شما را طراحی و ارسال می‌نماید."
-    )
-    close_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="💬 ارتباط در تلگرام", url="https://t.me/+989051240561"),
-            ],
-            [
-                InlineKeyboardButton(text="✖️ بستن پیام", callback_data="ck:close_video_msg"),
-            ],
-        ]
-    )
-    try:
-        await callback.message.answer(msg_text, reply_markup=close_kb)
-    except Exception:
-        await callback.message.answer(msg_text)
-    await safe_answer_callback(callback)
-
-
-@router.callback_query(F.data == "ck:close_video_msg")
-async def on_close_video_msg(callback: CallbackQuery) -> None:
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-    await safe_answer_callback(callback)
 
 
 async def notify_creator_laan_decision(

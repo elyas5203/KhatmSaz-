@@ -1,3 +1,35 @@
+## Current state — 2026-10-15 — Video Feature Removal & Khatm Deactivation / Management Delegation to Service Admin (Rule 5) (MASTER-33) [Antigravity]
+- **Video Feature Removal & Khatm Deactivation / Management Delegation (`MASTER-33`):**
+  - **Owner Mandate:**
+    1. "ساخت ویدیو رو نمیدونم چیه و چرا گذاشتم اشتباه نوشتم تو پرامت جا به جا شده برای ی چیز دیگه بوده ورش دار بعد اینک این الان رویه سرور اعمال شده یا نه؟ ساخت ویدیو رو وردار و اعمال کن"
+    2. "بعد ی چیز دیگ این قوانین که گفتم مثلا اون منتقل شدن مدیریت ختم به ادمین و.. که تو قوانین هست میخوام برام باشه ینی سیستمشو درست بکنی فایل مسترشو بساز و دقیق درستش کن"
+  - **Video Feature Complete Removal:**
+    - Cleaned up `src/khatmsaz/bot/handlers/create_khatm.py`: removed `khatm_video` teaser keyboard button, `on_khatm_video_click`, and `on_close_video_msg`.
+    - Cleaned up `src/khatmsaz/web/templates/creator_khatm_detail.html`: removed custom video order banner.
+    - Updated `tests/test_master_32_khatm_creation_terms_agreement.py` removing video creation assertions.
+  - **Khatm Deactivation & Management Delegation System (Rule 5):**
+    - **Data Model (`src/khatmsaz/modules/khatm/models.py` & `bootstrap.py`):**
+      - Added fields: `join_link_closed` (bool), `transfer_request_status` (str: NONE, PENDING, APPROVED, REJECTED), `transfer_request_reason`, `transfer_requested_at`, `transferred_to_admin_at`, `transferred_from_user_id`.
+      - Created Alembic migration `migrations/versions/khatm2026101501_add_transfer_and_deactivation.py` and self-healing schema additions in `bootstrap.py`.
+    - **Workflow Service Layer (`src/khatmsaz/modules/khatm_workflow/service.py`):**
+      - Added `request_khatm_transfer(session, khatm_id, creator_user_id, reason)` marking status `PENDING`.
+      - Added `cancel_khatm_transfer_request(session, khatm_id, creator_user_id)` reverting status to `NONE`.
+      - Added `approve_khatm_transfer(session, khatm_id, admin_user_id)`: sets `transfer_request_status="APPROVED"`, `join_link_closed=True`, reassigns `creator_user_id` to system admin, and records `transferred_from_user_id`.
+      - Added `reject_khatm_transfer(session, khatm_id, admin_user_id, reason)`.
+      - Hardened `_complete_join`: blocks new members if `join_link_closed=True` while ensuring existing active members continue uninterrupted.
+    - **Creator Bot & Admin Bot Integrations:**
+      - Creator Bot (`my_khatms.py` & `keyboards.py`): Added `[🤝 واگذاری مدیریت به پشتیبانی]` button in creator khatm view, presenting Persian explanation of Rule 5 terms, member count, and confirmation dialog (`khatm_transfer_confirm`). Notifies super admins via `@khatmsaz_admin_bot`.
+      - Admin Bot (`admin_bot/handlers.py`): Added pending transfer count to admin dashboard, `[🤝 واگذاری مدیریت]` button, pending transfer browser, and one-click `[✅ تأیید واگذاری و بستن لینک]` / `[❌ رد درخواست]` buttons with automated creator notifications.
+      - Member Bot (`member_start.py` & `start.py`): Enforced join gate for closed links with a respectful message, while allowing active members uninterrupted access.
+    - **Creator & Admin Web Panels (`src/khatmsaz/web/app.py` & templates):**
+      - Creator detail (`creator_khatm_detail.html`): Added Rule 5 transfer card with live status badges and request/cancel buttons.
+      - Admin detail (`khatm_detail.html`): Added moderation card with approve/reject actions.
+      - Admin khatm list (`khatms.html`): Added `🤝 درخواست واگذاری` and `🤝 واگذار شده به تک` badges.
+      - Routes: `POST /creator/khatms/{khatm_id}/transfer/request`, `POST /creator/khatms/{khatm_id}/transfer/cancel`, `POST /khatms/{khatm_id}/transfer/approve`, `POST /khatms/{khatm_id}/transfer/reject`.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_33_KHATM_DEACTIVATION_AND_ADMIN_TRANSFER.md`.
+    - Authored test suite `tests/test_master_33_khatm_transfer.py` (13/13 passed). Total test suite: 24 passed (100% PASS).
+
 ## Current state — 2026-10-15 — Mandatory Terms & Rules Agreement during Khatm Creation (Bot & Web) and Video Creation & Support Channels (MASTER-32) [Antigravity]
 - **Khatm Creation Terms & Rules Agreement & Video Creation Channels (`MASTER-32`):**
   - **Owner Mandate:** "میخوام یک پیامی به سازنده ختم نشون داده بشه موقع ساخت ختم اون اخرش و باید تایید قوانین رو بزنه ی همچین دکمه ای تا لینک ختم براش ساخته بشه. قوانین و مقررات: ۱. اعضای هر ختم متعلق به سازنده آن ختم هستند... ۲. ارسال پیام گروهی... ۳. بابت تامین هزینه های سرور... ۴. تایید پیام قبل از ارسال... ۵. غیرفعال کردن ختم و انتقال مدیریت... ۶. درخواست توسعه و افزایش امکانات ربات‌ها از طریق پیام به 09051240561... بعد میخوام ی ساخت ویدیو هم باز بکنم برایشون ینی بزنم همون".

@@ -7,6 +7,7 @@ import re
 import secrets
 import time
 from datetime import datetime
+from html import escape
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -17,6 +18,7 @@ from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from sqlalchemy import String, case, func, or_, select, text
@@ -1631,6 +1633,78 @@ async def creator_khatm_remove_member(
     return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=member_removed", status_code=303)
 
 
+@app.post("/creator/khatms/{khatm_id}/transfer/request")
+async def creator_khatm_transfer_request(
+    request: Request, khatm_id: UUID, csrf: str = Form(...)
+):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    async with session_scope() as session:
+        try:
+            khatm = await workflow_service.request_khatm_transfer(
+                session, khatm_id=khatm_id, creator_user_id=creator.id
+            )
+            members_count = await participation_service.count_for_khatm(session, khatm.id)
+            from khatmsaz.bot.admin_notifications import notify_super_admins
+            admin_alert_text = (
+                "🤝 <b>درخواست واگذاری مدیریت ختم (ثبت شده از پنل وب)</b>\n\n"
+                f"▫️ <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+                f"▫️ <b>کد ختم:</b> <code>{khatm.id}</code>\n"
+                f"▫️ <b>سازنده فعلی:</b> {escape(creator.display_name or 'نامشخص')} (شناسه: <code>{creator.id}</code>)\n"
+                f"▫️ <b>تعداد اعضا:</b> {members_count} نفر\n"
+                f"▫️ <b>نوع:</b> {khatm.template_type.value} / {khatm.khatm_type.value}\n\n"
+                "با تأیید، لینک عضویت بسته شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی به تلاوت ادامه می‌دهند."
+            )
+            admin_kb = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="✅ تأیید واگذاری و بستن لینک",
+                            callback_data=f"admin_transfer:approve:{khatm.id}",
+                        ),
+                        InlineKeyboardButton(
+                            text="❌ رد درخواست",
+                            callback_data=f"admin_transfer:reject:{khatm.id}",
+                        ),
+                    ]
+                ]
+            )
+            await notify_super_admins(admin_alert_text, reply_markup=admin_kb, session=session)
+            await audit_service.record(
+                session, actor_user_id=creator.id, target_user_id=creator.id,
+                action="CREATOR_WEB_TRANSFER_REQUEST", details={"khatm_id": str(khatm.id)},
+            )
+        except workflow_service.KhatmTransferError as exc:
+            return RedirectResponse(f"/creator/khatms/{khatm_id}?error={str(exc)}", status_code=303)
+    return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=transfer_requested", status_code=303)
+
+
+@app.post("/creator/khatms/{khatm_id}/transfer/cancel")
+async def creator_khatm_transfer_cancel(
+    request: Request, khatm_id: UUID, csrf: str = Form(...)
+):
+    creator, raw, lang = await _creator(request)
+    if creator is None:
+        return RedirectResponse("/creator/login", status_code=303)
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse(web_t("web.creator.invalid_security_request", lang), status_code=403)
+    async with session_scope() as session:
+        try:
+            khatm = await workflow_service.cancel_khatm_transfer_request(
+                session, khatm_id=khatm_id, creator_user_id=creator.id
+            )
+            await audit_service.record(
+                session, actor_user_id=creator.id, target_user_id=creator.id,
+                action="CREATOR_WEB_TRANSFER_CANCEL", details={"khatm_id": str(khatm.id)},
+            )
+        except workflow_service.KhatmTransferError as exc:
+            return RedirectResponse(f"/creator/khatms/{khatm_id}?error={str(exc)}", status_code=303)
+    return RedirectResponse(f"/creator/khatms/{khatm_id}?saved=transfer_cancelled", status_code=303)
+
+
 @app.post("/creator/khatms/{khatm_id}/settings")
 async def creator_khatm_settings(
     request: Request,
@@ -2491,6 +2565,111 @@ async def admin_change_khatm_status(
             details={"status": new_status, "refund": refund_creator == "on"},
         )
     return RedirectResponse(f"/khatms/{khatm_id}?saved=status", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/transfer/approve")
+async def admin_approve_khatm_transfer(
+    request: Request, khatm_id: UUID, csrf: str = Form(...)
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            khatm, original_creator_id = await workflow_service.approve_khatm_transfer(
+                session, khatm_id=khatm_id, admin_user_id=admin.id
+            )
+            khatm_title = khatm.title
+            await audit_service.record(
+                session, actor_user_id=admin.id, target_khatm_id=khatm.id,
+                action="ADMIN_WEB_KHATM_TRANSFER_APPROVE", details={"khatm_id": str(khatm.id), "from_user_id": str(original_creator_id)},
+            )
+        except workflow_service.KhatmTransferError as exc:
+            return RedirectResponse(f"/khatms/{khatm_id}?error={str(exc)}", status_code=303)
+
+    # Notify creator via Telegram/Bale
+    try:
+        from khatmsaz.core.bot_registry import get_registry
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            async with session_scope() as session:
+                idents = await identity_service.list_identities_for_user(session, original_creator_id)
+            for ident in idents:
+                if ident.platform == Platform.TELEGRAM and ident.subject.isdigit():
+                    try:
+                        await creator_bot.send_message(
+                            chat_id=int(ident.subject),
+                            text=(
+                                "✅ <b>درخواست واگذاری مدیریت ختم تأیید شد</b>\n\n"
+                                f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» بررسی و تأیید شد.\n\n"
+                                "▫️ لینک عضویت جدید برای این ختم بسته شد.\n"
+                                "▫️ ادامه نظارت و مدیریت به مجموعه خدمتگزاران تک واگذار گردید.\n"
+                                "▫️ اعضای فعلی شما با آرامش خاطر به تلاوت روزانه خود ادامه می‌دهند.\n\n"
+                                "از زحمات و همراهی خالصانه شما سپاسگزاریم. اجرکم عندالله 🌸"
+                            ),
+                        )
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=transfer_approved", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/transfer/reject")
+async def admin_reject_khatm_transfer(
+    request: Request, khatm_id: UUID, csrf: str = Form(...)
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        try:
+            khatm, original_creator_id = await workflow_service.reject_khatm_transfer(
+                session, khatm_id=khatm_id, admin_user_id=admin.id
+            )
+            khatm_title = khatm.title
+            await audit_service.record(
+                session, actor_user_id=admin.id, target_khatm_id=khatm.id,
+                action="ADMIN_WEB_KHATM_TRANSFER_REJECT", details={"khatm_id": str(khatm.id)},
+            )
+        except workflow_service.KhatmTransferError as exc:
+            return RedirectResponse(f"/khatms/{khatm_id}?error={str(exc)}", status_code=303)
+
+    # Notify creator
+    try:
+        from khatmsaz.core.bot_registry import get_registry
+        registry = get_registry()
+        creator_bot = registry.get_creator_bot(Platform.TELEGRAM)
+        if creator_bot:
+            async with session_scope() as session:
+                idents = await identity_service.list_identities_for_user(session, original_creator_id)
+            for ident in idents:
+                if ident.platform == Platform.TELEGRAM and ident.subject.isdigit():
+                    try:
+                        await creator_bot.send_message(
+                            chat_id=int(ident.subject),
+                            text=(
+                                "❌ <b>درخواست واگذاری مدیریت ختم رد شد</b>\n\n"
+                                f"درخواست شما برای واگذاری مدیریت ختم «{escape(khatm_title)}» توسط پشتیبانی بررسی و رد گردید.\n\n"
+                                "جهت کسب اطلاعات بیشتر یا هماهنگی، لطفاً با پشتیبانی در ارتباط باشید."
+                            ),
+                        )
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=transfer_rejected", status_code=303)
 
 
 @app.post("/khatms/{khatm_id}/members/{participation_id}/complete-share")

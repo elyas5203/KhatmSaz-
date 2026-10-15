@@ -208,6 +208,7 @@ async def test_creator_khatm_create_saves_niyyat():
                     "niyyat": "سلامتی امام عصر",
                     "amount": "14000",
                     "visibility": "UNLISTED",
+                    "accept_rules": "1",
                 },
                 follow_redirects=False,
             )

@@ -81,10 +81,46 @@
           <input type="checkbox" name="refund_wallet" class="rounded text-emerald-500">
           <span>استرداد وجه بانی</span>
         </label>
-        <button type="submit" class="px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer">ثبت</button>
       </div>
     </form>
   </div>
+
+  {% set transfer_status = (khatm.transfer_request_status if khatm.transfer_request_status is defined and khatm.transfer_request_status else 'NONE') %}
+  {% if transfer_status == 'PENDING' %}
+  <div class="mt-4 p-4 rounded-2xl bg-amber-950/20 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🤝</span>
+        <strong class="text-sm font-bold text-amber-300">درخواست واگذاری مدیریت ختم به خدمتگزاران تک (بند ۵ قوانین)</strong>
+      </div>
+      <p class="text-xs text-slate-300 mt-1">
+        سازنده ختم درخواست واگذاری مدیریت را ثبت کرده است. با تأیید، لینک عضویت جدید مسدود شده و مدیریت به خدمتگزاران تک واگذار می‌شود و اعضای قبلی به تلاوت خود ادامه می‌دهند.
+        {% if khatm.transfer_request_reason %}
+        <br><span class="text-amber-400">توضیح سازنده: {{ khatm.transfer_request_reason }}</span>
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex items-center gap-2 flex-none">
+      <form method="post" action="/khatms/{{ khatm.id }}/transfer/approve" onsubmit="return confirm('آیا از تأیید واگذاری و بستن لینک عضویت اطمینان دارید؟');">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl text-xs transition-all cursor-pointer">
+          ✅ تأیید واگذاری و بستن لینک
+        </button>
+      </form>
+      <form method="post" action="/khatms/{{ khatm.id }}/transfer/reject">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button type="submit" class="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold rounded-xl text-xs transition-all cursor-pointer">
+          ❌ رد درخواست
+        </button>
+      </form>
+    </div>
+  </div>
+  {% elif transfer_status == 'APPROVED' %}
+  <div class="mt-4 p-3 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+    <span>🤝</span>
+    <span>مدیریت این ختم طبق بند ۵ قوانین به مجموعه خدمتگزاران تک واگذار گردیده و لینک عضویت جدید بسته شده است.</span>
+  </div>
+  {% endif %}
 
   {% if invite_url %}
   <div class="mt-5 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-3.5 rounded-2xl">
