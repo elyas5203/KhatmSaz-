@@ -484,6 +484,41 @@
         {% endfor %}
       </div>
     </section>
+
+    <!-- Broadcast Tier Pricing Policy -->
+    <section class="glass-panel p-6 rounded-3xl border border-white/5 md:col-span-2">
+      <div class="mb-4 border-b border-white/5 pb-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-extrabold text-white">📢 تعرفه ارسال پیام گروهی اختصاصی (ویژه پلن PRO)</h2>
+          <p class="text-xs text-slate-400 mt-1">تعیین هزینه هر بسته ۱۰۰۰ مخاطب برای ارسال پیام گروهی توسط سازندگان در کانال‌های مختلف</p>
+        </div>
+        {{ tooltip("سازندگان دارای پلن حرفه‌ای (PRO) می‌توانند برای اعضای ختم‌های خود پیام گروهی ارسال کنند. هزینه به ازای هر ۱۰۰۰ نفر محاسبه و از کیف پول سازنده کسر می‌شود.") }}
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for ch, policy in broadcast_policies.items() %}
+        <form method="post" action="/finance/broadcast-policy" class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 space-y-3">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="channel" value="{{ ch }}">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-white text-sm">
+              {% if ch == 'TELEGRAM' %}🔵 تلگرام (Telegram)
+              {% elif ch == 'BALE' %}🟢 بله (Bale)
+              {% else %}📱 پیامک (SMS){% endif %}
+            </span>
+            <span class="text-[0.65rem] font-mono text-slate-400">هر ۱۰۰۰ نفر</span>
+          </div>
+
+          <div>
+            <label class="block text-[0.68rem] font-bold text-slate-300 mb-1">هزینه هر بسته (تومان)</label>
+            <input name="price_toman" type="number" min="0" value="{{ policy[1] }}" required class="input-field text-xs py-1.5 font-mono">
+          </div>
+
+          <button type="submit" class="btn w-full text-xs py-1.5">ذخیره تعرفه {{ ch }}</button>
+        </form>
+        {% endfor %}
+      </div>
+    </section>
   </div>
 </div>
 
