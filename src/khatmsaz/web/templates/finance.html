@@ -9,7 +9,7 @@
       <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مرکز مالی، پلن‌ها و کیف پول</h1>
       {{ help_button(
         "راهنمای مرکز مالی، پلن‌ها و کیف پول",
-        "تمام تنظیمات پولی، پلن‌های سازندگان (FREE, BASIC, PRO)، کیف پول کاربران، استرداد فاکتورها، کدهای تخفیف، اشتراک پیامک، تعرفه ارسال گروهی و نرخ پاداش تبلیغات در این صفحه مدیریت می‌شوند.",
+        "تمام تنظیمات پولی، پلن‌های سازندگان (FREE, BASIC, PRO)، کیف پول کاربران، استرداد فاکتورها، کدهای تخفیف، اشتراک پیامک و تعرفه ارسال گروهی در این صفحه مدیریت می‌شوند.",
         [
           "در تب پلن‌ها، مشخصات و سقف‌های ۳ پلن سازندگان (رایگان، پایه، پرو) را تنظیم و ذخیره کنید.",
           "در تب کیف پول، با جستجوی نام یا شماره کاربر، موجودی نقدی یا اعتبار هدیه او را شارژ یا کسر نمایید.",
@@ -47,7 +47,6 @@
     {% if saved == 'plan' %}تنظیمات پلن با موفقیت ذخیره شد ✅
     {% elif saved == 'wallet_adjusted' %}موجودی کیف پول کاربر با موفقیت تغییر کرد ✅
     {% elif saved == 'refunded' %}فاکتور مسترد شد و مبلغ به کیف پول کاربر واریز گردید ✅
-    {% elif saved == 'ad_rate' %}نرخ پاداش تبلیغات با موفقیت به‌روزرسانی شد ✅
     {% elif saved == 'sms' %}گزینهٔ اشتراک پیامک ذخیره شد ✅
     {% elif saved == 'broadcast_policy' %}سیاست ارسال پیام گروهی ذخیره شد ✅
     {% else %}کد تخفیف ذخیره و فعال شد ✅{% endif %}
@@ -86,7 +85,7 @@
     🎟 کدهای تخفیف
   </button>
   <button type="button" onclick="switchFinanceTab('policies')" id="tabBtn_policies" class="finance-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-slate-800/60 text-slate-300 hover:bg-slate-800">
-    📢 پیامک، ارسال گروهی و پاداش تبلیغات
+    📢 پیامک و ارسال گروهی
   </button>
 </div>
 
@@ -419,31 +418,58 @@
   </div>
 </div>
 
-<!-- TAB 5: POLICIES, SMS, AND AD REWARD RATE -->
+<!-- TAB 5: POLICIES, SMS, AND BROADCAST PACKAGE PRICING -->
 <div id="financeTab_policies" class="hidden space-y-6">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Ad Reward Rate Form -->
-    <section class="glass-panel p-6 rounded-3xl border border-white/5">
-      <div class="mb-4 border-b border-white/5 pb-3 flex items-center justify-between">
+  <div class="grid grid-cols-1 gap-6">
+    <!-- Broadcast Tier Pricing & Package Size Policy -->
+    <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+      <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-extrabold text-white">💰 نرخ پاداش تبلیغات خدمتگزاران</h2>
-          <p class="text-xs text-slate-400 mt-1">مبلغی که به ازای هر ارسال موفق تبلیغ به کیف پول سازنده پرداخت می‌شود.</p>
+          <h2 class="text-xl font-extrabold text-white">📢 تعرفه و اندازه بسته‌های ارسال پیام گروهی (ویژه پلن PRO)</h2>
+          <p class="text-xs text-slate-400 mt-1">تعیین تعداد مخاطبان هر بسته (مثلاً ۱۰۰، ۱۰۰۰، ۷۳۷۴ و...) و هزینه هر بسته به تومان برای ارسال پیام توسط سازندگان</p>
         </div>
-        {{ tooltip("سازندگانی که در پلن پایه هستند، به ازای هر تبلیغ خدمتگزاران که برای اعضای ختمشان ارسال شود، این پاداش را دریافت می‌کنند.") }}
+        {{ tooltip("سازندگان دارای پلن حرفه‌ای (PRO) می‌توانند برای مخاطبان خود پیام گروهی ارسال کنند. هزینه بر اساس تعداد بسته‌های مورد نیاز محاسبه شده و از کیف پول کسر می‌شود.") }}
       </div>
 
-      <form method="post" action="/finance/ad-rate" class="space-y-4">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">مبلغ پاداش هر ارسال (تومان)</label>
-          <input name="amount_toman" type="number" min="1" value="{{ active_ad_rate.amount_toman if active_ad_rate else 50 }}" required class="input-field font-mono text-sm">
-        </div>
-        <button type="submit" class="btn text-xs py-2 px-6">ذخیره نرخ پاداش</button>
-      </form>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for ch, policy in broadcast_policies.items() %}
+        <form method="post" action="/finance/broadcast-policy" class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="channel" value="{{ ch }}">
+
+          <div class="flex items-center justify-between border-b border-slate-700/40 pb-2">
+            <span class="font-extrabold text-white text-sm">
+              {% if ch == 'TELEGRAM' %}🔵 تلگرام (Telegram)
+              {% elif ch == 'BALE' %}🟢 بله (Bale)
+              {% else %}📱 پیامک (SMS){% endif %}
+            </span>
+            <span class="px-2 py-0.5 rounded-lg text-[0.68rem] font-bold bg-amber-500/10 text-amber-300">
+              هر {{ policy[2] if policy|length > 2 else 1000 }} نفر
+            </span>
+          </div>
+
+          <div>
+            <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">تعداد مخاطب در هر بسته (نفر)</label>
+            <input name="package_size" type="number" min="1" value="{{ policy[2] if policy|length > 2 else 1000 }}" required class="input-field text-xs py-2 font-mono" placeholder="مثلاً: 100 یا 1000 یا 7374">
+            <p class="text-[0.62rem] text-slate-500 mt-1">تعداد نفراتی که در یک بسته محاسبه می‌شوند</p>
+          </div>
+
+          <div>
+            <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">هزینه هر بسته (تومان)</label>
+            <input name="price_toman" type="number" min="0" value="{{ policy[1] }}" required class="input-field text-xs py-2 font-mono">
+            <p class="text-[0.62rem] text-slate-500 mt-1">مبلغ کسر شده از کیف پول سازنده به ازای هر بسته</p>
+          </div>
+
+          <button type="submit" class="btn w-full text-xs py-2 font-bold cursor-pointer">
+            ذخیره تنظیمات {{ ch }}
+          </button>
+        </form>
+        {% endfor %}
+      </div>
     </section>
 
     <!-- SMS Subscription Plans -->
-    <section class="glass-panel p-6 rounded-3xl border border-white/5">
+    <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
       <div class="mb-4 border-b border-white/5 pb-3">
         <h2 class="text-lg font-extrabold text-white">📱 بسته‌های اشتراک پیامک</h2>
         <p class="text-xs text-slate-400 mt-1">تعریف گزینه‌های ۱، ۳، ۶ یا ۱۲ ماهه یادآوری پیامکی سهم‌ها برای اعضا</p>
@@ -468,53 +494,22 @@
         </div>
       </form>
 
-      <div class="space-y-2">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
         {% for option in sms_plan_options %}
-        <form method="post" action="/finance/sms-plans" class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 flex items-center justify-between gap-3 text-xs">
+        <form method="post" action="/finance/sms-plans" class="bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 flex flex-col gap-2 text-xs">
           <input type="hidden" name="csrf" value="{{ csrf }}">
           <input type="hidden" name="months" value="{{ option.months }}">
-          <span class="font-bold text-white">{{ option.months }} ماهه:</span>
-          <input name="price_toman" type="number" value="{{ option.price_toman }}" class="input-field py-1 px-2 font-mono text-xs w-28">
-          <label class="flex items-center gap-1 cursor-pointer">
-            <input name="enabled" type="checkbox" {% if option.enabled %}checked{% endif %} class="rounded text-emerald-500">
-            <span class="text-[0.7rem] text-slate-400">فعال</span>
-          </label>
-          <button type="submit" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold">ذخیره</button>
-        </form>
-        {% endfor %}
-      </div>
-    </section>
-
-    <!-- Broadcast Tier Pricing Policy -->
-    <section class="glass-panel p-6 rounded-3xl border border-white/5 md:col-span-2">
-      <div class="mb-4 border-b border-white/5 pb-3 flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-extrabold text-white">📢 تعرفه ارسال پیام گروهی اختصاصی (ویژه پلن PRO)</h2>
-          <p class="text-xs text-slate-400 mt-1">تعیین هزینه هر بسته ۱۰۰۰ مخاطب برای ارسال پیام گروهی توسط سازندگان در کانال‌های مختلف</p>
-        </div>
-        {{ tooltip("سازندگان دارای پلن حرفه‌ای (PRO) می‌توانند برای اعضای ختم‌های خود پیام گروهی ارسال کنند. هزینه به ازای هر ۱۰۰۰ نفر محاسبه و از کیف پول سازنده کسر می‌شود.") }}
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {% for ch, policy in broadcast_policies.items() %}
-        <form method="post" action="/finance/broadcast-policy" class="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 space-y-3">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <input type="hidden" name="channel" value="{{ ch }}">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-white text-sm">
-              {% if ch == 'TELEGRAM' %}🔵 تلگرام (Telegram)
-              {% elif ch == 'BALE' %}🟢 بله (Bale)
-              {% else %}📱 پیامک (SMS){% endif %}
-            </span>
-            <span class="text-[0.65rem] font-mono text-slate-400">هر ۱۰۰۰ نفر</span>
+            <span class="font-bold text-white">{{ option.months }} ماهه:</span>
+            <label class="flex items-center gap-1 cursor-pointer">
+              <input name="enabled" type="checkbox" {% if option.enabled %}checked{% endif %} class="rounded text-emerald-500">
+              <span class="text-[0.7rem] text-slate-400">فعال</span>
+            </label>
           </div>
-
-          <div>
-            <label class="block text-[0.68rem] font-bold text-slate-300 mb-1">هزینه هر بسته (تومان)</label>
-            <input name="price_toman" type="number" min="0" value="{{ policy[1] }}" required class="input-field text-xs py-1.5 font-mono">
+          <div class="flex gap-2">
+            <input name="price_toman" type="number" value="{{ option.price_toman }}" class="input-field py-1 px-2 font-mono text-xs w-full">
+            <button type="submit" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold whitespace-nowrap">ذخیره</button>
           </div>
-
-          <button type="submit" class="btn w-full text-xs py-1.5">ذخیره تعرفه {{ ch }}</button>
         </form>
         {% endfor %}
       </div>

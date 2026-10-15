@@ -42,7 +42,7 @@
     <p class="font-bold text-white mb-0.5">نکات مهم در ارسال پیام به شرکت‌کنندگان:</p>
     <ul class="list-disc list-inside space-y-1 text-slate-400">
       <li>پیام‌های ارسالی فقط به اعضایی می‌رسد که در ختم‌های شخص شما عضو هستند.</li>
-      <li>هزینهٔ ارسال به ازای هر ۱۰۰۰ مخاطب (بسته‌ای) از موجودی کیف پول کسر می‌شود.</li>
+      <li>هزینهٔ ارسال به ازای هر ۱۰۰۰ نفر (یا بسته تعریف‌شده) از موجودی کیف پول کسر می‌شود.</li>
       <li>جهت حفظ اخلاق و امنیت کاربران، متن پیام پیش از ارسال به تأیید مدیر محتوا می‌رسد.</li>
     </ul>
   </div>
@@ -85,9 +85,9 @@
     <div>
       <label class="block text-xs font-bold text-slate-300 mb-2">روش و بستر ارسال پیام</label>
       <select name="channel" class="input-field" required>
-        <option value="TELEGRAM">ربات تلگرام — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.TELEGRAM[1] or 50000) }} تومان</option>
-        <option value="BALE">پیام‌رسان بله — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.BALE[1] or 50000) }} تومان</option>
-        <option value="SMS">پیامک متنی به شماره موبایل — به ازای هر ۱۰۰۰ نفر {{ '{:,}'.format(policies.SMS[1] or 100000) }} تومان</option>
+        <option value="TELEGRAM">ربات تلگرام — هر بسته {{ policies.TELEGRAM[2] if policies.TELEGRAM|length > 2 else 1000 }} نفری: {{ '{:,}'.format(policies.TELEGRAM[1] or 50000) }} تومان</option>
+        <option value="BALE">پیام‌رسان بله — هر بسته {{ policies.BALE[2] if policies.BALE|length > 2 else 1000 }} نفری: {{ '{:,}'.format(policies.BALE[1] or 50000) }} تومان</option>
+        <option value="SMS">پیامک متنی به موبایل — هر بسته {{ policies.SMS[2] if policies.SMS|length > 2 else 1000 }} نفری: {{ '{:,}'.format(policies.SMS[1] or 100000) }} تومان</option>
       </select>
     </div>
 

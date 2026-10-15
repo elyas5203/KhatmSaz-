@@ -12,6 +12,7 @@ from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmStatus
+import math
 import uuid
 
 router = Router(name="creator_broadcast")
@@ -91,14 +92,20 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     async with session_scope() as session:
         khatm_uuid = uuid.UUID(target_khatm_id) if target_khatm_id else None
         audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
+        policy = await broadcast_service.channel_policy(session, data.get("platform", "TELEGRAM"))
+        unit_price = policy[1] if len(policy) > 1 and policy[1] > 0 else 50_000
+        package_size = policy[2] if len(policy) > 2 and policy[2] > 0 else 1000
+        packages_count = max(1, math.ceil(audience_count / package_size)) if audience_count > 0 else 0
+        total_est = packages_count * unit_price
 
     await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count)
 
     scope = "همهٔ ختم‌های شما" if target_khatm_id is None else "این ختم"
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
-        f"👥 تعداد مخاطبین فعال: {audience_count} نفر\n"
-        "💳 هزینه ارسال: به ازای هر ۱۰۰۰ نفر یک بسته از کیف پول کسر می‌شود.\n"
+        f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
+        f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n"
         "⭐ دسترسی به ارسال پیام گروهی ویژهٔ کاربران دارای پلن حرفه‌ای است.\n\n"
     )
     info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"

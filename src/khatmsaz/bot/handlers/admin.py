@@ -796,23 +796,11 @@ async def admin_plans(message: Message) -> None:
 
 @router.message(Command("admin_ad_rate"))
 async def admin_ad_rate(message: Message, command: CommandObject) -> None:
-    """Append a new reward-credit rate for eligible advertising members."""
+    """Abolished per owner request (MASTER-29)."""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     if not await _require_admin(message, platform, AdminPermission.MARKETING_MANAGE):
         return
-    raw = (command.args or "").strip()
-    if not raw.isdigit() or int(raw) <= 0:
-        await message.answer("فرمت درست: /admin_ad_rate [مبلغ مثبت به تومان]")
-        return
-    amount = int(raw)
-    async with session_scope() as session:
-        admin = await identity_service.find_by_platform(session, platform, str(message.chat.id))
-        rate = await advertising_service.set_reward_rate(session, amount)
-        await audit_service.record(
-            session, actor_user_id=admin.id, action="AD_REWARD_RATE_UPDATE",
-            details={"amount_toman": amount, "rate_id": str(rate.id)},
-        )
-    await message.answer(f"نرخ پاداش تبلیغات روی {amount:,} تومان تنظیم شد ✅")
+    await message.answer("قابلیت پاداش تبلیغات به درخواست مدیریت به طور کامل حذف و غیرفعال شده است 🌱")
 
 
 @router.message(Command("admin_settings"))

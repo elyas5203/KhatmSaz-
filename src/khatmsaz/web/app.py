@@ -1309,7 +1309,10 @@ async def creator_broadcasts(request: Request):
             if item.status == KhatmStatus.ACTIVE
         ]
         policies = {
-            channel: await broadcast_service.channel_policy(session, channel)
+            channel: (
+                *(await broadcast_service.channel_policy(session, channel)),
+                await broadcast_service.channel_package_size(session, channel),
+            )
             for channel in broadcast_service.CHANNELS
         }
     return templates.TemplateResponse(
@@ -4038,10 +4041,12 @@ async def finance(request: Request, uq: str = ""):
             (await session.execute(select(SmsPlanOption).order_by(SmsPlanOption.months))).scalars()
         )
         broadcast_policies = {
-            channel: await broadcast_service.channel_policy(session, channel)
+            channel: (
+                *(await broadcast_service.channel_policy(session, channel)),
+                await broadcast_service.channel_package_size(session, channel),
+            )
             for channel in broadcast_service.CHANNELS
         }
-        active_ad_rate = await advertising_service.get_active_rate(session)
         searched_users = []
         if uq.strip():
             found_users = await identity_service.search_users(session, uq.strip(), limit=10)
@@ -4076,7 +4081,6 @@ async def finance(request: Request, uq: str = ""):
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
             broadcast_policies=broadcast_policies,
-            active_ad_rate=active_ad_rate,
             searched_users=searched_users,
             uq=uq.strip(),
             saved=request.query_params.get("saved", ""),
@@ -4177,7 +4181,7 @@ async def finance_set_ad_rate(
 @app.post("/finance/broadcast-policy")
 async def update_broadcast_policy(
     request: Request, csrf: str = Form(...), channel: str = Form(...),
-    free_count: int = Form(...), price_toman: int = Form(...),
+    price_toman: int = Form(...), package_size: int = Form(1000), free_count: int = Form(0),
 ):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
@@ -4187,16 +4191,19 @@ async def update_broadcast_policy(
     channel = channel.upper()
     if channel not in broadcast_service.CHANNELS:
         return HTMLResponse("کانال نامعتبر است.", status_code=400)
+    if package_size <= 0:
+        package_size = 1000
     async with session_scope() as session:
         try:
             prefix = channel.lower()
             await system_settings_service.set_int(session, f"broadcast_{prefix}_free_count", free_count)
             await system_settings_service.set_int(session, f"broadcast_{prefix}_price_toman", price_toman)
+            await system_settings_service.set_int(session, f"broadcast_{prefix}_package_size", package_size)
         except ValueError:
-            return HTMLResponse("سهمیه یا مبلغ معتبر نیست.", status_code=400)
+            return HTMLResponse("سهمیه، اندازه بسته یا مبلغ معتبر نیست.", status_code=400)
         await audit_service.record(
             session, actor_user_id=admin.id, action="BROADCAST_POLICY_UPDATE",
-            details={"channel": channel, "free_count": free_count, "price_toman": price_toman},
+            details={"channel": channel, "free_count": free_count, "price_toman": price_toman, "package_size": package_size},
         )
     return RedirectResponse("/finance?saved=broadcast_policy", status_code=303)
 

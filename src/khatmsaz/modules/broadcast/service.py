@@ -65,6 +65,20 @@ async def channel_policy(session, channel: str) -> tuple[int, int]:
     )
 
 
+async def channel_package_size(session, channel: str) -> int:
+    channel = channel.upper()
+    if channel not in CHANNELS:
+        raise ValueError("invalid broadcast channel")
+    prefix = channel.lower()
+    if not hasattr(session, "get") and not hasattr(session, "execute"):
+        return 1000
+    try:
+        size = await system_settings_service.get_int(session, f"broadcast_{prefix}_package_size")
+        return size if size > 0 else 1000
+    except Exception:
+        return 1000
+
+
 async def submit(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str, channel: str = "TELEGRAM",
     media_type: str | None = None, media_file_id: str | None = None,
@@ -102,12 +116,20 @@ async def submit(
             "ارسال پیام گروهی تنها برای کاربران دارای پلن حرفه‌ای امکان‌پذیر است."
         )
 
-    # Calculate 1000-recipient packages and total cost
-    _free_count, unit_price = await channel_policy(session, channel)
+    # Calculate dynamic package count and total cost
+    policy = await channel_policy(session, channel)
+    if len(policy) >= 3:
+        _free_count, unit_price, package_size = policy[0], policy[1], policy[2]
+    else:
+        _free_count, unit_price = policy[0], policy[1]
+        package_size = await channel_package_size(session, channel)
+
+    if package_size <= 0:
+        package_size = 1000
     if unit_price <= 0:
         unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
 
-    packages_count = math.ceil(len(users) / 1000)
+    packages_count = math.ceil(len(users) / package_size)
     cost = packages_count * unit_price
 
     invoice = None
@@ -116,7 +138,7 @@ async def submit(
             session,
             user_id=creator_user_id,
             amount=cost,
-            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته ۱۰۰۰ نفری برای {len(users)} مخاطب)",
+            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته {package_size:,} نفری برای {len(users)} مخاطب)",
             invoice_kind=InvoiceKind.PURCHASE,
         )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None

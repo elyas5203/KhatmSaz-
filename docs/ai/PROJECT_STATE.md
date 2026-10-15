@@ -1,3 +1,26 @@
+## Current state — 2026-10-15 — Broadcast Dynamic Package Size Architecture & Ad Reward Removal (MASTER-29) [Antigravity]
+- **Broadcast Dynamic Package Size & Ad Reward Removal (`MASTER-29`):**
+  - **Owner Mandate:** "این نرخ پاداش میخوام حدف بشه برام به صورت کامل اینو نمیخوام. بعد تعداد بسته هم بتونم مشخص بکنم که مثلا 100 تا باشه یا 1000 یا 7374 اینطوری میخوام باشه. بعد ی طوری درست بکن ک همه جا درست باشه فایل مسترشم درست بکن برام".
+  - **Ad Reward Rate Abolition:**
+    - Completely removed `💰 نرخ پاداش تبلیغات خدمتگزاران` form card from Tab 5 of Web Admin Finance Panel (`src/khatmsaz/web/templates/finance.html`).
+    - Renamed Tab 5 to `📢 پیامک و ارسال گروهی` and sanitized intro and alert texts.
+    - Removed `active_ad_rate` context variable and queries in `src/khatmsaz/web/app.py`.
+    - Deprecated `/admin_ad_rate` command in `src/khatmsaz/bot/handlers/admin.py`.
+    - Deactivated ad reward credit accruals in `src/khatmsaz/modules/advertising/service.py`.
+  - **Dynamic Broadcast Package Size Architecture:**
+    - Added configurable package sizes in `KNOWN_SETTINGS` (`src/khatmsaz/modules/system_settings/service.py`):
+      `broadcast_telegram_package_size`, `broadcast_bale_package_size`, `broadcast_sms_package_size` (default: 1,000, bounds: 1 to 10,000,000).
+    - Extended `src/khatmsaz/modules/broadcast/service.py`:
+      Added `channel_package_size(session, channel)` resolving channel package size; updated `submit()` to compute packages count as `ceil(len(users) / package_size) * unit_price` and format dynamic description.
+    - Updated Web Admin Panel (`src/khatmsaz/web/templates/finance.html` and `app.py`):
+      Added dual-field configuration for each channel (package size in recipients + package price in Tomans) under `/finance/broadcast-policy`.
+    - Updated Creator Bot & Web App:
+      Creator Bot (`creator_broadcast.py`) dynamically outputs package size, required packages count, and estimated total price.
+      Creator Web Panel (`creator_broadcasts.html`) dynamically renders the active package size in channel options.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_29_BROADCAST_PACKAGE_SIZE_AND_AD_REWARD_REMOVAL.md`.
+    - Authored test suite `tests/test_master_29_broadcast_package_size.py` (5/5 passed). Full test suite passing cleanly.
+
 ## Current state — 2026-10-15 — Systemic Button Audit, Adversarial Testing, and Multi-Agent Code Repair (MASTER-28) [Antigravity]
 - **Systemic Button Audit, Adversarial Testing, and Defect Remediation (`MASTER-28`):**
   - **Owner Mandate:** "کل دکمه ها و خروجیشون رو میخوام برام بررسی بکنی برام خروجی هاشون با توحه به کارایی درست و سالم و کامل باشه. برو فایلای مستر رو بخون با توجه به اونا همچنین با قوانین همونا ی فایل مستر بساز و با ساب ایجنت ها خط به خط کد رو تحلیل و بررسی بکن برای سناریو های مختلف. کلا ی ساب ایجنت باشه ک سناریو های مختلف رو بسازه و باگ ایجاد بکنه و بقیه بیان باگایی ک پیدا شده رو حل بکنن".

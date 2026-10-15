@@ -1,3 +1,19 @@
+## 2026-10-15 — Antigravity — Broadcast Dynamic Package Size & Ad Reward Removal (MASTER-29)
+- **Broadcast Dynamic Package Size & Ad Reward Removal (`MASTER-29`):**
+  - **Abolished Advertising Rewards:**
+    - Removed `💰 نرخ پاداش تبلیغات خدمتگزاران` form card from Tab 5 of `/finance`.
+    - Renamed Tab 5 to `📢 پیامک و ارسال گروهی`.
+    - Deprecated `/admin_ad_rate` in Telegram Admin Bot.
+    - Removed `active_ad_rate` from web context.
+  - **Dynamic Broadcast Package Sizing:**
+    - Added configurable package sizes in `KNOWN_SETTINGS` for Telegram, Bale, SMS.
+    - Added `channel_package_size` helper and dynamic calculation in `submit()`.
+    - Updated Web Admin Panel to allow setting both `package_size` and `price_toman` per channel.
+    - Updated Creator Bot and Creator Web Panel to reflect dynamic package sizing and pricing.
+  - **Master & Tests:**
+    - Authored `docs/ai/masters/MASTER_29_BROADCAST_PACKAGE_SIZE_AND_AD_REWARD_REMOVAL.md`.
+    - Added `tests/test_master_29_broadcast_package_size.py` (5/5 passed).
+
 ## 2026-10-15 — Antigravity — Systemic Button Audit, Adversarial Testing, and Multi-Agent Code Repair (MASTER-28)
 - **Systemic Button Audit, Adversarial Testing, and Defect Remediation (`MASTER-28`):**
   - **Master Synthesis Document:**
