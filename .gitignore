@@ -19,4 +19,5 @@ graphify-out/.graphify_python
 
 # Temporary scripts
 scratch/
+.agents/
 

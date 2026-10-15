@@ -46,6 +46,7 @@ from khatmsaz.modules.session import service as session_service
 from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import WalletReceiptClaim, ReceiptClaimStatus
 from khatmsaz.bot import invite_links
+from khatmsaz.bot.keyboards import safe_answer_callback
 
 router = Router(name="admin_bot")
 
@@ -87,7 +88,7 @@ async def _reject_unauthorized(message_or_callback: Message | CallbackQuery) -> 
         f"جهت فعال‌سازی دسترسی، این شناسه باید توسط مدیر ارشد در پیکربندی سامانه (<code>SUPER_ADMIN_TELEGRAM_CHAT_IDS</code>) ثبت شود."
     )
     if isinstance(message_or_callback, CallbackQuery):
-        await message_or_callback.answer(f"دسترسی غیرمجاز (شناسه: {chat_id})", show_alert=True)
+        await safe_answer_callback(message_or_callback, f"دسترسی غیرمجاز (شناسه: {chat_id})", show_alert=True)
     else:
         await message_or_callback.answer(text)
 
@@ -359,14 +360,18 @@ async def approve_receipt_admin_bot(callback: CallbackQuery) -> None:
 
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
-            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
             return
 
-        updated_claim, invoice = await wallet_service.approve_receipt_claim(
-            session,
-            claim_id=claim.id,
-            admin_user_id=admin_user.id,
-        )
+        try:
+            updated_claim, invoice = await wallet_service.approve_receipt_claim(
+                session,
+                claim_id=claim.id,
+                admin_user_id=admin_user.id,
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
         target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
         new_balance, new_credit = await wallet_service.get_balances(session, claim.user_id)
 
@@ -381,7 +386,7 @@ async def approve_receipt_admin_bot(callback: CallbackQuery) -> None:
     except Exception:
         pass
 
-    await callback.answer(f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
+    await safe_answer_callback(callback, f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
 
     user_notify_text = (
         "🎉 <b>واریز شما تأیید شد!</b>\n\n"
@@ -416,7 +421,7 @@ async def reject_receipt_admin_bot(callback: CallbackQuery) -> None:
     try:
         claim_id = UUID(claim_id_str)
     except ValueError:
-        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه فیش نامعتبر است.", show_alert=True)
         return
 
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -430,14 +435,18 @@ async def reject_receipt_admin_bot(callback: CallbackQuery) -> None:
 
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
-            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
             return
 
-        updated_claim = await wallet_service.reject_receipt_claim(
-            session,
-            claim_id=claim.id,
-            admin_user_id=admin_user.id,
-        )
+        try:
+            updated_claim = await wallet_service.reject_receipt_claim(
+                session,
+                claim_id=claim.id,
+                admin_user_id=admin_user.id,
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
         target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
 
     admin_name = callback.from_user.full_name or "مدیر"
@@ -451,7 +460,7 @@ async def reject_receipt_admin_bot(callback: CallbackQuery) -> None:
     except Exception:
         pass
 
-    await callback.answer("❌ فیش واریزی رد شد.", show_alert=True)
+    await safe_answer_callback(callback, "❌ فیش واریزی رد شد.", show_alert=True)
 
     user_notify_text = (
         "❌ <b>عدم تأیید فیش واریزی</b>\n\n"
@@ -618,21 +627,23 @@ async def reject_laan_callback(callback: CallbackQuery) -> None:
     try:
         khatm_id = UUID(raw_id)
     except ValueError:
-        await callback.answer("شناسه معتبر نیست.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه معتبر نیست.", show_alert=True)
         return
 
+    from khatmsaz.modules.khatm_workflow import service as workflow_service
     async with session_scope() as session:
         admin_user = await identity_service.find_by_platform(
             session, Platform.TELEGRAM, str(callback.from_user.id)
         )
-        khatm = await khatm_service.get_khatm(session, khatm_id)
-        if not khatm:
-            await callback.answer("ختم یافت نشد.", show_alert=True)
+        try:
+            khatm, token, refunded = await workflow_service.review_laan_khatm_workflow(
+                session,
+                khatm_id=khatm_id,
+                approved=False,
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این ختم قبلاً بررسی یا لغو شده است.", show_alert=True)
             return
-
-        khatm.pending_lan_approval = False
-        khatm.status = KhatmStatus.CANCELLED
-        await session.flush()
 
         creator_user_id = khatm.creator_user_id
         khatm_title = khatm.title
@@ -640,11 +651,12 @@ async def reject_laan_callback(callback: CallbackQuery) -> None:
         if admin_user:
             await audit_service.record(
                 session, actor_user_id=admin_user.id, target_khatm_id=khatm.id,
-                action="LAAN_KHATM_REJECT", details={"khatm_id": str(khatm.id)},
+                action="LAAN_KHATM_REJECT", details={"khatm_id": str(khatm.id), "refunded": refunded},
             )
 
-    await callback.message.edit_text(f"❌ ختم «<b>{escape(khatm_title)}</b>» رد شد.")
-    await callback.answer("ختم رد شد ❌")
+    refund_note = f"\nمبلغ {refunded:,} تومان به کیف پول سازنده بازگردانده شد." if refunded else ""
+    await callback.message.edit_text(f"❌ ختم «<b>{escape(khatm_title)}</b>» رد شد.{refund_note}")
+    await safe_answer_callback(callback, "ختم رد شد ❌")
 
     # Notify creator
     try:
@@ -724,16 +736,20 @@ async def approve_broadcast_callback(callback: CallbackQuery) -> None:
     try:
         broadcast_id = UUID(raw_id)
     except ValueError:
-        await callback.answer("شناسه نامعتبر است.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه نامعتبر است.", show_alert=True)
         return
 
     async with session_scope() as session:
         admin_user = await identity_service.find_by_platform(session, Platform.TELEGRAM, str(callback.from_user.id))
         admin_id = admin_user.id if admin_user else None
-        b = await broadcast_service.review(session, broadcast_id=broadcast_id, approved=True, reviewer_user_id=admin_id)
+        try:
+            b = await broadcast_service.approve(session, broadcast_id=broadcast_id, note=f"Approved by admin {admin_id}")
+        except ValueError:
+            await safe_answer_callback(callback, "این پیام قبلاً بررسی شده یا در انتظار نیست.", show_alert=True)
+            return
 
     await callback.message.edit_text(f"✅ پیام همگانی (شناسه: <code>{b.id}</code>) تأیید شد و در صف ارسال قرار گرفت.")
-    await callback.answer("پیام همگانی تأیید شد ✅")
+    await safe_answer_callback(callback, "پیام همگانی تأیید شد ✅")
 
 
 @router.callback_query(F.data.startswith("admin_broadcast:reject:"))
@@ -746,18 +762,22 @@ async def reject_broadcast_callback(callback: CallbackQuery) -> None:
     try:
         broadcast_id = UUID(raw_id)
     except ValueError:
-        await callback.answer("شناسه نامعتبر است.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه نامعتبر است.", show_alert=True)
         return
 
     async with session_scope() as session:
         admin_user = await identity_service.find_by_platform(session, Platform.TELEGRAM, str(callback.from_user.id))
         admin_id = admin_user.id if admin_user else None
-        b = await broadcast_service.review(
-            session, broadcast_id=broadcast_id, approved=False, reviewer_user_id=admin_id, reason="رد توسط مدیریت"
-        )
+        try:
+            b = await broadcast_service.reject(
+                session, broadcast_id=broadcast_id, note="رد توسط مدیریت"
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این پیام قبلاً بررسی شده یا در انتظار نیست.", show_alert=True)
+            return
 
     await callback.message.edit_text(f"❌ پیام همگانی (شناسه: <code>{b.id}</code>) رد شد و مبلغ پرداختی به کیف پول عودت داده شد.")
-    await callback.answer("پیام رد و وجه عودت داده شد ❌")
+    await safe_answer_callback(callback, "پیام رد و وجه عودت داده شد ❌")
 
 
 # --- Logs and Status Handlers ---

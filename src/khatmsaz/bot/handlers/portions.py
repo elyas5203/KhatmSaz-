@@ -38,7 +38,7 @@ from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
+from khatmsaz.modules.khatm.models import KhatmStatus, KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.khatm_category import service as category_service
 from khatmsaz.modules.khatm_workflow import service as workflow_service
 from khatmsaz.modules.invitation import service as invitation_service
@@ -511,7 +511,10 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
         await safe_clear_inline_keyboard(callback.message)
     from khatmsaz.bot.member_copy import completion_text, share_label
     from khatmsaz.bot.member_copy import content_family
-    family = await content_family(session, khatm)
+    async with session_scope() as session:
+        family = await content_family(session, khatm)
+        from khatmsaz.bot.member_copy import build_motivational_progress_snippet
+        snippet = await build_motivational_progress_snippet(session, khatm)
     
     # If it's a quantity-based portion, unit_start and unit_end are probably None,
     # but completed.quantity is set.
@@ -520,10 +523,6 @@ async def mark_portion_done(callback: CallbackQuery) -> None:
         label = share_label(family, count=count, lang=lang)
     else:
         label = share_label(family, start=completed.unit_start, end=completed.unit_end, lang=lang)
-        
-    async with session_scope() as session:
-        from khatmsaz.bot.member_copy import build_motivational_progress_snippet
-        snippet = await build_motivational_progress_snippet(session, khatm)
 
     confirmation = completion_text(
         khatm, family,
@@ -671,7 +670,8 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
     if khatm is not None and participation is not None and khatm.khatm_type == KhatmTypeEnum.OPEN:
         from khatmsaz.bot.handlers.member_commitment import CommitFlow
         from khatmsaz.bot.member_copy import content_family
-        fam = await content_family(session, khatm)
+        async with session_scope() as session:
+            fam = await content_family(session, khatm)
         await state.set_state(CommitFlow.entering_count)
         await state.update_data(commit_pid=str(participation.id), commit_family=fam.upper())
         unit = (
@@ -698,7 +698,8 @@ async def ask_contribution_amount(callback: CallbackQuery, state: FSMContext) ->
         from khatmsaz.bot.handlers.member_commitment import start_commitment_mode_picker
         commitment_family = "QURAN" if khatm.template_type == KhatmTemplateType.QURAN_PAGE else "SALAWAT"
         if khatm.content_category_id:
-            commitment_category = await category_service.get(session, khatm.content_category_id)
+            async with session_scope() as session:
+                commitment_category = await category_service.get(session, khatm.content_category_id)
             if commitment_category is not None:
                 commitment_family = commitment_category.group.value
         await start_commitment_mode_picker(
@@ -1082,6 +1083,9 @@ async def complete_open_reservation(callback: CallbackQuery, state: FSMContext) 
                 await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
                 return
             khatm = await khatm_service.get_khatm(session, str(reservation.khatm_id))
+            if not khatm or khatm.status != KhatmStatus.ACTIVE:
+                await safe_answer_callback(callback, t("portions.khatm_not_active", lang), show_alert=True)
+                return
             user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
             counted, surplus, new_total = await contribution_service.complete_reservation(
                 session, reservation_id, khatm.repetition_target, user_id=user.id,

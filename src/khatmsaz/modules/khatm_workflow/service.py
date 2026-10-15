@@ -443,7 +443,7 @@ async def leave_khatm(
     `reason` (DOMAIN_MODEL.md §3 Q98) is a quick-pick code, stored for later
     churn analysis — never shown to the creator today."""
     participation = await participation_service.get_by_id(session, participation_id)
-    if participation is None:
+    if participation is None or participation.status == ParticipationStatus.LEFT:
         return None, None
 
     was_committed = participation.is_committed

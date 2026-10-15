@@ -21,7 +21,7 @@ from khatmsaz.modules.wallet import service as wallet_service
 from khatmsaz.modules.wallet.models import ReceiptClaimStatus
 from khatmsaz.modules.wallet.gateway import GatewayError
 from khatmsaz.modules.wallet.payping import PayPingGateway
-from khatmsaz.bot.keyboards import bail_if_menu_button
+from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, safe_clear_inline_keyboard
 
 router = Router(name="wallet")
 
@@ -153,29 +153,31 @@ async def _show_wallet(message: Message) -> None:
 
 @router.callback_query(F.data == "wallet:buy_pro")
 async def buy_pro_from_wallet(callback: CallbackQuery) -> None:
+    await safe_clear_inline_keyboard(callback.message)
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
     try:
         async with session_scope() as session:
             user = await identity_service.resolve_or_provision_user(
-                session, platform, callback.message.chat.id
+                session, platform, callback.from_user.id
             )
             prev_plan = await plan_service.get_plan(session, user.id)
             invoice, new_expiry = await plan_service.purchase_pro_plan(session, user.id)
     except wallet_service.InsufficientFundsError:
-        await callback.answer(
+        await safe_answer_callback(
+            callback,
             "موجودی کیف پول شما برای خرید یا تمدید پلن حرفه‌ای کافی نیست. ابتدا کیف پول خود را شارژ کنید.",
             show_alert=True,
         )
         return
     except Exception as exc:
-        await callback.answer(str(exc), show_alert=True)
+        await safe_answer_callback(callback, str(exc), show_alert=True)
         return
 
     if prev_plan == PlanTier.PRO:
         msg = "🎉 پلن حرفه‌ای شما با موفقیت برای ۳۰ روز دیگر تمدید شد!"
     else:
         msg = "🎉 پلن شما با موفقیت به حرفه‌ای (PRO) ۳۰ روزه ارتقا یافت!"
-    await callback.answer(msg, show_alert=True)
+    await safe_answer_callback(callback, msg, show_alert=True)
     await _show_wallet(callback.message)
 
 
@@ -567,7 +569,7 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
     try:
         claim_id = UUID(claim_id_str)
     except ValueError:
-        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه فیش نامعتبر است.", show_alert=True)
         return
 
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -579,7 +581,7 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
         admin_ids = {v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()}
         is_allowed = str(callback.from_user.id) in admin_ids or (admin_user is not None and admin_user.role == UserRole.SUPER_ADMIN)
         if not is_allowed:
-            await callback.answer("شما دسترسی مدیریت برای تأیید این فیش را ندارید.", show_alert=True)
+            await safe_answer_callback(callback, "شما دسترسی مدیریت برای تأیید این فیش را ندارید.", show_alert=True)
             return
 
         if admin_user is None:
@@ -591,14 +593,18 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
 
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
-            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
             return
 
-        updated_claim, invoice = await wallet_service.approve_receipt_claim(
-            session,
-            claim_id=claim.id,
-            admin_user_id=admin_user.id,
-        )
+        try:
+            updated_claim, invoice = await wallet_service.approve_receipt_claim(
+                session,
+                claim_id=claim.id,
+                admin_user_id=admin_user.id,
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
         target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
         new_balance, new_credit = await wallet_service.get_balances(session, claim.user_id)
 
@@ -613,7 +619,7 @@ async def approve_receipt_callback(callback: CallbackQuery) -> None:
     except Exception:
         pass
 
-    await callback.answer(f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
+    await safe_answer_callback(callback, f"✅ فیش با موفقیت تأیید شد و {claim.amount_toman:,} تومان شارژ گردید.", show_alert=True)
 
     user_notify_text = (
         "🎉 <b>واریز شما تأیید شد!</b>\n\n"
@@ -635,7 +641,7 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
     try:
         claim_id = UUID(claim_id_str)
     except ValueError:
-        await callback.answer("شناسه فیش نامعتبر است.", show_alert=True)
+        await safe_answer_callback(callback, "شناسه فیش نامعتبر است.", show_alert=True)
         return
 
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -647,7 +653,7 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
         admin_ids = {v.strip() for v in settings.super_admin_telegram_chat_ids.split(",") if v.strip()}
         is_allowed = str(callback.from_user.id) in admin_ids or (admin_user is not None and admin_user.role == UserRole.SUPER_ADMIN)
         if not is_allowed:
-            await callback.answer("شما دسترسی مدیریت ندارید.", show_alert=True)
+            await safe_answer_callback(callback, "شما دسترسی مدیریت ندارید.", show_alert=True)
             return
 
         if admin_user is None:
@@ -659,14 +665,18 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
 
         claim = await wallet_service.get_receipt_claim(session, claim_id)
         if claim is None or claim.status != ReceiptClaimStatus.PENDING.value:
-            await callback.answer("این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
             return
 
-        updated_claim = await wallet_service.reject_receipt_claim(
-            session,
-            claim_id=claim.id,
-            admin_user_id=admin_user.id,
-        )
+        try:
+            updated_claim = await wallet_service.reject_receipt_claim(
+                session,
+                claim_id=claim.id,
+                admin_user_id=admin_user.id,
+            )
+        except ValueError:
+            await safe_answer_callback(callback, "این فیش قبلاً تعیین وضعیت شده است.", show_alert=True)
+            return
         target_identities = await identity_service.list_identities_for_user(session, claim.user_id)
 
     admin_name = callback.from_user.full_name or "مدیر"
@@ -680,7 +690,7 @@ async def reject_receipt_callback(callback: CallbackQuery) -> None:
     except Exception:
         pass
 
-    await callback.answer("❌ فیش واریزی رد شد.", show_alert=True)
+    await safe_answer_callback(callback, "❌ فیش واریزی رد شد.", show_alert=True)
 
     user_notify_text = (
         "❌ <b>عدم تأیید فیش واریزی</b>\n\n"

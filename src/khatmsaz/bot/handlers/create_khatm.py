@@ -2065,6 +2065,7 @@ async def confirm_wizard(callback: CallbackQuery, state: FSMContext) -> None:
             await state.update_data(**data, resume_khatm_creation=True)
         await safe_answer_callback(callback)
         return
+    await state.set_state(None)
     await _finish_creating_khatm(callback.message, state, lang, data)
     await safe_answer_callback(callback)
 
@@ -2454,7 +2455,10 @@ async def send_other_language_links(callback: CallbackQuery) -> None:
     lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
     async with session_scope() as session:
         khatm_id = await invitation_service.resolve_khatm_id(session, token)
-        khatm = await session.get(Khatm, khatm_id)
+        khatm = await session.get(Khatm, khatm_id) if khatm_id else None
+        if khatm is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.khatm_not_found", lang), show_alert=True)
+            return
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
     by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token, langs=["ar", "en"], plat_choice="ALL")
     lines = invite_links.format_invite_lines(by_lang) or t("create_khatm.no_other_lang_links", lang)

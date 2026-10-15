@@ -1,3 +1,28 @@
+## Current state — 2026-10-15 — Systemic Button Audit, Adversarial Testing, and Multi-Agent Code Repair (MASTER-28) [Antigravity]
+- **Systemic Button Audit, Adversarial Testing, and Defect Remediation (`MASTER-28`):**
+  - **Owner Mandate:** "کل دکمه ها و خروجیشون رو میخوام برام بررسی بکنی برام خروجی هاشون با توحه به کارایی درست و سالم و کامل باشه. برو فایلای مستر رو بخون با توجه به اونا همچنین با قوانین همونا ی فایل مستر بساز و با ساب ایجنت ها خط به خط کد رو تحلیل و بررسی بکن برای سناریو های مختلف. کلا ی ساب ایجنت باشه ک سناریو های مختلف رو بسازه و باگ ایجاد بکنه و بقیه بیان باگایی ک پیدا شده رو حل بکنن".
+  - **Master Synthesis Document:**
+    - Authored `docs/ai/masters/MASTER_28_SYSTEMIC_BUTTON_AUDIT_ADVERSARIAL_TESTING_AND_REPAIR.md` codifying all UI button trees, state-transition rules, callback payload limits (<= 64 bytes), error resilience standards, and adversarial failure injection matrices across Creator, Member, and Admin bots.
+  - **Multi-Agent Adversarial Discovery & Remediation:**
+    - Deployed adversarial subagent (`scenario_generator`) simulating stress scenarios (rapid repeated clicks, expired/missing FSM states, deleted DB entities, unauthorized cross-tenant operations, closed sessions).
+    - Remediated 13 concrete edge-case defects across bot handlers:
+      1. `admin_bot/handlers.py`: Replaced non-existent `broadcast_service.review` calls with `approve` and `reject`; wrapped with `try/except ValueError` to gracefully handle concurrent reviews.
+      2. `admin_bot/handlers.py`: Fixed `laan:reject:` to route through `workflow_service.review_laan_khatm_workflow(..., approved=False)` and refund creator's wallet rather than simply setting `CANCELLED`.
+      3. `portions.py`: Wrapped `content_family` and `build_motivational_progress_snippet` in an active `session_scope()` block (lines 514, 674, 701) to eliminate `InvalidRequestError: This session is in 'closed' state`.
+      4. `portions.py`: Added active status check `if not khatm or khatm.status != KhatmStatus.ACTIVE:` in `complete_open_reservation` (line 1085).
+      5. `member_commitment.py`: Added `if await bail_if_menu_button(message, state): return` in `enter_times_per_period` preventing FSM traps on reply keyboard taps.
+      6. `member_commitment.py`: Caught `(ValueError, shares.OccurrenceAccessError)` in `complete_legacy_share`.
+      7. `leave.py`: Added caller authorization checks in `ask_leave_reason`, `leave_reason_chosen`, `approve_leave`, and `reject_leave` verifying `user.id == participation.user_id` or `khatm.creator_user_id == user.id` / `SUPER_ADMIN`.
+      8. `khatm_workflow/service.py`: Added idempotency guard `if participation is None or participation.status == ParticipationStatus.LEFT: return None, None` in `leave_khatm` preventing duplicate waiting-list promotions.
+      9. `create_khatm.py`: Added `khatm is None` guard in `send_other_language_links` (`ck:invlangs:`) with `t("my_khatms.creator.khatm_not_found", lang)` alert.
+      10. `create_khatm.py`: Added `await state.set_state(None)` before calling `_finish_creating_khatm` in `confirm_wizard` to prevent double-tap creation duplicate races.
+      11. `my_khatms.py`: Added `if khatm is None:` guard in `creator_set_content_mode`; translated raw English `KhatmCancellationError` exceptions into polite Persian copy.
+      12. `settings_menu.py`: Added `answer: bool = True` in `settings_home` and suppressed duplicate answers in `set_language`, `set_font`, and `set_reciter` to eliminate `TelegramBadRequest`. Added `if khatm is None:` guard in `save_custom_reminder`.
+      13. `wallet.py`: Wrapped `approve_receipt_claim` and `reject_receipt_claim` in `try/except ValueError` to gracefully handle concurrent admin reviews; added `safe_clear_inline_keyboard` at top of `buy_pro_from_wallet` to prevent double charges; replaced all raw `callback.answer` calls with `safe_answer_callback`.
+  - **Automated Adversarial Verification & Test Suite:**
+    - Authored dedicated test suite `tests/test_master_28_adversarial_button_audit.py` (11/11 tests passing).
+    - Executed full project test suite: 506 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## Current state — 2026-10-15 — Creator Member Management & Two-Step Removal Flow (MASTER-27) [Antigravity]
 - **Interactive Member Management & Two-Step Removal (`MASTER-27`):**
   - **Owner Mandate:** "لیست اعضا رو میبینم، اینجا هم اینو گفته ولی کاری نمیشه کرد این درست بکن برام بعد اگر خواستم با دوبار تایید گرفتن مثلا حذفش بکنم از لیست ی همچین چیزی".

@@ -1139,7 +1139,10 @@ async def safe_clear_inline_keyboard(message: Message) -> None:
 
 async def safe_answer_callback(callback: CallbackQuery, text: str | None = None, show_alert: bool = False) -> None:
     try:
-        await callback.answer(text=text, show_alert=show_alert)
+        if text is not None:
+            await callback.answer(text, show_alert=show_alert)
+        else:
+            await callback.answer(show_alert=show_alert)
     except Exception:
         pass
 

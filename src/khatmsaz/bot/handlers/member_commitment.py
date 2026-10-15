@@ -409,6 +409,8 @@ async def confirm_weekdays(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(StateFilter(CommitFlow.entering_times_per_period))
 async def enter_times_per_period(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     lang = _lang_of(message)
     raw = (message.text or "").strip()
     if not raw.isdigit() or int(raw) <= 0:
@@ -696,7 +698,7 @@ async def complete_legacy_share(callback: CallbackQuery):
             user = await identity_service.resolve_or_provision_user(session, platform, callback.from_user.id)
             changed = await shares.complete_legacy_portion(session, pid, user_id=user.id,
                 bot_instance_id=member_instance_id(callback.message.bot))
-    except ValueError:
+    except (ValueError, shares.OccurrenceAccessError):
         await safe_answer_callback(callback, "این سهم برای این عضویت قابل ثبت نیست.", show_alert=True)
         return
     await safe_answer_callback(callback, "✅ انجام سهم قبلی ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")

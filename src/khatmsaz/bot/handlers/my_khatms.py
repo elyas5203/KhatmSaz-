@@ -407,6 +407,9 @@ async def creator_set_content_mode(callback) -> None:
         except (ValueError, TypeError):
             await safe_answer_callback(callback, t("my_khatms.creator.setting_not_available", lang), show_alert=True)
             return
+    if khatm is None:
+        await safe_answer_callback(callback, t("my_khatms.creator.khatm_not_found", lang), show_alert=True)
+        return
     await callback.message.edit_text(
         _creator_settings_text(khatm, lang), reply_markup=_creator_settings_markup(khatm, lang)
     )
@@ -1840,7 +1843,16 @@ async def confirm_cancel_khatm(callback) -> None:
                 session, khatm_id=khatm_id, creator_user_id=user.id
             )
         except workflow_service.KhatmCancellationError as exc:
-            await safe_answer_callback(callback, str(exc), show_alert=True)
+            msg_str = str(exc)
+            if "not owned" in msg_str:
+                err_text = t("my_khatms.no_permission", lang)
+            elif "only active" in msg_str:
+                err_text = "تنها ختم‌های فعال را می‌توان لغو کرد."
+            elif "already joined" in msg_str:
+                err_text = "به دلیل عضویت اعضا در این ختم، امکان لغو و بازپرداخت آن وجود ندارد."
+            else:
+                err_text = t("my_khatms.creator.cancel_no_access", lang)
+            await safe_answer_callback(callback, err_text, show_alert=True)
             return
         await audit_service.record(
             session, actor_user_id=user.id, target_khatm_id=khatm.id,
