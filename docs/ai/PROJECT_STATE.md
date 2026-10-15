@@ -1,3 +1,17 @@
+## Current state — 2026-10-15 — Foreign Phone Direct Registration via Telegram Contact Share & Iranian OTP Segregation (MASTER-24) [Antigravity]
+- **Owner Mandate:**
+  > "الان شماره های خارجی نمیتونن ثبت نام بکنن و احراز هویت بشن. وقتی یکی این دکمه شیر پایین رو میزنه و شمارش با پیش شماره خارجی هست باید همون لحظه شمارش ثبت بشه (احراز هویت نمیخواد تایید بشه). فقط برای شماره هایی با پیش شماره ایران و یا شماره های ایران هست باید احراز هویت ارسال بشه. اینطوری میخوام باشه اینو درست بکن."
+- **Root Cause Resolved (`src/khatmsaz/modules/phone/service.py`):**
+  - Telegram `message.contact.phone_number` for foreign users arrives without leading `+` (e.g. `14155552671`, `447911123456`, `9647701234567`).
+  - Added `to_ascii_digits` translating Persian/Arabic numerals to ASCII.
+  - Updated `normalize_e164` to automatically prepend `+` for foreign international numbers without `+` (7 to 15 digits).
+  - Resolved `registration.phone_invalid` error on creator contact sharing.
+- **Immediate Direct Verification on Contact Share & Profile Flow (`src/khatmsaz/bot/handlers/profile.py`, `registration.py`, `member_registration.py`, `change_phone.py`):**
+  - Tapping `[اشتراک‌گذاری شماره من]` with a foreign phone immediately invokes `phone_service.direct_verify_phone`, recording `PhoneClaim(status=VERIFIED)` and saving the user profile without OTP SMS or admin manual approval.
+  - Iranian phone numbers (`+98...`) strictly enforce mandatory SMS OTP authentication before creator khatm completion.
+  - Updated `/change_phone` to supply the contact sharing keyboard and support `message.contact`.
+- **Validation:** 8 unit tests in `tests/test_master_24_foreign_contact_share.py`. Full test suite: 489 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## Current state — 2026-10-14 — Telethon MTProto Downloader for 200MB+ Media & 100% Bale Content Migration (MASTER-23) [Antigravity]
 - **Ported MTProto Heavy Media Downloader from RazeDehkade Reference:**
   - Owner provided reference project `C:\xampp\htdocs\RazeDehkade` capable of downloading 200MB+ files.

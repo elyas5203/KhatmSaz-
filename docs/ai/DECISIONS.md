@@ -3,6 +3,13 @@
 Append-only. Never edit or delete an old decision — if it's superseded, add a
 new entry that says so and link back.
 
+### DEC-PY-0131 — Foreign Phone Direct Registration via Telegram Contact Share & Iranian OTP Segregation (MASTER-24)
+
+**Date:** 2026-10-15
+**Owner confirmation:** When a user taps the contact share button (`request_contact`), foreign numbers (`not startswith +98`) frequently arrive via Telegram Bot API without a leading `+` (e.g. `14155552671`, `447911123456`, `9647701234567`). `normalize_e164` has been updated with `to_ascii_digits` and automatic international prefixing so all foreign contact shares and inputs normalize accurately. Foreign numbers are directly registered and verified (`direct_verify_phone`) at the moment of contact sharing without any OTP challenge or admin manual review. Iranian numbers (`+98...`) strictly retain mandatory SMS OTP authentication. See `docs/ai/masters/MASTER_24_FOREIGN_PHONE_CONTACT_SHARE_DIRECT_REGISTRATION.md`.
+
+---
+
 ### DEC-PY-0130 — Telethon MTProto Downloader for Large Media Files (>20MB up to 2GB) (MASTER-23)
 
 **Date:** 2026-10-14

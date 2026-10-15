@@ -152,7 +152,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
 @router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
 async def enter_phone(message: Message, state: FSMContext) -> None:
     lang = (await state.get_data()).get("language", "fa")
-    if message.contact:
+    if getattr(message, "contact", None):
         phone = message.contact.phone_number
     else:
         if await bail_if_menu_button(message, state):
@@ -182,6 +182,24 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         )
         return
     await state.update_data(phone=phone)
+    if phone_service.is_foreign_phone(phone):
+        await state.update_data(foreign_verified_phone=True)
+        async with session_scope() as session:
+            user = await identity_service.find_by_platform(
+                session, platform, str(message.chat.id)
+            )
+            if user is not None:
+                try:
+                    await phone_service.direct_verify_phone(
+                        session,
+                        user_id=user.id,
+                        e164=phone,
+                        action_context="PROFILE_CONTACT_SHARE_FOREIGN_DIRECT_VERIFY",
+                    )
+                except phone_service.OtpError as exc:
+                    if str(exc) == "phone belongs to another account":
+                        await _profile_error(message, state, t("change_phone.phone_taken", lang))
+                        return
     from khatmsaz.bot.keyboards import home_keyboard_for_bot
     try:
         transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))

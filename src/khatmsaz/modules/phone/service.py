@@ -31,15 +31,36 @@ class OtpError(ValueError):
     pass
 
 
+def to_ascii_digits(text: str) -> str:
+    """Translate Persian and Arabic numerals to ASCII digits."""
+    return text.translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789"))
+
+
 def normalize_e164(raw: str) -> str:
-    value = "".join(raw.strip().replace("-", "").split())
+    if not raw:
+        raise OtpError("phone must not be empty")
+    cleaned = to_ascii_digits(raw.strip())
+    # Remove separators: spaces, hyphens, parentheses, dots
+    value = "".join(c for c in cleaned if c.isdigit() or c == "+")
+
+    # 1. International dialing prefix 00 -> +
     if value.startswith("00"):
         value = "+" + value[2:]
+    # 2. Iranian domestic mobile: 09XXXXXXXXX (11 digits) -> +989XXXXXXXXX
     elif value.startswith("09") and len(value) == 11:
         value = "+98" + value[1:]
-    elif value.startswith("98") and not value.startswith("+"):
+    # 3. Iranian international without plus: 989XXXXXXXXX (12 digits) or 98XXXXXXXXXX
+    elif value.startswith("98") and not value.startswith("+") and (11 <= len(value) <= 13):
         value = "+" + value
-    if not value.startswith("+") or not value[1:].isdigit() or not (8 <= len(value[1:]) <= 15):
+    # 4. Iranian mobile without leading 0: 9XXXXXXXXX (10 digits starting with 90, 91, 92, 93, 99)
+    elif value.startswith("9") and len(value) == 10 and value[1] in "01239" and not value.startswith("+"):
+        value = "+98" + value
+    # 5. International digits without leading + (from Telegram contact share or typed without +)
+    elif not value.startswith("+") and value.isdigit() and (7 <= len(value) <= 15):
+        value = "+" + value
+
+    # Final E.164 validation: must start with +, followed by 7 to 15 digits
+    if not value.startswith("+") or not value[1:].isdigit() or not (7 <= len(value[1:]) <= 15):
         raise OtpError("phone must be a valid E.164 number")
     return value
 

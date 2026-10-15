@@ -208,7 +208,12 @@ async def begin_phone_change(message: Message, state: FSMContext) -> None:
     await state.clear()
     await state.set_state(ChangePhone.entering_phone)
     await state.update_data(lang=lang)
-    await message.answer(t("change_phone.begin_prompt", lang))
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    from khatmsaz.bot.handlers.registration import _phone_keyboard
+    await message.answer(
+        t("change_phone.begin_prompt", lang),
+        reply_markup=_phone_keyboard(lang) if platform == Platform.TELEGRAM else None,
+    )
 
 
 @router.message(ChangePhone.entering_phone)
@@ -227,7 +232,11 @@ async def receive_new_phone(message: Message, state: FSMContext) -> None:
             )
             if user is None:
                 raise phone_service.OtpError("account not found")
-            phone = phone_service.normalize_e164((message.text or "").strip())
+            if getattr(message, "contact", None):
+                raw_phone = message.contact.phone_number
+            else:
+                raw_phone = (message.text or "").strip()
+            phone = phone_service.normalize_e164(raw_phone)
             if phone_service.is_foreign_phone(phone):
                 await phone_service.direct_verify_phone(
                     session,

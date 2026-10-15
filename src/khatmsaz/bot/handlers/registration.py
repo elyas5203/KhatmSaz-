@@ -176,8 +176,28 @@ async def receive_shared_contact(message: Message, state: FSMContext) -> None:
         await _registration_prompt(message, state, t("registration.shared_phone_invalid", lang), reply_markup=_phone_keyboard(lang))
         return
     await state.update_data(phone=phone)
-    if not phone.startswith("+98"):
+    if phone_service.is_foreign_phone(phone):
         await state.update_data(foreign_verified_phone=True)
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        async with session_scope() as session:
+            user = await identity_service.find_by_platform(
+                session, platform, str(message.chat.id)
+            )
+            if user is not None:
+                try:
+                    await phone_service.direct_verify_phone(
+                        session,
+                        user_id=user.id,
+                        e164=phone,
+                        action_context="REGISTRATION_CONTACT_SHARE_FOREIGN_DIRECT_VERIFY",
+                    )
+                except phone_service.OtpError as exc:
+                    if str(exc) == "phone belongs to another account":
+                        await _registration_prompt(
+                            message, state, t("change_phone.phone_taken", lang),
+                            reply_markup=_phone_keyboard(lang),
+                        )
+                        return
     await state.set_state(Registration.choosing_province)
     await _remove_phone_keyboard(message)
     await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
@@ -210,6 +230,25 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
     await state.update_data(phone=phone)
     if phone_service.is_foreign_phone(phone):
         await state.update_data(foreign_verified_phone=True)
+        async with session_scope() as session:
+            user = await identity_service.find_by_platform(
+                session, platform, str(message.chat.id)
+            )
+            if user is not None:
+                try:
+                    await phone_service.direct_verify_phone(
+                        session,
+                        user_id=user.id,
+                        e164=phone,
+                        action_context="REGISTRATION_MANUAL_FOREIGN_DIRECT_VERIFY",
+                    )
+                except phone_service.OtpError as exc:
+                    if str(exc) == "phone belongs to another account":
+                        await _registration_prompt(
+                            message, state, t("change_phone.phone_taken", lang),
+                            reply_markup=_phone_keyboard(lang),
+                        )
+                        return
     await state.set_state(Registration.choosing_province)
     await _remove_phone_keyboard(message)
     await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))

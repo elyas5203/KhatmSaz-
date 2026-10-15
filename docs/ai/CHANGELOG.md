@@ -1,3 +1,14 @@
+## 2026-10-15 — Antigravity — Foreign Phone Direct Registration via Telegram Contact Share & Iranian OTP Segregation (MASTER-24)
+- **Specification & Decision:** Authored `docs/ai/masters/MASTER_24_FOREIGN_PHONE_CONTACT_SHARE_DIRECT_REGISTRATION.md` and registered `DEC-PY-0131`.
+- **E.164 Normalization Overhaul (`src/khatmsaz/modules/phone/service.py`):**
+  - Added `to_ascii_digits` to convert Persian and Arabic digits (`۰-۹`, `٠-٩`) to ASCII.
+  - Updated `normalize_e164` to cleanly strip separators and automatically prepend `+` to raw international digit strings (7 to 15 digits) without `+`, resolving Telegram contact share payload format (e.g. `14155552671`, `447911123456`, `9647701234567`).
+- **Immediate Direct Verification (`src/khatmsaz/bot/handlers/profile.py`, `registration.py`, `member_registration.py`, `change_phone.py`):**
+  - Foreign phone numbers (`not startswith +98`) shared via `[اشتراک‌گذاری شماره من]` are immediately verified (`direct_verify_phone`) with `PhoneClaim(status=VERIFIED)` and saved to profile without SMS OTP or admin review.
+  - Iranian phone numbers (`+98...`) strictly retain mandatory SMS OTP verification before creator khatm completion.
+  - Extended `/change_phone` command to offer contact share button on Telegram.
+- **Validation:** Added 8 unit tests in `tests/test_master_24_foreign_contact_share.py`. Full test suite: 489 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## 2026-10-14 — Antigravity — Telethon MTProto Downloader for 200MB+ Media & 100% Bale Content Migration (MASTER-23)
 - **Ported MTProto Heavy Media Downloader from RazeDehkade Reference:**
   - Owner provided reference project `C:\xampp\htdocs\RazeDehkade` capable of downloading 200MB+ files.
