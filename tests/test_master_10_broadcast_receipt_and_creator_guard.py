@@ -25,29 +25,37 @@ from khatmsaz.modules.wallet import service as wallet_service
 # -----------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_broadcast_requires_pro_plan(monkeypatch):
-    """Basic and Free plan creators cannot submit broadcasts."""
+async def test_broadcast_allows_any_plan_if_funded(monkeypatch):
+    """MASTER-31: Basic and Free plan creators can submit broadcasts as long as wallet covers cost."""
     session = AsyncMock()
     creator_id = uuid4()
 
-    monkeypatch.setattr(
-        "khatmsaz.modules.plan.service.get_plan",
-        AsyncMock(return_value=PlanTier.BASIC),
-    )
     monkeypatch.setattr(
         broadcast_service,
         "audience_user_ids",
         AsyncMock(return_value=[uuid4() for _ in range(50)]),
     )
+    monkeypatch.setattr(
+        broadcast_service,
+        "channel_policy",
+        AsyncMock(return_value=(0, 50_000, 1000)),
+    )
+    mock_spend = AsyncMock()
+    monkeypatch.setattr("khatmsaz.modules.wallet.service.spend", mock_spend)
+    monkeypatch.setattr(
+        "khatmsaz.modules.broadcast.repository.create",
+        AsyncMock(return_value=SimpleNamespace(id=uuid4(), cost_toman=50_000)),
+    )
 
-    with pytest.raises(broadcast_service.plan_service.PlanFeatureUnavailableError):
-        await broadcast_service.submit(
-            session,
-            khatm_id=None,
-            creator_user_id=creator_id,
-            body="پیام آزمایشی",
-            channel="TELEGRAM",
-        )
+    res = await broadcast_service.submit(
+        session,
+        khatm_id=None,
+        creator_user_id=creator_id,
+        body="پیام آزمایشی",
+        channel="TELEGRAM",
+    )
+    assert res is not None
+    assert mock_spend.await_count == 1
 
 
 @pytest.mark.asyncio

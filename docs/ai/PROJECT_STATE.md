@@ -1,3 +1,24 @@
+## Current state — 2026-10-15 — Broadcast Entitlement (All Funded Creators), In-Bot Moderation with Photo & Inline Buttons, and Web Media Preview (MASTER-31) [Antigravity]
+- **Broadcast Entitlement, In-Bot Moderation with Photo & Web Media Preview (`MASTER-31`):**
+  - **Owner Mandate:** "نه اشتباهه دسترسی به پیام گروهی برای پلن حرفه ای نه کسی بستشو بخره میتونه پیام گروهی بفرسته. فایل مستر رو بررسی بکن و فایل مستر اینم بساز یا ادیت بکن تا درست پیاده سازیش بکنی برام خیلی خرابه این. من عکسشو نمیتونم ببینم بعد میخوام تو همون بات ادمین بتونم تایید و رد بکنم".
+  - **Broadcast Entitlement (Removal of PRO Requirement):**
+    - Removed `plan != PlanTier.PRO` requirement from `submit()` in `src/khatmsaz/modules/broadcast/service.py`. Any creator with sufficient wallet funds to cover the dynamic package cost can submit broadcasts.
+    - Cleaned up creator bot copy (`src/khatmsaz/bot/handlers/creator_broadcast.py`) removing PRO plan notices.
+    - Updated creator web panel (`src/khatmsaz/web/templates/creator_broadcasts.html` & `app.py`) replacing `plan_required` error with `insufficient_funds` directing creator to wallet top-up.
+  - **In-Bot Moderation with Photo & Actionable Inline Buttons:**
+    - Updated `_notify_admins_of_broadcast_request` (`src/khatmsaz/bot/handlers/creator_broadcast.py`) to build inline keyboard with `[✅ تأیید و ارسال]` (`admin_broadcast:approve:{id}`) and `[❌ رد و عودت وجه]` (`admin_broadcast:reject:{id}`).
+    - For photo broadcasts, pushes directly via `notify_super_admins_photo` to `@khatmsaz_admin_bot` downloading cross-bot files via creator bot fallback.
+    - Added `_safe_edit_admin_message` in `src/khatmsaz/bot/handlers/admin_bot/handlers.py` supporting caption editing on photo messages and text editing on text messages, preventing Telegram BadRequest errors.
+    - Integrated one-click approval and rejection directly inside Telegram admin bot with live wallet refunds on rejection and automated recipient delivery.
+  - **Web Admin Media Preview Endpoint & Template:**
+    - Added `@app.get("/broadcasts/{broadcast_id}/media")` in `src/khatmsaz/web/app.py` downloading and serving Telegram photos with local disk caching (`static/uploads/broadcasts/{id}.jpg`).
+    - Updated `src/khatmsaz/web/templates/broadcasts.html` to render responsive image previews `<img src="/broadcasts/{{ row.item.id }}/media">` with error fallbacks.
+  - **Unified Broadcast Delivery:**
+    - Created `src/khatmsaz/modules/broadcast/delivery.py` exporting `deliver_broadcast(session, item)` used consistently by both web admin and Telegram admin bot.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_31_BROADCAST_ENTITLEMENT_IN_BOT_MODERATION_AND_MEDIA_PREVIEW.md`.
+    - Authored test suite `tests/test_master_31_broadcast_entitlement_and_moderation.py` (10/10 passed). All 46 master suite tests passing 100%.
+
 ## Current state — 2026-10-15 — Khatm Detail Debt Count Fix & Global Disabling of La'an Khatm Creation (MASTER-30) [Antigravity]
 - **Khatm Detail Member Debt Count UndefinedError Fix & Global La'an Khatm Creation Disabling (`MASTER-30`):**
   - **Owner Mandate:** "این ارور رو هم درست بکن برام. کلا ساخت ختم لعن رو فعلا وردار و غیر فعالش بکن برام. اشتباهه کسی نتونه انتخاب بکنه و بسازه."

@@ -155,32 +155,24 @@ async def test_custom_laan_wizard_handlers():
     from khatmsaz.bot.handlers.create_khatm import (
         enter_laan_title,
         enter_laan_text,
-        CreateKhatm,
     )
 
     # 1. Enter title
     state = AsyncMock()
-    state.get_data = AsyncMock(return_value={"lang": "fa"})
     message = MagicMock()
     message.text = "لعن بنی‌امیه و دشمنان اهل‌بیت"
     message.answer = AsyncMock()
 
-    with patch("khatmsaz.bot.handlers.create_khatm._wiz", new=AsyncMock()) as mock_wiz:
-        await enter_laan_title(message, state)
-        state.update_data.assert_awaited_once_with(title="لعن بنی‌امیه و دشمنان اهل‌بیت")
-        state.set_state.assert_awaited_once_with(CreateKhatm.entering_laan_text)
-        mock_wiz.assert_awaited_once()
+    await enter_laan_title(message, state)
+    state.clear.assert_awaited_once()
+    assert "غیرفعال" in message.answer.call_args[0][0]
 
     # 2. Enter text
     state_mock = AsyncMock()
-    state_mock.get_data = AsyncMock(return_value={"title": "لعن بنی‌امیه", "lang": "fa"})
     message2 = MagicMock()
     message2.text = "اللهم العن اول ظالم ظلم حق محمد و آل محمد..."
     message2.answer = AsyncMock()
 
-    with patch("khatmsaz.bot.handlers.create_khatm._ask_mode", new=AsyncMock()) as mock_ask_mode:
-        await enter_laan_text(message2, state_mock)
-        state_mock.update_data.assert_awaited_once_with(
-            recitation_text="اللهم العن اول ظالم ظلم حق محمد و آل محمد..."
-        )
-        mock_ask_mode.assert_awaited_once()
+    await enter_laan_text(message2, state_mock)
+    state_mock.clear.assert_awaited_once()
+    assert "غیرفعال" in message2.answer.call_args[0][0]

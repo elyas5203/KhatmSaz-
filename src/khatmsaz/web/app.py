@@ -14,7 +14,7 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from openpyxl import Workbook
@@ -1345,8 +1345,8 @@ async def creator_broadcast_submit(
                 province=province, gender=gender,
             )
             target_khatm = await khatm_service.get_khatm(session, khatm_id) if khatm_id else None
-    except plan_service.PlanFeatureUnavailableError:
-        return RedirectResponse("/creator/broadcasts?error=plan_required", status_code=303)
+    except InsufficientFundsError:
+        return RedirectResponse("/creator/broadcasts?error=insufficient_funds", status_code=303)
     except (ValueError, TypeError):
         return RedirectResponse("/creator/broadcasts?error=invalid", status_code=303)
     from khatmsaz.bot.handlers.creator_broadcast import _notify_admins_of_broadcast_request
@@ -2982,6 +2982,51 @@ async def _dispatch_broadcast_delivery(
                     )
                 except Exception:
                     pass
+
+
+@app.get("/broadcasts/{broadcast_id}/media")
+async def broadcast_media_preview(request: Request, broadcast_id: UUID):
+    """Serve/stream the attached photo/media for broadcast preview in web admin or creator panel."""
+    admin, _ = await _admin(request, AdminPermission.MODERATION_MANAGE)
+    creator = None
+    if admin is None:
+        creator, _, _ = await _creator(request)
+    if admin is None and creator is None:
+        return _login_redirect()
+
+    upload_dir = ROOT / "static" / "uploads" / "broadcasts"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    dest_path = upload_dir / f"{broadcast_id}.jpg"
+
+    if dest_path.exists():
+        return Response(content=dest_path.read_bytes(), media_type="image/jpeg")
+
+    async with session_scope() as session:
+        item = await broadcast_service.get(session, broadcast_id)
+        if item is None:
+            return HTMLResponse("رسانه یافت نشد.", status_code=404)
+        if admin is None and (creator and item.creator_user_id != creator.id):
+            return HTMLResponse("دسترسی غیرمجاز.", status_code=403)
+        file_id = item.media_file_id_telegram
+
+    if not file_id:
+        return HTMLResponse("فایل رسانه در تلگرام ثبت نشده است.", status_code=404)
+
+    from khatmsaz.core.bot_registry import get_registry
+    registry = get_registry()
+    bot = registry.get_creator_bot(Platform.TELEGRAM) or registry.get_admin_bot(Platform.TELEGRAM)
+    if bot:
+        try:
+            buffer = BytesIO()
+            await bot.download(file_id, destination=buffer)
+            data = buffer.getvalue()
+            if data:
+                dest_path.write_bytes(data)
+                return Response(content=data, media_type="image/jpeg")
+        except Exception:
+            pass
+
+    return HTMLResponse("تصویر در دسترس نیست.", status_code=404)
 
 
 @app.post("/broadcasts/{broadcast_id}/decide")

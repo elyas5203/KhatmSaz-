@@ -36,6 +36,7 @@ from khatmsaz.core.logging_system import (
 )
 from khatmsaz.modules.audit_log import service as audit_service
 from khatmsaz.modules.broadcast import service as broadcast_service
+from khatmsaz.modules.broadcast.delivery import deliver_broadcast
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
@@ -726,6 +727,23 @@ async def admin_broadcasts_handler(event: Message | CallbackQuery) -> None:
         await event.answer()
 
 
+async def _safe_edit_admin_message(message: Message, text: str) -> None:
+    """Edit message text or caption safely regardless of whether it's a photo or text message."""
+    try:
+        if getattr(message, "photo", None):
+            await message.edit_caption(caption=text, reply_markup=None)
+        else:
+            await message.edit_text(text=text, reply_markup=None)
+    except Exception:
+        try:
+            await message.edit_caption(caption=text, reply_markup=None)
+        except Exception:
+            try:
+                await message.edit_text(text=text, reply_markup=None)
+            except Exception:
+                await message.answer(text)
+
+
 @router.callback_query(F.data.startswith("admin_broadcast:approve:"))
 async def approve_broadcast_callback(callback: CallbackQuery) -> None:
     if not await _is_super_admin(callback):
@@ -748,8 +766,12 @@ async def approve_broadcast_callback(callback: CallbackQuery) -> None:
             await safe_answer_callback(callback, "این پیام قبلاً بررسی شده یا در انتظار نیست.", show_alert=True)
             return
 
-    await callback.message.edit_text(f"✅ پیام همگانی (شناسه: <code>{b.id}</code>) تأیید شد و در صف ارسال قرار گرفت.")
-    await safe_answer_callback(callback, "پیام همگانی تأیید شد ✅")
+        dest_count = await deliver_broadcast(session, b)
+
+    status_text = f"✅ پیام همگانی (شناسه: <code>{b.id}</code>) تأیید شد و برای {dest_count} مخاطب ارسال گردید."
+    if callback.message:
+        await _safe_edit_admin_message(callback.message, status_text)
+    await safe_answer_callback(callback, "پیام همگانی تأیید و ارسال شد ✅")
 
 
 @router.callback_query(F.data.startswith("admin_broadcast:reject:"))
@@ -776,7 +798,11 @@ async def reject_broadcast_callback(callback: CallbackQuery) -> None:
             await safe_answer_callback(callback, "این پیام قبلاً بررسی شده یا در انتظار نیست.", show_alert=True)
             return
 
-    await callback.message.edit_text(f"❌ پیام همگانی (شناسه: <code>{b.id}</code>) رد شد و مبلغ پرداختی به کیف پول عودت داده شد.")
+    cost = getattr(b, "cost_toman", 0) or 0
+    cost_text = f" و مبلغ {cost:,} تومان به کیف پول عودت داده شد" if cost > 0 else ""
+    status_text = f"❌ پیام همگانی (شناسه: <code>{b.id}</code>) رد شد{cost_text}."
+    if callback.message:
+        await _safe_edit_admin_message(callback.message, status_text)
     await safe_answer_callback(callback, "پیام رد و وجه عودت داده شد ❌")
 
 

@@ -107,14 +107,20 @@ async def notify_super_admins_photo(
         logger.warning("Neither Admin bot nor Creator bot available in registry for admin photo notification.")
         return
 
+    if len(caption) > 1024:
+        caption = caption[:1020] + "…"
+
+    if source_bot is None:
+        source_bot = registry.get_creator_bot(Platform.TELEGRAM)
+
     upload = None
     if photo_bytes is not None:
-        upload = BufferedInputFile(photo_bytes, filename="receipt.jpg")
+        upload = BufferedInputFile(photo_bytes, filename="photo.jpg")
     elif photo_file_id and source_bot:
         try:
             buffer = BytesIO()
             await source_bot.download(photo_file_id, destination=buffer)
-            upload = BufferedInputFile(buffer.getvalue(), filename="receipt.jpg")
+            upload = BufferedInputFile(buffer.getvalue(), filename="photo.jpg")
         except Exception as exc:
             logger.warning("Failed to download photo from source bot: %s", exc)
 

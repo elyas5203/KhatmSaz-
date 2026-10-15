@@ -4,7 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, safe_clear_inline_keyboard, main_menu_keyboard
-from khatmsaz.bot.admin_notifications import notify_super_admins
+from khatmsaz.bot.admin_notifications import notify_super_admins, notify_super_admins_photo
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
@@ -24,22 +24,50 @@ class CreatorBroadcastFlow(StatesGroup):
 
 
 async def _notify_admins_of_broadcast_request(
-    *, item, creator_name: str, scope_title: str,
+    *, item, creator_name: str, scope_title: str, source_bot=None,
 ) -> None:
-    """Push the moderation queue item to admins instead of making them poll."""
+    """Push the moderation queue item to admins with actionable buttons and media preview."""
     preview = (item.body or "").strip() or f"[{item.media_type or 'رسانه'} بدون متن]"
     if len(preview) > 500:
         preview = preview[:497] + "…"
+    cost = getattr(item, "cost_toman", 0) or 0
     text = (
         "🔔 درخواست تازهٔ پیام گروهی\n\n"
         f"سازنده: {creator_name}\n"
         f"بخش: {scope_title}\n"
         f"مخاطب: {item.audience_count} نفر\n"
-        f"متن/رسانه: {preview}\n\n"
-        f"کد درخواست: {item.id}\n"
-        "برای بررسی، وارد پنل ادمین و بخش «پیام‌های گروهی» شوید و این کد را جست‌وجو کنید."
+        f"مبلغ پرداختی: {cost:,} تومان\n"
+        f"نوع رسانه: {getattr(item, 'media_type', None) or 'بدون رسانه'}\n\n"
+        f"متن پیام:\n{preview}\n\n"
+        f"کد درخواست: <code>{item.id}</code>\n\n"
+        "می‌توانید با دکمه‌های زیر فوراً تأیید یا رد کنید یا در پنل ادمین بخش پیام‌های گروهی این کد را جست‌وجو نمایید:"
     )
-    await notify_super_admins(text)
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ تأیید و ارسال",
+                    callback_data=f"admin_broadcast:approve:{item.id}",
+                ),
+                InlineKeyboardButton(
+                    text="❌ رد و عودت وجه",
+                    callback_data=f"admin_broadcast:reject:{item.id}",
+                ),
+            ]
+        ]
+    )
+    if item.media_type == "photo" and item.media_file_id_telegram:
+        await notify_super_admins_photo(
+            caption=text,
+            photo_file_id=item.media_file_id_telegram,
+            source_bot=source_bot,
+            reply_markup=markup,
+        )
+    else:
+        try:
+            await notify_super_admins(text, reply_markup=markup)
+        except TypeError:
+            await notify_super_admins(text)
 
 
 @router.message(F.text == "📢 ارسال پیام گروهی")
@@ -105,8 +133,7 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
         f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
-        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n"
-        "⭐ دسترسی به ارسال پیام گروهی ویژهٔ کاربران دارای پلن حرفه‌ای است.\n\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n\n"
     )
     info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
 
@@ -199,11 +226,6 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
             )
             creator_name = creator.display_name if creator and creator.display_name else "نامشخص"
             scope_title = target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده"
-    except broadcast_service.plan_service.PlanFeatureUnavailableError:
-        await callback.message.answer("⭐ ارسال پیام گروهی تنها برای کاربران دارای پلن حرفه‌ای امکان‌پذیر است. لطفاً ابتدا پلن خود را ارتقا دهید.")
-        await state.clear()
-        await safe_answer_callback(callback)
-        return
     except broadcast_service.wallet_service.InsufficientFundsError:
         await callback.message.answer("💳 موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لطفاً ابتدا کیف پول خود را شارژ فرمایید.")
         await state.clear()
@@ -215,7 +237,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
         await safe_answer_callback(callback)
         return
     await _notify_admins_of_broadcast_request(
-        item=item, creator_name=creator_name, scope_title=scope_title,
+        item=item, creator_name=creator_name, scope_title=scope_title, source_bot=callback.bot,
     )
     await state.clear()
     cost_text = f"{item.cost_toman:,} تومان"

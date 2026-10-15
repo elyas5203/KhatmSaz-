@@ -9,16 +9,24 @@ from khatmsaz.modules.plan.models import PlanTier
 
 
 @pytest.mark.asyncio
-async def test_submit_requires_pro_plan(monkeypatch):
+async def test_submit_allows_free_plan_with_wallet_spend(monkeypatch):
+    """MASTER-31: Broadcast entitlement does not require PRO plan; any funded creator can send."""
     creator_id = uuid4()
     monkeypatch.setattr(service, "audience_user_ids", AsyncMock(return_value=[uuid4(), uuid4()]))
-    monkeypatch.setattr(service.plan_service, "get_plan", AsyncMock(return_value=PlanTier.FREE))
+    monkeypatch.setattr(service, "channel_policy", AsyncMock(return_value=(0, 50_000)))
+    mock_spend = AsyncMock()
+    monkeypatch.setattr(service.wallet_service, "spend", mock_spend)
+    created = SimpleNamespace()
+    create = AsyncMock(return_value=created)
+    monkeypatch.setattr(repository, "create", create)
 
-    with pytest.raises(service.plan_service.PlanFeatureUnavailableError):
-        await service.submit(
-            object(), khatm_id=None, creator_user_id=creator_id,
-            body="سلام اعضای عزیز", channel="BALE",
-        )
+    result = await service.submit(
+        object(), khatm_id=None, creator_user_id=creator_id,
+        body="سلام اعضای عزیز", channel="BALE",
+    )
+    assert result is created
+    assert mock_spend.await_count == 1
+    assert mock_spend.await_args.kwargs["amount"] == 50_000
 
 
 @pytest.mark.asyncio

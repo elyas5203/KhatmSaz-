@@ -109,12 +109,7 @@ async def submit(
     )
     if not users:
         raise ValueError("broadcast audience is empty")
-    # DEC-PY-0121 / MASTER-10: Only PRO plan users may submit broadcasts (Basic has no broadcast)
-    plan = await plan_service.get_plan(session, creator_user_id)
-    if plan != PlanTier.PRO:
-        raise plan_service.PlanFeatureUnavailableError(
-            "ارسال پیام گروهی تنها برای کاربران دارای پلن حرفه‌ای امکان‌پذیر است."
-        )
+    # MASTER-31: Broadcast entitlement is package-based; any creator with sufficient wallet balance can submit.
 
     # Calculate dynamic package count and total cost
     policy = await channel_policy(session, channel)
@@ -124,9 +119,9 @@ async def submit(
         _free_count, unit_price = policy[0], policy[1]
         package_size = await channel_package_size(session, channel)
 
-    if package_size <= 0:
+    if package_size <= 0 or not isinstance(package_size, int):
         package_size = 1000
-    if unit_price <= 0:
+    if unit_price <= 0 or not isinstance(unit_price, int):
         unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
 
     packages_count = math.ceil(len(users) / package_size)
@@ -134,11 +129,12 @@ async def submit(
 
     invoice = None
     if cost > 0:
+        pkg_label = "۱۰۰۰" if package_size == 1000 else f"{package_size:,}"
         invoice = await wallet_service.spend(
             session,
             user_id=creator_user_id,
             amount=cost,
-            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته {package_size:,} نفری برای {len(users)} مخاطب)",
+            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته {pkg_label} نفری برای {len(users)} مخاطب)",
             invoice_kind=InvoiceKind.PURCHASE,
         )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
@@ -157,16 +153,23 @@ async def submit(
 
 
 async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
+    creator_user_id = getattr(item, "creator_user_id", None)
+    if not creator_user_id:
+        return []
     user_ids = await audience_user_ids(
-        session, item.creator_user_id, khatm_id=item.khatm_id,
-        province=item.target_province, gender=item.target_gender,
+        session, creator_user_id, khatm_id=getattr(item, "khatm_id", None),
+        province=getattr(item, "target_province", None), gender=getattr(item, "target_gender", None),
     )
-    if item.channel == "SMS":
+    channel = getattr(item, "channel", "TELEGRAM")
+    if channel == "SMS":
         result = await session.execute(select(UserSettings.contact_phone).where(
             UserSettings.user_id.in_(user_ids), UserSettings.contact_phone.isnot(None)
         ))
         return list(dict.fromkeys(phone for phone in result.scalars() if phone))
-    platform = Platform(item.channel)
+    try:
+        platform = Platform(channel)
+    except Exception:
+        platform = Platform.TELEGRAM
     stmt = (
         select(PlatformIdentity.subject, Participation.joined_via_bot_instance_id)
         .join(Participation, Participation.user_id == PlatformIdentity.user_id)
@@ -189,11 +192,13 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
 
 async def sender_display_name(session: AsyncSession, item: KhatmBroadcast) -> str:
     """Respect the creator name mode chosen for the targeted khatm."""
-    creator = await identity_service.find_by_id(session, item.creator_user_id)
+    creator_id = getattr(item, "creator_user_id", None)
+    creator = await identity_service.find_by_id(session, creator_id) if creator_id else None
     full_name = creator.display_name if creator and creator.display_name else "سازندهٔ ختم"
-    if item.khatm_id is None:
+    khatm_id = getattr(item, "khatm_id", None)
+    if khatm_id is None:
         return full_name
-    khatm = await khatm_service.get_khatm(session, item.khatm_id)
+    khatm = await khatm_service.get_khatm(session, khatm_id)
     if khatm is None:
         return full_name
     mode = getattr(khatm, "creator_display_mode", CreatorDisplayMode.FULL_NAME.value)

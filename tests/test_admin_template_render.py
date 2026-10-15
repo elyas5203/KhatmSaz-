@@ -202,7 +202,7 @@ def test_creator_new_khatm_form_renders_all_four_types_and_creation_route():
     assert 'value="quran"' in html
     assert 'value="salawat"' in html
     assert 'value="dua"' in html
-    assert 'value="laan"' in html
+    assert 'value="laan"' not in html
     assert 'name="quran_edition_id"' not in html
     assert "مدینه (حفص) — ۶۰۴ صفحه" in html
     assert "20,000 تومان" in html

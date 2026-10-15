@@ -45,11 +45,11 @@ async def get_int(session: AsyncSession, key: str) -> int:
     if key not in KNOWN_SETTINGS:
         raise ValueError(f"unknown system setting: {key}")
     raw = await repository.get(session, key)
-    if raw is None:
+    if raw is None or not isinstance(raw, (str, int)):
         return KNOWN_SETTINGS[key]["default"]
     try:
         return int(raw)
-    except ValueError:
+    except (ValueError, TypeError):
         return KNOWN_SETTINGS[key]["default"]
 
 

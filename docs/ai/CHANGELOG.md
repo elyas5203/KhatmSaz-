@@ -1,3 +1,22 @@
+## 2026-10-15 — Antigravity — Broadcast Entitlement, In-Bot Moderation with Photo & Inline Buttons, and Web Media Preview (MASTER-31)
+- **Broadcast Entitlement (Removal of PRO Requirement):**
+  - Removed `plan != PlanTier.PRO` requirement from `submit()` in `src/khatmsaz/modules/broadcast/service.py`. Any creator with sufficient wallet funds can send broadcast messages.
+  - Removed PRO plan copy from creator bot (`src/khatmsaz/bot/handlers/creator_broadcast.py`) and creator web panel (`src/khatmsaz/web/templates/creator_broadcasts.html`).
+  - Added dedicated `insufficient_funds` error handling in creator web broadcast route.
+- **In-Bot Moderation with Photo & Actionable Inline Buttons:**
+  - Updated `_notify_admins_of_broadcast_request` in `src/khatmsaz/bot/handlers/creator_broadcast.py` to add inline buttons: `[✅ تأیید و ارسال]` and `[❌ رد و عودت وجه]`.
+  - Added Telegram photo forwarding via `notify_super_admins_photo` with automatic fallback to the creator bot for cross-bot file_id downloads.
+  - Created `_safe_edit_admin_message` in `src/khatmsaz/bot/handlers/admin_bot/handlers.py` supporting `edit_caption` for photo messages and `edit_text` for text messages.
+  - Implemented live approval and rejection callbacks directly inside `@khatmsaz_admin_bot` with automated recipient dispatch and instant wallet refund on rejection.
+- **Web Admin Media Preview:**
+  - Added `@app.get("/broadcasts/{broadcast_id}/media")` in `src/khatmsaz/web/app.py` with disk caching in `static/uploads/broadcasts/`.
+  - Rendered responsive image preview `<img src="/broadcasts/{{ row.item.id }}/media">` in `src/khatmsaz/web/templates/broadcasts.html` with error fallback.
+- **Unified Delivery Dispatch:**
+  - Created `src/khatmsaz/modules/broadcast/delivery.py` with `deliver_broadcast(session, item)`.
+- **Documentation & Verification:**
+  - Authored `docs/ai/masters/MASTER_31_BROADCAST_ENTITLEMENT_IN_BOT_MODERATION_AND_MEDIA_PREVIEW.md`.
+  - Authored test suite `tests/test_master_31_broadcast_entitlement_and_moderation.py` (10/10 passed).
+
 ## 2026-10-15 — Antigravity — Khatm Detail Debt Count Fix & Global Disabling of La'an Khatm Creation (MASTER-30)
 - **Khatm Detail Member Debt Count UndefinedError Fix & Global La'an Khatm Creation Disabling (`MASTER-30`):**
   - **Fixed `jinja2.exceptions.UndefinedError: 'dict object' has no attribute 'debt_count'`:**
