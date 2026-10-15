@@ -1,3 +1,23 @@
+## 2026-10-15 — Antigravity — Creator Member Management & Two-Step Removal Flow (MASTER-27)
+- **Interactive Member Management & Two-Step Removal (`MASTER-27`):**
+  - **Feature Summary:** Transformed static member lists into an interactive participant directory with detailed member inspection and two-step confirmation removal.
+  - **Keyboards Added (`keyboards.py`):**
+    - `creator_members_list_keyboard`: Paginated member list with individual member action buttons (`km:v:{part_hex}`) and navigation.
+    - `creator_member_detail_keyboard`: Member inspection card with action button (`km:ask:{part_hex}`) and back button (`km:list:{khatm_hex}`).
+    - `creator_member_remove_step1_keyboard`: Step 1 warning keyboard (`km:conf:{part_hex}`).
+    - `creator_member_remove_step2_keyboard`: Step 2 final confirmation keyboard (`km:do:{part_hex}`).
+    - Strictly enforced Telegram 64-byte callback limit (max payload <= 43 bytes).
+  - **Bot Handlers (`my_khatms.py`):**
+    - `_render_khatm_members_view`: Computes progress, commitment flags, and returns paginated keyboard.
+    - `khatm_members_callback`: Handles `km:list:` and `km:p:` pagination and list refresh.
+    - `member_detail_callback`: Displays name, verified/contact phone, commitment status, progress, current portion, reminder hour, and misses.
+    - `member_remove_ask_step1`: Step 1 warning regarding portion release and waiting list promotion.
+    - `member_remove_confirm_step2`: Step 2 final critical confirmation.
+    - `member_remove_execute`: Releases uncompleted assigned portions, calls `workflow_service.leave_khatm`, promotes waiting list member, sends courteous notice to removed member, and records audit trail `CREATOR_BOT_REMOVE_MEMBER`.
+  - **Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_27_CREATOR_MEMBER_MANAGEMENT_AND_TWO_STEP_REMOVAL.md`.
+    - Added test suite `tests/test_master_27_creator_member_removal.py` (7/7 passed).
+
 ## 2026-10-14 — Antigravity — Comprehensive Button & Menu Audit and System-wide Repairs (MASTER-25 & MASTER-26)
 - **Button and Menu Audit & System-wide Repairs (`MASTER-25` & `MASTER-26`):**
   - **Dead Callbacks Repaired:**

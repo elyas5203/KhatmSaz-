@@ -19,6 +19,10 @@ from khatmsaz.bot.keyboards import (
     creator_content_mode_keyboard, creator_edit_cancel_keyboard,
     creator_schedule_keyboard,
     creator_settings_keyboard,
+    creator_members_list_keyboard,
+    creator_member_detail_keyboard,
+    creator_member_remove_step1_keyboard,
+    creator_member_remove_step2_keyboard,
     main_menu_keyboard, safe_answer_callback,
     safe_clear_inline_keyboard,
 )
@@ -509,39 +513,39 @@ _BUCKET_KEYS = {
 }
 
 
-@router.message(Command("khatm_members"))
-async def khatm_members(message: Message, command: CommandObject) -> None:
-    """Show a creator a compact, private member/progress overview."""
-    lang = await _lang_for(message.chat.id, message.bot)
-    raw_id = (command.args or "").strip()
-    try:
-        khatm_id = UUID(raw_id)
-    except ValueError:
-        await message.answer(t("my_khatms.creator.members_usage", lang))
-        return
-    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as session:
-        user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
-        if user is None:
-            await message.answer(t("my_khatms.creator.account_not_found", lang))
-            return
-        khatm = await khatm_service.get_khatm(session, khatm_id)
-        if khatm is None or khatm.creator_user_id != user.id:
-            await message.answer(t("my_khatms.creator.khatm_not_found", lang))
-            return
-        members = await participation_service.list_active_with_users(session, khatm.id)
-        portions = await allocation_service.list_for_khatm(session, khatm.id)
-
+async def _render_khatm_members_view(
+    session, khatm, user, lang: str, page: int = 0
+) -> tuple[str, InlineKeyboardMarkup]:
+    """Build the member overview text and interactive member selection keyboard."""
+    members = await participation_service.list_active_with_users(session, khatm.id)
     if not members:
-        await message.answer(t("my_khatms.creator.members_none", lang, title=khatm.title))
-        return
+        return (
+            t("my_khatms.creator.members_none", lang, title=khatm.title),
+            InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm.id}")]
+                ]
+            ),
+        )
+
+    portions = await allocation_service.list_for_khatm(session, khatm.id)
     by_member: dict[object, list] = {}
     for portion in portions:
         if portion.participation_id is not None:
             by_member.setdefault(portion.participation_id, []).append(portion)
-    lines = [t("my_khatms.creator.members_header", lang, title=khatm.title, count=len(members))]
+
+    PAGE_SIZE = 8
+    total_pages = max(1, (len(members) + PAGE_SIZE - 1) // PAGE_SIZE)
+    page = max(0, min(page, total_pages - 1))
+    start_idx = page * PAGE_SIZE
+    page_members = members[start_idx : start_idx + PAGE_SIZE]
+
+    lines = [
+        f"👥 <b>اعضای فعال «{escape(khatm.title)}» ({len(members)} نفر):</b>",
+        "برای مشاهده مشخصات، تماس یا لغو عضویت، نام کاربر را لمس نمایید:\n",
+    ]
     no_name = t("my_khatms.creator.member_no_name", lang)
-    for participation, member in members:
+    for idx, (participation, member) in enumerate(page_members, start=start_idx + 1):
         name = member.display_name or no_name
         assigned = by_member.get(participation.id, [])
         if assigned and assigned[0].quantity is not None:
@@ -560,8 +564,373 @@ async def khatm_members(message: Message, command: CommandObject) -> None:
             flags.append(t("my_khatms.creator.member_flag_committed", lang))
         if participation.backup_reader_opt_in:
             flags.append(t("my_khatms.creator.member_flag_backup", lang))
-        lines.append(f"— {name}: {progress_text}" + (f" ({'، '.join(flags)})" if flags else ""))
-    await message.answer("\n".join(lines))
+        flag_str = f" ({'، '.join(flags)})" if flags else ""
+        lines.append(f"{idx}. {escape(name)}: {progress_text}{flag_str}")
+
+    keyboard = creator_members_list_keyboard(
+        khatm.id, members, page=page, page_size=PAGE_SIZE, lang=lang
+    )
+    return "\n".join(lines), keyboard
+
+
+@router.message(Command("khatm_members"))
+async def khatm_members(message: Message, command: CommandObject) -> None:
+    """Show a creator an interactive member list with action buttons."""
+    lang = await _lang_for(message.chat.id, message.bot)
+    raw_id = (command.args or "").strip()
+    try:
+        khatm_id = UUID(raw_id)
+    except ValueError:
+        await message.answer(t("my_khatms.creator.members_usage", lang))
+        return
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
+        if user is None:
+            await message.answer(t("my_khatms.creator.account_not_found", lang))
+            return
+        khatm = await khatm_service.get_khatm(session, khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await message.answer(t("my_khatms.creator.khatm_not_found", lang))
+            return
+        text, keyboard = await _render_khatm_members_view(session, khatm, user, lang, page=0)
+    await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+
+@router.callback_query(F.data.startswith("km:list:") | F.data.startswith("km:p:"))
+async def khatm_members_callback(callback: CallbackQuery) -> None:
+    """Handle member list pagination and return-to-list navigation."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    parts = callback.data.split(":")
+    khatm_hex = parts[2]
+    page = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 0
+    try:
+        khatm_id = UUID(hex=khatm_hex)
+    except ValueError:
+        await safe_answer_callback(callback, t("my_khatms.creator.khatm_not_found", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.message.chat.id))
+        if user is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.account_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await safe_answer_callback(callback, t("my_khatms.creator.khatm_not_found", lang), show_alert=True)
+            return
+        text, keyboard = await _render_khatm_members_view(session, khatm, user, lang, page=page)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("km:v:"))
+async def member_detail_callback(callback: CallbackQuery) -> None:
+    """Render a participant's detail card with removal action."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    parts = callback.data.split(":")
+    if len(parts) < 3:
+        await safe_answer_callback(callback)
+        return
+    part_hex = parts[2]
+    try:
+        participation_id = UUID(hex=part_hex)
+    except ValueError:
+        await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.message.chat.id))
+        participation = await participation_service.get_by_id(session, participation_id)
+        if user is None or participation is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        if participation.status.value != "ACTIVE":
+            await safe_answer_callback(callback, "عضویت این کاربر فعال نیست.", show_alert=True)
+            text, keyboard = await _render_khatm_members_view(session, khatm, user, lang, page=0)
+            try:
+                await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+            except Exception:
+                await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+            return
+
+        member = await identity_service.find_by_id(session, participation.user_id)
+        member_settings = await settings_service.get_or_create(session, participation.user_id)
+        current = await allocation_service.get_current_portion(session, khatm.id, participation.id)
+        portions = await allocation_service.list_for_khatm(session, khatm.id)
+        owned = [p for p in portions if p.participation_id == participation.id]
+        misses = await notification_service.total_miss_count(
+            session, participation.id,
+            window_days=getattr(khatm, "miss_notice_window_days", 7),
+        )
+        preference = await notification_service.get_preference(session, participation.id)
+
+    name = member.display_name if member and member.display_name else t("my_khatms.creator.member_no_name", lang)
+    phone = member_settings.contact_phone or "ثبت‌نشده"
+
+    if owned and owned[0].quantity is not None:
+        progress = f"{sum(p.completed_quantity for p in owned)}/{sum(p.quantity or 0 for p in owned)}"
+    elif owned:
+        done = sum(p.status.value == "COMPLETED" for p in owned)
+        progress = f"{done}/{len(owned)} سهم"
+    else:
+        progress = t("my_khatms.creator.no_portion", lang)
+
+    if current is None:
+        current_text = t("my_khatms.creator.no_portion", lang)
+    elif current.quantity is not None:
+        current_text = t(
+            "my_khatms.creator.current_portion_quantity", lang, done=current.completed_quantity, total=current.quantity
+        )
+    else:
+        current_text = t(
+            "my_khatms.creator.current_portion_pages", lang, start=current.unit_start, end=current.unit_end
+        )
+
+    reminder_text = (
+        t("my_khatms.creator.reminder_off", lang)
+        if preference is not None and not preference.enabled
+        else f"{preference.reminder_hour if preference else 9}:00"
+    )
+    committed_text = t("my_khatms.creator.yes", lang) if participation.is_committed else t("my_khatms.creator.no", lang)
+
+    text = (
+        f"👤 <b>اطلاعات عضو در ختم «{escape(khatm.title)}»</b>\n\n"
+        f"▫️ <b>نام کاربر:</b> {escape(name)}\n"
+        f"📞 <b>شماره تماس:</b> {phone}\n"
+        f"▫️ <b>تعهد دارد:</b> {committed_text}\n"
+        f"📊 <b>پیشرفت تلاوت:</b> {progress}\n"
+        f"📖 <b>سهم جاری:</b> {current_text}\n"
+        f"⏰ <b>ساعت یادآوری:</b> {reminder_text}\n"
+        f"⚠️ <b>دیرکرد ثبت‌نشده (در بازه):</b> {misses} روز\n\n"
+        f"💡 در صورت نیاز به لغو عضویت کاربر از این ختم، دکمه «حذف این عضو» را لمس کنید."
+    )
+    keyboard = creator_member_detail_keyboard(khatm.id, participation.id, lang=lang)
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("km:ask:"))
+async def member_remove_ask_step1(callback: CallbackQuery) -> None:
+    """Confirmation Step 1: Warn creator about portion release and waiting list promotion."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    parts = callback.data.split(":")
+    if len(parts) < 3:
+        await safe_answer_callback(callback)
+        return
+    part_hex = parts[2]
+    try:
+        participation_id = UUID(hex=part_hex)
+    except ValueError:
+        await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.message.chat.id))
+        participation = await participation_service.get_by_id(session, participation_id)
+        if user is None or participation is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        member = await identity_service.find_by_id(session, participation.user_id)
+
+    name = member.display_name if member and member.display_name else t("my_khatms.creator.member_no_name", lang)
+    text = (
+        f"⚠️ <b>درخواست حذف عضو (مرحله ۱ از ۲)</b>\n\n"
+        f"آیا از حذف «{escape(name)}» از ختم «{escape(khatm.title)}» اطمینان دارید؟\n\n"
+        f"▫️ با حذف این عضو، سهم‌های تخصیص‌یافته به ایشان آزاد خواهند شد.\n"
+        f"▫️ در صورت وجود، نفر بعدی از لیست انتظار به‌صورت خودکار جایگزین می‌شود.\n\n"
+        f"جهت ادامه و دریافت تأیید نهایی، دکمه «مرحله ۲» را لمس کنید."
+    )
+    keyboard = creator_member_remove_step1_keyboard(participation.id, lang=lang)
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("km:conf:"))
+async def member_remove_confirm_step2(callback: CallbackQuery) -> None:
+    """Confirmation Step 2: Final critical confirmation before irrevocable removal."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    parts = callback.data.split(":")
+    if len(parts) < 3:
+        await safe_answer_callback(callback)
+        return
+    part_hex = parts[2]
+    try:
+        participation_id = UUID(hex=part_hex)
+    except ValueError:
+        await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.message.chat.id))
+        participation = await participation_service.get_by_id(session, participation_id)
+        if user is None or participation is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        member = await identity_service.find_by_id(session, participation.user_id)
+
+    name = member.display_name if member and member.display_name else t("my_khatms.creator.member_no_name", lang)
+    text = (
+        f"🔴 <b>تأیید نهایی حذف عضو (مرحله ۲ از ۲)</b>\n\n"
+        f"⚠️ <b>توجه:</b> این عملیات قطعی است و عضویت «{escape(name)}» در ختم «{escape(khatm.title)}» کاملاً لغو خواهد شد.\n\n"
+        f"آیا کاملاً اطمینان دارید؟"
+    )
+    keyboard = creator_member_remove_step2_keyboard(participation.id, lang=lang)
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("km:do:"))
+async def member_remove_execute(callback: CallbackQuery) -> None:
+    """Execute participant removal, portion freeing, waiting list promotion, and polite notification."""
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    parts = callback.data.split(":")
+    if len(parts) < 3:
+        await safe_answer_callback(callback)
+        return
+    part_hex = parts[2]
+    try:
+        participation_id = UUID(hex=part_hex)
+    except ValueError:
+        await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+        return
+
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        user = await identity_service.find_by_platform(session, platform, str(callback.message.chat.id))
+        participation = await participation_service.get_by_id(session, participation_id)
+        if user is None or participation is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None or khatm.creator_user_id != user.id:
+            await safe_answer_callback(callback, t("my_khatms.creator.member_not_found", lang), show_alert=True)
+            return
+        if participation.status.value != "ACTIVE":
+            await safe_answer_callback(callback, "این عضویت قبلاً لغو یا غیرفعال شده است.", show_alert=True)
+            text, keyboard = await _render_khatm_members_view(session, khatm, user, lang, page=0)
+            try:
+                await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+            except Exception:
+                await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+            return
+
+        member = await identity_service.find_by_id(session, participation.user_id)
+        member_name = member.display_name if member and member.display_name else t("my_khatms.creator.member_no_name", lang)
+
+        # Release current assigned portion if any
+        current = await allocation_service.get_current_portion(session, khatm.id, participation.id)
+        if current is not None and getattr(current, "status", None) and current.status.value == "ASSIGNED":
+            try:
+                await allocation_service.release_portion(session, current.id)
+            except Exception:
+                pass
+
+        # Perform leave and waiting list promotion
+        promoted_part, promoted_portion = await workflow_service.leave_khatm(
+            session, participation.id, reason="REMOVED_BY_CREATOR"
+        )
+
+        # Audit trail
+        await audit_service.record(
+            session,
+            actor_user_id=user.id,
+            target_user_id=member.id if member else participation.user_id,
+            action="CREATOR_BOT_REMOVE_MEMBER",
+            details={"khatm_id": str(khatm.id), "participation_id": str(participation.id)},
+        )
+
+        member_identities = await identity_service.list_identities_for_user(session, participation.user_id) if member else []
+        promoted_identities = (
+            await identity_service.list_identities_for_user(session, promoted_part.user_id)
+            if promoted_part else []
+        )
+        promoted_lang = "fa"
+        if promoted_part:
+            p_settings = await settings_service.get_or_create(session, promoted_part.user_id)
+            promoted_lang = p_settings.language or "fa"
+
+    # Notify removed member politely
+    try:
+        from khatmsaz.bot.notify_adapter import get_notify_fn
+        notify = get_notify_fn()
+        if notify:
+            notice_text = f"همراه گرامی، عضویت شما در ختم «{khatm.title}» توسط بانی ختم لغو شد. با آرزوی قبولی طاعات و عبادات شما 🤍"
+            for identity in member_identities:
+                await notify(
+                    identity.platform.value,
+                    identity.subject,
+                    notice_text,
+                    bot_instance_id=participation.joined_via_bot_instance_id,
+                )
+            if promoted_part:
+                p_text = t("leave.promoted_notice", promoted_lang, title=khatm.title)
+                if promoted_portion is not None:
+                    p_text += t(
+                        "leave.promoted_portion_line",
+                        promoted_lang,
+                        start=promoted_portion.unit_start,
+                        end=promoted_portion.unit_end,
+                    )
+                for identity in promoted_identities:
+                    await notify(
+                        identity.platform.value,
+                        identity.subject,
+                        p_text,
+                        bot_instance_id=promoted_part.joined_via_bot_instance_id,
+                    )
+    except Exception:
+        pass
+
+    await safe_answer_callback(callback, "✅ عضویت کاربر با موفقیت لغو شد.", show_alert=True)
+    text = (
+        f"✅ <b>عضویت کاربر لغو شد</b>\n\n"
+        f"عضویت «{escape(member_name)}» در ختم «{escape(khatm.title)}» با موفقیت لغو شد و سهم‌های مربوطه آزاد گردیدند."
+    )
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="👥 بازگشت به لیست اعضا", callback_data=f"km:list:{khatm.id.hex}")],
+            [InlineKeyboardButton(text="⚙️ مدیریت ختم", callback_data=f"my_khatms:manage:{khatm.id}")],
+        ]
+    )
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+
+@router.callback_query(F.data == "km:noop")
+async def km_noop_callback(callback: CallbackQuery) -> None:
+    await safe_answer_callback(callback)
 
 
 @router.message(Command("khatm_member"))
@@ -590,6 +959,7 @@ async def khatm_member_detail(message: Message, command: CommandObject) -> None:
             await message.answer(t("my_khatms.creator.member_not_found", lang))
             return
         member = await identity_service.find_by_id(session, participation.user_id)
+        member_settings = await settings_service.get_or_create(session, participation.user_id)
         current = await allocation_service.get_current_portion(session, khatm.id, participation.id)
         portions = await allocation_service.list_for_khatm(session, khatm.id)
         owned = [p for p in portions if p.participation_id == participation.id]
@@ -598,14 +968,18 @@ async def khatm_member_detail(message: Message, command: CommandObject) -> None:
             window_days=getattr(khatm, "miss_notice_window_days", 7),
         )
         preference = await notification_service.get_preference(session, participation.id)
+
     name = member.display_name if member and member.display_name else t("my_khatms.creator.member_no_name", lang)
+    phone = member_settings.contact_phone or "ثبت‌نشده"
+
     if owned and owned[0].quantity is not None:
         progress = f"{sum(p.completed_quantity for p in owned)}/{sum(p.quantity or 0 for p in owned)}"
     elif owned:
         done = sum(p.status.value == "COMPLETED" for p in owned)
-        progress = f"{done}/{len(owned)}"
+        progress = f"{done}/{len(owned)} سهم"
     else:
         progress = t("my_khatms.creator.no_portion", lang)
+
     if current is None:
         current_text = t("my_khatms.creator.no_portion", lang)
     elif current.quantity is not None:
@@ -616,20 +990,26 @@ async def khatm_member_detail(message: Message, command: CommandObject) -> None:
         current_text = t(
             "my_khatms.creator.current_portion_pages", lang, start=current.unit_start, end=current.unit_end
         )
-    pause_text = t("my_khatms.creator.pause_none", lang) if participation.paused_until is None else str(participation.paused_until)
+
     reminder_text = (
         t("my_khatms.creator.reminder_off", lang)
         if preference is not None and not preference.enabled
         else f"{preference.reminder_hour if preference else 9}:00"
     )
-    await message.answer(
-        t(
-            "my_khatms.creator.member_detail", lang,
-            name=name, title=khatm.title, progress=progress, current=current_text,
-            misses=misses, reminder=reminder_text, pause=pause_text,
-            committed=t("my_khatms.creator.yes", lang) if participation.is_committed else t("my_khatms.creator.no", lang),
-        )
+    committed_text = t("my_khatms.creator.yes", lang) if participation.is_committed else t("my_khatms.creator.no", lang)
+
+    text = (
+        f"👤 <b>اطلاعات عضو در ختم «{escape(khatm.title)}»</b>\n\n"
+        f"▫️ <b>نام کاربر:</b> {escape(name)}\n"
+        f"📞 <b>شماره تماس:</b> {phone}\n"
+        f"▫️ <b>تعهد دارد:</b> {committed_text}\n"
+        f"📊 <b>پیشرفت تلاوت:</b> {progress}\n"
+        f"📖 <b>سهم جاری:</b> {current_text}\n"
+        f"⏰ <b>ساعت یادآوری:</b> {reminder_text}\n"
+        f"⚠️ <b>دیرکرد ثبت‌نشده (در بازه):</b> {misses} روز"
     )
+    keyboard = creator_member_detail_keyboard(khatm.id, participation.id, lang=lang)
+    await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 @router.message(Command("khatm_attention"))

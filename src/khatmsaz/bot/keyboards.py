@@ -1266,3 +1266,80 @@ def join_delivery_hour_keyboard(participation_id: str, lang: str = "fa") -> Inli
          InlineKeyboardButton(text=labels[21], callback_data=f"set_reminder:{participation_id}:21:0")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_members_list_keyboard(
+    khatm_id,
+    members: list,
+    page: int = 0,
+    page_size: int = 8,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Build an interactive, paginated keyboard of active khatm members for the creator."""
+    khatm_hex = khatm_id.hex if hasattr(khatm_id, "hex") else uuid.UUID(str(khatm_id)).hex
+    total_members = len(members)
+    total_pages = max(1, (total_members + page_size - 1) // page_size)
+    page = max(0, min(page, total_pages - 1))
+    start_idx = page * page_size
+    page_members = members[start_idx : start_idx + page_size]
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for participation, member in page_members:
+        part_hex = participation.id.hex if hasattr(participation.id, "hex") else uuid.UUID(str(participation.id)).hex
+        display_name = member.display_name or t("my_khatms.creator.member_no_name", lang)
+        btn_text = f"👤 {display_name[:24]}"
+        rows.append([InlineKeyboardButton(text=btn_text, callback_data=f"km:v:{part_hex}")])
+
+    if total_pages > 1:
+        nav_row: list[InlineKeyboardButton] = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton(text="◀️ قبلی", callback_data=f"km:p:{khatm_hex}:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(text=f"صفحه {page + 1} از {total_pages}", callback_data="km:noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton(text="بعدی ▶️", callback_data=f"km:p:{khatm_hex}:{page + 1}"))
+        rows.append(nav_row)
+
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_detail_keyboard(
+    khatm_id,
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Action buttons on member detail card: Remove Member and Back to List."""
+    khatm_hex = khatm_id.hex if hasattr(khatm_id, "hex") else uuid.UUID(str(khatm_id)).hex
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="❌ حذف این عضو از ختم", callback_data=f"km:ask:{part_hex}")],
+        [InlineKeyboardButton(text="🔙 بازگشت به لیست اعضا", callback_data=f"km:list:{khatm_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_remove_step1_keyboard(
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Step 1 confirmation buttons: proceed to final step or cancel."""
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="⚠️ بله، ادامه حذف (مرحله ۲)", callback_data=f"km:conf:{part_hex}")],
+        [InlineKeyboardButton(text="❌ انصراف و بازگشت", callback_data=f"km:v:{part_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_remove_step2_keyboard(
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Step 2 (Final) confirmation buttons: execute removal or cancel."""
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="🔴 تأیید نهایی و لغو عضویت", callback_data=f"km:do:{part_hex}")],
+        [InlineKeyboardButton(text="❌ انصراف و بازگشت", callback_data=f"km:v:{part_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+

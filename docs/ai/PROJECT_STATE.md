@@ -1,3 +1,24 @@
+## Current state — 2026-10-15 — Creator Member Management & Two-Step Removal Flow (MASTER-27) [Antigravity]
+- **Interactive Member Management & Two-Step Removal (`MASTER-27`):**
+  - **Owner Mandate:** "لیست اعضا رو میبینم، اینجا هم اینو گفته ولی کاری نمیشه کرد این درست بکن برام بعد اگر خواستم با دوبار تایید گرفتن مثلا حذفش بکنم از لیست ی همچین چیزی".
+  - **Problem Solved:** Previously, clicking `👥 لیست اعضا` (`creator_report:members:{khatm_id}`) or running `/khatm_members` rendered a static text list without interactive buttons. When creators received consecutive missed deadline alerts advising them to check membership in «👥 اعضا», they had no interface to inspect member details (phone, commitment, streak/misses, reminder time) or eject inactive members.
+  - **Interactive Keyboard & Callback Architecture (`src/khatmsaz/bot/keyboards.py`):**
+    - Added `creator_members_list_keyboard`: paginated list (8 members/page) with per-member buttons `[👤 {name}]` -> `km:v:{part_hex}`, page navigation (`km:p:{khatm_hex}:{page}`), and return to management (`my_khatms:manage:{khatm_id}`).
+    - Added `creator_member_detail_keyboard`: member detail view with action button `[❌ حذف این عضو از ختم]` (`km:ask:{part_hex}`) and `[🔙 بازگشت به لیست اعضا]` (`km:list:{khatm_hex}`).
+    - Added `creator_member_remove_step1_keyboard`: Step 1 warning keyboard with `[⚠️ بله، ادامه حذف (مرحله ۲)]` (`km:conf:{part_hex}`) and `[❌ انصراف و بازگشت]` (`km:v:{part_hex}`).
+    - Added `creator_member_remove_step2_keyboard`: Step 2 final confirmation keyboard with `[🔴 تأیید نهایی و لغو عضویت]` (`km:do:{part_hex}`) and `[❌ انصراف و بازگشت]` (`km:v:{part_hex}`).
+    - **Telegram 64-byte Callback Limit Enforced:** All callbacks use compact namespace `km:` and 32-char hex UUIDs, guaranteeing maximum length <= 43 bytes.
+  - **Bot Handlers Updated (`src/khatmsaz/bot/handlers/my_khatms.py`):**
+    - `_render_khatm_members_view`: computes member progress, commitment flags, and attaches `creator_members_list_keyboard`.
+    - `khatm_members_callback`: handles pagination and list refresh.
+    - `member_detail_callback`: displays comprehensive member card with display name, verified/contact phone, commitment status, progress, current portion, reminder hour, and misses.
+    - `member_remove_ask_step1`: renders Step 1 warning regarding portion release and waiting list promotion.
+    - `member_remove_confirm_step2`: renders Step 2 final critical confirmation.
+    - `member_remove_execute`: releases uncompleted assigned portions via `allocation_service.release_portion`, executes `workflow_service.leave_khatm(..., reason="REMOVED_BY_CREATOR")`, promotes waiting list participant if present, sends polite notice to removed member, logs audit event `CREATOR_BOT_REMOVE_MEMBER`, and renders success confirmation.
+  - **Documentation & Tests:**
+    - Authored `docs/ai/masters/MASTER_27_CREATOR_MEMBER_MANAGEMENT_AND_TWO_STEP_REMOVAL.md`.
+    - Added test suite `tests/test_master_27_creator_member_removal.py` (7/7 tests passing). Full master regression suite: 66 passed, 3 skipped, 0 failures (100% pass rate).
+
 ## Current state — 2026-10-14 — Comprehensive Button & Menu Audit and System-wide Repairs (MASTER-25 & MASTER-26) [Antigravity]
 - **Button and Menu Audit & System-wide Repairs (`MASTER-25` & `MASTER-26`):**
   - **Owner Mandate:** "با چندتا ساب ایجنت میخوام تک تک دکمه هایی ک تو منو بات ختم ساز و همچنین منوبات های ممبر هست رو بررسی بکنی همشون اینک سالم و کار میکنن... تک تک دکمه ها میخوام تست بشن چون الان بعضی دکمه ها هستن ک من خودم تستکردم و دیدم غیر فعاله... ی فایل مستر با تمام قوانینی ک تاحالا داشتم میسازی برای انالیز و ساخت فایل مستر دیگه ای ک بای از روش کارا انجام بشه".
