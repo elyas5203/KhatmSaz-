@@ -37,27 +37,39 @@ def to_ascii_digits(text: str) -> str:
 
 
 def normalize_e164(raw: str) -> str:
-    if not raw:
+    if raw is None:
         raise OtpError("phone must not be empty")
-    cleaned = to_ascii_digits(raw.strip())
+    cleaned = to_ascii_digits(str(raw).strip())
+    if not cleaned:
+        raise OtpError("phone must not be empty")
+
+    has_plus = cleaned.startswith("+")
     # Remove separators: spaces, hyphens, parentheses, dots
     value = "".join(c for c in cleaned if c.isdigit() or c == "+")
+    digits_only = "".join(c for c in value if c.isdigit())
+    if not digits_only:
+        raise OtpError("phone must contain digits")
 
     # 1. International dialing prefix 00 -> +
-    if value.startswith("00"):
-        value = "+" + value[2:]
+    if digits_only.startswith("00"):
+        value = "+" + digits_only[2:]
     # 2. Iranian domestic mobile: 09XXXXXXXXX (11 digits) -> +989XXXXXXXXX
-    elif value.startswith("09") and len(value) == 11:
-        value = "+98" + value[1:]
+    elif digits_only.startswith("09") and len(digits_only) == 11:
+        value = "+98" + digits_only[1:]
     # 3. Iranian international without plus: 989XXXXXXXXX (12 digits) or 98XXXXXXXXXX
-    elif value.startswith("98") and not value.startswith("+") and (11 <= len(value) <= 13):
-        value = "+" + value
+    elif digits_only.startswith("98") and not has_plus and (11 <= len(digits_only) <= 13):
+        value = "+" + digits_only
     # 4. Iranian mobile without leading 0: 9XXXXXXXXX (10 digits starting with 90, 91, 92, 93, 99)
-    elif value.startswith("9") and len(value) == 10 and value[1] in "01239" and not value.startswith("+"):
-        value = "+98" + value
-    # 5. International digits without leading + (from Telegram contact share or typed without +)
-    elif not value.startswith("+") and value.isdigit() and (7 <= len(value) <= 15):
-        value = "+" + value
+    elif digits_only.startswith("9") and len(digits_only) == 10 and digits_only[1] in "01239" and not has_plus:
+        value = "+98" + digits_only
+    # 5. Has explicit leading plus: + followed by digits
+    elif has_plus:
+        value = "+" + digits_only
+    # 6. International digits without leading + (from Telegram contact share or typed without +)
+    elif 7 <= len(digits_only) <= 15:
+        value = "+" + digits_only
+    else:
+        value = "+" + digits_only
 
     # Final E.164 validation: must start with +, followed by 7 to 15 digits
     if not value.startswith("+") or not value[1:].isdigit() or not (7 <= len(value[1:]) <= 15):

@@ -77,9 +77,11 @@ flowchart TD
    - ارتقای تابع `normalize_e164` برای شناسایی و نرمال‌سازی خودکار شماره‌های بین‌المللی ارسالی از Telegram Contact Share.
    - ارتقای تابع `is_foreign_phone` جهت تمایز دقیق شماره‌های بین‌المللی از ایران.
 
-۲. **`src/khatmsaz/bot/handlers/profile.py` (`enter_phone` & `choose_gender`):**
-   - پشتیبانی امن از شیء `message.contact` بدون ریسک خطای ویژگی.
+۲. **`src/khatmsaz/bot/handlers/profile.py` (`receive_shared_contact`, `enter_phone` & `choose_gender`):**
+   - تفکیک صریح و مستقل هندلر اشتراک‌گذاری مخاطب (`@router.message(ProfileEdit.entering_phone, F.contact)`) از هندلر ورودی متنی (`enter_phone`).
+   - پشتیبانی امن از شیء `message.contact` و نرمال‌سازی با `normalize_e164`.
    - احراز و ثبت مستقیم آنی شماره خارجی در لحظهٔ اشتراک‌گذاری مخاطب (`PROFILE_CONTACT_SHARE_FOREIGN_DIRECT_VERIFY`).
+   - پاکسازی استاندارد کیبورد پایین تلگرام با `ReplyKeyboardRemove()` جهت تجربه کاربری بدون نقص.
    - اتصال مستقیم به جریان ساخت ختم (`resume_khatm_creation_if_pending`) بدون وقفه یا بازگشت به منو.
 
 ۳. **`src/khatmsaz/bot/handlers/registration.py`:**

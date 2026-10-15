@@ -3,7 +3,7 @@
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, ReplyKeyboardRemove
 
 from khatmsaz.bot.handlers.registration import _phone_keyboard
 from khatmsaz.bot.iran_provinces import IRAN_PROVINCES, OUTSIDE_IRAN, province_labels
@@ -149,20 +149,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
     await _profile_prompt(message, state, t("profile.ask_phone", lang), reply_markup=_phone_keyboard(lang))
 
 
-@router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
-async def enter_phone(message: Message, state: FSMContext) -> None:
-    lang = (await state.get_data()).get("language", "fa")
-    if getattr(message, "contact", None):
-        phone = message.contact.phone_number
-    else:
-        if await bail_if_menu_button(message, state):
-            return
-        phone = (message.text or "").strip()
-    try:
-        phone = phone_service.normalize_e164(phone)
-    except phone_service.OtpError:
-        await _profile_error(message, state, t("registration.phone_invalid", lang))
-        return
+async def _handle_phone_submission(message: Message, state: FSMContext, phone: str, lang: str) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.find_by_platform(
@@ -200,9 +187,8 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
                     if str(exc) == "phone belongs to another account":
                         await _profile_error(message, state, t("change_phone.phone_taken", lang))
                         return
-    from khatmsaz.bot.keyboards import home_keyboard_for_bot
     try:
-        transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))
+        transient = await message.answer("...", reply_markup=ReplyKeyboardRemove())
         await transient.delete()
     except Exception:
         pass
@@ -211,6 +197,30 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
         message, state, t("registration.ask_province", lang),
         reply_markup=_province_keyboard(lang),
     )
+
+
+@router.message(ProfileEdit.entering_phone, F.contact)
+async def receive_shared_contact(message: Message, state: FSMContext) -> None:
+    lang = (await state.get_data()).get("language", "fa")
+    try:
+        phone = phone_service.normalize_e164(message.contact.phone_number)
+    except phone_service.OtpError:
+        await _profile_error(message, state, t("registration.shared_phone_invalid", lang))
+        return
+    await _handle_phone_submission(message, state, phone, lang)
+
+
+@router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
+async def enter_phone(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
+    lang = (await state.get_data()).get("language", "fa")
+    try:
+        phone = phone_service.normalize_e164((message.text or "").strip())
+    except phone_service.OtpError:
+        await _profile_error(message, state, t("registration.phone_invalid", lang))
+        return
+    await _handle_phone_submission(message, state, phone, lang)
 
 
 @router.callback_query(F.data.startswith("profile:province:"), ProfileEdit.choosing_province)

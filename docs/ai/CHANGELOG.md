@@ -1,3 +1,12 @@
+## 2026-10-15 — Antigravity — Profile Handler Route Separation & Contact Share Hardening (MASTER-24)
+- **Profile Handler Hardening (`src/khatmsaz/bot/handlers/profile.py`):**
+  - Explicitly separated `receive_shared_contact` (`F.contact`) and `enter_phone` (`~F.text.startswith("/")`) into dedicated handlers.
+  - Extracted common phone submission logic to `_handle_phone_submission`.
+  - Replaced temporary message answer with standard `ReplyKeyboardRemove()` to guarantee instant removal of the Telegram contact sharing keyboard.
+- **Robust E.164 Normalization (`src/khatmsaz/modules/phone/service.py`):**
+  - Added safe `str(raw)` coercion, Persian/Arabic digit transliteration, and robust international dialing handling for numbers with/without leading `+` (7 to 15 digits).
+- **Validation:** 8 unit tests in `tests/test_master_24_foreign_contact_share.py`. Full test suite: 489 passed, 233 skipped, 0 failures (100% pass rate).
+
 ## 2026-10-15 — Antigravity — Foreign Phone Direct Registration via Telegram Contact Share & Iranian OTP Segregation (MASTER-24)
 - **Specification & Decision:** Authored `docs/ai/masters/MASTER_24_FOREIGN_PHONE_CONTACT_SHARE_DIRECT_REGISTRATION.md` and registered `DEC-PY-0131`.
 - **E.164 Normalization Overhaul (`src/khatmsaz/modules/phone/service.py`):**

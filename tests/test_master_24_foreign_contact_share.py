@@ -13,6 +13,7 @@ from khatmsaz.bot.handlers.change_phone import (
 from khatmsaz.bot.handlers.profile import (
     ProfileEdit,
     enter_phone as profile_enter_phone,
+    receive_shared_contact as profile_receive_shared_contact,
 )
 from khatmsaz.bot.handlers.registration import (
     Registration,
@@ -149,7 +150,7 @@ async def test_profile_contact_share_foreign_number_direct_verify():
         mock_find_user.return_value = mock_user
         mock_claim.return_value = None
 
-        await profile_enter_phone(message, state)
+        await profile_receive_shared_contact(message, state)
 
         # 1. State must advance to choosing_province
         assert state.state == ProfileEdit.choosing_province
@@ -181,7 +182,7 @@ async def test_profile_contact_share_iranian_number_requires_otp():
         mock_find_user.return_value = mock_user
         mock_claim.return_value = None
 
-        await profile_enter_phone(message, state)
+        await profile_receive_shared_contact(message, state)
 
         assert state.state == ProfileEdit.choosing_province
         assert state.data["phone"] == "+989121234567"
