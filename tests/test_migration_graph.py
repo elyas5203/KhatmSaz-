@@ -67,4 +67,4 @@ def test_bot_instance_migrations_are_ordered_before_intro_image() -> None:
     assert proplan is not None
     assert proplan.down_revision == "receipt2026101301"
 
-    assert script.get_heads() == ["proplan2026101302"]
+    assert script.get_heads() == ["khatm2026101501"]

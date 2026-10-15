@@ -1,3 +1,8 @@
+## Current state — 2026-10-15 — Immediate foreign Telegram contact registration [Codex]
+- Owner asked to deploy the foreign share-button fix. Production checkout advanced to `update_khatm_wizard_flow` at `4eb3a82` while this work was in progress. Rebasing preserved the concurrent MASTER-33 transfer feature and its migration; this correction lives on top of that production commit and preserves MASTER-22's typed, change-phone and web paths.
+- Telegram registration, member registration and profile now normalize shared international contacts without `+`, require the contact's user ID to match its sender, and call `direct_verify_phone` at contact receipt. Iranian contacts keep creator OTP. Repeated final-form verification is skipped for the already registered shared phone; a changed registration phone revokes its previous claim.
+- See DEC-PY-0129 and `docs/ai/masters/MASTER_34_FOREIGN_SHARED_CONTACT_IMMEDIATE.md`. No schema change in this correction. Local full suite on the rebased code: 558 PASS / 233 integration SKIP; focused MASTER-22/contact suite before rebase: 18 PASS / 2 SKIP. The migration-graph test was updated to expect MASTER-33's reviewed head `khatm2026101501`. Production `alembic current` already reports that head. Compileall and diff check PASS. Server deployment and health result are recorded in the next update.
+
 ## Current state — 2026-10-15 — Video Feature Removal & Khatm Deactivation / Management Delegation to Service Admin (Rule 5) (MASTER-33) [Antigravity]
 - **Video Feature Removal & Khatm Deactivation / Management Delegation (`MASTER-33`):**
   - **Owner Mandate:**
@@ -3893,5 +3898,3 @@ the entries above.
 - Every commitment khatm family (Quran, Salawat, Dua, Ziyarat and La'an) now asks and persists a daily deadline hour. Open khatms do not receive the commitment warning, including when an ORM enum arrives as a string.
 - Member trust copy now identifies Â«Ø³Ø§Ø²Ù†Ø¯Ù‡Ù” Ø®ØªÙ…Â» without the awkward Â«Ø§Ú©Ø§Ù†ØªÂ» wording. Open/commitment responsibility copy and commitment-mode guidance were softened and clarified.
 - Validation: full suite **271 passed, 85 skipped** after the i18n placeholder repair; no migration was added.
-
-

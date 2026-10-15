@@ -244,9 +244,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "📱 Share my phone number",
     },
     "registration.shared_phone_invalid": {
-        "fa": "شمارهٔ اشتراک‌گذاری‌شده معتبر نیست؛ لطفاً شماره را با کد کشور بنویسید.",
-        "ar": "الرقم المشارك غير صالح؛ اكتبه مع رمز الدولة.",
-        "en": "The shared number is not valid. Please type it with the country code.",
+        "fa": "شمارهٔ خودتان ثبت نشد. لطفاً دکمهٔ «اشتراک‌گذاری شماره من» را بزنید و شمارهٔ خودتان را بفرستید.",
+        "ar": "لم يُسجَّل رقمك. اضغط زر مشاركة رقمي وأرسل رقمك أنت.",
+        "en": "Your number was not saved. Please use Share my phone number to send your own number.",
     },
     "registration.phone_invalid": {
         "fa": "لطفاً یک شماره موبایل معتبر بنویسید یا از دکمه اشتراک‌گذاری استفاده کنید.",

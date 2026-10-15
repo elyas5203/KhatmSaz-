@@ -1,3 +1,9 @@
+## 2026-10-15 — Foreign shared-contact correction [Codex]
+- [x] Adapt the fix to the production branch and document DEC-PY-0129 / MASTER-34.
+- [x] Add focused contact normalization and immediate-registration tests.
+- [x] Full local test gate on the production base: 558 PASS / 233 integration SKIP; one Alembic head.
+- [ ] Deploy and verify server service/log health.
+
 ## 2026-10-13 — Automated Telegram-to-Bale media migration pipeline [Antigravity]
 - [x] Publish `docs/ai/TELEGRAM_TO_BALE_MIGRATION_MASTER.md` and record decision DEC-PY-0127.
 - [x] Implement core engine `src/khatmsaz/modules/content/migrator.py` with memory-efficient streaming and idempotency.

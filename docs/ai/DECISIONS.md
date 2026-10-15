@@ -5,6 +5,13 @@ new entry that says so and link back.
 
 ---
 
+### DEC-PY-0129 — ثبت فوری شمارهٔ خارجی پس از اشتراک‌گذاری contact خود کاربر
+
+**Date:** 2026-10-15
+**Owner confirmation:** وقتی کاربر دکمهٔ اشتراک‌گذاری شمارهٔ خودش را در تلگرام می‌زند، شمارهٔ خارجی بدون OTP یا تأیید مدیر همان لحظه ثبت شود. فقط شمارهٔ ایرانی در مسیر احراز پیامکی سازنده قرار می‌گیرد. این تصمیم زمان ثبت و قالب contact در MASTER-22 را دقیق می‌کند؛ قانون تأیید مستقیم شمارهٔ خارجی در سایر مسیرهای آن مستر برقرار می‌ماند. جزئیات: `docs/ai/masters/MASTER_34_FOREIGN_SHARED_CONTACT_IMMEDIATE.md`.
+
+---
+
 ### DEC-PY-0128 — Real-Time Background Cross-Platform Media Mirroring for Telegram and Bale (MASTER-20)
 
 **Date:** 2026-10-14

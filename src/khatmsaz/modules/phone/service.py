@@ -44,6 +44,14 @@ def normalize_e164(raw: str) -> str:
     return value
 
 
+def normalize_shared_contact(raw: str) -> str:
+    """Telegram may omit the plus sign from a shared international number."""
+    value = "".join(raw.strip().replace("-", "").split())
+    if value.isdigit() and not value.startswith(("00", "09", "98")):
+        value = "+" + value
+    return normalize_e164(value)
+
+
 def is_foreign_phone(raw: str) -> bool:
     try:
         return not normalize_e164(raw).startswith("+98")

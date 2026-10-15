@@ -1,3 +1,7 @@
+## 2026-10-15 — Immediate foreign Telegram contact registration [Codex]
+- Self-shared foreign Telegram contacts now normalize numbers without `+` and save the verified phone immediately in registration and profile flows. Iranian creator phones retain OTP; MASTER-22's other foreign paths remain intact.
+- Added contact-flow tests and `MASTER_34_FOREIGN_SHARED_CONTACT_IMMEDIATE.md`; no schema change.
+
 ## 2026-10-15 — Antigravity — Video Feature Removal & Khatm Deactivation / Management Delegation to Service Admin (Rule 5) (MASTER-33)
 - **Video Feature Complete Removal:**
   - Removed `video_kb`, `on_khatm_video_click`, and `on_close_video_msg` from `src/khatmsaz/bot/handlers/create_khatm.py`.
@@ -2339,5 +2343,3 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Compressed the creator main menu into three rows.
 - Added the daily deadline question/storage to every commitment devotional family, not only Quran.
 - Reworded creator identity, open-khatm responsibility and member commitment guidance; hardened open/commitment enum detection.
-
-

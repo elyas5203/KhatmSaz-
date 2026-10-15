@@ -1,3 +1,6 @@
+## 2026-10-15 — Foreign shared-contact registration
+- DEC-PY-0129 and [MASTER-33](masters/MASTER_34_FOREIGN_SHARED_CONTACT_IMMEDIATE.md): Telegram contact normalization, immediate foreign claim, Iranian OTP and production deployment gate. Existing broader rule: [MASTER-22](masters/MASTER_22_FOREIGN_PHONE_DIRECT_VERIFICATION.md).
+
 ## 2026-10-14 — Real-Time Dual-Platform Media Mirroring (MASTER-20)
 - [MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md](masters/MASTER_20_REALTIME_DUAL_PLATFORM_MEDIA_MIRRORING.md) — Real-time background cross-platform media streaming (Telegram to Bale), auto-mirroring on `/set_video`, `/set_pdf`, `/set_audio`, and `/manage_content`, direct multipart upload, automatic cleanup of temporary storage messages, and Super Admin filter auto-authorization across bots.
 - تصمیم محصول: `DEC-PY-0128` در [DECISIONS.md](DECISIONS.md).
