@@ -203,8 +203,11 @@ async def _show_invoices(message: Message) -> None:
         settings = await settings_service.get_or_create(session, user.id)
         lang = settings.language
         invoices = await wallet_service.list_invoices(session, user.id, limit=10)
+    back_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به کیف پول", callback_data="wallet:open")]]
+    )
     if not invoices:
-        await message.answer(t("wallet.no_invoices", lang))
+        await message.answer(t("wallet.no_invoices", lang), reply_markup=back_kb)
         return
     kind_keys = {
         "TOPUP": "wallet.invoice_kind.TOPUP",
@@ -223,7 +226,7 @@ async def _show_invoices(message: Message) -> None:
                 status=status_label, number=str(invoice.id)[:8],
             )
         )
-    await message.answer("\n".join(lines))
+    await message.answer("\n".join(lines), reply_markup=back_kb)
 
 
 @router.callback_query(F.data == "wallet:open")
@@ -444,11 +447,24 @@ async def start_receipt_upload(callback: CallbackQuery, state: FSMContext) -> No
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     await state.set_state(WalletReceiptUpload.entering_amount)
     await state.update_data(lang=lang)
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="wallet:cancel_receipt")]]
+    )
     await callback.message.answer(
         "لطفاً مبلغ واریزشده را به تومان وارد فرمایید (مثلاً ۵۰,۰۰۰):\n\n"
-        "(برای انصراف /cancel بزنید)"
+        "(برای انصراف دکمه زیر یا /cancel بزنید)",
+        reply_markup=cancel_kb,
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "wallet:cancel_receipt")
+async def cancel_receipt_upload(callback: CallbackQuery, state: FSMContext) -> None:
+    await state.clear()
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer("ارسال فیش واریزی لغو شد.")
+    await _show_wallet(callback.message)
+    await safe_answer_callback(callback)
 
 
 @router.message(WalletReceiptUpload.entering_amount)
@@ -475,10 +491,14 @@ async def receive_receipt_amount(message: Message, state: FSMContext) -> None:
 
     await state.update_data(amount_toman=amount)
     await state.set_state(WalletReceiptUpload.uploading_photo)
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="wallet:cancel_receipt")]]
+    )
     await message.answer(
         f"مبلغ اعلام‌شده: <b>{amount:,} تومان</b>\n\n"
         "لطفاً تصویر یا عکس رسید پرداخت (فیش واریزی) را ارسال فرمایید:\n"
-        "(برای انصراف /cancel بزنید)"
+        "(برای انصراف دکمه زیر یا /cancel بزنید)",
+        reply_markup=cancel_kb,
     )
 
 

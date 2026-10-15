@@ -1,3 +1,20 @@
+## 2026-10-15 — Antigravity — Purge Khatm Cancellation & Complete Creator Bot Button Audit & Repair (MASTER-36)
+- **Purge "لغو ختم":**
+  - Removed `can_cancel` parameter and `🗑 لغو ختم` button from `creator_khatm_keyboard` in `src/khatmsaz/bot/keyboards.py`.
+  - Updated callers in `my_khatms.py` (`open_creator_management`, `toggle_completion_announcement`).
+  - Updated `ask_cancel_khatm` callback handler to return a polite guidance alert directing users to Rule 5 management transfer.
+  - Updated `help.manage` copy across fa, ar, en in `src/khatmsaz/i18n/__init__.py`.
+- **Creator Bot Systemic Button Repairs:**
+  - `src/khatmsaz/bot/keyboards.py`: Changed `creator_settings_keyboard` return button from `my_khatms:open` to `my_khatms:manage:{khatm_id}`. Added `[🔙 بازگشت به ختم‌های من]` (`my_khatms:open`) to `creator_khatm_keyboard`.
+  - `src/khatmsaz/bot/handlers/creator_broadcast.py`: Added inline `[❌ انصراف]` (`cbroadcast:cancel`) button to target selection and message prompts. Removed state filter on `cancel_broadcast` handler.
+  - `src/khatmsaz/bot/handlers/wallet.py`: Added `[🔙 بازگشت به کیف پول]` (`wallet:open`) to `_show_invoices`. Added `[❌ انصراف]` (`wallet:cancel_receipt`) to receipt amount/photo prompts and implemented `cancel_receipt_upload` handler returning to wallet.
+  - `src/khatmsaz/bot/handlers/khatm_request.py`: Added `[❌ انصراف]` (`request_khatm:cancel`) to start prompt and description prompt; added `request_khatm_cancel` callback handler.
+  - `src/khatmsaz/bot/handlers/my_khatms.py`: Added `[🔙 بازگشت به مدیریت ختم]` (`my_khatms:manage:{khatm_id}`) inline return button to `khatm_stats`, `khatm_qr`, and `khatm_export` CSV file responses.
+- **Documentation & Verification:**
+  - Authored `docs/ai/masters/MASTER_36_CREATOR_BOT_COMPREHENSIVE_BUTTON_AUDIT_AND_REPAIR.md`.
+  - Authored `tests/test_master_36_creator_bot_buttons.py` (8/8 pass).
+  - Executed master test suite: 131 passed, 0 failures.
+
 ## 2026-10-15 — Antigravity — Khatm Public Conversion and Link Rotation upon Management Delegation (Rule 5) (MASTER-35)
 - **Link Invalidation & Rotation on Delegation:**
   - `src/khatmsaz/modules/invitation/repository.py`: Added `cancel_all_for_khatm` to mark all active invitation tokens for a khatm as cancelled (`cancelled_at = now()`).

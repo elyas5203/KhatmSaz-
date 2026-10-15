@@ -1,3 +1,24 @@
+## Current state — 2026-10-15 — Purge Khatm Cancellation & Complete Creator Bot Button Audit & Repair (MASTER-36) [Antigravity]
+- **Khatm Cancellation Purge & Button Repairs (`MASTER-36`):**
+  - **Owner Mandate:**
+    - "اون جریان لغو ختم هم وردار کلا بدرد نمیخوره نمیخوامش؛ ببین کلا ی فایل مستر بساز تک تک دکمه‌های بات ختم ساز رو انالیز بکن برام، خروجیشو ببین، باگاشو دربیار و درست بکن برام، با درست کردن فایل مستر دقیق و با ریز ترین جزئیاتش /goal"
+  - **Purge "لغو ختم":**
+    - Removed `can_cancel` parameter and `🗑 لغو ختم` button from `creator_khatm_keyboard` (`keyboards.py`).
+    - Updated callers in `my_khatms.py` (`open_creator_management`, `toggle_completion_announcement`).
+    - Handled `cancel_khatm_ask` with polite guidance alert pointing to Rule 5 transfer to Tak support.
+    - Updated `help.manage` copy across fa, ar, en in `src/khatmsaz/i18n/__init__.py`.
+  - **Systemic Creator Bot Button Repairs:**
+    - **Settings Back Navigation:** Changed return button in `creator_settings_keyboard` from `my_khatms:open` to `my_khatms:manage:{khatm_id}`.
+    - **Broadcast Flow:** Added `[❌ انصراف]` (`cbroadcast:cancel`) to target selector and message prompt in `creator_broadcast.py`. Removed state filter on `cancel_broadcast` callback so cancellation cleanly resets FSM from any step.
+    - **Wallet Flow:** Added `[🔙 بازگشت به کیف پول]` (`wallet:open`) to `_show_invoices`. Added `[❌ انصراف]` (`wallet:cancel_receipt`) to receipt amount/photo prompts and implemented `cancel_receipt_upload` handler returning to wallet.
+    - **Custom Khatm Request:** Added `[❌ انصراف]` (`request_khatm:cancel`) to `request_khatm_start` and description prompt; added `request_khatm_cancel` callback handler.
+    - **Khatm Reports:** Added `[🔙 بازگشت به مدیریت ختم]` (`my_khatms:manage:{khatm_id}`) inline return button to `khatm_stats`, `khatm_qr`, and `khatm_export` CSV file responses.
+    - **Khatm Dashboard:** Added `[🔙 بازگشت به ختم‌های من]` (`my_khatms:open`) to `creator_khatm_keyboard`.
+  - **Master Document & Verification:**
+    - Authored `docs/ai/masters/MASTER_36_CREATOR_BOT_COMPREHENSIVE_BUTTON_AUDIT_AND_REPAIR.md`.
+    - Authored test suite `tests/test_master_36_creator_bot_buttons.py` (8/8 pass).
+    - Ran full master test suite (131 passed, 0 failures).
+
 ## Current state — 2026-10-15 — Khatm Public Conversion and Link Rotation upon Management Delegation (Rule 5) (MASTER-35) [Antigravity]
 - **Khatm Public Conversion & Link Rotation on Transfer (`MASTER-35`):**
   - **Owner Mandate:**

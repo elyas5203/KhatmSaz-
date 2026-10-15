@@ -87,23 +87,27 @@ class FakeCallback:
 # ==============================================================================
 
 def test_creator_khatm_keyboard_shows_transfer_button():
-    """Creator keyboard must show [🤝 واگذاری مدیریت به پشتیبانی] when status is NONE."""
+    """Creator keyboard must show [🤝 واگذاری مدیریت به پشتیبانی] when status is NONE, and never show cancel khatm."""
     kb = creator_khatm_keyboard("test-id", can_cancel=True, transfer_status="NONE", lang="fa")
     button_texts = [btn.text for row in kb.inline_keyboard for btn in row]
     button_callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
 
     assert "🤝 واگذاری مدیریت به پشتیبانی" in button_texts
     assert "khatm_transfer_ask:test-id" in button_callbacks
+    assert "cancel_khatm_ask:test-id" not in button_callbacks
+    assert "my_khatms:open" in button_callbacks
 
 
 def test_creator_khatm_keyboard_shows_cancel_transfer_when_pending():
-    """Creator keyboard must show [⏳ لغو درخواست واگذاری مدیریت] when transfer is PENDING."""
+    """Creator keyboard must show [⏳ لغو درخواست واگذاری مدیریت] when transfer is PENDING, and never show cancel khatm."""
     kb = creator_khatm_keyboard("test-id", can_cancel=True, transfer_status="PENDING", lang="fa")
     button_texts = [btn.text for row in kb.inline_keyboard for btn in row]
     button_callbacks = [btn.callback_data for row in kb.inline_keyboard for btn in row]
 
     assert "⏳ لغو درخواست واگذاری مدیریت" in button_texts
     assert "khatm_transfer_cancel:test-id" in button_callbacks
+    assert "cancel_khatm_ask:test-id" not in button_callbacks
+    assert "my_khatms:open" in button_callbacks
 
 
 def test_khatm_transfer_confirm_keyboard_layout():

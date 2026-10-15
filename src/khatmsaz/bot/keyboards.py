@@ -1029,7 +1029,7 @@ def leave_all_keyboard(targets: list[tuple[str, str]]) -> InlineKeyboardMarkup |
 
 
 def creator_khatm_keyboard(
-    khatm_id: str, *, can_cancel: bool = True, transfer_status: str = "NONE", lang: str = "fa"
+    khatm_id: str, *, can_cancel: bool = False, transfer_status: str = "NONE", lang: str = "fa"
 ) -> InlineKeyboardMarkup:
     rows = [
         [
@@ -1042,8 +1042,6 @@ def creator_khatm_keyboard(
         ],
         [InlineKeyboardButton(text=t("cs.settings", lang), callback_data=f"cs:menu:{khatm_id}")],
     ]
-    if can_cancel:
-        rows[-1].append(InlineKeyboardButton(text=t("cs.cancel_khatm", lang), callback_data=f"cancel_khatm_ask:{khatm_id}"))
     if transfer_status == "PENDING":
         rows.append([
             InlineKeyboardButton(text="⏳ لغو درخواست واگذاری مدیریت", callback_data=f"khatm_transfer_cancel:{khatm_id}")
@@ -1052,6 +1050,9 @@ def creator_khatm_keyboard(
         rows.append([
             InlineKeyboardButton(text="🤝 واگذاری مدیریت به پشتیبانی", callback_data=f"khatm_transfer_ask:{khatm_id}")
         ])
+    rows.append([
+        InlineKeyboardButton(text="🔙 بازگشت به ختم‌های من", callback_data="my_khatms:open")
+    ])
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
@@ -1121,7 +1122,7 @@ def creator_settings_keyboard(
                 callback_data=f"cs:snooze:{khatm_id}",
             )],
         ])
-    rows.append([InlineKeyboardButton(text=t("cs.back_my_khatms", lang), callback_data="my_khatms:open")])
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_id}")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 

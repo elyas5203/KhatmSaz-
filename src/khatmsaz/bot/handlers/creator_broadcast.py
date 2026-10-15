@@ -96,6 +96,7 @@ async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> 
     rows = [[InlineKeyboardButton(text="📢 به همهٔ ختم‌ها", callback_data="cbroadcast_target:all")]]
     for k in khatms:
         rows.append([InlineKeyboardButton(text=f"🔹 {k.title}", callback_data=f"cbroadcast_target:{k.id}")])
+    rows.append([InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")])
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     prompt = "پیام گروهی برای اعضای کدام ختم ارسال شود؟"
 
@@ -135,11 +136,14 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
         f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
         f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n\n"
     )
-    info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
+    info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
 
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
+    )
     await state.set_state(CreatorBroadcastFlow.entering_message)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(info)
+    await callback.message.answer(info, reply_markup=cancel_kb)
     await safe_answer_callback(callback)
 
 @router.message(CreatorBroadcastFlow.entering_message)
@@ -247,7 +251,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     )
     await safe_answer_callback(callback)
 
-@router.callback_query(CreatorBroadcastFlow.confirming, F.data == "cbroadcast:cancel")
+@router.callback_query(F.data == "cbroadcast:cancel")
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await safe_clear_inline_keyboard(callback.message)

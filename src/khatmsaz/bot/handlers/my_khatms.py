@@ -1119,7 +1119,14 @@ async def khatm_export(message: Message, command: CommandObject) -> None:
     ])
     writer.writerows(rows)
     document = BufferedInputFile(output.getvalue().encode("utf-8-sig"), filename="khatm_members.csv")
-    await message.answer_document(document=document, caption=t("my_khatms.creator.export_caption", lang, title=khatm.title))
+    back_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm.id}")]]
+    )
+    await message.answer_document(
+        document=document,
+        caption=t("my_khatms.creator.export_caption", lang, title=khatm.title),
+        reply_markup=back_markup,
+    )
 
 
 @router.message(Command("khatm_stats"))
@@ -1140,16 +1147,12 @@ async def khatm_stats(message: Message, command: CommandObject) -> None:
             await message.answer(t("my_khatms.creator.khatm_not_found", lang))
             return
         if await phone_repository.verified_claim_for_user(session, user.id) is None:
-            # Real bug fixed here (2026-09-21): this branch referenced an
-            # undefined `callback` — this handler only ever receives a
-            # `Message`, never a `CallbackQuery` (it's a typed-command
-            # handler, and `creator_report_callback` only forwards to it
-            # with a fabricated `CommandObject`, not a real callback). Any
-            # creator with an unverified phone hitting /khatm_stats would
-            # have gotten a NameError instead of this message.
             await message.answer(t("my_khatms.creator.phone_not_verified", lang))
             return
         stats = await reporting_service.get_khatm_stats(session, khatm.id)
+    back_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm.id}")]]
+    )
     await message.answer(
         t(
             "my_khatms.creator.stats_message", lang,
@@ -1159,7 +1162,8 @@ async def khatm_stats(message: Message, command: CommandObject) -> None:
             contribution_total=stats.contribution_total, invitations_accepted=stats.invitations_accepted,
             invitations_issued=stats.invitations_issued,
             invitation_conversion_percent=stats.invitation_conversion_percent,
-        )
+        ),
+        reply_markup=back_markup,
     )
 
 
@@ -1186,9 +1190,6 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
         token = await invitation_service.create_invitation(session, khatm.id, user.id)
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
 
-    # Build the correct per-language member-bot deep links (the whole point of
-    # the multi-bot split — the creator must be able to share the member links,
-    # not just the web landing page).
     by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token)
     if not by_lang:
         await message.answer(t("my_khatms.creator.qr_no_member_bots", lang))
@@ -1204,11 +1205,14 @@ async def khatm_qr(message: Message, command: CommandObject) -> None:
         "my_khatms.creator.qr_caption_with_links",
         lang, title=escape(khatm.title), invite_lines=invite_lines,
     )
+    back_markup = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm.id}")]]
+    )
     if primary:
         photo = BufferedInputFile(build_qr_png(primary), filename="khatm_invite_qr.png")
-        await message.answer_photo(photo=photo, caption=caption)
+        await message.answer_photo(photo=photo, caption=caption, reply_markup=back_markup)
     else:
-        await message.answer(caption, link_preview_options=LinkPreviewOptions(is_disabled=True))
+        await message.answer(caption, link_preview_options=LinkPreviewOptions(is_disabled=True), reply_markup=back_markup)
 
 
 @router.callback_query(F.data.startswith("creator_report:"))
@@ -1743,7 +1747,6 @@ async def open_creator_management(callback) -> None:
         t("my_khatms.manage_header", lang, title=khatm.title),
         reply_markup=creator_khatm_keyboard(
             khatm_id,
-            can_cancel=khatm.status.value == "ACTIVE",
             transfer_status=getattr(khatm, "transfer_request_status", "NONE"),
             lang=lang,
         ),
@@ -1787,7 +1790,6 @@ async def toggle_completion_announcement(callback) -> None:
     await callback.message.edit_reply_markup(
         reply_markup=creator_khatm_keyboard(
             str(updated.id),
-            can_cancel=updated.status.value == "ACTIVE",
             transfer_status=getattr(updated, "transfer_request_status", "NONE"),
             lang=lang,
         )
@@ -1805,23 +1807,11 @@ async def toggle_completion_announcement(callback) -> None:
 
 @router.callback_query(F.data.startswith("cancel_khatm_ask:"))
 async def ask_cancel_khatm(callback) -> None:
-    khatm_id = callback.data.split(":", 1)[1]
-    lang = await _lang_for(callback.message.chat.id, callback.bot)
-    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as session:
-        user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
-        khatm = await khatm_service.get_khatm(session, khatm_id)
-        if user is None or khatm is None or khatm.creator_user_id != user.id:
-            await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
-            return
-        await callback.message.answer(
-            t(
-                "my_khatms.creator.cancel_ask", lang,
-                title=khatm.title, amount=max(0, khatm.creation_price_toman),
-            ),
-            reply_markup=cancel_khatm_confirm_keyboard(khatm_id, lang),
-        )
-    await safe_answer_callback(callback)
+    await safe_answer_callback(
+        callback,
+        "⚠️ امکان لغو ختم وجود ندارد. طبق بند ۵ قوانین، در صورت عدم تمایل به ادامه مدیریت، از گزینهٔ «🤝 واگذاری مدیریت به پشتیبانی» استفاده فرمایید.",
+        show_alert=True,
+    )
 
 
 @router.callback_query(F.data == "cancel_khatm_cancel")
