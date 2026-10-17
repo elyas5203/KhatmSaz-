@@ -1,4 +1,10 @@
+## 2026-10-17 — Antigravity — Test Accounts & Khatms Safe Cascading Purge
+- **CLI Purge Utility (`scripts/purge_test_khatms.py`):** Created a dedicated, production-safe database cleanup CLI tool for test accounts. Normalizes Iranian phone numbers (`09...`, `+989...`), resolves user accounts via `phone_claims` and `user_settings`, and purges all created khatms and memberships.
+- **Topological Cascade Deletion:** Executes reverse-dependency cleanup across 19 relational tables in a single ACID transaction (`session.begin()`), preventing foreign key constraint violations while preserving user logins and real users' data.
+- **Execution & Validation:** Performed dry run and executed purge on VPS for numbers `09051240561`, `09336807599`, `09938898263`. Successfully deleted 16 test khatms and 27 memberships (including 630 share messages, 135 occurrences, 52 open contributions/reservations, and 104 notification logs/preferences). Confirmed remaining test khatms = 0, remaining test participations = 0, while 8 real khatms and 99 users remain intact.
+
 ## 2026-10-17 — Antigravity — Admin Daily Analytics & Trend Comparison Report (MASTER-39)
+
 - **Comparative Daily Analytics Engine (`admin_daily_report.py`):** Added complete service calculating operational KPIs comparing today vs yesterday in `Asia/Tehran` timezone (new & active khatms, new & active users with DAU, participations, readings/completions, most popular khatm today, and top 5 active khatms overall).
 - **Trend Calculation & Safe Percentages:** Added `calc_trend` with indicators (↗️ / ↘️ / ➡️) and safe handling of zero denominators.
 - **Admin Bot Dashboard Integration:** Added `[ 📊 گزارش تحلیلی روزانه ]` button to `_build_dashboard_keyboard` in `src/khatmsaz/bot/handlers/admin_bot/handlers.py`, plus `/daily_report` and `/analytics` command handlers with instant in-place refresh callback (`admin:daily_report_refresh`).

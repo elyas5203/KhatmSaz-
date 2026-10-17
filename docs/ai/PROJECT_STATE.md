@@ -1,4 +1,17 @@
+## Current state — 2026-10-17 — Test Accounts & Khatms Safe Cascading Purge [Antigravity]
+- **Dedicated CLI Utility (`scripts/purge_test_khatms.py`):**
+  - Created and deployed a clean, atomic database cleanup utility for test accounts:
+    - Normalizes phone inputs (`09...`, `+989...`).
+    - Resolves test users via `phone_claims` and `user_settings`.
+    - Identifies all Khatms created by the target accounts and all memberships/participations.
+    - Performs full reverse-dependency topological cleanup inside a single ACID transaction (`session.begin()`):
+      `share_messages` -> `share_occurrences` -> `open_contributions` -> `open_reservations` -> `committed_quantity_logs` -> `commitment_deliveries` -> `assignments` -> `notification_log` -> `notification_preferences` -> `khatm_portions` -> `khatm_allocation_plans` -> `khatm_broadcasts` -> `khatm_invitations` -> `khatm_reciters` -> `notification_jobs` -> `waiting_list` -> `audit_logs` (nullifying target FK) -> `khatm_participations` -> `khatms`.
+  - Ran on live VPS for the 3 test phones (`09051240561`, `09336807599`, `09938898263`):
+    - Cleanly deleted 16 test khatms and 27 test participations.
+    - Verified all 3 user accounts and the remaining 8 real khatms remain intact.
+
 ## Current state — 2026-10-17 — Admin Daily Analytics & Trend Comparison Report (MASTER-39) [Antigravity]
+
 - **Admin Daily Analytics Service (`admin_daily_report.py`):**
   - Implemented comprehensive operational metrics comparing today vs yesterday in `Asia/Tehran` timezone:
     - Khatms: new today vs yesterday with growth percentage and trend icon (↗️ / ↘️ / ➡️), plus total active khatms.
