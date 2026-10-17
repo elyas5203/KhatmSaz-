@@ -79,10 +79,25 @@ async def channel_package_size(session, channel: str) -> int:
         return 1000
 
 
+async def per_message_price(session, channel: str) -> int:
+    channel = channel.upper()
+    if channel not in CHANNELS:
+        raise ValueError("invalid broadcast channel")
+    prefix = channel.lower()
+    if not hasattr(session, "get") and not hasattr(session, "execute"):
+        return 150
+    try:
+        price = await system_settings_service.get_int(session, f"broadcast_{prefix}_per_message_price_toman")
+        return price if price > 0 else 150
+    except Exception:
+        return 150
+
+
 async def submit(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str, channel: str = "TELEGRAM",
     media_type: str | None = None, media_file_id: str | None = None,
     province: str | None = None, gender: str | None = None,
+    cost_override: int | None = None,
 ) -> KhatmBroadcast:
     # Owner §A2 (2026-09-30): a promo message can be text OR media (photo/video/
     # voice/document) with an optional caption. Media file_ids are platform-
@@ -109,32 +124,37 @@ async def submit(
     )
     if not users:
         raise ValueError("broadcast audience is empty")
-    # MASTER-31: Broadcast entitlement is package-based; any creator with sufficient wallet balance can submit.
+    # MASTER-31 & MASTER-38: Broadcast entitlement is wallet-balance-based.
 
-    # Calculate dynamic package count and total cost
-    policy = await channel_policy(session, channel)
-    if len(policy) >= 3:
-        _free_count, unit_price, package_size = policy[0], policy[1], policy[2]
+    if cost_override is not None:
+        cost = max(0, cost_override)
+        description = f"هزینه ارسال پیام گروهی برای {len(users):,} مخاطب فعال"
     else:
-        _free_count, unit_price = policy[0], policy[1]
-        package_size = await channel_package_size(session, channel)
+        # Calculate dynamic package count and total cost
+        policy = await channel_policy(session, channel)
+        if len(policy) >= 3:
+            _free_count, unit_price, package_size = policy[0], policy[1], policy[2]
+        else:
+            _free_count, unit_price = policy[0], policy[1]
+            package_size = await channel_package_size(session, channel)
 
-    if package_size <= 0 or not isinstance(package_size, int):
-        package_size = 1000
-    if unit_price <= 0 or not isinstance(unit_price, int):
-        unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
+        if package_size <= 0 or not isinstance(package_size, int):
+            package_size = 1000
+        if unit_price <= 0 or not isinstance(unit_price, int):
+            unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
 
-    packages_count = math.ceil(len(users) / package_size)
-    cost = packages_count * unit_price
+        packages_count = math.ceil(len(users) / package_size)
+        cost = packages_count * unit_price
+        pkg_label = "۱۰۰۰" if package_size == 1000 else f"{package_size:,}"
+        description = f"هزینه ارسال پیام گروهی ({packages_count} بسته {pkg_label} نفری برای {len(users)} مخاطب)"
 
     invoice = None
     if cost > 0:
-        pkg_label = "۱۰۰۰" if package_size == 1000 else f"{package_size:,}"
         invoice = await wallet_service.spend(
             session,
             user_id=creator_user_id,
             amount=cost,
-            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته {pkg_label} نفری برای {len(users)} مخاطب)",
+            description=description,
             invoice_kind=InvoiceKind.PURCHASE,
         )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None

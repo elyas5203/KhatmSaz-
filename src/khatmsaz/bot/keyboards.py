@@ -1040,6 +1040,7 @@ def creator_khatm_keyboard(
             InlineKeyboardButton(text=t("cs.qr", lang), callback_data=f"creator_report:qr:{khatm_id}"),
             InlineKeyboardButton(text=t("cs.stats", lang), callback_data=f"creator_report:stats:{khatm_id}"),
         ],
+        [InlineKeyboardButton(text="📢 ارسال پیام گروهی", callback_data=f"cbroadcast_khatm:{khatm_id}")],
         [InlineKeyboardButton(text=t("cs.settings", lang), callback_data=f"cs:menu:{khatm_id}")],
     ]
     if transfer_status == "PENDING":
@@ -1056,6 +1057,37 @@ def creator_khatm_keyboard(
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
+
+
+def wallet_recharge_packages_keyboard(
+    lang: str = "fa",
+    *,
+    back_callback: str | None = None,
+    recheck_callback: str | None = None,
+) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton(text="💳 ۵۰,۰۰۰ تومان", callback_data="wallet_topup:50000"),
+            InlineKeyboardButton(text="💳 ۱۰۰,۰۰۰ تومان", callback_data="wallet_topup:100000"),
+        ],
+        [
+            InlineKeyboardButton(text="💳 ۵۰۰,۰۰۰ تومان", callback_data="wallet_topup:500000"),
+            InlineKeyboardButton(text="💰 مبلغ دلخواه", callback_data="wallet_topup_custom"),
+        ],
+        [
+            InlineKeyboardButton(text="📸 ارسال تصویر فیش واریز", callback_data="wallet:receipt_upload"),
+            InlineKeyboardButton(text="🔗 درگاه مستقیم شاپرک", callback_data="wallet:topup_info"),
+        ],
+    ]
+    if recheck_callback:
+        rows.append([
+            InlineKeyboardButton(text="🔄 بررسی مجدد موجودی", callback_data=recheck_callback)
+        ])
+    if back_callback:
+        rows.append([
+            InlineKeyboardButton(text="🔙 بازگشت", callback_data=back_callback)
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def khatm_transfer_confirm_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:

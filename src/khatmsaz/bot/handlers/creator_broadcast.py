@@ -3,7 +3,13 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
-from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, safe_clear_inline_keyboard, main_menu_keyboard
+from khatmsaz.bot.keyboards import (
+    bail_if_menu_button,
+    safe_answer_callback,
+    safe_clear_inline_keyboard,
+    main_menu_keyboard,
+    wallet_recharge_packages_keyboard,
+)
 from khatmsaz.bot.admin_notifications import notify_super_admins, notify_super_admins_photo
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
@@ -12,6 +18,7 @@ from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmStatus
+from khatmsaz.modules.wallet import service as wallet_service
 import math
 import uuid
 
@@ -70,6 +77,128 @@ async def _notify_admins_of_broadcast_request(
             await notify_super_admins(text)
 
 
+@router.callback_query(F.data.startswith("cbroadcast_khatm:"))
+async def start_broadcast_for_khatm(callback: CallbackQuery, state: FSMContext) -> None:
+    """MASTER-38: Direct entry to broadcast for a specific khatm from its management menu."""
+    raw = callback.data.split(":", 1)[1]
+    try:
+        khatm_uuid = uuid.UUID(raw)
+    except (ValueError, TypeError):
+        await safe_answer_callback(callback, "شناسه ختم نامعتبر است.", show_alert=True)
+        return
+
+    bot = callback.bot
+    platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
+
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
+        khatm = await khatm_service.get_khatm(session, khatm_uuid)
+        if not khatm or khatm.creator_user_id != user.id or khatm.status != KhatmStatus.ACTIVE:
+            await safe_answer_callback(callback, "این ختم فعال نیست یا شما سازندهٔ آن نیستید.", show_alert=True)
+            return
+        audience_count = len(await broadcast_service.audience_user_ids(session, user.id, khatm_id=khatm_uuid))
+        unit_price = await broadcast_service.per_message_price(session, platform.value)
+        total_cost = audience_count * unit_price
+        balance, credit = await wallet_service.get_balances(session, user.id)
+        wallet_balance = balance + credit
+
+    await state.update_data(
+        creator_id=str(user.id),
+        platform=platform.value,
+        target_khatm_id=str(khatm_uuid),
+        target_title=khatm.title,
+        audience_count=audience_count,
+        unit_price=unit_price,
+        total_cost=total_cost,
+    )
+
+    if audience_count == 0:
+        text = (
+            f"📢 ارسال پیام گروهی — «{khatm.title}»\n\n"
+            "👥 تعداد مخاطبین فعال: ۰ نفر\n\n"
+            "هنوز عضوی در این ختم ثبت‌نام نکرده است، بنابراین امکان ارسال پیام گروهی وجود ندارد."
+        )
+        back_kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_uuid}")]]
+        )
+        await safe_clear_inline_keyboard(callback.message)
+        await callback.message.answer(text, reply_markup=back_kb)
+        await safe_answer_callback(callback)
+        return
+
+    if wallet_balance < total_cost:
+        text = (
+            f"📢 ارسال پیام گروهی — «{khatm.title}»\n\n"
+            f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
+            f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
+            f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+            "⚠️ موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست.\n"
+            "لازم است ابتدا کیف پول خود را شارژ فرمایید. لطفاً یکی از بسته‌های زیر را انتخاب کنید:"
+        )
+        kb = wallet_recharge_packages_keyboard(
+            "fa",
+            back_callback=f"my_khatms:manage:{khatm_uuid}",
+            recheck_callback=f"cbroadcast_recheck:{khatm_uuid}",
+        )
+        await safe_clear_inline_keyboard(callback.message)
+        await callback.message.answer(text, reply_markup=kb)
+        await safe_answer_callback(callback)
+        return
+
+    text = (
+        f"📢 ارسال پیام گروهی — «{khatm.title}»\n\n"
+        f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
+        f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
+        f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+        "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
+    )
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
+    )
+    await state.set_state(CreatorBroadcastFlow.entering_message)
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(text, reply_markup=cancel_kb)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cbroadcast_recheck:"))
+async def recheck_broadcast_wallet(callback: CallbackQuery, state: FSMContext) -> None:
+    """Re-check wallet balance when user clicked top-up."""
+    data = await state.get_data()
+    creator_id_raw = data.get("creator_id")
+    if not creator_id_raw:
+        await safe_answer_callback(callback, "نشست منقضی شده است. لطفاً مجدداً اقدام فرمایید.", show_alert=True)
+        return
+    creator_id = uuid.UUID(creator_id_raw)
+    total_cost = data.get("total_cost", 0)
+    target_title = data.get("target_title") or "این ختم"
+
+    async with session_scope() as session:
+        balance, credit = await wallet_service.get_balances(session, creator_id)
+        effective_balance = balance + credit
+
+    if effective_balance < total_cost:
+        await safe_answer_callback(
+            callback,
+            f"موجودی شما هنوز کافی نیست ({effective_balance:,} تومان از {total_cost:,} تومان).",
+            show_alert=True,
+        )
+        return
+
+    text = (
+        f"📢 ارسال پیام گروهی — «{target_title}»\n\n"
+        f"✅ موجودی کیف پول شما با موفقیت تأیید شد ({effective_balance:,} تومان).\n\n"
+        "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
+    )
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
+    )
+    await state.set_state(CreatorBroadcastFlow.entering_message)
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer(text, reply_markup=cancel_kb)
+    await safe_answer_callback(callback)
+
+
 @router.message(F.text == "📢 ارسال پیام گروهی")
 @router.callback_query(F.data == "creator:broadcast")
 async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> None:
@@ -117,26 +246,69 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     target_khatm_id = None if raw == "all" else raw
     data = await state.get_data()
     creator_id = uuid.UUID(data["creator_id"])
+    platform = data.get("platform", "TELEGRAM")
 
     async with session_scope() as session:
         khatm_uuid = uuid.UUID(target_khatm_id) if target_khatm_id else None
+        target_khatm = await khatm_service.get_khatm(session, khatm_uuid) if khatm_uuid else None
+        target_title = target_khatm.title if target_khatm else "همهٔ ختم‌های شما"
         audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
-        policy = await broadcast_service.channel_policy(session, data.get("platform", "TELEGRAM"))
-        unit_price = policy[1] if len(policy) > 1 and policy[1] > 0 else 50_000
-        package_size = policy[2] if len(policy) > 2 and policy[2] > 0 else 1000
-        packages_count = max(1, math.ceil(audience_count / package_size)) if audience_count > 0 else 0
-        total_est = packages_count * unit_price
+        unit_price = await broadcast_service.per_message_price(session, platform)
+        total_cost = audience_count * unit_price
+        balance, credit = await wallet_service.get_balances(session, creator_id)
+        wallet_balance = balance + credit
 
-    await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count)
+    await state.update_data(
+        target_khatm_id=target_khatm_id,
+        target_title=target_title,
+        audience_count=audience_count,
+        unit_price=unit_price,
+        total_cost=total_cost,
+    )
 
-    scope = "همهٔ ختم‌های شما" if target_khatm_id is None else "این ختم"
+    scope = f"«{target_title}»" if target_khatm else "همهٔ ختم‌های شما"
+
+    if audience_count == 0:
+        info = (
+            f"📢 ارسال پیام گروهی — {scope}\n\n"
+            "👥 تعداد مخاطبین فعال: ۰ نفر\n\n"
+            "هنوز مخاطب فعالی در این بخش عضو نشده است، بنابراین امکان ارسال پیام گروهی وجود ندارد."
+        )
+        cancel_kb = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
+        )
+        await safe_clear_inline_keyboard(callback.message)
+        await callback.message.answer(info, reply_markup=cancel_kb)
+        await safe_answer_callback(callback)
+        return
+
+    if wallet_balance < total_cost:
+        info = (
+            f"📢 ارسال پیام گروهی — {scope}\n\n"
+            f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
+            f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
+            f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+            "⚠️ موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست.\n"
+            "لازم است ابتدا کیف پول خود را شارژ فرمایید. لطفاً یکی از بسته‌های زیر را انتخاب کنید:"
+        )
+        recheck_target = target_khatm_id or "all"
+        kb = wallet_recharge_packages_keyboard(
+            "fa",
+            back_callback="cbroadcast:cancel",
+            recheck_callback=f"cbroadcast_recheck:{recheck_target}",
+        )
+        await safe_clear_inline_keyboard(callback.message)
+        await callback.message.answer(info, reply_markup=kb)
+        await safe_answer_callback(callback)
+        return
+
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
-        f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
-        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n\n"
+        f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
+        f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+        "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
     )
-    info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
 
     cancel_kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
@@ -146,15 +318,16 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     await callback.message.answer(info, reply_markup=cancel_kb)
     await safe_answer_callback(callback)
 
+
 @router.message(CreatorBroadcastFlow.entering_message)
 async def receive_broadcast_message(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):
         return
-        
+
     media_file_id = None
     media_type = None
     text = None
-    
+
     if message.text:
         text = message.text
         media_type = "text"
@@ -177,33 +350,50 @@ async def receive_broadcast_message(message: Message, state: FSMContext) -> None
     else:
         await message.answer("فرمت ارسال شده پشتیبانی نمی‌شود.")
         return
-        
+
     await state.update_data(
         text=text,
         media_file_id=media_file_id,
-        media_type=media_type
+        media_type=media_type,
     )
-    
+
+    data = await state.get_data()
+    audience_count = data.get("audience_count", 0)
+    total_cost = data.get("total_cost", 0)
+    creator_id = uuid.UUID(data["creator_id"])
+    async with session_scope() as session:
+        balance, credit = await wallet_service.get_balances(session, creator_id)
+        wallet_balance = balance + credit
+
     markup = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="✅ برای تأیید محتوا", callback_data="cbroadcast:confirm")],
+            [InlineKeyboardButton(text="✅ تأیید و ثبت درخواست", callback_data="cbroadcast:confirm")],
             [InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")],
         ]
     )
-    
-    await message.answer("آیا از ارسال این پیام برای تمام مخاطبین خود اطمینان دارید؟", reply_markup=markup)
+
+    confirm_text = (
+        "آیا از ثبت این پیام گروهی اطمینان دارید؟\n\n"
+        f"👥 تعداد مخاطب: {audience_count:,} نفر\n"
+        f"💰 هزینه ارسال: {total_cost:,} تومان\n"
+        f"💳 موجودی فعلی کیف پول: {wallet_balance:,} تومان\n\n"
+        f"پس از تأیید، مبلغ {total_cost:,} تومان از کیف پول شما کسر شده و پیام جهت بازبینی به مدیر سیستم ارسال می‌شود."
+    )
+    await message.answer(confirm_text, reply_markup=markup)
     await state.set_state(CreatorBroadcastFlow.confirming)
+
 
 @router.callback_query(CreatorBroadcastFlow.confirming, F.data == "cbroadcast:confirm")
 async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     creator_id = uuid.UUID(data["creator_id"])
-    audience_count = data["audience_count"]
+    audience_count = data.get("audience_count", 0)
+    total_cost = data.get("total_cost", 0)
     platform = data["platform"]
     text = data.get("text")
     media_file_id = data.get("media_file_id")
     media_type = data["media_type"]
-    
+
     await safe_clear_inline_keyboard(callback.message)
     _has_media = bool(media_type and media_type != "text" and media_file_id)
     if not (text or "").strip() and not _has_media:
@@ -222,6 +412,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
                 body=text or "",
                 media_type=media_type,
                 media_file_id=media_file_id,
+                cost_override=total_cost,
             )
             creator = await identity_service.find_by_id(session, creator_id)
             target_khatm = (
@@ -231,8 +422,16 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
             creator_name = creator.display_name if creator and creator.display_name else "نامشخص"
             scope_title = target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده"
     except broadcast_service.wallet_service.InsufficientFundsError:
-        await callback.message.answer("💳 موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لطفاً ابتدا کیف پول خود را شارژ فرمایید.")
-        await state.clear()
+        recheck_target = _target_raw or "all"
+        kb = wallet_recharge_packages_keyboard(
+            "fa",
+            back_callback="cbroadcast:cancel",
+            recheck_callback=f"cbroadcast_recheck:{recheck_target}",
+        )
+        await callback.message.answer(
+            "💳 موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لطفاً ابتدا کیف پول خود را شارژ فرمایید:",
+            reply_markup=kb,
+        )
         await safe_answer_callback(callback)
         return
     except ValueError as exc:
@@ -246,10 +445,14 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     cost_text = f"{item.cost_toman:,} تومان"
     await callback.message.answer(
-        f"✅ پیام برای بررسی و تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 مبلغ کسر شده از کیف پول: {cost_text}",
+        f"✅ پیام شما با موفقیت برای بررسی و تأیید محتوا ثبت شد.\n\n"
+        f"👥 مخاطبان: {item.audience_count:,} نفر\n"
+        f"💳 مبلغ کسر شده از کیف پول: {cost_text}\n\n"
+        "پس از بررسی و تأیید توسط مدیریت، پیام برای تمام اعضا ارسال خواهد شد.",
         reply_markup=main_menu_keyboard("fa"),
     )
     await safe_answer_callback(callback)
+
 
 @router.callback_query(F.data == "cbroadcast:cancel")
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:

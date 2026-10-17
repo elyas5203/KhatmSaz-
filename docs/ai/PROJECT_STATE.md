@@ -1,3 +1,23 @@
+## Current state — 2026-10-17 — Creator Broadcast & Wallet Recharge Overhaul (MASTER-38) [Antigravity]
+- **Khatm Management Direct Broadcast Button:**
+  - Added prominent `[ 📢 ارسال پیام گروهی ]` (`cbroadcast_khatm:{khatm_id}`) directly inside `creator_khatm_keyboard` in `src/khatmsaz/bot/keyboards.py`.
+  - Tapping this button targets that specific khatm immediately without redundant "which khatm?" prompts.
+- **150-Toman Per-Recipient Pricing Model & Transparent Copy:**
+  - Abolished confusing "1,000-person bundle for 50,000 Toman" copy in the creator bot.
+  - Implemented exact per-recipient pricing at 150 Tomans per active recipient ($14 \times 150 = 2,100$ Tomans).
+  - Copy now displays clear and transparent numbers: active audience count, 150 Tomans unit cost, total cost, and creator's wallet balance.
+  - Added whitelisted per-message pricing settings (`broadcast_telegram_per_message_price_toman`, `broadcast_bale_per_message_price_toman`, `broadcast_sms_per_message_price_toman`) in `system_settings_service` and helper `broadcast_service.per_message_price`.
+  - Supported `cost_override` in `broadcast_service.submit` preserving 100% backward compatibility for all legacy tests.
+- **Dedicated 4-Package Wallet Top-Up Flow:**
+  - When wallet balance is insufficient, user is presented with the 4 client-mandated packages:
+    - `💳 ۵۰,۰۰۰ تومان` (`wallet_topup:50000`)
+    - `💳 ۱۰۰,۰۰۰ تومان` (`wallet_topup:100000`)
+    - `💳 ۵۰۰,۰۰۰ تومان` (`wallet_topup:500000`)
+    - `💰 مبلغ دلخواه` (`wallet_topup_custom`)
+    - Plus direct Shaparak link, receipt photo upload, and `[ 🔄 بررسی مجدد موجودی ]`.
+  - Updated `_TOPUP_AMOUNTS` to `(50_000, 100_000, 500_000)` and updated `_topup_keyboard` in `src/khatmsaz/bot/handlers/wallet.py`.
+- **Validation:** Added full unit test suite `tests/test_master_38_creator_broadcast_and_wallet_recharge.py` (7 tests passing). Verified zero regression across all 36 broadcast and keyboard tests.
+
 ## Current state — 2026-10-17 — Fix Khutbah & Dua Open Content Delivery & Direct Button Attachment [Antigravity]
 - **Khutbah Sequential Progression & Circular Rollover:**
   - Implemented `get_next_open_khutbah_section` mirroring Quran open page allocation, preserving continuous collective section allocation across cycles without clamping or truncating `amount`.

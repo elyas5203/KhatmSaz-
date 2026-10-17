@@ -26,7 +26,7 @@ from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, sa
 router = Router(name="wallet")
 
 _PLAN_LABEL_KEYS = {"FREE": "wallet.plan_label.FREE", "BASIC": "wallet.plan_label.BASIC", "PRO": "wallet.plan_label.PRO"}
-_TOPUP_AMOUNTS = (50_000, 100_000, 200_000, 500_000)
+_TOPUP_AMOUNTS = (50_000, 100_000, 500_000)
 _TOPUP_MIN = 10_000
 _TOPUP_MAX = 50_000_000
 
@@ -76,16 +76,22 @@ def _topup_keyboard(lang: str, *, pro_price: int | None = None, is_pro: bool = F
         )
     rows.extend([
         [
-            InlineKeyboardButton(
-                text="💳 افزایش موجودی (لینک مستقیم شاپرک)",
-                callback_data="wallet:topup_info",
-            )
+            InlineKeyboardButton(text="💳 ۵۰,۰۰۰ تومان", callback_data="wallet_topup:50000"),
+            InlineKeyboardButton(text="💳 ۱۰۰,۰۰۰ تومان", callback_data="wallet_topup:100000"),
+        ],
+        [
+            InlineKeyboardButton(text="💳 ۵۰۰,۰۰۰ تومان", callback_data="wallet_topup:500000"),
+            InlineKeyboardButton(text="💰 مبلغ دلخواه", callback_data="wallet_topup_custom"),
         ],
         [
             InlineKeyboardButton(
+                text="🔗 درگاه مستقیم شاپرک",
+                callback_data="wallet:topup_info",
+            ),
+            InlineKeyboardButton(
                 text="📸 ارسال تصویر فیش واریز",
                 callback_data="wallet:receipt_upload",
-            )
+            ),
         ],
         [
             InlineKeyboardButton(
