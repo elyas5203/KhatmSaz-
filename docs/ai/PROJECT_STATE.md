@@ -1,3 +1,20 @@
+## Current state — 2026-10-17 — Fix Khutbah & Dua Open Content Delivery & Direct Button Attachment [Antigravity]
+- **Khutbah Sequential Progression & Circular Rollover:**
+  - Implemented `get_next_open_khutbah_section` mirroring Quran open page allocation, preserving continuous collective section allocation across cycles without clamping or truncating `amount`.
+  - Fixed section progression cursor by updating `part.open_reading_next_page = (last_end % total_sections) + 1` upon delivery.
+  - Resolved the bug where requesting 2 sections returned 1 section (start=1 instead of continuing sequentially from user's last position).
+  - Unstuck stale undelivered occurrences in `prepare_numeric` so failed prior attempts are deleted and replaced cleanly.
+- **Direct Inline Button Attachment under Media:**
+  - In `occurrence_adapter.py`, attached confirmation keyboard (`reply_markup=keyboard(occurrence, khatm)`) directly under the last delivered media component (`send_video`, `send_photo`, `send_audio`, `send_document`, `send_message`, `copy_message`).
+  - Recorded `"ACTION"` purpose receipt for that message so `send_control` avoids sending redundant duplicate text messages.
+- **Dua & Ziyarat Single Delivery with Multi-Round Button Copy:**
+  - Standardized done button label to `✅ اعلام ثبت قرائت {count} دور {title}` (e.g. `✅ اعلام ثبت قرائت ۳ دور زیارت عاشورا`, and `۱ دور` for 1 round).
+  - Ensured media is sent strictly once and all rounds are committed in a single action.
+- **Video Delivery & Canonical Telegram File IDs:**
+  - Registered canonical Telegram file IDs in `KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS` with full Khedmatgozaran captions.
+  - Added robust fallback in `occurrence_adapter.py` preventing any `forward_message` TelegramBadRequest from crashing content delivery or producing `ارسال محتوا هنوز کامل نشده`.
+- **Validation:** 579 passed, 0 failures across full local pytest suite. Added comprehensive integration tests in `tests/test_khutbah_integration.py`.
+
 ## Current state — 2026-10-17 — Open Mode Content Delivery Master & Strict AI Red Lines [Antigravity]
 - **Master Document Formulated (`docs/ai/OPEN_MODE_CONTENT_DELIVERY_MASTER.md`):** Formulated comprehensive master document based on owner's live Telegram bot bug report and screenshot.
 - **Root-Cause Analysis:** Fixed the core bug where requesting sections in Khutbah (or rounds in Dua) resulted in missing content delivery accompanied by the broken message «ارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم.».

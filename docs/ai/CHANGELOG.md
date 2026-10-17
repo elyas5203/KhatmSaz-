@@ -1,3 +1,18 @@
+## 2026-10-17 — Antigravity — Fix Khutbah & Dua Open Content Delivery & Direct Button Attachment
+- **Khutbah Sequential Progression & Circular Rollover:**
+  - Implemented `get_next_open_khutbah_section` in `src/khatmsaz/modules/share_occurrence/delivery.py` mirroring Quran open page allocation, preserving continuous collective section allocation across cycles without clamping or truncating requested section count.
+  - Fixed cursor progression by updating `part.open_reading_next_page = (last_end % total_sections) + 1` in `delivery.deliver` for Khutbah.
+  - Added cleanup of stale undelivered occurrences in `prepare_numeric` via `repository.delete_occurrence`.
+- **Direct Inline Button Attachment under Media:**
+  - In `occurrence_adapter.py`, attached confirmation keyboard (`reply_markup=keyboard(occurrence, khatm)`) directly under the last delivered media component (`send_video`, `send_photo`, `send_audio`, `send_document`, `send_message`, `copy_message`).
+  - Recorded `"ACTION"` purpose receipt for that message so `send_control` avoids sending redundant duplicate text messages.
+- **Dua & Ziyarat Single Delivery with Multi-Round Button Copy:**
+  - Standardized done button label in `member_copy.py` to `✅ اعلام ثبت قرائت {count} دور {title}` (e.g. `✅ اعلام ثبت قرائت ۳ دور زیارت عاشورا`, and `۱ دور` for 1 round).
+- **Video Delivery & Canonical Telegram File IDs:**
+  - Registered canonical Telegram file IDs in `KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS` with full Khedmatgozaran captions.
+  - Added robust fallback in `occurrence_adapter.py` preventing any `forward_message` TelegramBadRequest from crashing content delivery or producing `ارسال محتوا هنوز کامل نشده`.
+- **Verification:** Full pytest suite passed (579 passed, 0 failures). 23 tests passed in `tests/test_khutbah_integration.py`.
+
 ## 2026-10-17 — Antigravity — Open Mode Content Delivery Master & AI Prohibitions Specification
 - **Master Document Created (`docs/ai/OPEN_MODE_CONTENT_DELIVERY_MASTER.md`):** Comprehensive master specification detailing open mode (مدل آزاد) content delivery across Quran, Khutbah, and Dua/Ziyarat families.
 - **Khutbah Section Delivery:** Specifies immediate asset delivery of requested sections (e.g. 2 sections) with complete official Khedmatgozaran captions/links, followed by dynamic completion button (`✅ اعلام ثبت قرائت بخش ۱ و ۲ خطبه فدکیه`).

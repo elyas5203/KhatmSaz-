@@ -361,8 +361,8 @@ def test_done_button_label_returns_report_recitation():
         done_button_label("khutbah", "fa", start=1, end=3, title="ختم خطبه غدیریه")
         == "✅ اعلام ثبت قرائت بخش 1 تا 3 خطبه غدیریه"
     )
-    assert done_button_label("ziyarat", "fa", count=1, title="ختم زیارت عاشورا") == "✅ اعلام ثبت قرائت زیارت عاشورا"
-    assert done_button_label("dua", "fa", count=3, title="ختم دعای عهد") == "✅ اعلام ثبت قرائت 3 مرتبه دعای عهد"
+    assert done_button_label("ziyarat", "fa", count=1, title="ختم زیارت عاشورا") == "✅ اعلام ثبت قرائت 1 دور زیارت عاشورا"
+    assert done_button_label("dua", "fa", count=3, title="ختم دعای عهد") == "✅ اعلام ثبت قرائت 3 دور دعای عهد"
     assert done_button_label("laan", "fa", count=100) == "✅ اعلام ثبت قرائت 100 مرتبه ذکر لعن"
 
     # Verify occurrence_adapter.keyboard builds dynamic button text from occurrence + khatm
@@ -632,3 +632,66 @@ async def test_deadline_reminder_triggers_two_hours_before_midnight():
     # Verify Persian copy contains the friendly 2-hour reminder message
     text = t("share.deadline", "fa")
     assert "۲ ساعت تا پایان مهلت امروز باقی مانده است" in text
+
+
+@pytest.mark.asyncio
+async def test_khutbah_rollover_and_progression():
+    from khatmsaz.modules.share_occurrence import delivery
+    from uuid import uuid4
+    from unittest.mock import MagicMock, AsyncMock, patch
+    from types import SimpleNamespace
+
+    test_user_id = uuid4()
+    part = SimpleNamespace(
+        id=uuid4(),
+        user_id=test_user_id,
+        khatm_id=uuid4(),
+        status="ACTIVE",
+        joined_via_bot_instance_id=uuid4(),
+        is_committed=False,
+        open_reading_next_page=5,
+    )
+    khatm = SimpleNamespace(
+        id=part.khatm_id,
+        khatm_type="OPEN",
+        template_type="SALAWAT",
+        repetition_target=5,
+        status="ACTIVE",
+        commitment_policy="MEMBER_CHOICE",
+        title="ختم خطبه فدکیه حضرت فاطمه زهرا (س)",
+        content_category_id=uuid4(),
+        starts_at=None,
+    )
+
+    session = AsyncMock()
+    with (
+        patch("khatmsaz.modules.khatm.service.has_started", return_value=True),
+        patch("khatmsaz.modules.participation.repository.get_by_id", AsyncMock(return_value=part)),
+        patch("khatmsaz.modules.participation.repository.get_by_id_for_update", AsyncMock(return_value=part)),
+        patch("khatmsaz.modules.khatm.service.get_khatm_for_update", AsyncMock(return_value=khatm)),
+        patch("khatmsaz.modules.share_occurrence.repository.list_outstanding", AsyncMock(return_value=[])),
+        patch("khatmsaz.modules.open_contribution.repository.total_for_khatm", AsyncMock(return_value=0)),
+        patch("khatmsaz.bot.member_copy.content_family", AsyncMock(return_value="khutbah")),
+        patch("khatmsaz.modules.share_occurrence.service.create_once", AsyncMock(side_effect=lambda s, **kw: (SimpleNamespace(id=uuid4(), **kw), True))),
+    ):
+        # User is at section 5 and requests 2 sections:
+        # Rollover MUST happen: [[5, 5], [1, 1]] without truncating amount to 1!
+        occ = await delivery.prepare_numeric(
+            session, part.id, 2, user_id=test_user_id, bot_instance_id=part.joined_via_bot_instance_id
+        )
+        assert occ is not None
+        assert occ.amount == 2
+        assert occ.content_spec["ranges"] == [[5, 5], [1, 1]]
+
+        # Now test delivery progression updating part.open_reading_next_page
+        with (
+            patch("khatmsaz.bot.occurrence_adapter.deliver_occurrence", AsyncMock(return_value=True)),
+            patch("khatmsaz.modules.share_occurrence.service.mark_delivered", AsyncMock()),
+            patch("khatmsaz.modules.khatm.service.get_khatm", AsyncMock(return_value=khatm)),
+            patch("khatmsaz.modules.participation.repository.get_by_id", AsyncMock(return_value=part)),
+        ):
+            delivered = await delivery.deliver(session, occ)
+            assert delivered is True
+            # Since last section in ranges was 1, next page MUST be (1 % 5) + 1 = 2
+            assert part.open_reading_next_page == 2
+

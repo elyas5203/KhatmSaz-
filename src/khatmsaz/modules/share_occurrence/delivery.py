@@ -126,6 +126,55 @@ async def get_next_open_quran_page(
     return default_start
 
 
+async def get_next_open_khutbah_section(
+    session,
+    khatm_id,
+    total_sections: int,
+    *,
+    default_start: int = 1,
+) -> int:
+    """Determine the next sequential Khutbah section cursor for the given khatm.
+
+    Mirrors get_next_open_quran_page: inspects prior ShareOccurrences for this khatm
+    with family='khutbah'. If none exist, falls back to default_start.
+    If prior occurrences exist, starts immediately after the last allocated range end,
+    wrapping around total_sections back to 1.
+    """
+    from khatmsaz.modules.participation.models import Participation
+    from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+
+    if not hasattr(session, "execute"):
+        return default_start
+    try:
+        stmt = (
+            select(ShareOccurrence)
+            .join(Participation, Participation.id == ShareOccurrence.participation_id)
+            .where(
+                Participation.khatm_id == khatm_id,
+            )
+            .order_by(ShareOccurrence.created_at.desc(), ShareOccurrence.id.desc())
+        )
+        res = await session.execute(stmt)
+        if res is not None and hasattr(res, "scalars"):
+            import inspect
+            scalars = res.scalars()
+            if inspect.isawaitable(scalars):
+                scalars = await scalars
+            for occ in scalars:
+                spec = getattr(occ, "content_spec", None) or {}
+                if spec.get("family") == "khutbah":
+                    ranges = spec.get("ranges")
+                    if ranges and isinstance(ranges, list) and len(ranges) > 0:
+                        last_range = ranges[-1]
+                        if isinstance(last_range, (list, tuple)) and len(last_range) >= 2:
+                            last_end = last_range[1]
+                            if isinstance(last_end, int):
+                                return (last_end % total_sections) + 1
+    except Exception:
+        pass
+    return default_start
+
+
 async def allocate_khutbah_section_range(
     session,
     participation_id,
@@ -319,8 +368,25 @@ async def prepare(session, participation_id, *, now=None, manual=False):
         from khatmsaz.bot.member_copy import content_family
         fam = await content_family(session, khatm)
         if fam == "khutbah":
-            sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
-            spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
+            sections_per_round = 5
+            khatm_title = getattr(khatm, "title", None) or ""
+            try:
+                from khatmsaz.modules.content import service as content_svc
+                _, slug = await content_svc.resolve_khatm_devotional_source(session, khatm)
+                if (slug and "ghadir" in slug) or (khatm_title and "غدیر" in khatm_title):
+                    sections_per_round = 8
+            except Exception:
+                if khatm_title and "غدیر" in khatm_title:
+                    sections_per_round = 8
+            total_sections = sections_per_round
+            next_p = getattr(part, "open_reading_next_page", None)
+            default_start = ((next_p or 1) - 1) % total_sections + 1
+            start = await get_next_open_khutbah_section(session, khatm.id, total_sections, default_start=default_start)
+            end = min(total_sections, start + amount - 1)
+            ranges_list = [[start, end]]
+            if end - start + 1 < amount:
+                ranges_list.append([1, amount - (end - start + 1)])
+            spec = {"ranges": ranges_list, "family": "khutbah", "title": getattr(khatm, "title", None)}
     deadline = _calc_deadline(local, khatm.daily_deadline_hour or 24)
     occurrence, _ = await service.create_once(
         session, participation_id=part.id, bot_instance_id=part.joined_via_bot_instance_id,
@@ -349,6 +415,9 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
         raise ValueError("Numeric mode is unavailable")
     for old in await repository.list_outstanding(session, part.id):
         if old.source_key.startswith(("count:", "reservation:", "open:")):
+            if old.delivered_at is None:
+                await repository.delete_occurrence(session, old.id)
+                break
             return old
     total = await contributions.total_for_khatm(session, khatm.id)
     from khatmsaz.bot.member_copy import content_family
@@ -407,11 +476,28 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
             spec = {"ranges": ranges}
     else:
         if fam == "khutbah":
-            sec_start, sec_end = await allocate_khutbah_section_range(session, part.id, khatm, amount)
-            amount = sec_end - sec_start + 1
-            spec = {"ranges": [[sec_start, sec_end]], "family": "khutbah"}
+            sections_per_round = 5
+            khatm_title = getattr(khatm, "title", None) or ""
+            try:
+                _, slug = await content.resolve_khatm_devotional_source(session, khatm)
+                if (slug and "ghadir" in slug) or (khatm_title and "غدیر" in khatm_title):
+                    sections_per_round = 8
+            except Exception:
+                if khatm_title and "غدیر" in khatm_title:
+                    sections_per_round = 8
+            total_sections = sections_per_round
+            next_p = getattr(part, "open_reading_next_page", None)
+            default_start = ((next_p or 1) - 1) % total_sections + 1
+            start = await get_next_open_khutbah_section(session, khatm.id, total_sections, default_start=default_start)
+            if next_p and next_p > 1:
+                start = ((next_p - 1) % total_sections) + 1
+            end = min(total_sections, start + amount - 1)
+            ranges = [[start, end]]
+            if end - start + 1 < amount:
+                ranges.append([1, amount - (end - start + 1)])
+            spec = {"ranges": ranges, "family": "khutbah", "title": getattr(khatm, "title", None)}
         else:
-            spec = {"family": fam, "amount": amount}
+            spec = {"family": fam, "amount": amount, "count": amount, "title": getattr(khatm, "title", None)}
     part.commitment_mode = "COUNT"
     part.commitment_target = amount
     key = f"open:{uuid4()}" if khatm.khatm_type == "OPEN" else f"count:{uuid4()}"
@@ -461,16 +547,21 @@ async def record_progress(session, part, occurrence):
 async def deliver(session, occurrence, *, now=None):
     from khatmsaz.bot.occurrence_adapter import deliver_occurrence
     now = now or datetime.now(timezone.utc)
-    if occurrence.delivered_at is not None:
+    if getattr(occurrence, "delivered_at", None) is not None:
         return False
     part = await memberships.get_by_id(session, occurrence.participation_id)
     khatm = await khatms.get_khatm(session, part.khatm_id)
     if not await deliver_occurrence(session, part, khatm, occurrence, now=now):
         return False
     await service.mark_delivered(session, occurrence.id, bot_instance_id=occurrence.bot_instance_id, when=now)
-    if occurrence.unit == "PAGE":
-        if not occurrence.content_spec.get("portion_ids"):
-            part.open_reading_next_page = occurrence.content_spec["ranges"][-1][1] + 1
+    if occurrence.unit == "PAGE" or (occurrence.content_spec and occurrence.content_spec.get("family") == "khutbah"):
+        if occurrence.content_spec.get("ranges"):
+            last_end = occurrence.content_spec["ranges"][-1][1]
+            if occurrence.content_spec.get("family") == "khutbah":
+                total_sections = 8 if ("غدیر" in (getattr(khatm, "title", "") or "")) else 5
+                part.open_reading_next_page = (last_end % total_sections) + 1
+            elif not occurrence.content_spec.get("portion_ids"):
+                part.open_reading_next_page = last_end + 1
         part.open_reading_last_sent_at = now
     else:
         part.schedule_last_sent_at = now

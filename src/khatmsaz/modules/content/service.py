@@ -607,6 +607,15 @@ async def list_devotional_image_pages(session: AsyncSession, slug: str, asset_pl
     return list(result.scalars())
 
 
+KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS: dict[int, str] = {
+    1: "BAACAgQAAxkBAAIBmWrH1QIPejCo3mJPEjV0Ge2C0E-WAAIcCwACTEjhUfHaO_A8jvERPQQ",
+    2: "BAACAgQAAxkBAAIBpmrH3vrhytmedYadmotkA_BZQXE6AAJnDwACpODpUc0H8AkgVHYBPQQ",
+    3: "BAACAgQAAxkBAAIBqmrH3w6I_VAxour-AsAwjTK2nWdUAAKiDwACnhv5US5olSK5FYKYPQQ",
+    4: "BAACAgQAAxkBAAIBrmrH3xkqwhRslN_ztcIB6sIbSvRtAALkEgACnhsBUgABWclFTivAwT0E",
+    5: "BAACAgQAAxkBAAIBsmrH3yfKB4W1_OtHsa_VZrsey7RkAALBCgAC7EIQUjp_zwYkEc-7PQQ",
+}
+
+
 async def list_devotional_video_pages(session: AsyncSession, slug: str, asset_platform: str) -> list[DevotionalMedia]:
     if not hasattr(session, "scalar"):
         return []
@@ -619,7 +628,14 @@ async def list_devotional_video_pages(session: AsyncSession, slug: str, asset_pl
             DevotionalMedia.asset_platform.in_([asset_platform.upper(), "BOTH"]),
         ).order_by(DevotionalMedia.page_number)
     )
-    return list(result.scalars())
+    items = list(result.scalars())
+    norm_slug = slug.strip().lower()
+    if "fadak" in norm_slug and asset_platform.upper() == "TELEGRAM":
+        for item in items:
+            if item.page_number in KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS:
+                if not item.asset_ref or item.asset_ref.startswith("tg_forward:"):
+                    item.asset_ref = KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS[item.page_number]
+    return items
 
 
 KHUTBAH_FADAKIAH_VIDEO_CAPTIONS: dict[int, str] = {

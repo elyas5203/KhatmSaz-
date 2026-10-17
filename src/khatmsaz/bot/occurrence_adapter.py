@@ -136,17 +136,24 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         fam = occurrence.content_spec.get("family") or await content_family(session, khatm)
         page_numbers = None
         if fam == "khutbah":
-            sec_start, sec_end = await share_delivery.allocate_khutbah_section_range(
-                session, part.id, khatm, occurrence.amount or 1,
-                target_occurrence_id=occurrence.id,
-            )
-            occurrence.content_spec = {
-                **occurrence.content_spec,
-                "ranges": [[sec_start, sec_end]],
-                "family": "khutbah",
-            }
-            await session.flush()
-            page_numbers = list(range(sec_start, sec_end + 1))
+            ranges = occurrence.content_spec.get("ranges")
+            if not ranges:
+                sec_start, sec_end = await share_delivery.allocate_khutbah_section_range(
+                    session, part.id, khatm, occurrence.amount or 1,
+                    target_occurrence_id=occurrence.id,
+                )
+                occurrence.content_spec = {
+                    **occurrence.content_spec,
+                    "ranges": [[sec_start, sec_end]],
+                    "family": "khutbah",
+                }
+                await session.flush()
+                page_numbers = list(range(sec_start, sec_end + 1))
+            else:
+                page_numbers = [
+                    p for start, end in ranges
+                    for p in range(start, end + 1)
+                ]
         elif occurrence.content_spec and "ranges" in occurrence.content_spec:
             page_numbers = [
                 p for start, end in occurrence.content_spec["ranges"]
@@ -171,33 +178,61 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
             if not old_cap or old_cap.startswith("🎬"):
                 ranges = (occurrence.content_spec or {}).get("ranges") or []
                 part_num = index + 1
-                if ranges and isinstance(ranges[0], (list, tuple)) and len(ranges[0]) >= 2:
-                    seq = list(range(int(ranges[0][0]), int(ranges[0][1]) + 1))
-                    if index < len(seq):
-                        part_num = seq[index]
+                if ranges:
+                    flat_pages = [p for start, end in ranges for p in range(start, end + 1)]
+                    if index < len(flat_pages):
+                        part_num = flat_pages[index]
                 if part_num in content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS and (
                     (occurrence.content_spec or {}).get("family") == "khutbah"
                     or "فدک" in (getattr(khatm, "title", "") or "")
                 ):
                     kwargs["caption"] = content.KHUTBAH_FADAKIAH_VIDEO_CAPTIONS[part_num]
-        if kwargs.get("reply_markup"):
+
+        is_last = (index == len(components) - 1)
+        if is_last and method in ("send_video", "send_photo", "send_audio", "send_document", "send_message", "copy_message"):
+            kwargs["reply_markup"] = keyboard(occurrence, khatm)
+        elif kwargs.get("reply_markup"):
             kwargs["reply_markup"] = InlineKeyboardMarkup.model_validate(kwargs["reply_markup"])
+
         try:
             message = await getattr(bot, method)(chat_id=chat, **kwargs)
         except TelegramBadRequest as exc:
-            arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document", "send_video": "video"}.get(method)
-            if arg is None or "wrong file identifier" not in str(exc).lower():
-                raise
-            owner = get_registry().get_creator_bot(bot.khatmsaz_platform)
-            if owner is None or owner is bot:
-                raise
-            buffer = BytesIO()
-            await owner.download(kwargs[arg], destination=buffer)
-            kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf','video':'mp4'}[arg] }")
-            message = await getattr(bot, method)(chat_id=chat, **kwargs)
+            if method == "forward_message":
+                part_num = 1
+                ranges = (occurrence.content_spec or {}).get("ranges") or []
+                if ranges:
+                    flat_pages = [p for start, end in ranges for p in range(start, end + 1)]
+                    if index < len(flat_pages):
+                        part_num = flat_pages[index]
+                vid_file_id = getattr(content, "KHUTBAH_FADAKIAH_TELEGRAM_VIDEOS", {}).get(part_num)
+                cap = getattr(content, "KHUTBAH_FADAKIAH_VIDEO_CAPTIONS", {}).get(part_num)
+                if vid_file_id:
+                    kw = {"video": vid_file_id, "caption": cap}
+                    if is_last:
+                        kw["reply_markup"] = keyboard(occurrence, khatm)
+                    message = await bot.send_video(chat_id=chat, **kw)
+                else:
+                    raise
+            else:
+                arg = {"send_photo": "photo", "send_audio": "audio", "send_document": "document", "send_video": "video"}.get(method)
+                if arg is None or "wrong file identifier" not in str(exc).lower():
+                    raise
+                owner = get_registry().get_creator_bot(bot.khatmsaz_platform)
+                if owner is None or owner is bot:
+                    raise
+                buffer = BytesIO()
+                await owner.download(kwargs[arg], destination=buffer)
+                kwargs[arg] = BufferedInputFile(buffer.getvalue(), filename=f"share.{ {'photo':'jpg','audio':'mp3','document':'pdf','video':'mp4'}[arg] }")
+                message = await getattr(bot, method)(chat_id=chat, **kwargs)
+
         await service.record_message(session, occurrence_id=occurrence.id,
             bot_instance_id=occurrence.bot_instance_id, component_key=key, purpose="CONTENT",
             chat_id=str(chat), message_id=message.message_id, sent_at=now)
+        if is_last and kwargs.get("reply_markup") is not None:
+            await service.record_message(session, occurrence_id=occurrence.id,
+                bot_instance_id=occurrence.bot_instance_id, component_key="ACTION", purpose="ACTION",
+                chat_id=str(chat), message_id=message.message_id, sent_at=now)
+
     return await send_control(session, part, khatm, occurrence, "ACTION", now=now)
 
 

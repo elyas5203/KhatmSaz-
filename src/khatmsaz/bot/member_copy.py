@@ -227,6 +227,9 @@ def done_button_label(
                 return f"✅ اعلام ثبت قرائت {count} صفحه قرآن"
         elif fam == "khutbah":
             short_title = _clean_khatm_title(title, "khutbah")
+            if ranges and len(ranges) > 1:
+                parts_str = " و ".join(f"{a} تا {b}" if a != b else str(a) for a, b in ranges)
+                return f"✅ اعلام ثبت قرائت بخش {parts_str} {short_title}"
             if start is not None and end is not None:
                 if start == end:
                     return f"✅ اعلام ثبت قرائت بخش {start} {short_title}"
@@ -246,8 +249,8 @@ def done_button_label(
                 return f"✅ اعلام ثبت قرائت {count} مرتبه ذکر لعن"
         elif fam in ("dua", "ziyarat"):
             short_title = _clean_khatm_title(title, fam)
-            if count is not None and count > 1:
-                return f"✅ اعلام ثبت قرائت {count} مرتبه {short_title}"
+            if count is not None:
+                return f"✅ اعلام ثبت قرائت {count} دور {short_title}"
             return f"✅ اعلام ثبت قرائت {short_title}"
 
     labels = {

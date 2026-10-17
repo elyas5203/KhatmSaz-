@@ -104,7 +104,8 @@ async def deliver_devotional_media(
     video_pages = await content_service.list_devotional_video_pages(session, slug, platform.value)
     if video_pages:
         if page_numbers:
-            filtered = [v for v in video_pages if v.page_number in page_numbers]
+            page_map = {v.page_number: v for v in video_pages}
+            filtered = [page_map[p] for p in page_numbers if p in page_map]
             if filtered:
                 video_pages = filtered
         elif len(video_pages) > 1:

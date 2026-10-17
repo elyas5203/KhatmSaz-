@@ -111,3 +111,11 @@ async def list_outstanding(session, participation_id):
             (OpenReservation.status == "ACTIVE") & (OpenReservation.expires_at > func.now())),
     ).order_by(ShareOccurrence.scheduled_for, ShareOccurrence.id)
     return list((await session.execute(stmt)).scalars())
+
+
+async def delete_occurrence(session, occurrence_id):
+    from sqlalchemy import delete
+    await session.execute(delete(ShareMessage).where(ShareMessage.occurrence_id == occurrence_id))
+    await session.execute(delete(ShareOccurrence).where(ShareOccurrence.id == occurrence_id))
+    await session.flush()
+
