@@ -1,6 +1,11 @@
+## 2026-10-17 — Antigravity — Broadcast Pricing Clarification (150,000 Tomans per 1,000 Recipients)
+- **Pricing Mandate Clarification:** Client specified that sending to 1,000 recipients is priced at 150,000 Tomans («هزینه ارسال هر پیام به هزار نفر 150 تومنه اونجا اشتباه نوشته بوده اینو درست بکن»). Corrected system defaults to 150,000 Tomans per 1,000 package.
+- **Dynamic Package Cost Calculation:** Updated `src/khatmsaz/bot/handlers/creator_broadcast.py` and `broadcast_service.submit` to dynamically compute package count and total cost: `packages_count = max(1, math.ceil(audience_count / 1000))` and `total_cost = packages_count * 150_000`.
+- **Top-up Package Gate:** Insufficient balance check properly triggers when balance < package cost, prompting the 4 client packages: 50,000, 100,000, 500,000 Tomans, and custom amount.
+- **Verification:** Updated and passed `tests/test_master_38_creator_broadcast_and_wallet_recharge.py` (7/7 passed), verified zero regressions across test suite.
+
 ## 2026-10-17 — Antigravity — Creator Broadcast & Wallet Recharge Overhaul (MASTER-38)
 - **Direct Broadcast Button in Khatm Management:** Added `[ 📢 ارسال پیام گروهی ]` (`cbroadcast_khatm:{khatm_id}`) directly inside `creator_khatm_keyboard` in `src/khatmsaz/bot/keyboards.py`.
-- **Per-Recipient Pricing (150 Tomans):** Abolished 1,000-person bundle terminology in bot copy. Implemented exact 150 Tomans per recipient pricing model ($14 \times 150 = 2,100$ Tomans) with clear and transparent copy in `src/khatmsaz/bot/handlers/creator_broadcast.py`.
 - **System Settings & Backward-Compatible Service:** Added `broadcast_{channel}_per_message_price_toman` settings in `system_settings_service` and `cost_override` support in `broadcast_service.submit`.
 - **Wallet Top-Up 4 Packages Flow:** Updated `_TOPUP_AMOUNTS` to `(50_000, 100_000, 500_000)` and created `wallet_recharge_packages_keyboard` displaying the 4 client-mandated packages (50k, 100k, 500k, custom amount) plus direct Shaparak link and receipt upload fallback.
 - **Verification:** Created `tests/test_master_38_creator_broadcast_and_wallet_recharge.py` (all 7 tests passed). All 36 regression tests in test suite passed.

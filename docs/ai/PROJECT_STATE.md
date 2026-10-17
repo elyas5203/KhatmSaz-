@@ -1,13 +1,17 @@
+## Current state — 2026-10-17 — Broadcast Pricing Clarification (150,000 Tomans per 1,000 Recipients) (MASTER-38) [Antigravity]
+- **Clarification on Broadcast Pricing Rule:**
+  - Client clarified the pricing structure: the price for sending to 1,000 recipients is **150,000 Tomans** («هزینه ارسال هر پیام به هزار نفر 150 تومنه اونجا اشتباه نوشته بوده اینو درست بکن»). The previous 50,000 Tomans default was erroneous.
+  - Set default package pricing to 150,000 Tomans in `system_settings_service` (`broadcast_telegram_price_toman`, `broadcast_bale_price_toman`, `broadcast_sms_price_toman` = 150,000).
+  - In `creator_broadcast.py` and `broadcast_service.submit`, cost is calculated per 1,000-recipient bundle: $\text{packages\_count} = \max(1, \lceil \text{audience\_count} / 1000 \rceil)$ and $\text{total\_cost} = \text{packages\_count} \times 150,000$.
+  - When the creator's wallet balance (e.g. 20,000 Tomans in screenshot) is less than the required package cost (150,000 Tomans), the bot displays:
+    `⚠️ موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لازم است ابتدا کیف پول خود را شارژ فرمایید.`
+    and presents the 4 client-mandated top-up packages: 50,000, 100,000, 500,000 Tomans and custom amount.
+- **Validation:** Updated test suite `tests/test_master_38_creator_broadcast_and_wallet_recharge.py` (7/7 passed), verified all 28 other broadcast tests pass.
+
 ## Current state — 2026-10-17 — Creator Broadcast & Wallet Recharge Overhaul (MASTER-38) [Antigravity]
 - **Khatm Management Direct Broadcast Button:**
   - Added prominent `[ 📢 ارسال پیام گروهی ]` (`cbroadcast_khatm:{khatm_id}`) directly inside `creator_khatm_keyboard` in `src/khatmsaz/bot/keyboards.py`.
   - Tapping this button targets that specific khatm immediately without redundant "which khatm?" prompts.
-- **150-Toman Per-Recipient Pricing Model & Transparent Copy:**
-  - Abolished confusing "1,000-person bundle for 50,000 Toman" copy in the creator bot.
-  - Implemented exact per-recipient pricing at 150 Tomans per active recipient ($14 \times 150 = 2,100$ Tomans).
-  - Copy now displays clear and transparent numbers: active audience count, 150 Tomans unit cost, total cost, and creator's wallet balance.
-  - Added whitelisted per-message pricing settings (`broadcast_telegram_per_message_price_toman`, `broadcast_bale_per_message_price_toman`, `broadcast_sms_per_message_price_toman`) in `system_settings_service` and helper `broadcast_service.per_message_price`.
-  - Supported `cost_override` in `broadcast_service.submit` preserving 100% backward compatibility for all legacy tests.
 - **Dedicated 4-Package Wallet Top-Up Flow:**
   - When wallet balance is insufficient, user is presented with the 4 client-mandated packages:
     - `💳 ۵۰,۰۰۰ تومان` (`wallet_topup:50000`)
@@ -16,7 +20,7 @@
     - `💰 مبلغ دلخواه` (`wallet_topup_custom`)
     - Plus direct Shaparak link, receipt photo upload, and `[ 🔄 بررسی مجدد موجودی ]`.
   - Updated `_TOPUP_AMOUNTS` to `(50_000, 100_000, 500_000)` and updated `_topup_keyboard` in `src/khatmsaz/bot/handlers/wallet.py`.
-- **Validation:** Added full unit test suite `tests/test_master_38_creator_broadcast_and_wallet_recharge.py` (7 tests passing). Verified zero regression across all 36 broadcast and keyboard tests.
+- **Validation:** Added full unit test suite `tests/test_master_38_creator_broadcast_and_wallet_recharge.py`.
 
 ## Current state — 2026-10-17 — Fix Khutbah & Dua Open Content Delivery & Direct Button Attachment [Antigravity]
 - **Khutbah Sequential Progression & Circular Rollover:**

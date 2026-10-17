@@ -97,8 +97,11 @@ async def start_broadcast_for_khatm(callback: CallbackQuery, state: FSMContext) 
             await safe_answer_callback(callback, "این ختم فعال نیست یا شما سازندهٔ آن نیستید.", show_alert=True)
             return
         audience_count = len(await broadcast_service.audience_user_ids(session, user.id, khatm_id=khatm_uuid))
-        unit_price = await broadcast_service.per_message_price(session, platform.value)
-        total_cost = audience_count * unit_price
+        policy = await broadcast_service.channel_policy(session, platform.value)
+        unit_price = policy[1] if len(policy) > 1 and policy[1] > 0 else 150_000
+        package_size = policy[2] if len(policy) > 2 and policy[2] > 0 else await broadcast_service.channel_package_size(session, platform.value)
+        packages_count = max(1, math.ceil(audience_count / package_size)) if audience_count > 0 else 0
+        total_cost = packages_count * unit_price
         balance, credit = await wallet_service.get_balances(session, user.id)
         wallet_balance = balance + credit
 
@@ -109,6 +112,8 @@ async def start_broadcast_for_khatm(callback: CallbackQuery, state: FSMContext) 
         target_title=khatm.title,
         audience_count=audience_count,
         unit_price=unit_price,
+        package_size=package_size,
+        packages_count=packages_count,
         total_cost=total_cost,
     )
 
@@ -130,8 +135,9 @@ async def start_broadcast_for_khatm(callback: CallbackQuery, state: FSMContext) 
         text = (
             f"📢 ارسال پیام گروهی — «{khatm.title}»\n\n"
             f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
-            f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
-            f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+            f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+            f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_cost:,} تومان)\n"
+            f"💰 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
             "⚠️ موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست.\n"
             "لازم است ابتدا کیف پول خود را شارژ فرمایید. لطفاً یکی از بسته‌های زیر را انتخاب کنید:"
         )
@@ -148,8 +154,9 @@ async def start_broadcast_for_khatm(callback: CallbackQuery, state: FSMContext) 
     text = (
         f"📢 ارسال پیام گروهی — «{khatm.title}»\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
-        f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
-        f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+        f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_cost:,} تومان)\n"
+        f"💰 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
         "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
     )
     cancel_kb = InlineKeyboardMarkup(
@@ -253,8 +260,11 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
         target_khatm = await khatm_service.get_khatm(session, khatm_uuid) if khatm_uuid else None
         target_title = target_khatm.title if target_khatm else "همهٔ ختم‌های شما"
         audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
-        unit_price = await broadcast_service.per_message_price(session, platform)
-        total_cost = audience_count * unit_price
+        policy = await broadcast_service.channel_policy(session, platform)
+        unit_price = policy[1] if len(policy) > 1 and policy[1] > 0 else 150_000
+        package_size = policy[2] if len(policy) > 2 and policy[2] > 0 else await broadcast_service.channel_package_size(session, platform)
+        packages_count = max(1, math.ceil(audience_count / package_size)) if audience_count > 0 else 0
+        total_cost = packages_count * unit_price
         balance, credit = await wallet_service.get_balances(session, creator_id)
         wallet_balance = balance + credit
 
@@ -263,6 +273,8 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
         target_title=target_title,
         audience_count=audience_count,
         unit_price=unit_price,
+        package_size=package_size,
+        packages_count=packages_count,
         total_cost=total_cost,
     )
 
@@ -286,8 +298,9 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
         info = (
             f"📢 ارسال پیام گروهی — {scope}\n\n"
             f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
-            f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
-            f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+            f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+            f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_cost:,} تومان)\n"
+            f"💰 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
             "⚠️ موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست.\n"
             "لازم است ابتدا کیف پول خود را شارژ فرمایید. لطفاً یکی از بسته‌های زیر را انتخاب کنید:"
         )
@@ -305,8 +318,9 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
         f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
-        f"💰 هزینه ارسال: هر پیام {unit_price:,} تومان (مجموعاً {total_cost:,} تومان)\n"
-        f"💳 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
+        f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_cost:,} تومان)\n"
+        f"💰 موجودی کیف پول شما: {wallet_balance:,} تومان\n\n"
         "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
     )
 
@@ -372,9 +386,12 @@ async def receive_broadcast_message(message: Message, state: FSMContext) -> None
         ]
     )
 
+    packages_count = data.get("packages_count", 1)
+    package_size = data.get("package_size", 1000)
     confirm_text = (
         "آیا از ثبت این پیام گروهی اطمینان دارید؟\n\n"
         f"👥 تعداد مخاطب: {audience_count:,} نفر\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته {package_size:,} نفری\n"
         f"💰 هزینه ارسال: {total_cost:,} تومان\n"
         f"💳 موجودی فعلی کیف پول: {wallet_balance:,} تومان\n\n"
         f"پس از تأیید، مبلغ {total_cost:,} تومان از کیف پول شما کسر شده و پیام جهت بازبینی به مدیر سیستم ارسال می‌شود."

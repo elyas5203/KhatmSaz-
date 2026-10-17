@@ -24,6 +24,14 @@ from khatmsaz.modules.khatm.models import KhatmStatus
 from khatmsaz.modules.system_settings import service as system_settings_service
 
 
+def _fake_session_scope():
+    mock_session = AsyncMock()
+    mock_scope = MagicMock()
+    mock_scope.__aenter__ = AsyncMock(return_value=mock_session)
+    mock_scope.__aexit__ = AsyncMock(return_value=None)
+    return mock_scope, mock_session
+
+
 # --- 1. Keyboard Structure & Buttons ---
 
 def test_creator_khatm_keyboard_has_broadcast_button():
@@ -61,50 +69,50 @@ def test_wallet_recharge_packages_keyboard_options():
     assert any("مبلغ دلخواه" in t for t in texts)
 
 
-# --- 2. Per-Message Pricing & System Settings ---
+# --- 2. Per-Package Pricing & System Settings ---
 
 @pytest.mark.asyncio
-async def test_per_message_price_defaults_to_150():
-    """Per-message price default is 150 Tomans per recipient."""
+async def test_broadcast_package_price_defaults_to_150000():
+    """Broadcast package price default is 150,000 Tomans per 1,000 recipients."""
     mock_session = AsyncMock()
-    with patch("khatmsaz.modules.system_settings.service.get_int", new=AsyncMock(return_value=150)):
-        price_tg = await broadcast_service.per_message_price(mock_session, "TELEGRAM")
-        price_bale = await broadcast_service.per_message_price(mock_session, "BALE")
-        assert price_tg == 150
-        assert price_bale == 150
+    with patch("khatmsaz.modules.system_settings.service.get_int", new=AsyncMock(return_value=150_000)):
+        _, price_tg = await broadcast_service.channel_policy(mock_session, "TELEGRAM")
+        _, price_bale = await broadcast_service.channel_policy(mock_session, "BALE")
+        assert price_tg == 150_000
+        assert price_bale == 150_000
 
 
 @pytest.mark.asyncio
-async def test_broadcast_submit_with_cost_override():
-    """`broadcast_service.submit` accepts cost_override and spends exact amount."""
+async def test_broadcast_submit_calculates_package_cost():
+    """`broadcast_service.submit` calculates packages count (150,000 Tomans per 1,000)."""
     mock_session = AsyncMock()
     creator_id = uuid.uuid4()
     audience = [uuid.uuid4() for _ in range(14)]
 
     with patch("khatmsaz.modules.broadcast.service.audience_user_ids", new=AsyncMock(return_value=audience)), \
+         patch("khatmsaz.modules.broadcast.service.channel_policy", new=AsyncMock(return_value=(0, 150_000, 1000))), \
          patch("khatmsaz.modules.wallet.service.spend", new=AsyncMock(return_value=MagicMock(id=uuid.uuid4()))) as mock_spend, \
-         patch("khatmsaz.modules.broadcast.repository.create", new=AsyncMock(return_value=MagicMock(id=uuid.uuid4(), cost_toman=2100, audience_count=14))):
+         patch("khatmsaz.modules.broadcast.repository.create", new=AsyncMock(return_value=MagicMock(id=uuid.uuid4(), cost_toman=150_000, audience_count=14))):
 
-        # 14 recipients * 150 tomans = 2,100 tomans
+        # 14 recipients -> 1 package (of 1,000) = 150,000 tomans
         item = await broadcast_service.submit(
             mock_session,
             khatm_id=None,
             creator_user_id=creator_id,
             body="پیام تستی ۱۴ نفره",
             channel="TELEGRAM",
-            cost_override=2100,
         )
 
         mock_spend.assert_awaited_once()
-        assert mock_spend.call_args.kwargs["amount"] == 2100
-        assert "14 مخاطب فعال" in mock_spend.call_args.kwargs["description"]
+        assert mock_spend.call_args.kwargs["amount"] == 150_000
+        assert "1 بسته" in mock_spend.call_args.kwargs["description"]
 
 
 # --- 3. Khatm Direct Broadcast Flow (`cbroadcast_khatm`) ---
 
 @pytest.mark.asyncio
 async def test_start_broadcast_for_khatm_insufficient_funds():
-    """When wallet balance is insufficient, displays 150 Tomans rate and top-up packages."""
+    """When wallet balance is insufficient, displays 150,000 Tomans package rate and top-up packages."""
     khatm_id = uuid.uuid4()
     creator_id = uuid.uuid4()
     mock_user = MagicMock(id=creator_id)
@@ -124,22 +132,25 @@ async def test_start_broadcast_for_khatm_insufficient_funds():
     storage = MemoryStorage()
     state = FSMContext(storage=storage, key=MagicMock())
 
-    with patch("khatmsaz.bot.handlers.creator_broadcast.identity_service.resolve_or_provision_user", new=AsyncMock(return_value=mock_user)), \
+    scope, mock_sess = _fake_session_scope()
+
+    with patch("khatmsaz.bot.handlers.creator_broadcast.session_scope", return_value=scope), \
+         patch("khatmsaz.bot.handlers.creator_broadcast.identity_service.resolve_or_provision_user", new=AsyncMock(return_value=mock_user)), \
          patch("khatmsaz.bot.handlers.creator_broadcast.khatm_service.get_khatm", new=AsyncMock(return_value=mock_khatm)), \
          patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.audience_user_ids", new=AsyncMock(return_value=[uuid.uuid4() for _ in range(14)])), \
-         patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.per_message_price", new=AsyncMock(return_value=150)), \
-         patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(0, 0))):
+         patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.channel_policy", new=AsyncMock(return_value=(0, 150_000, 1000))), \
+         patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(20_000, 0))):
 
         await start_broadcast_for_khatm(mock_cb, state)
 
-        # 14 audience * 150 = 2,100 toman. Balance = 0 -> shows insufficient funds and recharge packages
+        # 14 audience -> 1 package of 1,000 = 150,000 toman. Balance = 20,000 -> insufficient funds
         mock_msg.answer.assert_awaited_once()
         text_sent = mock_msg.answer.call_args[0][0]
         reply_markup = mock_msg.answer.call_args.kwargs.get("reply_markup")
 
         assert "۱۴ نفر" in text_sent or "14 نفر" in text_sent
-        assert "۱۵۰ تومان" in text_sent or "150 تومان" in text_sent
-        assert "۲,۱۰۰ تومان" in text_sent or "2,100 تومان" in text_sent
+        assert "۱۵۰,۰۰۰ تومان" in text_sent or "150,000 تومان" in text_sent
+        assert "۱ بسته" in text_sent or "1 بسته" in text_sent
         assert "موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست" in text_sent
 
         # Check recharge buttons in markup
@@ -170,11 +181,14 @@ async def test_start_broadcast_for_khatm_sufficient_funds():
     storage = MemoryStorage()
     state = FSMContext(storage=storage, key=MagicMock())
 
-    with patch("khatmsaz.bot.handlers.creator_broadcast.identity_service.resolve_or_provision_user", new=AsyncMock(return_value=mock_user)), \
+    scope, mock_sess = _fake_session_scope()
+
+    with patch("khatmsaz.bot.handlers.creator_broadcast.session_scope", return_value=scope), \
+         patch("khatmsaz.bot.handlers.creator_broadcast.identity_service.resolve_or_provision_user", new=AsyncMock(return_value=mock_user)), \
          patch("khatmsaz.bot.handlers.creator_broadcast.khatm_service.get_khatm", new=AsyncMock(return_value=mock_khatm)), \
          patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.audience_user_ids", new=AsyncMock(return_value=[uuid.uuid4() for _ in range(14)])), \
-         patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.per_message_price", new=AsyncMock(return_value=150)), \
-         patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(50_000, 0))):
+         patch("khatmsaz.bot.handlers.creator_broadcast.broadcast_service.channel_policy", new=AsyncMock(return_value=(0, 150_000, 1000))), \
+         patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(200_000, 0))):
 
         await start_broadcast_for_khatm(mock_cb, state)
 
@@ -196,7 +210,7 @@ async def test_recheck_broadcast_wallet_transition_when_funded():
     state = FSMContext(storage=storage, key=MagicMock())
     await state.update_data(
         creator_id=str(creator_id),
-        total_cost=2100,
+        total_cost=150_000,
         target_title="ختم صلوات",
     )
 
@@ -204,8 +218,11 @@ async def test_recheck_broadcast_wallet_transition_when_funded():
     mock_cb = AsyncMock()
     mock_cb.message = mock_msg
 
-    # Now balance is 10,000 (> 2,100)
-    with patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(10_000, 0))):
+    scope, mock_sess = _fake_session_scope()
+
+    # Now balance is 200,000 (> 150,000)
+    with patch("khatmsaz.bot.handlers.creator_broadcast.session_scope", return_value=scope), \
+         patch("khatmsaz.bot.handlers.creator_broadcast.wallet_service.get_balances", new=AsyncMock(return_value=(200_000, 0))):
         await recheck_broadcast_wallet(mock_cb, state)
 
         mock_msg.answer.assert_awaited_once()

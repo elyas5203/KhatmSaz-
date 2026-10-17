@@ -141,7 +141,7 @@ async def submit(
         if package_size <= 0 or not isinstance(package_size, int):
             package_size = 1000
         if unit_price <= 0 or not isinstance(unit_price, int):
-            unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
+            unit_price = 150_000
 
         packages_count = math.ceil(len(users) / package_size)
         cost = packages_count * unit_price
