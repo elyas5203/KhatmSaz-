@@ -1,3 +1,6 @@
+## 2026-10-17 — Open Mode Content Delivery Master (Khutbah & Dua) [Antigravity]
+- Master Document: [OPEN_MODE_CONTENT_DELIVERY_MASTER.md](OPEN_MODE_CONTENT_DELIVERY_MASTER.md) (Open mode delivery, Khutbah section allocation & video captions, Dua single-asset multi-round button, and strict AI prohibitions)
+
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)
 - Sub-specs: [v3_specs/](v3_specs/) (Creator onboarding, commitment vs free, Khutbah cyclic allocation, La'an moderation, Member UI & daily reporting)

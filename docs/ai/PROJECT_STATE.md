@@ -1,3 +1,12 @@
+## Current state — 2026-10-17 — Open Mode Content Delivery Master & Strict AI Red Lines [Antigravity]
+- **Master Document Formulated (`docs/ai/OPEN_MODE_CONTENT_DELIVERY_MASTER.md`):** Formulated comprehensive master document based on owner's live Telegram bot bug report and screenshot.
+- **Root-Cause Analysis:** Fixed the core bug where requesting sections in Khutbah (or rounds in Dua) resulted in missing content delivery accompanied by the broken message «ارسال محتوا هنوز کامل نشده؛ دوباره تلاش می‌کنیم.».
+- **Unified Open Delivery Logic:**
+  - **Khutbah (خطبه):** Exactly mirroring Quran page delivery, when a user enters section count (e.g. 2 sections), those exact sections (videos/audio/text) are delivered immediately with official Khedmatgozaran captions and links, followed by dynamic inline button: `[ ✅ اعلام ثبت قرائت بخش ۱ و ۲ خطبه فدکیه ]`.
+  - **Dua & Ziyarat (ادعیه و زیارات):** When a user enters multiple rounds (e.g. 3 rounds of Ziyarat Ashura), the media file is delivered **strictly once** (no duplicate spamming), and the inline button beneath it explicitly reads `[ ✅ اعلام ثبت قرائت ۳ دور زیارت عاشورا ]`, logging all 3 rounds atomically upon a single click.
+  - **Strict Prohibitions (نبایدها):** Documented comprehensive red lines explicitly banning AI autonomous rule invention, orphan error messages without content, 7-day phantom reservations, delivery hour prompts in free mode, caption truncation, and religious liability words («شرعی»).
+- **Next Steps:** Proceed with technical code wiring and unit tests for open delivery upon owner approval.
+
 ## Current state — 2026-10-08 — V3 Wizard Flow, 2-Message Output & Sequential Allocation Completed [Antigravity]
 - **Completed Tasks (Approved by Owner):**
   - **Editing from Confirmation Wired (`create_khatm.py`):** Fully integrated `editing_from_confirm` flag across all wizard step handlers (`choose_category`, `choose_mode`, `enter_niyyat`, target, commitment policies, tones, visibility, and title). Changing template to `QURAN_PAGE` initializes canonical defaults (`quran_edition_id=CANONICAL_QURAN_EDITION_ID`, `content_delivery_mode="AUTO"`) to avoid key errors.
