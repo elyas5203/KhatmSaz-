@@ -1,3 +1,10 @@
+## 2026-10-17 — Antigravity — Admin Daily Analytics & Trend Comparison Report (MASTER-39)
+- **Comparative Daily Analytics Engine (`admin_daily_report.py`):** Added complete service calculating operational KPIs comparing today vs yesterday in `Asia/Tehran` timezone (new & active khatms, new & active users with DAU, participations, readings/completions, most popular khatm today, and top 5 active khatms overall).
+- **Trend Calculation & Safe Percentages:** Added `calc_trend` with indicators (↗️ / ↘️ / ➡️) and safe handling of zero denominators.
+- **Admin Bot Dashboard Integration:** Added `[ 📊 گزارش تحلیلی روزانه ]` button to `_build_dashboard_keyboard` in `src/khatmsaz/bot/handlers/admin_bot/handlers.py`, plus `/daily_report` and `/analytics` command handlers with instant in-place refresh callback (`admin:daily_report_refresh`).
+- **Automated Nightly Scheduler:** Added daily scheduled dispatch job in `src/khatmsaz/bootstrap.py` configured for 23:45 Tehran time (`hour=23, minute=45`) sending directly to all Super Admins in `SUPER_ADMIN_TELEGRAM_CHAT_IDS`.
+- **Verification:** Created `tests/test_master_39_admin_daily_report.py` (all 9 tests passed 100%). All 38 existing tests passed without regression.
+
 ## 2026-10-17 — Antigravity — Broadcast Pricing Clarification (150,000 Tomans per 1,000 Recipients)
 - **Pricing Mandate Clarification:** Client specified that sending to 1,000 recipients is priced at 150,000 Tomans («هزینه ارسال هر پیام به هزار نفر 150 تومنه اونجا اشتباه نوشته بوده اینو درست بکن»). Corrected system defaults to 150,000 Tomans per 1,000 package.
 - **Dynamic Package Cost Calculation:** Updated `src/khatmsaz/bot/handlers/creator_broadcast.py` and `broadcast_service.submit` to dynamically compute package count and total cost: `packages_count = max(1, math.ceil(audience_count / 1000))` and `total_cost = packages_count * 150_000`.

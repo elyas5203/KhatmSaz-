@@ -108,6 +108,8 @@ class Settings(BaseSettings):
     reminder_scan_interval_minutes: int = 1
     monthly_report_day: int = 1
     monthly_report_hour: int = 10
+    daily_admin_report_hour: int = 23
+    daily_admin_report_minute: int = 45
 
 
 @lru_cache

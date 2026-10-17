@@ -181,7 +181,7 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
         ])
 
     rows.append([
-        InlineKeyboardButton(text="📊 مشاهده گزارش روزانه (تست)", callback_data="admin:test_report"),
+        InlineKeyboardButton(text="📊 گزارش تحلیلی روزانه", callback_data="admin:daily_report"),
         InlineKeyboardButton(text="🔄 بروزرسانی آمار", callback_data="admin:refresh"),
     ])
 
@@ -1199,51 +1199,39 @@ async def admin_user_analytics_handler(event: Message | CallbackQuery) -> None:
         await message.answer(text, reply_markup=kb)
 
 
-@router.message(Command("test_report", "report", "test"))
-@router.callback_query(F.data == "admin:test_report")
-async def admin_test_report_handler(event: Message | CallbackQuery) -> None:
-    """Send an immediate test daily report with Niabat titles."""
+@router.message(Command("daily_report", "report", "analytics", "test_report", "test"))
+@router.callback_query(F.data.in_({"admin:daily_report", "admin:daily_report_refresh", "admin:test_report"}))
+async def admin_daily_report_handler(event: Message | CallbackQuery) -> None:
+    """Generate and display the comparative daily analytics report for Super Admins (MASTER-39)."""
     if not await _is_super_admin(event):
         await _reject_unauthorized(event)
         return
 
-    from zoneinfo import ZoneInfo
-    from khatmsaz.modules.reporting.creator_daily_report import build_creator_daily_report_message
+    from khatmsaz.modules.reporting.admin_daily_report import (
+        build_admin_daily_report_keyboard,
+        build_admin_daily_report_text,
+        get_admin_daily_report_data,
+    )
 
-    message = event if not isinstance(event, CallbackQuery) else event.message
-    chat_id = str(event.from_user.id) if event.from_user else str(message.chat.id)
-    now_utc = datetime.now(timezone.utc)
-    tz = ZoneInfo("Asia/Tehran")
-    local_now = now_utc.astimezone(tz)
-    today_start_utc = local_now.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(timezone.utc)
+    is_callback = bool(getattr(event, "data", None)) or isinstance(event, CallbackQuery)
+    message = event.message if is_callback else event
+    is_refresh = is_callback and getattr(event, "data", None) == "admin:daily_report_refresh"
 
     async with session_scope() as session:
-        user = await identity_service.find_by_platform(session, Platform.TELEGRAM, chat_id)
-        khatms = []
-        if user:
-            res = await session.execute(
-                select(Khatm).where(Khatm.creator_user_id == user.id, Khatm.status == KhatmStatus.ACTIVE).order_by(Khatm.created_at.desc())
-            )
-            khatms = list(res.scalars().all())
+        data = await get_admin_daily_report_data(session)
 
-        if not khatms:
-            res = await session.execute(
-                select(Khatm).where(Khatm.status == KhatmStatus.ACTIVE).order_by(Khatm.created_at.desc()).limit(5)
-            )
-            khatms = list(res.scalars().all())
+    text = build_admin_daily_report_text(data)
+    keyboard = build_admin_daily_report_keyboard()
 
-        if not khatms:
-            await message.answer("⚠️ هیچ ختم فعالی در سامانه برای گزارش یافت نشد.")
-            if isinstance(event, CallbackQuery):
-                await event.answer()
-            return
-
-        body, markup = await build_creator_daily_report_message(
-            session, khatms, local_now, today_start_utc, now_utc
-        )
-        await message.answer(body, reply_markup=markup)
-        if isinstance(event, CallbackQuery):
-            await event.answer("گزارش آزمایشی ارسال شد ✅")
+    if is_callback:
+        try:
+            await message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        except Exception:
+            await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+        if hasattr(event, "answer"):
+            await event.answer("گزارش روزانه بروزرسانی شد ✅" if is_refresh else None)
+    else:
+        await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 @router.message(StateFilter(None), ~F.text.startswith("/"))

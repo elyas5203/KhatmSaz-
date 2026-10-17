@@ -1,3 +1,19 @@
+## Current state — 2026-10-17 — Admin Daily Analytics & Trend Comparison Report (MASTER-39) [Antigravity]
+- **Admin Daily Analytics Service (`admin_daily_report.py`):**
+  - Implemented comprehensive operational metrics comparing today vs yesterday in `Asia/Tehran` timezone:
+    - Khatms: new today vs yesterday with growth percentage and trend icon (↗️ / ↘️ / ➡️), plus total active khatms.
+    - Participations: new joins today vs yesterday, total active participations, and completed portions/occurrences today vs yesterday.
+    - Users: new registrations today vs yesterday, total registered users, and Daily Active Users (DAU today vs yesterday with growth/decline rate).
+    - Top Khatm Today: most popular khatm in the last 24h by activity/joins.
+    - Top 5 Active Khatms: ranked by total active members.
+  - Implemented zero-division safe trend calculator (`calc_trend`) and Persian Jalali date formatter (`format_persian_date`, `to_persian_digits`).
+- **Admin Bot Integration & Dashboard Access:**
+  - Added `[ 📊 گزارش تحلیلی روزانه ]` button to `_build_dashboard_keyboard` in `src/khatmsaz/bot/handlers/admin_bot/handlers.py`.
+  - Added command handlers for `/daily_report` and `/analytics` with in-place refreshing via `admin:daily_report_refresh`.
+- **APScheduler Automatic Nightly Dispatch:**
+  - Registered daily cron job in `src/khatmsaz/bootstrap.py` scheduled at 23:45 Tehran time (`hour=23, minute=45`) to dispatch the report to all Super Admins in `SUPER_ADMIN_TELEGRAM_CHAT_IDS`.
+- **Validation:** Added 9 tests in `tests/test_master_39_admin_daily_report.py` (all passed 100%). All 38 broadcast and reporting tests passed without regression.
+
 ## Current state — 2026-10-17 — Broadcast Pricing Clarification (150,000 Tomans per 1,000 Recipients) (MASTER-38) [Antigravity]
 - **Clarification on Broadcast Pricing Rule:**
   - Client clarified the pricing structure: the price for sending to 1,000 recipients is **150,000 Tomans** («هزینه ارسال هر پیام به هزار نفر 150 تومنه اونجا اشتباه نوشته بوده اینو درست بکن»). The previous 50,000 Tomans default was erroneous.

@@ -440,6 +440,13 @@ async def main() -> None:
         else:
             runtime_status.mark_scan_succeeded()
 
+    async def _run_daily_admin_report() -> None:
+        try:
+            from khatmsaz.modules.reporting.admin_daily_report import send_daily_admin_report
+            await send_daily_admin_report()
+        except Exception as exc:
+            logger.exception("Error in scheduled daily admin report: %s", exc)
+
     scheduler = AsyncIOScheduler(timezone=settings.app_timezone)
     scheduler.add_job(
         _run_reminder_scan,
@@ -448,9 +455,22 @@ async def main() -> None:
         max_instances=1,
         coalesce=True,
     )
+    scheduler.add_job(
+        _run_daily_admin_report,
+        "cron",
+        hour=settings.daily_admin_report_hour,
+        minute=settings.daily_admin_report_minute,
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.start()
     runtime_status.mark_scheduler_started()
-    logger.info("Reminder scan scheduled every minute (coalesced, single instance).")
+    logger.info(
+        "Reminder scan scheduled every minute; daily admin report scheduled at %02d:%02d (%s).",
+        settings.daily_admin_report_hour,
+        settings.daily_admin_report_minute,
+        settings.app_timezone,
+    )
 
     # --- Shutdown coordination ---
     shutdown_event = asyncio.Event()
