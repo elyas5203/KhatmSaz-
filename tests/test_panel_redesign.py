@@ -101,3 +101,13 @@ def test_new_panel_routes_exist():
         assert path in paths, f"missing route {path}"
     assert "/creator/plan/upgrade" not in paths
     assert "/finance/user-plan" not in paths
+
+
+def test_phone_claim_e164_attribute():
+    import uuid
+    from khatmsaz.modules.phone.models import PhoneClaim
+
+    claim = PhoneClaim(user_id=uuid.uuid4(), e164="+989123456789")
+    assert claim.e164 == "+989123456789"
+    assert not hasattr(claim, "phone_e164")
+

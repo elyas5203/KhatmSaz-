@@ -4,7 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, safe_answer_callback, safe_clear_inline_keyboard, main_menu_keyboard
-from khatmsaz.bot.admin_notifications import notify_super_admins
+from khatmsaz.bot.admin_notifications import notify_super_admins, notify_super_admins_photo
 from khatmsaz.core.db import session_scope
 from khatmsaz.i18n import t
 from khatmsaz.modules.identity import service as identity_service
@@ -12,6 +12,7 @@ from khatmsaz.modules.identity.models import Platform, UserRole
 from khatmsaz.modules.broadcast import service as broadcast_service
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import KhatmStatus
+import math
 import uuid
 
 router = Router(name="creator_broadcast")
@@ -23,22 +24,50 @@ class CreatorBroadcastFlow(StatesGroup):
 
 
 async def _notify_admins_of_broadcast_request(
-    *, item, creator_name: str, scope_title: str,
+    *, item, creator_name: str, scope_title: str, source_bot=None,
 ) -> None:
-    """Push the moderation queue item to admins instead of making them poll."""
+    """Push the moderation queue item to admins with actionable buttons and media preview."""
     preview = (item.body or "").strip() or f"[{item.media_type or 'رسانه'} بدون متن]"
     if len(preview) > 500:
         preview = preview[:497] + "…"
+    cost = getattr(item, "cost_toman", 0) or 0
     text = (
         "🔔 درخواست تازهٔ پیام گروهی\n\n"
         f"سازنده: {creator_name}\n"
         f"بخش: {scope_title}\n"
         f"مخاطب: {item.audience_count} نفر\n"
-        f"متن/رسانه: {preview}\n\n"
-        f"کد درخواست: {item.id}\n"
-        "برای بررسی، وارد پنل ادمین و بخش «پیام‌های گروهی» شوید و این کد را جست‌وجو کنید."
+        f"مبلغ پرداختی: {cost:,} تومان\n"
+        f"نوع رسانه: {getattr(item, 'media_type', None) or 'بدون رسانه'}\n\n"
+        f"متن پیام:\n{preview}\n\n"
+        f"کد درخواست: <code>{item.id}</code>\n\n"
+        "می‌توانید با دکمه‌های زیر فوراً تأیید یا رد کنید یا در پنل ادمین بخش پیام‌های گروهی این کد را جست‌وجو نمایید:"
     )
-    await notify_super_admins(text)
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ تأیید و ارسال",
+                    callback_data=f"admin_broadcast:approve:{item.id}",
+                ),
+                InlineKeyboardButton(
+                    text="❌ رد و عودت وجه",
+                    callback_data=f"admin_broadcast:reject:{item.id}",
+                ),
+            ]
+        ]
+    )
+    if item.media_type == "photo" and item.media_file_id_telegram:
+        await notify_super_admins_photo(
+            caption=text,
+            photo_file_id=item.media_file_id_telegram,
+            source_bot=source_bot,
+            reply_markup=markup,
+        )
+    else:
+        try:
+            await notify_super_admins(text, reply_markup=markup)
+        except TypeError:
+            await notify_super_admins(text)
 
 
 @router.message(F.text == "📢 ارسال پیام گروهی")
@@ -54,11 +83,6 @@ async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> 
 
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
-            await message.answer("شما دسترسی سازنده ندارید.")
-            if callback:
-                await safe_answer_callback(callback)
-            return
         khatms = [k for k in await khatm_service.list_my_created(session, user.id) if k.status == KhatmStatus.ACTIVE]
 
     await state.update_data(creator_id=str(user.id), platform=platform.value)
@@ -72,6 +96,7 @@ async def start_broadcast(event: Message | CallbackQuery, state: FSMContext) -> 
     rows = [[InlineKeyboardButton(text="📢 به همهٔ ختم‌ها", callback_data="cbroadcast_target:all")]]
     for k in khatms:
         rows.append([InlineKeyboardButton(text=f"🔹 {k.title}", callback_data=f"cbroadcast_target:{k.id}")])
+    rows.append([InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")])
     markup = InlineKeyboardMarkup(inline_keyboard=rows)
     prompt = "پیام گروهی برای اعضای کدام ختم ارسال شود؟"
 
@@ -96,21 +121,29 @@ async def choose_broadcast_target(callback: CallbackQuery, state: FSMContext) ->
     async with session_scope() as session:
         khatm_uuid = uuid.UUID(target_khatm_id) if target_khatm_id else None
         audience_count = len(await broadcast_service.audience_user_ids(session, creator_id, khatm_id=khatm_uuid))
+        policy = await broadcast_service.channel_policy(session, data.get("platform", "TELEGRAM"))
+        unit_price = policy[1] if len(policy) > 1 and policy[1] > 0 else 50_000
+        package_size = policy[2] if len(policy) > 2 and policy[2] > 0 else 1000
+        packages_count = max(1, math.ceil(audience_count / package_size)) if audience_count > 0 else 0
+        total_est = packages_count * unit_price
 
     await state.update_data(target_khatm_id=target_khatm_id, audience_count=audience_count)
 
     scope = "همهٔ ختم‌های شما" if target_khatm_id is None else "این ختم"
     info = (
         f"📢 ارسال پیام گروهی — {scope}\n\n"
-        f"👥 تعداد مخاطبین فعال: {audience_count} نفر\n"
-        "🎁 در پلن رایگان، دو پیام تلگرام/بله برای جمعیت زیر ۱۰۰۰ نفر دارید.\n"
-        "پس از آن برای ادامه، پلن حرفه‌ای لازم است.\n\n"
+        f"👥 تعداد مخاطبین فعال: {audience_count:,} نفر\n"
+        f"💳 تعرفه هر بسته {package_size:,} نفری: {unit_price:,} تومان\n"
+        f"📦 بسته‌های مورد نیاز: {packages_count} بسته (مجموعاً {total_est:,} تومان)\n\n"
     )
-    info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو /cancel بزنید):"
+    info += "لطفاً متن، عکس، فیلم یا فایل خود را ارسال کنید (برای لغو دکمه زیر یا /cancel بزنید):"
 
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="cbroadcast:cancel")]]
+    )
     await state.set_state(CreatorBroadcastFlow.entering_message)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(info)
+    await callback.message.answer(info, reply_markup=cancel_kb)
     await safe_answer_callback(callback)
 
 @router.message(CreatorBroadcastFlow.entering_message)
@@ -197,28 +230,28 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
             )
             creator_name = creator.display_name if creator and creator.display_name else "نامشخص"
             scope_title = target_khatm.title if target_khatm else "همهٔ ختم‌های سازنده"
-    except broadcast_service.plan_service.PlanFeatureUnavailableError:
-        await callback.message.answer("دو پیام رایگان شما مصرف شده یا این پیام ۱۰۰۰ مخاطب و بیشتر دارد؛ برای ادامه پلن حرفه‌ای لازم است.")
+    except broadcast_service.wallet_service.InsufficientFundsError:
+        await callback.message.answer("💳 موجودی کیف پول شما برای ارسال این پیام گروهی کافی نیست. لطفاً ابتدا کیف پول خود را شارژ فرمایید.")
         await state.clear()
         await safe_answer_callback(callback)
         return
-    except ValueError:
-        await callback.message.answer("پیام معتبر نیست یا مخاطبی برای آن پیدا نشد.")
+    except ValueError as exc:
+        await callback.message.answer(f"پیام معتبر نیست یا مخاطبی برای آن پیدا نشد ({exc}).")
         await state.clear()
         await safe_answer_callback(callback)
         return
     await _notify_admins_of_broadcast_request(
-        item=item, creator_name=creator_name, scope_title=scope_title,
+        item=item, creator_name=creator_name, scope_title=scope_title, source_bot=callback.bot,
     )
     await state.clear()
-    cost_text = "رایگان" if item.cost_toman == 0 else f"{item.cost_toman:,} تومان"
+    cost_text = f"{item.cost_toman:,} تومان"
     await callback.message.answer(
-        f"✅ پیام برای تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 هزینه پس از تأیید: {cost_text}",
+        f"✅ پیام برای بررسی و تأیید محتوا ثبت شد.\n👥 مخاطب: {item.audience_count} نفر\n💳 مبلغ کسر شده از کیف پول: {cost_text}",
         reply_markup=main_menu_keyboard("fa"),
     )
     await safe_answer_callback(callback)
 
-@router.callback_query(CreatorBroadcastFlow.confirming, F.data == "cbroadcast:cancel")
+@router.callback_query(F.data == "cbroadcast:cancel")
 async def cancel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await safe_clear_inline_keyboard(callback.message)

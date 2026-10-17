@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from khatmsaz.bot.keyboards import (
     REPORT_BUTTON_TEXTS, TODAY_BUTTON_TEXTS,
@@ -15,7 +16,7 @@ from khatmsaz.bot.keyboards import (
 from khatmsaz.i18n import t
 from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import KhatmTemplateType
+from khatmsaz.modules.khatm.models import KhatmTemplateType, KhatmTypeEnum
 from khatmsaz.modules.allocation.models import PortionUnitKind
 from khatmsaz.modules.notification.models import NotificationKind
 from khatmsaz.modules.notification import service as notification_service
@@ -27,13 +28,46 @@ from khatmsaz.core.db import session_scope
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform
 from khatmsaz.modules.reporting import service as reporting_service
-from khatmsaz.bot.member_scope import ensure_participation_matches_bot
+from khatmsaz.bot.member_scope import ensure_participation_matches_bot, member_instance_id
 
 router = Router(name="report")
 
 
+async def _deliver_open_khatm_flow(
+    target_message: Message,
+    state: FSMContext | None,
+    participation,
+    khatm,
+    lang: str,
+    platform: Platform,
+) -> None:
+    from khatmsaz.modules.share_occurrence import repository as shares
+    from khatmsaz.bot.occurrence_adapter import label, keyboard
+    from khatmsaz.bot.handlers.member_commitment import CommitFlow
+    from khatmsaz.bot.member_copy import content_family
+
+    async with session_scope() as session:
+        pending = await shares.list_outstanding(session, participation.id)
+        delivered = [item for item in pending if item.delivered_at is not None]
+        if delivered:
+            for item in delivered:
+                await target_message.answer(label(khatm, item), reply_markup=keyboard(item, khatm))
+            return
+        fam = await content_family(session, khatm)
+        unit = (
+            "بخش" if fam == "khutbah"
+            else "صفحه" if khatm.template_type == KhatmTemplateType.QURAN_PAGE
+            else "صلوات" if fam == "salawat"
+            else "مرتبه"
+        )
+    if state is not None:
+        await state.set_state(CommitFlow.entering_count)
+        await state.update_data(commit_pid=str(participation.id), commit_family=fam.upper(), lang=lang)
+    await target_message.answer(f"می‌خواهید چند {unit} از این ختم قرائت کنید؟ عدد مورد نظر را بفرستید:")
+
+
 @router.message(F.text.in_(TODAY_BUTTON_TEXTS))
-async def today_overview(message: Message) -> None:
+async def today_overview(message: Message, state: FSMContext | None = None) -> None:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     available: list[tuple[object, object]] = []
     bot_lang = getattr(message.bot, "khatmsaz_language", None)
@@ -56,15 +90,47 @@ async def today_overview(message: Message) -> None:
     if not available:
         await message.answer(t("report.no_portion_today", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
         return
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"🌱 {khatm.title}", callback_data=f"today_pick:{participation.id}")]
-        for khatm, participation in available
-    ])
-    await message.answer(t("report.today_pick", lang, count=len(available)), reply_markup=keyboard)
+
+    if len(available) == 1:
+        single_khatm, single_part = available[0]
+        ktype = getattr(single_khatm, "khatm_type", None)
+        is_open = (
+            ktype == KhatmTypeEnum.OPEN
+            or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+        )
+        if is_open:
+            await _deliver_open_khatm_flow(message, state, single_part, single_khatm, lang, platform)
+            return
+
+    cards_text = []
+    inline_rows = []
+    from khatmsaz.bot.member_copy import get_khatm_identifier
+    from html import escape
+
+    async with session_scope() as session:
+        for idx, (khatm, participation) in enumerate(available, start=1):
+            title, creator_name, niyyat = await get_khatm_identifier(session, khatm, lang)
+            card_lines = [f"<b>{idx}. 🌱 {escape(title)}</b>"]
+            if creator_name:
+                card_lines.append(f"   👤 {escape(creator_name)}")
+            if niyyat:
+                short_niyyat = niyyat if len(niyyat) <= 60 else (niyyat[:57] + "...")
+                card_lines.append(f"   🤲 <i>{escape(short_niyyat)}</i>")
+            cards_text.append("\n".join(card_lines))
+
+            btn_suffix = f" ({creator_name})" if creator_name else ""
+            btn_text = f"🌱 {title}{btn_suffix}"
+            if len(btn_text) > 45:
+                btn_text = btn_text[:42] + "..."
+            inline_rows.append([InlineKeyboardButton(text=btn_text, callback_data=f"today_pick:{participation.id}")])
+
+    intro = t("report.today_pick", lang, count=len(available))
+    full_message_text = f"{intro}\n\n" + "\n\n".join(cards_text) if cards_text else intro
+    await message.answer(full_message_text, reply_markup=InlineKeyboardMarkup(inline_keyboard=inline_rows))
 
 
 @router.callback_query(F.data.startswith("today_pick:"))
-async def deliver_today_early(callback: CallbackQuery) -> None:
+async def deliver_today_early(callback: CallbackQuery, state: FSMContext | None = None) -> None:
     """Deliver one selected khatm now and mark today's scheduled send consumed."""
     bot = callback.message.bot
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
@@ -81,6 +147,18 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
         if khatm is None or not await ensure_participation_matches_bot(session, participation, khatm, bot) or not khatm_service.has_started(khatm):
             await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
             return
+
+    ktype = getattr(khatm, "khatm_type", None)
+    is_open = (
+        ktype == KhatmTypeEnum.OPEN
+        or (ktype is not None and str(getattr(ktype, "value", ktype)).upper() == "OPEN")
+    )
+    if is_open:
+        await _deliver_open_khatm_flow(callback.message, state, participation, khatm, lang, platform)
+        await safe_answer_callback(callback)
+        return
+
+    async with session_scope() as session:
         settings = await settings_service.get_or_create(session, user.id)
         try:
             user_tz = ZoneInfo(settings.timezone)
@@ -92,9 +170,11 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
         from khatmsaz.modules.share_occurrence import delivery, repository as shares
         if delivery.is_managed(participation, khatm):
             occurrence = await delivery.prepare(session, participation.id, now=now_utc, manual=True)
+            just_delivered_id = None
             if occurrence is not None and occurrence.delivered_at is None:
                 try:
-                    await delivery.deliver(session, occurrence, now=now_utc)
+                    if await delivery.deliver(session, occurrence, now=now_utc):
+                        just_delivered_id = occurrence.id
                 except Exception:
                     if not session.is_active:
                         raise
@@ -102,8 +182,16 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                     # the next attempt sends only the remaining components.
                     await safe_answer_callback(callback, t("report.content_unavailable", lang), show_alert=True)
                     return
+            from khatmsaz.bot.member_copy import content_family
+            if (await content_family(session, khatm)) == "khutbah":
+                await delivery.allocate_khutbah_section_range(
+                    session, participation.id, khatm, getattr(participation, "commitment_per_occurrence", None) or 1
+                )
             pending = await shares.list_outstanding(session, participation.id)
-            delivered = [item for item in pending if item.delivered_at is not None]
+            delivered = [
+                item for item in pending
+                if item.delivered_at is not None and item.id != just_delivered_id
+            ]
             legacy = await shares.list_legacy_portions(session, participation.id)
             for item in legacy:
                 await callback.message.answer(f"📖 سهم قبلی شما: صفحات {item.unit_start} تا {item.unit_end}",
@@ -116,7 +204,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                 for item in delivered:
                     receipts = await shares.list_messages(session, item.id)
                     action = next((r for r in receipts if r.purpose == "ACTION"), None)
-                    reply_options = {"reply_markup": keyboard(item)}
+                    reply_options = {"reply_markup": keyboard(item, khatm)}
                     if action and platform == Platform.TELEGRAM:
                         reply_options.update(reply_to_message_id=action.message_id, allow_sending_without_reply=True)
                     view = await callback.message.answer(label(khatm, item), **reply_options)
@@ -124,7 +212,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                         bot_instance_id=item.bot_instance_id, component_key=f"view:{view.message_id}",
                         purpose="ACTION", chat_id=str(callback.message.chat.id), message_id=view.message_id,
                         sent_at=now_utc)
-            elif not legacy:
+            elif not legacy and just_delivered_id is None:
                 await callback.message.answer(t("report.no_portion_today", lang))
             await safe_answer_callback(callback)
             return
@@ -139,16 +227,12 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
                 await safe_answer_callback(callback, t("report.today_already_delivered", lang), show_alert=True)
                 return
             from khatmsaz.modules.content import service as content_service
+            from khatmsaz.modules.share_occurrence import delivery
             total_pages = content_service.get_quran_total_pages(khatm)
-            pages = min(
-                participation.open_reading_pages_per_day,
-                total_pages - participation.open_reading_next_page + 1,
-            )
-            if pages <= 0:
-                await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
-                return
-            start = participation.open_reading_next_page
-            end = start + pages - 1
+            default_start = (participation.open_reading_next_page - 1) % total_pages + 1
+            start = await delivery.get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
+            pages = participation.open_reading_pages_per_day
+            end = min(total_pages, start + pages - 1)
             from khatmsaz.bot.handlers.portions import _deliver_quran_pages
             delivered = await _deliver_quran_pages(
                 session, callback.message, khatm=khatm, user_id=user.id,
@@ -161,6 +245,7 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
             if reserved is None:
                 await safe_answer_callback(callback, t("report.no_portion_today", lang), show_alert=True)
                 return
+            participation.open_reading_next_page = (end % total_pages) + 1
             await participation_service.mark_open_reading_sent_now(session, participation.id)
             await callback.message.answer(
                 t("report.today_page_label", lang, title=khatm.title, start=start, end=end),
@@ -182,13 +267,15 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
             # L5 (owner 2026-09-30): deliver the actual zekr/dua/ziyarat/salawat
             # content first, then the «انجام سهم» button as the LAST message.
             from khatmsaz.bot.handlers.portions import _send_recitation_content
+            from khatmsaz.bot.member_copy import content_family, done_button_label
+            family = await content_family(session, khatm)
             await callback.message.answer(t("reminder.regular_commitment", lang, title=khatm.title, count=count))
             if not await _send_recitation_content(session, callback.message, khatm):
                 await safe_answer_callback(callback, t("report.content_unavailable", lang), show_alert=True)
                 return
             early_done_keyboard = InlineKeyboardMarkup(inline_keyboard=[[
                 InlineKeyboardButton(
-                    text=t("commit.regular.done_button", lang),
+                    text=done_button_label(family, lang, count=count, title=khatm.title),
                     callback_data=f"regular_early_done:{participation.id}",
                 )
             ]])
@@ -239,7 +326,10 @@ async def deliver_today_early(callback: CallbackQuery) -> None:
             await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
             await callback.message.answer(
                 t("report.today_page_label", lang, title=khatm.title, start=portion.unit_start, end=portion.unit_end),
-                reply_markup=portion_done_keyboard(str(khatm.id), allow_snooze=bool(khatm.allow_snooze), lang=lang),
+                reply_markup=portion_done_keyboard(
+                    str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=lang,
+                    start=portion.unit_start, end=portion.unit_end,
+                ),
             )
             await safe_answer_callback(callback)
             return

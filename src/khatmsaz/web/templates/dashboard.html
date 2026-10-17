@@ -1,119 +1,351 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
-{% block title %}نمای کلی | ختم‌ساز{% endblock %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}داشبورد مدیریت کل | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">امروز در سامانه</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">سلام {{ admin.display_name or 'مدیر' }}؛ وضعیت ختم‌ها روشن است.</h1>
-  <div class="flex items-center gap-2 text-slate-400 text-sm mt-3">
-    <span class="relative flex h-3 w-3">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-      <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-    </span>
-    بات و پنل در دسترس‌اند
+<section class="mb-8 pt-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">مرکز کنترل و مانیتورینگ ربات‌های ختم‌ساز</p>
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">سلام {{ admin.display_name or 'مدیر گرامی' }}؛ وضعیت سامانه پایدار است.</h1>
+    <div class="flex items-center gap-2 text-slate-400 text-xs sm:text-sm">
+      <span class="relative flex h-2.5 w-2.5">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+      </span>
+      <span>ربات‌های تلگرام و بله آنلاین و در حال سرویس‌دهی هستند</span>
+    </div>
+  </div>
+  <div class="flex items-center gap-2 self-start md:self-auto">
+    {{ help_button(
+      "راهنمای داشبورد مدیریت کل",
+      "داشبورد صفحهٔ اصلی مدیریت سیستم است که آمار کلی، صف‌های در انتظار بررسی و دسترسی سریع به تمام بخش‌های ۱۰‌گانه سامانه را در یک نگاه به شما نشان می‌دهد.",
+      [
+        "کارت‌های بالا: آمار زندهٔ ختم‌های فعال، اعضا، کل کاربران و درآمد را نشان می‌دهند.",
+        "صف نظارت و تأیید: هر درخواستی که کاربر یا سازنده بفرستد (مثل لعن اختصاصی، کاور ختم، یا پیام گروهی) عدد آن اینجا بالا می‌رود تا با یک کلیک بررسی کنید.",
+        "دسترسی سریع: میانبر رفتن به هر یک از بخش‌های ربات مثل کتابخانه ادعیه، قرآن، امور مالی و تنظیمات ربات‌هاست."
+      ],
+      "پیشنهاد: اول صبح صف‌های در انتظار را بررسی کنید تا پیام‌ها و ختم‌های کاربران معطل نمانند."
+    ) }}
   </div>
 </section>
 
 <!-- Metrics -->
-<section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+<section class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
   <article class="glass-card p-5 rounded-2xl flex flex-col">
-    <strong class="text-3xl font-bold text-emerald-400 mb-1 font-mono">{{ counts.active_khatms }}</strong>
-    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">ختم فعال {{ tooltip("تعداد ختم‌هایی که هم‌اکنون در جریان هستند و وضعیت آن‌ها ACTIVE است.") }}</span>
+    <strong class="text-3xl font-black text-emerald-400 mb-1 font-mono">{{ counts.active_khatms }}</strong>
+    <span class="text-xs text-slate-400">ختم‌های فعال {{ tooltip("ختم‌هایی که هم‌اکنون اعضا در حال خواندن سهم‌های آن هستند.") }}</span>
   </article>
   <article class="glass-card p-5 rounded-2xl flex flex-col">
-    <strong class="text-3xl font-bold text-emerald-400 mb-1 font-mono">{{ counts.active_members }}</strong>
-    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">عضویت فعال {{ tooltip("تعداد مشارکت‌های ثبت شده در ختم‌های فعال.") }}</span>
+    <strong class="text-3xl font-black text-emerald-400 mb-1 font-mono">{{ counts.active_members }}</strong>
+    <span class="text-xs text-slate-400">مشارکت فعال {{ tooltip("تعداد اعضایی که در ختم‌های مختلف مشغول قرائت هستند.") }}</span>
   </article>
   <article class="glass-card p-5 rounded-2xl flex flex-col">
-    <strong class="text-3xl font-bold text-emerald-400 mb-1 font-mono">{{ counts.users }}</strong>
-    <span class="text-[0.7rem] text-slate-400 uppercase tracking-wide">کاربر {{ tooltip("تعداد کل کاربرانی که در ربات عضو شده‌اند.") }}</span>
+    <strong class="text-3xl font-black text-emerald-400 mb-1 font-mono">{{ counts.users }}</strong>
+    <span class="text-xs text-slate-400">کل کاربران {{ tooltip("مجموع کل افرادی که تا کنون ربات را استارت زده‌اند.") }}</span>
+    {% if user_analytics %}
+    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-slate-700/50 text-[0.68rem] text-slate-400">
+      <span class="text-sky-400 font-mono">📱 {{ user_analytics.platform.telegram_users }} تلگرام</span>
+      <span>·</span>
+      <span class="text-emerald-400 font-mono">🟢 {{ user_analytics.platform.bale_users }} بله</span>
+    </div>
+    {% endif %}
   </article>
-  <article class="glass-card p-5 rounded-2xl flex flex-col border-t-2 border-t-amber-500 hover:border-t-amber-400">
-    <strong class="text-3xl font-bold text-amber-400 mb-1 font-mono">{{ counts.pending }}</strong>
-    <span class="text-[0.7rem] text-amber-500/80 uppercase tracking-wide">نیازمند بررسی {{ tooltip("مجموع درخواست‌های واریز، کاور و پیام‌های گروهی که منتظر تایید شما هستند.") }}</span>
+  <article class="glass-card p-5 rounded-2xl flex flex-col">
+    <strong class="text-2xl font-black text-emerald-300 mb-1 font-mono">{{ "{:,}".format(counts.paid_total) }} <span class="text-xs font-normal">تومان</span></strong>
+    <span class="text-xs text-slate-400">کل درآمد موفق {{ tooltip("مجموع مبالغ پرداخت‌شده از طریق درگاه بانکی برای شارژ کیف پول یا پلن‌ها.") }}</span>
+  </article>
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-t-2 {% if counts.pending > 0 %}border-t-amber-500 bg-amber-500/5{% else %}border-t-emerald-500{% endif %}">
+    <strong class="text-3xl font-black {% if counts.pending > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mb-1 font-mono">{{ counts.pending }}</strong>
+    <span class="text-xs {% if counts.pending > 0 %}text-amber-400/90 font-bold{% else %}text-slate-400{% endif %}">در انتظار بررسی {{ tooltip("مجموع کل مواردی که در صف‌های ۷‌گانه منتظر تصمیم شما هستند.") }}</span>
   </article>
 </section>
 
-{% set perms = admin._admin_permissions if admin else [] %}
-<!-- Quick access: every section one tap away (non-technical hub) -->
-<section class="mb-8">
-  <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-3">دسترسی سریع</p>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-    {% macro tile(href, label, emoji) %}
-      <a href="{{ href }}" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
-        <span class="text-2xl">{{ emoji }}</span>
-        <span class="text-sm font-bold text-slate-200">{{ label }}</span>
-      </a>
-    {% endmacro %}
-    {% if 'CONTENT_MANAGE' in perms %}
-      {{ tile('/devotionals', 'دعاها و زیارات', '📿') }}
-      {{ tile('/categories', 'دسته‌ها', '🗂') }}
-      {{ tile('/templates', 'پیام‌ها', '💬') }}
-    {% endif %}
-    {% if 'SUPPORT_USERS' in perms or 'MODERATION_MANAGE' in perms %}
-      {{ tile('/khatms', 'ختم‌ها', '📖') }}
-      {{ tile('/users', 'کاربران', '👥') }}
-    {% endif %}
-    {% if 'SUPPORT_USERS' in perms %}{{ tile('/phone-verifications', 'احراز شماره', '📱') }}{% endif %}
-    {% if 'MODERATION_MANAGE' in perms %}{{ tile('/broadcasts', 'پیام گروهی', '📢') }}{% endif %}
-    {% if 'FINANCE_MANAGE' in perms %}{{ tile('/finance', 'مالی و پلن‌ها', '💳') }}{% endif %}
-    {% if 'OPERATIONS_VIEW' in perms %}
-      {{ tile('/bots', 'باتها', '🤖') }}
-      {{ tile('/operations', 'سلامت سیستم', '🩺') }}
-      {{ tile('/audit', 'رویدادها', '🕘') }}
-    {% endif %}
-    {% if 'ADMIN_ROLES_MANAGE' in perms %}{{ tile('/admins', 'مدیران', '🛡') }}{% endif %}
-  </div>
-</section>
-
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-  <!-- Queue -->
-  <section class="glass-panel rounded-3xl p-6 lg:col-span-1 h-fit">
-    <div class="mb-5">
-      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">صف مدیریت</p>
-      <h2 class="text-xl font-bold text-white">موارد در انتظار</h2>
-    </div>
-    <div class="flex flex-col gap-3">
-      <a href="/khatms" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
-        <span class="text-sm text-slate-300">کاورهای ختم {{ tooltip("کاورهایی که کاربران برای ختم‌هایشان آپلود کرده‌اند و منتظر تایید محتوایی هستند.") }}</span>
-        <b class="bg-slate-700/50 {% if pending.covers %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.covers }}</b>
-      </a>
-      <a href="/broadcasts" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
-        <span class="text-sm text-slate-300">پیام‌های گروهی {{ tooltip("پیام‌های همگانی (Broadcast) تنظیم شده که باید توسط مدیر تایید شوند تا ارسال شوند.") }}</span>
-        <b class="bg-slate-700/50 {% if pending.broadcasts %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.broadcasts }}</b>
-      </a>
-      <a href="/categories" class="flex justify-between items-center p-3 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-emerald-500/40 transition-colors">
-        <span class="text-sm text-slate-300">درخواست نوع ختم {{ tooltip("درخواست‌هایی که کاربران برای اضافه شدن ادعیه یا زیارات جدید داده‌اند.") }}</span>
-        <b class="bg-slate-700/50 {% if pending.requests %}text-amber-400{% else %}text-emerald-400{% endif %} text-sm font-mono px-3 py-1 rounded-full">{{ pending.requests }}</b>
-      </a>
-    </div>
-  </section>
-
-  <!-- Recent Activity -->
-  <section class="glass-panel rounded-3xl p-6 lg:col-span-2">
-    <div class="flex justify-between items-center mb-5">
-      <div>
-        <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">آخرین فعالیت</p>
-        <h2 class="text-xl font-bold text-white">ختم‌های تازه</h2>
+<!-- Devotional Reception & Platform Analytics (MASTER-20) -->
+{% if user_analytics %}
+<section class="glass-panel rounded-3xl p-6 mb-8 border border-white/10 shadow-xl">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-700/50">
+    <div>
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-xs font-bold text-emerald-400 tracking-wider uppercase">تحلیل جامع استقبال و تفکیک کاربران</span>
+        {% if user_analytics.top_category %}
+        <span class="text-[0.7rem] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+          <span>🏆 بیشترین استقبال:</span>
+          <b>{{ user_analytics.top_category.title }} ({{ user_analytics.top_category.popularity_percent }}٪)</b>
+        </span>
+        {% endif %}
       </div>
-      <a href="/khatms" class="text-sm font-medium text-emerald-400 hover:text-emerald-300 transition-colors">مشاهده همه</a>
+      <h2 class="text-lg sm:text-xl font-bold text-white">تفکیک کاربران به تفکیک دسته‌های عبادی (قرآن، لعن، صلوات، دعا، خطبه) و پلتفرم‌ها</h2>
     </div>
-    
-    <div class="flex flex-col gap-2">
-      {% for item in recent %}
-      <a href="/khatms/{{ item.id }}" class="flex justify-between items-center p-4 rounded-xl bg-slate-800/20 hover:bg-slate-800/50 border border-transparent hover:border-slate-700/50 transition-all group">
-        <div class="flex flex-col gap-1">
-          <b class="text-slate-200 group-hover:text-emerald-400 transition-colors">{{ item.title }}</b>
-          <small class="text-xs text-slate-500">{{ fa_label(item.template_type) }} · {{ fa_label(item.khatm_type) }}</small>
+    <div class="flex items-center gap-2 text-xs text-slate-400">
+      <span class="font-mono bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700/60">👥 مجموع کل کاربران: <b class="text-white font-mono">{{ user_analytics.platform.total_users }}</b></span>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Devotional Categories Ranking (8 cols) -->
+    <div class="lg:col-span-8 space-y-3">
+      <div class="flex items-center justify-between text-xs text-slate-400 font-bold mb-1 px-1">
+        <span>رتبه‌بندی استقبال از دسته‌های ۵‌گانه عبادی</span>
+        <span>مخاطبان · ختم‌ها · سهم استقبال</span>
+      </div>
+
+      {% for cat in user_analytics.categories %}
+      <div class="p-4 rounded-2xl bg-slate-800/40 border {% if cat.is_top %}border-amber-500/50 bg-gradient-to-l from-amber-500/5 to-transparent{% else %}border-slate-700/50{% endif %} hover:border-emerald-500/40 transition-all flex flex-col gap-2.5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">{{ cat.icon }}</span>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-extrabold text-white">{{ cat.title }}</h3>
+                {% if cat.is_top %}
+                <span class="text-[0.65rem] bg-amber-400 text-slate-950 font-black px-2 py-0.5 rounded-full shadow-sm">🥇 رتبه ۱ (بیشترین استقبال)</span>
+                {% elif cat.rank == 2 %}
+                <span class="text-[0.65rem] bg-slate-700 text-slate-200 font-bold px-2 py-0.5 rounded-full">🥈 رتبه ۲</span>
+                {% elif cat.rank == 3 %}
+                <span class="text-[0.65rem] bg-slate-700 text-slate-200 font-bold px-2 py-0.5 rounded-full">🥉 رتبه ۳</span>
+                {% else %}
+                <span class="text-[0.65rem] bg-slate-800 text-slate-400 font-bold px-1.5 py-0.5 rounded-full">رتبه {{ cat.rank }}</span>
+                {% endif %}
+              </div>
+              <span class="text-[0.7rem] text-slate-400">
+                شناسه ربات: <code class="text-emerald-400 font-mono">{{ cat.bot_category_key }}</code>
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3 sm:text-left self-end sm:self-auto">
+            <div class="text-right sm:text-left">
+              <span class="text-xs text-slate-400 block">کاربران علاقه‌مند:</span>
+              <strong class="text-sm font-bold text-white font-mono">{{ cat.engaged_users }} نفر</strong>
+            </div>
+            <div class="w-px h-7 bg-slate-700"></div>
+            <div class="text-right sm:text-left">
+              <span class="text-xs text-slate-400 block">ختم‌ها (فعال):</span>
+              <span class="text-sm font-mono text-slate-200"><b>{{ cat.total_khatms }}</b> <small class="text-emerald-400">({{ cat.active_khatms }})</small></span>
+            </div>
+            <div class="w-px h-7 bg-slate-700"></div>
+            <div class="text-right sm:text-left min-w-[50px]">
+              <span class="text-xs text-slate-400 block">سهم استقبال:</span>
+              <strong class="text-sm font-bold font-mono {% if cat.is_top %}text-amber-400{% else %}text-emerald-400{% endif %}">{{ cat.popularity_percent }}٪</strong>
+            </div>
+          </div>
         </div>
-        <em class="status {{ item.status.value|lower }} whitespace-nowrap">{{ fa_label(item.status) }}</em>
-      </a>
-      {% else %}
-      <div class="p-8 text-center text-slate-500 border border-dashed border-slate-700 rounded-xl">
-        <p>هنوز ختمی ساخته نشده است.</p>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-slate-900/60 rounded-full h-2 overflow-hidden border border-white/5">
+          <div class="h-2 rounded-full transition-all duration-500 {% if cat.is_top %}bg-gradient-to-r from-amber-500 to-amber-300{% else %}bg-gradient-to-r from-emerald-600 to-emerald-400{% endif %}" style="width: {{ cat.popularity_percent if cat.popularity_percent > 3 else 3 }}%"></div>
+        </div>
       </div>
       {% endfor %}
     </div>
-  </section>
-</div>
+
+    <!-- Platform Breakdown & Bot Distribution (4 cols) -->
+    <div class="lg:col-span-4 flex flex-col gap-3">
+      <div class="text-xs text-slate-400 font-bold mb-1 px-1">
+        <span>تفکیک بر اساس پلتفرم و اتصالات</span>
+      </div>
+
+      <div class="glass-card p-4 rounded-2xl border border-slate-700/60 space-y-3">
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">آمار پلتفرمی مخاطبان</h4>
+        
+        <div class="flex items-center justify-between p-3 rounded-xl bg-sky-500/10 border border-sky-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">📱</span>
+            <div>
+              <b class="text-sm text-sky-200 block">کاربران تلگرام</b>
+              <small class="text-[0.68rem] text-sky-400/80">شناسه‌های فعال Telegram</small>
+            </div>
+          </div>
+          <strong class="text-lg font-black text-sky-300 font-mono">{{ user_analytics.platform.telegram_users }}</strong>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🟢</span>
+            <div>
+              <b class="text-sm text-emerald-200 block">کاربران بله</b>
+              <small class="text-[0.68rem] text-emerald-400/80">شناسه‌های فعال Bale</small>
+            </div>
+          </div>
+          <strong class="text-lg font-black text-emerald-300 font-mono">{{ user_analytics.platform.bale_users }}</strong>
+        </div>
+
+        <div class="flex items-center justify-between p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs">
+          <span class="text-purple-300">🔄 متصل در هر دو پلتفرم (مشترک):</span>
+          <b class="text-purple-200 font-mono">{{ user_analytics.platform.dual_platform_users }} نفر</b>
+        </div>
+      </div>
+
+      <div class="glass-card p-4 rounded-2xl border border-slate-700/60 space-y-2.5">
+        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">تفکیک نقش‌های کاربری</h4>
+        
+        <div class="flex items-center justify-between text-xs text-slate-300 py-1 border-b border-slate-700/40">
+          <span>👑 سازندگان ختم (Creators):</span>
+          <b class="text-emerald-400 font-mono">{{ user_analytics.platform.creators_count }} نفر</b>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-300 py-1 border-b border-slate-700/40">
+          <span>🛡 مدیران کل سامانه:</span>
+          <b class="text-purple-400 font-mono">{{ user_analytics.platform.super_admins_count }} نفر</b>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-300 py-1">
+          <span>👤 اعضا و قرائت‌کنندگان عادی:</span>
+          <b class="text-slate-200 font-mono">{{ user_analytics.platform.regular_users_count }} نفر</b>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- Moderation Quick Queue -->
+<section class="glass-panel rounded-3xl p-6 mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+    <div>
+      <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">صف‌های نظارت فوری</p>
+      <h2 class="text-lg sm:text-xl font-bold text-white">درخواست‌های نیازمند اقدام مدیر (۷ صف نظارتی)</h2>
+    </div>
+    <a href="/moderation" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all">
+      <span>ورود به مرکز نظارت کامل</span>
+      <span>←</span>
+    </a>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+    <a href="/moderation?tab=laan" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">🔥 لعن سفارشی</span>
+      <b class="text-xl font-mono {% if pending.laan %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.laan }}</b>
+    </a>
+    <a href="/moderation?tab=covers" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">🖼 کاور ختم</span>
+      <b class="text-xl font-mono {% if pending.covers %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.covers }}</b>
+    </a>
+    <a href="/broadcasts" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">📢 پیام گروهی</span>
+      <b class="text-xl font-mono {% if pending.broadcasts %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.broadcasts }}</b>
+    </a>
+    <a href="/phone-verifications" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">📱 شماره خارج</span>
+      <b class="text-xl font-mono {% if pending.phones %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.phones }}</b>
+    </a>
+    <a href="/creator-requests" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">👑 درخواست سازنده</span>
+      <b class="text-xl font-mono {% if pending.creators %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.creators }}</b>
+    </a>
+    <a href="/categories" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">🤲 دعای درخواستی</span>
+      <b class="text-xl font-mono {% if pending.categories %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.categories }}</b>
+    </a>
+    <a href="/moderation?tab=requests" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
+      <span class="text-xs text-slate-300 mb-2">💡 پیشنهاد ختم</span>
+      <b class="text-xl font-mono {% if pending.requests %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.requests }}</b>
+    </a>
+  </div>
+</section>
+
+<!-- Quick Navigation Hub -->
+{% set perms = admin._admin_permissions if admin else [] %}
+<section class="mb-8">
+  <div class="flex items-center justify-between mb-3">
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase">بخش‌های مدیریتی سامانه</p>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <a href="/moderation" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-amber-500/40">
+      <span class="text-2xl">⚖️</span>
+      <div>
+        <b class="text-sm text-slate-200 block">مرکز نظارت</b>
+        <small class="text-[0.7rem] text-slate-400">تأیید لعن، کاور و پیام‌ها</small>
+      </div>
+    </a>
+    <a href="/khatms" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">📖</span>
+      <div>
+        <b class="text-sm text-slate-200 block">مدیریت ختم‌ها</b>
+        <small class="text-[0.7rem] text-slate-400">ساخت، ویرایش و اعضا</small>
+      </div>
+    </a>
+    <a href="/devotionals" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">📚</span>
+      <div>
+        <b class="text-sm text-slate-200 block">استودیو محتوا</b>
+        <small class="text-[0.7rem] text-slate-400">ادعیه، خطبه و ویدیوها</small>
+      </div>
+    </a>
+    <a href="/quran" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">🕌</span>
+      <div>
+        <b class="text-sm text-slate-200 block">بانک قرآن</b>
+        <small class="text-[0.7rem] text-slate-400">۶۰۴ صفحه و قاریان</small>
+      </div>
+    </a>
+    <a href="/finance" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">💳</span>
+      <div>
+        <b class="text-sm text-slate-200 block">امور مالی و پلن‌ها</b>
+        <small class="text-[0.7rem] text-slate-400">کیف پول و فاکتورها</small>
+      </div>
+    </a>
+    <a href="/users" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">👥</span>
+      <div>
+        <b class="text-sm text-slate-200 block">کاربران ۳۶۰°</b>
+        <small class="text-[0.7rem] text-slate-400">پروفایل، پیام مستقیم و پلن</small>
+      </div>
+    </a>
+    <a href="/servant-ad" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">📣</span>
+      <div>
+        <b class="text-sm text-slate-200 block">تبلیغ خدمتگزاران</b>
+        <small class="text-[0.7rem] text-slate-400">کمپین همگانی اعضا</small>
+      </div>
+    </a>
+    <a href="/bots" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">🤖</span>
+      <div>
+        <b class="text-sm text-slate-200 block">ربات‌ها و توکن‌ها</b>
+        <small class="text-[0.7rem] text-slate-400">۱۴ ربات تلگرام و بله</small>
+      </div>
+    </a>
+    <a href="/templates" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">💬</span>
+      <div>
+        <b class="text-sm text-slate-200 block">قالب‌های پیام</b>
+        <small class="text-[0.7rem] text-slate-400">متون سیستم و ترجمه‌ها</small>
+      </div>
+    </a>
+    <a href="/operations" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+      <span class="text-2xl">🩺</span>
+      <div>
+        <b class="text-sm text-slate-200 block">سلامت سیستم</b>
+        <small class="text-[0.7rem] text-slate-400">تنظیمات سراسری و وب‌سرور</small>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- Recent Khatms -->
+<section class="glass-panel rounded-3xl p-6">
+  <div class="flex justify-between items-center mb-5">
+    <div>
+      <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">جدیدترین‌های سامانه</p>
+      <h2 class="text-xl font-bold text-white">آخرین ختم‌های ایجادشده</h2>
+    </div>
+    <a href="/khatms" class="text-xs sm:text-sm font-bold text-emerald-400 hover:text-emerald-300 transition-colors">مشاهده همه ختم‌ها ←</a>
+  </div>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    {% for item in recent %}
+    <a href="/khatms/{{ item.id }}" class="flex justify-between items-center p-4 rounded-2xl bg-slate-800/30 hover:bg-slate-800/60 border border-slate-700/40 hover:border-emerald-500/40 transition-all group">
+      <div class="flex flex-col gap-1 min-w-0 pr-1">
+        <b class="text-slate-200 group-hover:text-emerald-400 transition-colors text-sm truncate">{{ item.title }}</b>
+        <small class="text-xs text-slate-400">{{ fa_label(item.template_type) }} · {{ fa_label(item.khatm_type) }}</small>
+      </div>
+      <span class="status {{ item.status.value|lower }} text-xs shrink-0 mr-2">{{ fa_label(item.status) }}</span>
+    </a>
+    {% else %}
+    <div class="p-8 text-center text-slate-500 border border-dashed border-slate-700 rounded-2xl col-span-2">
+      <p>هنوز ختمی در سیستم ثبت نشده است.</p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
 {% endblock %}

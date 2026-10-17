@@ -41,7 +41,7 @@ def test_count_log_keyboard_callbacks():
 def test_regular_reminder_has_bound_done_callback():
     keyboard = k.regular_commitment_done_keyboard("pid1", "fa")
     assert _callback_datas(keyboard) == ["regular_done:pid1"]
-    assert keyboard.inline_keyboard[0][0].text == "✅ قرائت بخش فوق انجام شد"
+    assert keyboard.inline_keyboard[0][0].text == "✅ اعلام انجام قرائت"
 
 
 def test_router_has_expected_states():

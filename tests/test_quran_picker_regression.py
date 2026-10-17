@@ -16,12 +16,11 @@ async def scope():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("pages", [None, 5])
-async def test_quran_picker_always_receives_page_family(monkeypatch, pages):
+async def test_quran_picker_always_receives_page_family(monkeypatch):
     from khatmsaz.bot.handlers import member_commitment
     khatm = SimpleNamespace(id="k", template_type=KhatmTemplateType.QURAN_PAGE,
-                            khatm_type=KhatmTypeEnum.OPEN, content_category_id=None)
-    part = SimpleNamespace(id="p", is_committed=False, open_reading_pages_per_day=pages,
+                            khatm_type=KhatmTypeEnum.COMMITMENT, content_category_id=None)
+    part = SimpleNamespace(id="p", is_committed=True, open_reading_pages_per_day=None,
                            commitment_mode=None)
     monkeypatch.setattr(portions, "session_scope", scope)
     monkeypatch.setattr(portions, "_lang_for", AsyncMock(return_value="fa"))

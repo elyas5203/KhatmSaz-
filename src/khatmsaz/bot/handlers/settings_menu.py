@@ -17,6 +17,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import (
     SETTINGS_BUTTON_TEXTS,
+    bail_if_menu_button,
     home_keyboard_for_bot,
     is_member_bot,
     main_menu_keyboard,
@@ -33,6 +34,7 @@ from khatmsaz.bot.keyboards import (
     settings_reminder_saved_keyboard,
     settings_timezone_keyboard,
     sms_subscription_keyboard,
+    safe_answer_callback,
 )
 from khatmsaz.bot.handlers.profile import begin_profile
 from khatmsaz.bot.handlers.change_phone import begin_phone_change
@@ -78,13 +80,8 @@ async def _lang_for(chat_id, bot) -> str:
 
 
 def _can_open_creator_panel(bot, user) -> bool:
-    """Creators/Super-Admins on the creator bot may open their Mini App from
-    Settings (owner 2026-09-29). Never on a member bot (no creator panel there;
-    the `creator:web_login` handler is creator-dispatcher-only)."""
-    from khatmsaz.modules.identity.models import UserRole
-    if is_member_bot(bot):
-        return False
-    return getattr(user, "role", None) in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
+    """MASTER-19: Creator panel button in settings is hidden per user request."""
+    return False
 
 
 @router.message(F.text.in_(SETTINGS_BUTTON_TEXTS))
@@ -102,7 +99,7 @@ async def settings_overview(message: Message) -> None:
 
 
 @router.callback_query(F.data == "settings:home")
-async def settings_home(callback: CallbackQuery) -> None:
+async def settings_home(callback: CallbackQuery, answer: bool = True) -> None:
     platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
@@ -116,7 +113,8 @@ async def settings_home(callback: CallbackQuery) -> None:
             show_creator_panel=_can_open_creator_panel(callback.bot, user),
         ),
     )
-    await callback.answer()
+    if answer:
+        await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data == "settings:audio_toggle")
@@ -127,14 +125,14 @@ async def toggle_audio(callback: CallbackQuery) -> None:
         settings = await settings_service.get_or_create(session, user.id)
         new_val = not settings.quran_audio_enabled
         await settings_service.set_quran_audio_enabled(session, user.id, new_val)
-    await settings_home(callback)
+    await settings_home(callback, answer=True)
 
 
 @router.callback_query(F.data == "settings:language")
 async def settings_language_menu(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     await callback.message.edit_text(t("settings.choose_language", lang), reply_markup=settings_language_keyboard(lang))
-    await callback.answer()
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data.startswith("set_language:"))
@@ -142,8 +140,8 @@ async def set_language(callback: CallbackQuery) -> None:
     # Member bots have a fixed language per bot — ignore language change attempts.
     if is_member_bot(callback.bot):
         lang = getattr(callback.bot, "khatmsaz_language", "fa")
-        await callback.answer(t("settings.language_saved", lang))
-        await settings_home(callback)
+        await safe_answer_callback(callback, t("settings.language_saved", lang))
+        await settings_home(callback, answer=False)
         await callback.message.answer(t("settings.language_saved", lang), reply_markup=member_menu_keyboard(lang))
         return
     value = callback.data.split(":", 1)[1]
@@ -151,8 +149,8 @@ async def set_language(callback: CallbackQuery) -> None:
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
         await settings_service.set_language(session, user.id, value)
-    await callback.answer(t("settings.language_saved", value))
-    await settings_home(callback)
+    await safe_answer_callback(callback, t("settings.language_saved", value))
+    await settings_home(callback, answer=False)
     # Bug fix (owner report, 2026-09-20): changing language only edited the
     # inline settings message; the persistent bottom Reply Keyboard (📅
     # امروز / 🕋 ختم‌های من / ...) is a *separate* keyboard that Telegram
@@ -168,7 +166,7 @@ async def settings_font_menu(callback: CallbackQuery) -> None:
     lang = settings.language
     current = "درشت" if settings.font_size == FontSize.LARGE else "معمولی"
     await callback.message.edit_text(f"اندازه فعلی متن: {current}\n\n{t('settings.choose_font', lang)}", reply_markup=settings_font_keyboard(lang))
-    await callback.answer()
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data.startswith("set_font:"))
@@ -179,8 +177,8 @@ async def set_font(callback: CallbackQuery) -> None:
         user = await identity_service.resolve_or_provision_user(session, platform, callback.message.chat.id)
         await settings_service.set_font_size(session, user.id, FontSize(value.upper()))
         settings = await settings_service.get_or_create(session, user.id)
-    await callback.answer(t("settings.font_saved", settings.language))
-    await settings_home(callback)
+    await safe_answer_callback(callback, t("settings.font_saved", settings.language))
+    await settings_home(callback, answer=False)
 
 
 @router.callback_query(F.data == "settings:reciter")
@@ -193,7 +191,7 @@ async def settings_reciter_menu(callback: CallbackQuery) -> None:
     await callback.message.edit_text(
         f"قاری فعلی: {current}\n\n{t('settings.choose_reciter', lang)}", reply_markup=settings_reciter_keyboard(reciters, lang)
     )
-    await callback.answer()
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data.startswith("set_reciter:"))
@@ -210,8 +208,8 @@ async def set_reciter(callback: CallbackQuery) -> None:
         # never touched, so audio silently never sent. Turning it on here
         # matches the obvious intent of choosing a reciter at all.
         settings = await settings_service.set_quran_audio_enabled(session, user.id, True)
-    await callback.answer(t("settings.reciter_saved", settings.language))
-    await settings_home(callback)
+    await safe_answer_callback(callback, t("settings.reciter_saved", settings.language))
+    await settings_home(callback, answer=False)
 
 
 @router.callback_query(F.data == "settings:content")
@@ -352,6 +350,8 @@ async def ask_share_amount(callback: CallbackQuery, state: FSMContext):
 
 @router.message(ReminderSettings.entering_amount)
 async def save_share_amount(message: Message, state: FSMContext):
+    if await bail_if_menu_button(message, state):
+        return
     raw = (message.text or "").strip()
     if not raw.isdecimal() or int(raw) <= 0 or int(raw) > 2147483647:
         await message.answer("لطفاً یک عدد مثبت معتبر بنویسید.")
@@ -417,6 +417,8 @@ async def ask_custom_reminder(callback: CallbackQuery, state: FSMContext) -> Non
 
 @router.message(ReminderSettings.entering_custom_time)
 async def save_custom_reminder(message: Message, state: FSMContext) -> None:
+    if await bail_if_menu_button(message, state):
+        return
     digits = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
     raw = (message.text or "").strip().translate(digits).replace(".", ":")
     try:
@@ -442,6 +444,10 @@ async def save_custom_reminder(message: Message, state: FSMContext) -> None:
             await message.answer("این ختم دیگر در فهرست فعال شما نیست.")
             return
         khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        if khatm is None:
+            await state.clear()
+            await message.answer("این ختم دیگر در سیستم فعال نیست.")
+            return
         await notification_service.set_reminder_preference(
             session, participation.id, reminder_hour=hour, reminder_minute=minute, enabled=True
         )

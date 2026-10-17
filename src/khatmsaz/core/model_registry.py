@@ -30,3 +30,6 @@ from khatmsaz.modules.waiting_list import models as _waiting_list_models  # noqa
 from khatmsaz.modules.wallet import models as _wallet_models  # noqa: F401
 from khatmsaz.modules.bot_registry import models as _bot_registry_models  # noqa: F401
 from khatmsaz.modules.share_occurrence import models as _share_occurrence_models  # noqa: F401
+from khatmsaz.modules.sms_subscription import models as _sms_subscription_models  # noqa: F401
+from khatmsaz.modules.system_settings import models as _system_settings_models  # noqa: F401
+

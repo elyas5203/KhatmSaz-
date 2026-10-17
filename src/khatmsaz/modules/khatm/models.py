@@ -142,6 +142,9 @@ class Khatm(Base):
     # PUBLIC khatms appear in /public_khatms.
     visibility: Mapped[KhatmVisibility] = mapped_column(default=KhatmVisibility.UNLISTED)
     
+    # DEC-PY-0118 (BUG-03): Custom La'an khatms pending admin moderation
+    pending_lan_approval: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    
     # "BOTH" (default), "TELEGRAM", or "BALE"
     allowed_platforms: Mapped[str] = mapped_column(String(16), default="BOTH")
     
@@ -159,6 +162,16 @@ class Khatm(Base):
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     completion_announced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # MASTER-33: Khatm Deactivation & Admin Transfer (Rule 5)
+    join_link_closed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    transfer_request_status: Mapped[str] = mapped_column(String(20), default="NONE", server_default="NONE")
+    transfer_request_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    transfer_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    transferred_to_admin_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    transferred_from_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -173,6 +186,7 @@ class Khatm(Base):
         ),
         Index("ix_khatms_creator_user_id", "creator_user_id"),
         Index("ix_khatms_status", "status"),
+        Index("ix_khatms_transfer_status", "transfer_request_status"),
         Index(
             "ix_khatms_completion_announcement",
             "status", "completion_announcement_enabled", "completion_announced_at", "completed_at",

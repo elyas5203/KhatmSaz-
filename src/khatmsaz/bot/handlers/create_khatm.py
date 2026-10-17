@@ -20,6 +20,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, URLInputFile
 from datetime import datetime
+from html import escape
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from khatmsaz.bot.keyboards import (
@@ -36,6 +38,7 @@ from khatmsaz.bot.keyboards import (
     creator_display_keyboard,
     start_schedule_keyboard,
     reminder_tone_keyboard,
+    rules_agreement_keyboard,
     main_menu_keyboard,
     safe_answer_callback,
     safe_clear_inline_keyboard,
@@ -69,6 +72,8 @@ class CreateKhatm(StatesGroup):
     choosing_template = State()
     choosing_category = State()
     entering_custom_dua_title = State()
+    entering_laan_title = State()
+    entering_laan_text = State()
     choosing_mode = State()
     entering_niyyat = State()
     entering_welcome = State()
@@ -94,6 +99,7 @@ class CreateKhatm(StatesGroup):
     entering_start_at = State()
     entering_coupon = State()
     confirming = State()
+    confirming_rules = State()
     editing_title = State()
     choosing_invite_platform = State()
     choosing_invite_languages = State()
@@ -120,7 +126,7 @@ def _bot_category_for(template_type: str, category_group: str | None) -> str:
         return BotCategory.QURAN.value
     if category_group == KhatmCategoryGroup.LAAN.value:
         return BotCategory.LAAN.value
-    if category_group == KhatmCategoryGroup.DUA.value:
+    if category_group in (KhatmCategoryGroup.KHUTBAH.value, KhatmCategoryGroup.DUA.value):
         return BotCategory.DUA_ZIYARAT.value
     return BotCategory.SALAWAT.value
 
@@ -400,6 +406,7 @@ _CATEGORY_GROUP_PROMPT_KEYS = {
     KhatmCategoryGroup.SALAWAT: "create_khatm.category_prompt.SALAWAT",
     KhatmCategoryGroup.DUA: "create_khatm.category_prompt.DUA",
     KhatmCategoryGroup.LAAN: "create_khatm.category_prompt.LAAN",
+    KhatmCategoryGroup.KHUTBAH: "create_khatm.category_prompt.KHUTBAH",
 }
 
 
@@ -411,6 +418,9 @@ async def choose_category_group(callback: CallbackQuery, state: FSMContext) -> N
     except (ValueError, IndexError):
         await safe_answer_callback(callback, t("create_khatm.category_gone", lang), show_alert=True)
         return
+    if group == KhatmCategoryGroup.LAAN:
+        await safe_answer_callback(callback, "امکان ساخت ختم لعن در حال حاضر غیرفعال است.", show_alert=True)
+        return
     await _show_category_group(callback, state, group)
 
 
@@ -418,6 +428,9 @@ async def _show_category_group(
     callback: CallbackQuery, state: FSMContext, group: KhatmCategoryGroup
 ) -> None:
     lang = await _lang(state)
+    if group == KhatmCategoryGroup.LAAN:
+        await safe_answer_callback(callback, "امکان ساخت ختم لعن در حال حاضر غیرفعال است.", show_alert=True)
+        return
     await state.update_data(
         template_type=KhatmTemplateType.SALAWAT.value,
         category_group=group.value,
@@ -439,6 +452,7 @@ async def _show_category_group(
         await _ask_mode(callback.message, state)
         await safe_answer_callback(callback)
         return
+
     await _show_category_prompt(callback.message, state, group)
     await safe_answer_callback(callback)
 
@@ -450,6 +464,12 @@ async def _show_category_prompt(
     lang = await _lang(state)
     async with session_scope() as session:
         categories = await category_service.list_active(session, group)
+        if group == KhatmCategoryGroup.KHUTBAH and not categories:
+            try:
+                await category_service.seed_canonical_categories(session)
+                categories = await category_service.list_active(session, group)
+            except Exception:
+                pass
     await state.set_state(CreateKhatm.choosing_category)
     text = (
         t(_CATEGORY_GROUP_PROMPT_KEYS[group], lang)
@@ -518,6 +538,20 @@ async def enter_custom_dua_title(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(StateFilter(CreateKhatm.entering_laan_title))
+async def enter_laan_title(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.clear()
+    await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
+
+
+@router.message(StateFilter(CreateKhatm.entering_laan_text))
+async def enter_laan_text(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.clear()
+    await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
+
+
 @router.callback_query(F.data.startswith("ck:cat:"), StateFilter(CreateKhatm.choosing_category))
 async def choose_category(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
@@ -556,6 +590,7 @@ _MODE_EXPLANATION_KEYS = {
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.SALAWAT.value): "create_khatm.mode_explanation.salawat",
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.DUA.value): "create_khatm.mode_explanation.dua",
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.LAAN.value): "create_khatm.mode_explanation.laan",
+    (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.KHUTBAH.value): "create_khatm.mode_explanation.khutbah",
 }
 
 
@@ -572,14 +607,16 @@ async def _ask_mode(message: Message, state: FSMContext) -> None:
     )
 
 
-def _default_khatm_title(data: dict, lang: str) -> str:
+def _default_khatm_title(data: dict, lang: str, force_default: bool = False) -> str:
     """Build the standard title without asking the creator an extra question."""
+    if not force_default and data.get("title"):
+        return data["title"]
     if data.get("content_category_title"):
         return t(
             "create_khatm.default_title.category", lang,
             name=data["content_category_title"],
         )
-    if data["template_type"] == KhatmTemplateType.QURAN_PAGE.value:
+    if data.get("template_type") == KhatmTemplateType.QURAN_PAGE.value:
         return t("create_khatm.default_title.quran", lang)
     return t("create_khatm.default_title.salawat", lang)
 
@@ -649,7 +686,22 @@ async def enter_niyyat(message: Message, state: FSMContext) -> None:
         return
     lang = await _lang(state)
     proxy = (message.text or "").strip() or None
-    await state.update_data(niyyat=_compose_niyyat(lang, proxy))
+    composed_niyyat = _compose_niyyat(lang, proxy)
+    updates: dict = {"niyyat": composed_niyyat}
+    if proxy:
+        name = proxy.strip()
+        for prefix in ("به نیابت از", "نیابت از", "به نیت", "نیت", "به نيابة عن", "نيابة عن", "on behalf of"):
+            if name.lower().startswith(prefix.lower()):
+                name = name[len(prefix):].strip(" :،-") or name
+                break
+        if name:
+            if lang == "ar":
+                updates["title"] = f"نيابةً عن {name}"
+            elif lang != "fa":
+                updates["title"] = f"On behalf of {name}"
+            else:
+                updates["title"] = f"به نیابت از {name}"
+    await state.update_data(**updates)
     data = await state.get_data()
     if data.get("editing_from_confirm"):
         await state.update_data(editing_from_confirm=False)
@@ -662,7 +714,9 @@ async def enter_niyyat(message: Message, state: FSMContext) -> None:
 @router.callback_query(F.data == "ck:skip_niyyat", StateFilter(CreateKhatm.entering_niyyat))
 async def skip_niyyat(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang(state)
-    await state.update_data(niyyat=_compose_niyyat(lang, None))
+    data = await state.get_data()
+    default_title = _default_khatm_title(data, lang, force_default=True)
+    await state.update_data(title=default_title, niyyat=_compose_niyyat(lang, None))
     await safe_clear_inline_keyboard(callback.message)
     data = await state.get_data()
     if data.get("editing_from_confirm"):
@@ -680,12 +734,14 @@ _WELCOME_EXAMPLE_KEYS = {
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.SALAWAT.value): "create_khatm.welcome_example.salawat",
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.DUA.value): "create_khatm.welcome_example.dua",
     (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.LAAN.value): "create_khatm.welcome_example.laan",
+    (KhatmTemplateType.SALAWAT.value, KhatmCategoryGroup.KHUTBAH.value): "create_khatm.welcome_example.khutbah",
 }
 
 _COMMITMENT_TOTAL_PROMPT_KEYS = {
     KhatmCategoryGroup.SALAWAT.value: "create_khatm.ask_commitment_total.salawat",
     KhatmCategoryGroup.DUA.value: "create_khatm.ask_commitment_total.dua",
     KhatmCategoryGroup.LAAN.value: "create_khatm.ask_commitment_total.laan",
+    KhatmCategoryGroup.KHUTBAH.value: "create_khatm.ask_commitment_total.khutbah",
 }
 
 
@@ -916,7 +972,9 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
     if template == KhatmTemplateType.SALAWAT.value and mode == KhatmTypeEnum.OPEN.value:
         await state.set_state(CreateKhatm.entering_open_target)
         unit = (
-            t("create_khatm.unit.salawat", lang)
+            "دور"
+            if data.get("category_group") == KhatmCategoryGroup.KHUTBAH.value
+            else t("create_khatm.unit.salawat", lang)
             if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
             else t("create_khatm.unit.time", lang)
         )
@@ -929,22 +987,7 @@ async def _after_start_schedule(message: Message, state: FSMContext) -> None:
         # R5 (owner 2026-09-28): the creator picks the khatm's TOTAL goal from
         # preset buttons (not a per-person quantity); each participant later
         # sets their own share on the member bot (R11).
-        unit = (
-            t("create_khatm.unit.salawat", lang)
-            if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
-            else t("create_khatm.unit.time", lang)
-        )
-        await state.set_state(CreateKhatm.choosing_commitment_total)
-        await _wiz(
-            message, state,
-            t(
-                _COMMITMENT_TOTAL_PROMPT_KEYS.get(
-                    data.get("category_group"), "create_khatm.ask_commitment_total"
-                ),
-                lang, unit=unit,
-            ),
-            reply_markup=_commitment_total_keyboard(lang),
-        )
+        await _show_commitment_total_step(message, state, lang, data)
     else:  # QURAN_PAGE, either mode — always Madina/Hafs, 604 pages.
         await state.update_data(
             quran_edition_id=CANONICAL_QURAN_EDITION_ID,
@@ -967,6 +1010,46 @@ def _commitment_total_keyboard(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
+async def _show_commitment_total_step(message: Message, state: FSMContext, lang: str, data: dict) -> None:
+    unit = (
+        t("create_khatm.unit.salawat", lang)
+        if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
+        else t("create_khatm.unit.time", lang)
+    )
+    await state.set_state(CreateKhatm.choosing_commitment_total)
+    await _wiz(
+        message, state,
+        t(
+            _COMMITMENT_TOTAL_PROMPT_KEYS.get(
+                data.get("category_group"), "create_khatm.ask_commitment_total"
+            ),
+            lang, unit=unit,
+        ),
+        reply_markup=_commitment_total_keyboard(lang),
+    )
+
+
+async def _show_fixed_daily_step(message: Message, state: FSMContext, lang: str, data: dict) -> None:
+    await state.set_state(CreateKhatm.entering_fixed_daily_amount)
+    tt = data.get("template_type", "")
+    cg = data.get("category_group", "")
+    if tt in ("QURAN", "QURAN_PAGE"):
+        ask_key = "create_khatm.ask_daily_quran"
+    elif cg == "LAAN":
+        ask_key = "create_khatm.ask_daily_laan"
+    elif cg == "DUA":
+        ask_key = "create_khatm.ask_daily_dua"
+    elif cg == "KHUTBAH":
+        ask_key = "create_khatm.ask_daily_khutbah"
+    elif tt == "SALAWAT" or cg == "SALAWAT":
+        ask_key = "create_khatm.ask_daily_salawat"
+    else:
+        ask_key = "create_khatm.ask_daily_dua"
+    await _wiz(
+        message, state, t(ask_key, lang),
+        reply_markup=create_wizard_back_keyboard(lang),
+    )
+
 
 async def _ask_commitment_policy(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
@@ -985,25 +1068,8 @@ async def choose_commitment_policy(callback: CallbackQuery, state: FSMContext) -
     await state.update_data(commitment_policy=policy)
     await safe_clear_inline_keyboard(callback.message)
     if policy == "FIXED_DAILY":
-        await state.set_state(CreateKhatm.entering_fixed_daily_amount)
         data = await state.get_data()
-        tt = data.get("template_type", "")
-        cg = data.get("category_group", "")
-        if tt in ("QURAN", "QURAN_PAGE"):
-            ask_key = "create_khatm.ask_daily_quran"
-        elif cg == "LAAN":
-            ask_key = "create_khatm.ask_daily_laan"
-        elif cg == "DUA":
-            ask_key = "create_khatm.ask_daily_dua"
-        elif tt == "SALAWAT" or cg == "SALAWAT":
-            ask_key = "create_khatm.ask_daily_salawat"
-        else:
-            ask_key = "create_khatm.ask_daily_dua"
-            
-        await _wiz(
-            callback.message, state, t(ask_key, lang),
-            reply_markup=create_wizard_back_keyboard(lang),
-        )
+        await _show_fixed_daily_step(callback.message, state, lang, data)
     else:
         await state.update_data(daily_commitment_amount=None)
         data = await state.get_data()
@@ -1043,7 +1109,7 @@ async def _after_commitment_policy(message: Message, state: FSMContext) -> None:
     # Owner request (2026-10-06, V3): daily deadline hour question removed.
     # Defaults to 24 (end of day).
     await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 async def _after_commitment_total(message: Message, state: FSMContext, total: int | None) -> None:
@@ -1147,7 +1213,7 @@ async def enter_open_target(message: Message, state: FSMContext) -> None:
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
         await _show_confirmation(message, state, platform=platform, platform_subject=str(message.from_user.id))
         return
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.message(StateFilter(CreateKhatm.entering_commitment_quantity))
@@ -1162,7 +1228,7 @@ async def enter_commitment_quantity(message: Message, state: FSMContext) -> None
     # Owner (2026-09-28): drop the capacity question entirely — it's an
     # unnecessary extra step; khatms are unlimited by default.
     await state.update_data(salawat_commitment_quantity=int(raw), capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.callback_query(F.data.startswith("ck:edition:"), StateFilter(CreateKhatm.choosing_edition))
@@ -1182,7 +1248,7 @@ async def choose_edition(callback: CallbackQuery, state: FSMContext) -> None:
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1195,7 +1261,7 @@ async def choose_content_delivery_mode(callback: CallbackQuery, state: FSMContex
     data = await state.get_data()
     if data["khatm_type"] == KhatmTypeEnum.COMMITMENT.value:
         await state.update_data(daily_deadline_hour=24, capacity=None)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1210,14 +1276,14 @@ async def enter_deadline_hour(message: Message, state: FSMContext) -> None:
         return
     # Owner (2026-09-28): capacity question removed (unnecessary step).
     await state.update_data(daily_deadline_hour=int(raw), capacity=None)
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
 @router.callback_query(F.data == "ck:capacity:unlimited", StateFilter(CreateKhatm.choosing_capacity_mode))
 async def choose_unlimited_capacity(callback: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(capacity=None)
     await safe_clear_inline_keyboard(callback.message)
-    await _ask_visibility(callback.message, state)
+    await _ask_reminder_tone(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1243,10 +1309,10 @@ async def enter_capacity_number(message: Message, state: FSMContext) -> None:
         await _wizard_error(message, state, t("create_khatm.positive_number_required", lang))
         return
     await state.update_data(capacity=int(raw))
-    await _ask_visibility(message, state)
+    await _ask_reminder_tone(message, state)
 
 
-async def _ask_visibility(message: Message, state: FSMContext) -> None:
+async def _ask_reminder_tone(message: Message, state: FSMContext) -> None:
     lang = await _lang(state)
     data = await state.get_data()
     group = data.get("category_group")
@@ -1256,6 +1322,8 @@ async def _ask_visibility(message: Message, state: FSMContext) -> None:
         share = "صلوات‌های امروز"
     elif group == KhatmCategoryGroup.LAAN.value:
         share = "ذکر لعن امروز"
+    elif group == KhatmCategoryGroup.KHUTBAH.value:
+        share = "خطبه امروز"
     else:
         share = "زیارت امروز" if "زیارت" in (data.get("content_category_title") or "") else "دعای امروز"
     await state.set_state(CreateKhatm.choosing_reminder_tone)
@@ -1263,6 +1331,21 @@ async def _ask_visibility(message: Message, state: FSMContext) -> None:
         message, state,
         t("create_khatm.ask_reminder_tone", lang, share=share),
         reply_markup=reminder_tone_keyboard(lang),
+    )
+
+
+async def _ask_visibility(message: Message, state: FSMContext) -> None:
+    """Pre-visibility routing: enters reminder tone step first."""
+    await _ask_reminder_tone(message, state)
+
+
+async def _show_visibility_step(message: Message, state: FSMContext) -> None:
+    lang = await _lang(state)
+    await state.set_state(CreateKhatm.choosing_visibility)
+    await _wiz(
+        message, state,
+        t("create_khatm.ask_visibility", lang),
+        reply_markup=visibility_choice_keyboard(lang),
     )
 
 
@@ -1284,11 +1367,7 @@ async def choose_reminder_tone(callback: CallbackQuery, state: FSMContext) -> No
     # رو اشتباه فهمیدی، بعداً توضیح میدم." Defaults to off; the owner
     # will describe the intended logic separately before this gets
     # rebuilt properly, rather than guessing at it now.
-    await state.set_state(CreateKhatm.choosing_visibility)
-    await _wiz(
-        callback.message, state,
-        t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang)
-    )
+    await _show_visibility_step(callback.message, state)
     await safe_answer_callback(callback)
 
 
@@ -1367,6 +1446,7 @@ _GROUP_LABEL_KEYS = {
     KhatmCategoryGroup.SALAWAT.value: "create_khatm.group_label.SALAWAT",
     KhatmCategoryGroup.DUA.value: "create_khatm.group_label.DUA",
     KhatmCategoryGroup.LAAN.value: "create_khatm.group_label.LAAN",
+    KhatmCategoryGroup.KHUTBAH.value: "create_khatm.group_label.KHUTBAH",
 }
 
 
@@ -1430,6 +1510,11 @@ async def _show_confirmation(
             lines.append(t("create_khatm.confirm.total_target", lang, amount=total, unit=unit))
         else:
             lines.append(t("create_khatm.confirm.total_unlimited", lang))
+        if mode == KhatmTypeEnum.COMMITMENT.value:
+            if data.get("commitment_policy") == "FIXED_DAILY" and data.get("daily_commitment_amount"):
+                lines.append(f"📌 سهم روزانهٔ هر عضو: {data['daily_commitment_amount']} {unit} (ثابت)")
+            else:
+                lines.append("📌 سهم روزانهٔ هر عضو: به انتخاب خود عضو")
     else:
         edition = QURAN_EDITIONS[data["quran_edition_id"]]
         lines.append(t("create_khatm.confirm.quran_content", lang))
@@ -1437,6 +1522,10 @@ async def _show_confirmation(
         mode_label_key = _CONTENT_MODE_LABEL_KEYS.get(data.get("content_delivery_mode", "AUTO"), _CONTENT_MODE_LABEL_KEYS["AUTO"])
         lines.append(t("create_khatm.confirm.delivery_format", lang, value=t(mode_label_key, lang)))
         if mode == KhatmTypeEnum.COMMITMENT.value:
+            if data.get("commitment_policy") == "FIXED_DAILY" and data.get("daily_commitment_amount"):
+                lines.append(f"📌 سهم روزانهٔ هر عضو: {data['daily_commitment_amount']} صفحه (ثابت)")
+            else:
+                lines.append("📌 سهم روزانهٔ هر عضو: به انتخاب خود عضو")
             lines.append(t("create_khatm.confirm.deadline", lang, hour=data.get("daily_deadline_hour", 24)))
             capacity = data.get("capacity")
             capacity_text = capacity if capacity else t("create_khatm.capacity_unlimited", lang)
@@ -1548,13 +1637,15 @@ async def handle_edit_field_choice(callback: CallbackQuery, state: FSMContext) -
             await safe_answer_callback(callback, "برای ختم آزاد قرآن، مقدار هدف کل قرآن (۶۰۴ صفحه) است و نیاز به ویرایش ندارد.", show_alert=True)
             await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
             return
+        if template == KhatmTemplateType.QURAN_PAGE.value and mode == KhatmTypeEnum.COMMITMENT.value:
+            await _ask_commitment_policy(callback.message, state)
+            await safe_answer_callback(callback)
+            return
         await _after_start_schedule(callback.message, state)
     elif field == "tone":
-        await state.set_state(CreateKhatm.choosing_reminder_tone)
-        await _wiz(callback.message, state, t("create_khatm.ask_reminder_tone", lang, share="امروز"), reply_markup=reminder_tone_keyboard(lang))
+        await _ask_reminder_tone(callback.message, state)
     elif field == "visibility":
-        await state.set_state(CreateKhatm.choosing_visibility)
-        await _wiz(callback.message, state, t("create_khatm.ask_visibility", lang), reply_markup=visibility_choice_keyboard(lang))
+        await _show_visibility_step(callback.message, state)
     else:
         await _show_confirmation(callback.message, state, platform=platform, platform_subject=str(callback.from_user.id))
     await safe_answer_callback(callback)
@@ -1664,27 +1755,57 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
     data = await state.get_data()
     message = callback.message
     lang = await _lang(state)
+    await safe_clear_inline_keyboard(message)
 
     if data.get("editing_from_confirm"):
         await state.update_data(editing_from_confirm=False)
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-        await safe_clear_inline_keyboard(message)
         await _show_confirmation(message, state, platform=platform, platform_subject=str(callback.from_user.id))
         await safe_answer_callback(callback)
         return
 
     if current == CreateKhatm.choosing_template.state:
+        await _delete_wizard_messages(message, state)
         await state.clear()
         await message.answer(t("create_khatm.cancelled", lang), reply_markup=main_menu_keyboard(lang))
-    elif current in {CreateKhatm.choosing_category.state, CreateKhatm.choosing_mode.state}:
-        if current == CreateKhatm.choosing_mode.state and data.get("category_group") in {
-            KhatmCategoryGroup.DUA.value, KhatmCategoryGroup.LAAN.value,
-        }:
-            await _show_category_prompt(message, state, KhatmCategoryGroup(data["category_group"]))
-        else:
-            await _show_template_step(message, state)
+    elif current == CreateKhatm.choosing_category.state:
+        await _show_template_step(message, state)
     elif current == CreateKhatm.entering_custom_dua_title.state:
         await _show_category_prompt(message, state, KhatmCategoryGroup.DUA)
+    elif current == CreateKhatm.entering_laan_title.state:
+        await _show_template_step(message, state)
+    elif current == CreateKhatm.entering_laan_text.state:
+        await state.set_state(CreateKhatm.entering_laan_title)
+        prompt_text = (
+            "⚔️ <b>عنوان ختم لعنتون چیه؟</b>\n\n"
+            "لطفاً عنوان مورد نظر خود برای این ختم را بنویسید:\n"
+            "<i>(مثلاً: ختم لعن بر دشمنان اهل بیت علیهم‌السلام)</i>"
+        )
+        await _wiz(message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
+    elif current == CreateKhatm.choosing_mode.state:
+        intro_mid = data.get("_intro_mid")
+        if intro_mid:
+            try:
+                await message.bot.delete_message(message.chat.id, intro_mid)
+            except Exception:
+                pass
+            await state.update_data(_intro_mid=None)
+        cg = data.get("category_group")
+        if cg == KhatmCategoryGroup.LAAN.value:
+            await state.set_state(CreateKhatm.entering_laan_text)
+            prompt_text = (
+                "📜 <b>متن ختم لعن رو بفرستید:</b>\n\n"
+                "متن دقیق ذکری که اعضا باید قرائت کنند را وارد نمایید:\n"
+                "<i>(این ذکر دقیقاً در سهم‌های روزانه نمایش داده خواهد شد)</i>"
+            )
+            await _wiz(message, state, prompt_text, reply_markup=back_cancel_keyboard(lang))
+        elif cg in {
+            KhatmCategoryGroup.DUA.value,
+            KhatmCategoryGroup.KHUTBAH.value,
+        }:
+            await _show_category_prompt(message, state, KhatmCategoryGroup(cg))
+        else:
+            await _show_template_step(message, state)
     elif current == CreateKhatm.entering_niyyat.state:
         await _ask_mode(message, state)
     elif current == CreateKhatm.entering_welcome.state:
@@ -1694,8 +1815,8 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
     elif current == CreateKhatm.entering_recitation_text.state:
         await _ask_creator_contact(message, state, actor=callback.from_user)
     elif current in {
-        CreateKhatm.choosing_creator_display.state,
-        CreateKhatm.entering_creator_pseudonym.state,
+        CreateKhatm.entering_open_target.state,
+        CreateKhatm.choosing_commitment_total.state,
     }:
         if data.get("category_group") == KhatmCategoryGroup.LAAN.value:
             await state.set_state(CreateKhatm.entering_recitation_text)
@@ -1705,27 +1826,49 @@ async def previous_wizard_step(callback: CallbackQuery, state: FSMContext) -> No
             )
         else:
             await _ask_creator_contact(message, state, actor=callback.from_user)
-    elif current in {
-        CreateKhatm.entering_open_target.state,
-        CreateKhatm.choosing_commitment_total.state,
-        CreateKhatm.entering_deadline_hour.state,
-    }:
-        await _after_recitation_text(message, state)
     elif current == CreateKhatm.entering_commitment_total_custom.state:
-        await _after_start_schedule(message, state)
+        await _show_commitment_total_step(message, state, lang, data)
+    elif current == CreateKhatm.choosing_commitment_policy.state:
+        tt = data.get("template_type", "")
+        if tt == KhatmTemplateType.QURAN_PAGE.value:
+            await _ask_creator_contact(message, state, actor=callback.from_user)
+        else:
+            await _show_commitment_total_step(message, state, lang, data)
+    elif current == CreateKhatm.entering_fixed_daily_amount.state:
+        await _ask_commitment_policy(message, state)
     elif current == CreateKhatm.choosing_reminder_tone.state:
-        await _after_start_schedule(message, state)
+        mode = data.get("khatm_type", KhatmTypeEnum.COMMITMENT.value)
+        tt = data.get("template_type", "")
+        if mode == KhatmTypeEnum.OPEN.value:
+            if tt == KhatmTemplateType.QURAN_PAGE.value:
+                await _ask_creator_contact(message, state, actor=callback.from_user)
+            else:
+                await state.set_state(CreateKhatm.entering_open_target)
+                unit = (
+                    t("create_khatm.unit.salawat", lang)
+                    if data.get("category_group") == KhatmCategoryGroup.SALAWAT.value
+                    else t("create_khatm.unit.time", lang)
+                )
+                title = data.get("content_category_title") or t("create_khatm.group_label.generic", lang)
+                await _wiz(
+                    message, state, t("create_khatm.ask_open_target", lang, title=title, unit=unit),
+                    reply_markup=create_wizard_back_keyboard(lang),
+                )
+        else:
+            if data.get("commitment_policy") == "FIXED_DAILY":
+                await _show_fixed_daily_step(message, state, lang, data)
+            else:
+                await _ask_commitment_policy(message, state)
     elif current == CreateKhatm.choosing_visibility.state:
-        await _ask_visibility(message, state)
-    elif current == CreateKhatm.choosing_allowed_platforms.state:
-        await state.set_state(CreateKhatm.choosing_visibility)
-        await _wiz(
-            message, state, t("create_khatm.ask_visibility", lang),
-            reply_markup=visibility_choice_keyboard(lang),
-        )
+        await _ask_reminder_tone(message, state)
     elif current == CreateKhatm.confirming.state:
-        await _ask_allowed_platforms(message, state)
-    elif current == CreateKhatm.entering_coupon.state:
+        await _show_visibility_step(message, state)
+    elif current == CreateKhatm.confirming_rules.state:
+        platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+        await _show_confirmation(
+            message, state, platform=platform, platform_subject=str(callback.from_user.id),
+        )
+    elif current in {CreateKhatm.entering_coupon.state, CreateKhatm.editing_title.state}:
         platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
         await _show_confirmation(
             message, state, platform=platform, platform_subject=str(callback.from_user.id),
@@ -1759,6 +1902,10 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
     normal confirm path and the post-verification resume path (see
     `_resume_khatm_creation_if_pending` below) can share the exact same
     creation logic instead of duplicating it."""
+    if data.get("category_group") == KhatmCategoryGroup.LAAN.value:
+        await message.answer("امکان ساخت ختم لعن در حال حاضر غیرفعال است.", reply_markup=main_menu_keyboard(lang))
+        return
+
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     price = get_settings().khatm_creation_price_toman
 
@@ -1805,6 +1952,10 @@ async def _finish_creating_khatm(message: Message, state: FSMContext, lang: str,
                 coupon_code=data.get("coupon_code"),
                 content_category_id=data.get("content_category_id"),
                 description=data.get("recitation_text"),
+                require_admin_approval=bool(
+                    data.get("category_group") == KhatmCategoryGroup.LAAN.value
+                    and (data.get("recitation_text") or "").strip()
+                ),
             )
         except InsufficientFundsError:
             await message.answer(t("create_khatm.insufficient_funds", lang, price=f"{price:,}"), reply_markup=main_menu_keyboard(lang))
@@ -1888,11 +2039,53 @@ async def confirm_wizard(callback: CallbackQuery, state: FSMContext) -> None:
             await state.update_data(**data, resume_khatm_creation=True)
         await safe_answer_callback(callback)
         return
+    await _show_rules_agreement_step(callback.message, state, lang)
+    await safe_answer_callback(callback)
+
+
+async def _show_rules_agreement_step(message: Message, state: FSMContext, lang: str) -> None:
+    await state.set_state(CreateKhatm.confirming_rules)
+    await _wiz(
+        message,
+        state,
+        t("create_khatm.rules_text", lang),
+        reply_markup=rules_agreement_keyboard(lang),
+    )
+
+
+@router.callback_query(F.data == "ck:accept_rules", StateFilter(CreateKhatm.confirming_rules))
+async def accept_rules_and_finish_khatm(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang(state)
+    data = await state.get_data()
+    from khatmsaz.bot.handlers.change_phone import ensure_creator_phone_verified
+
+    verified = await ensure_creator_phone_verified(callback.message, state)
+    await safe_clear_inline_keyboard(callback.message)
+    if not verified:
+        if await state.get_state() is not None:
+            await state.update_data(**data, resume_khatm_creation=True, rules_accepted=True)
+        await safe_answer_callback(callback)
+        return
+    await state.update_data(
+        rules_accepted=True,
+        rules_accepted_at=datetime.now(ZoneInfo("Asia/Tehran")).isoformat(),
+    )
+    await state.set_state(None)
     await _finish_creating_khatm(callback.message, state, lang, data)
     await safe_answer_callback(callback)
 
+
+@router.callback_query(F.data == "ck:back_to_confirm", StateFilter(CreateKhatm.confirming_rules))
+async def back_to_confirm_details(callback: CallbackQuery, state: FSMContext) -> None:
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    await safe_clear_inline_keyboard(callback.message)
+    await _show_confirmation(
+        callback.message, state, platform=platform, platform_subject=str(callback.from_user.id)
+    )
+    await safe_answer_callback(callback)
+
 from khatmsaz.core.bot_registry import get_registry
-from khatmsaz.modules.khatm.models import Khatm
+from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 
 async def show_invite_platform_keyboard(message: Message, state: FSMContext, lang: str):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -1929,6 +2122,14 @@ async def handle_invite_platform(callback: CallbackQuery, state: FSMContext) -> 
     plat = callback.data.split(":")[1]
     await state.update_data(selected_invite_platform=plat)
     lang = await _lang(state)
+
+    # Arabic and English member bots are temporarily hidden — skip language step if Persian-only
+    if len(invite_links.ACTIVE_INVITE_LANGUAGES) <= 1:
+        await state.update_data(selected_invite_languages=["fa"])
+        await finish_invite_links(callback.message, state, lang)
+        await callback.answer()
+        return
+
     await state.set_state(CreateKhatm.choosing_invite_languages)
     await show_invite_languages_keyboard(callback, state, lang)
     await callback.answer()
@@ -1954,11 +2155,15 @@ async def show_invite_languages_keyboard(message: Message | CallbackQuery, state
             # filter by platform if not ALL
             if plat_choice != "ALL" and getattr(bot, "khatmsaz_platform", None) != Platform(plat_choice):
                 continue
-            available_langs.add(getattr(bot, "khatmsaz_language"))
+            b_lang = getattr(bot, "khatmsaz_language", None)
+            if b_lang in invite_links.ACTIVE_INVITE_LANGUAGES:
+                available_langs.add(b_lang)
             
-    if not available_langs:
-        # Fallback to single-bot if no member bots match
-        await finish_invite_links(message, state, lang)
+    if len(available_langs) <= 1:
+        # Fallback to single-bot or skip if only one language is available
+        await state.update_data(selected_invite_languages=["fa"])
+        target = message if isinstance(message, Message) else message.message
+        await finish_invite_links(target, state, lang)
         return
         
     # Build keyboard
@@ -2010,6 +2215,56 @@ async def handle_confirm_invite_langs(callback: CallbackQuery, state: FSMContext
     await callback.answer()
 
 
+def build_ready_to_forward_card(khatm: Khatm, khatm_bot_cat: str, invite_lines_str: str) -> str:
+    """Build the clean ready-to-forward invitation card for a khatm."""
+    t_clean = (khatm.title or "").strip()
+    if t_clean.startswith("ختم"):
+        invite_title = f"«{t_clean}»"
+    else:
+        invite_title = f"ختم «{t_clean}»"
+    header_line = f"🌸 دعوت به {invite_title}"
+
+    base_niyyat = "ظهور منجی عالم بشریت، حضرت ولی‌عصر (عجل‌الله‌تعالی‌فرجه‌الشریف)"
+    proxy_suffix = ""
+    if khatm.niyyat:
+        for prefix in ("— به نیابت از", "به نیابت از", "— نیابت از", "نیابت از"):
+            if prefix in khatm.niyyat:
+                idx = khatm.niyyat.find(prefix)
+                proxy_suffix = " — " + khatm.niyyat[idx:].lstrip("— -:، ")
+                break
+    niyyat_line = f"به نیت: {base_niyyat}{proxy_suffix}"
+
+    if khatm.template_type in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
+        type_label = "قرآن کریم"
+    elif khatm_bot_cat == "SALAWAT":
+        type_label = "صلوات"
+    elif khatm_bot_cat in ("DUA", "DUA_ZIYARAT"):
+        type_label = "خطبه" if (khatm.title and "خطبه" in khatm.title) else "دعا و زیارت"
+    elif khatm_bot_cat == "LAAN":
+        type_label = "لعن"
+    elif khatm_bot_cat == "KHUTBAH" or (khatm.title and "خطبه" in khatm.title):
+        type_label = "خطبه"
+    else:
+        type_label = "ذکر و دعا"
+
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
+        mode_label = "تعهدی (مطالعه سهم مشخص روزانه در ساعت دلخواه شما)"
+    else:
+        mode_label = "آزاد (قرائت در زمان و به مقدار دلخواه شما بدون ساعت اجباری)"
+
+    card_lines = [
+        header_line,
+        niyyat_line,
+        "",
+        f"📖 نوع ختم: {type_label}",
+        f"🌿 شیوهٔ برگزاری: {mode_label}",
+        "",
+        "برای پیوستن به این ختم جمعی و همراهی با ما، روی لینک زیر بزنید:",
+        invite_lines_str,
+    ]
+    return "\n".join(card_lines)
+
+
 async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     data = await state.get_data()
     khatm_id = data.get("created_khatm_id")
@@ -2020,8 +2275,8 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     async with session_scope() as session:
         khatm = await session.get(Khatm, khatm_id)
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
-
-    landing_line = ""
+        creator = await session.get(User, khatm.creator_user_id) if khatm else None
+        creator_name = (getattr(creator, "display_name", None) if creator else None) or "سازنده"
 
     # Build per-language member bot invite links via the shared helper so this
     # wizard and the "QR دعوت" button in khatm management never drift apart.
@@ -2048,6 +2303,44 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     # Need original message or callback's message for answer
     target_msg = message if isinstance(message, Message) else message.message
     
+    # DEC-PY-0123 / DEC-PY-0125: Custom La'an khatms stay DRAFT/PENDING until approved by admin.
+    if khatm is not None and (
+        khatm.status == KhatmStatus.DRAFT
+        or getattr(khatm, "pending_lan_approval", False) is True
+    ):
+        await target_msg.answer(
+            f"⏳ <b>ختم «{escape(khatm.title)}» با موفقیت ثبت شد.</b>\n\n"
+            "به دلیل سفارشی بودن ذکر لعن، ختم جهت بررسی و تأیید برای مدیریت ارسال گردید.\n"
+            "بلافاصله پس از تأیید توسط مدیریت، پیام حاوی لینک دعوت برای شما ارسال خواهد شد 🌱",
+            reply_markup=main_menu_keyboard(lang, is_creator=True),
+        )
+        from khatmsaz.bot.admin_notifications import notify_super_admins
+        admin_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ تأیید و فعال‌سازی",
+                        callback_data=f"laan:approve:{khatm.id}",
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ رد کردن",
+                        callback_data=f"laan:reject:{khatm.id}",
+                    ),
+                ]
+            ]
+        )
+        admin_text = (
+            "⚔️ <b>درخواست تأیید ختم لعن سفارشی</b>\n\n"
+            f"👤 <b>سازنده:</b> {escape(creator_name)}\n"
+            f"📌 <b>عنوان ختم:</b> {escape(khatm.title)}\n"
+            f"📜 <b>متن ذکر لعن:</b>\n<blockquote>{escape(khatm.recitation_text or khatm.description or '—')}</blockquote>\n"
+            f"🎯 <b>نیت:</b> {escape(khatm.niyyat or '—')}\n"
+            f"📅 <b>نوع:</b> {'تعهدی' if khatm.khatm_type.value == 'COMMITMENT' else 'آزاد'}\n\n"
+            "وضعیت را مشخص فرمایید:"
+        )
+        await notify_super_admins(admin_text, reply_markup=admin_kb)
+        return
+
     # Owner (2026-10-01): Arabic/English are temporarily DISABLED — only Persian
     # member bots are offered for now. Hide the «لینک عربی و انگلیسی» button until
     # the other languages are re-enabled in a later update.
@@ -2065,50 +2358,7 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     )
 
     # Message 2: Ready-to-forward invitation card for members (no system text, no duplicate "ختم")
-    t_clean = (khatm.title or "").strip()
-    if t_clean.startswith("ختم"):
-        invite_title = f"«{t_clean}»"
-    else:
-        invite_title = f"ختم «{t_clean}»"
-    header_line = f"🌸 دعوت به {invite_title}"
-
-    base_niyyat = "ظهور منجی عالم بشریت، حضرت ولی‌عصر (عجل‌الله‌تعالی‌فرجه‌الشریف)"
-    proxy_suffix = ""
-    if khatm.niyyat:
-        for prefix in ("— به نیابت از", "به نیابت از", "— نیابت از", "نیابت از"):
-            if prefix in khatm.niyyat:
-                idx = khatm.niyyat.find(prefix)
-                proxy_suffix = " — " + khatm.niyyat[idx:].lstrip("— -:، ")
-                break
-    niyyat_line = f"به نیت: {base_niyyat}{proxy_suffix}"
-
-    if khatm.template_type in (KhatmTemplateType.QURAN_PAGE, KhatmTemplateType.QURAN_SURAH):
-        type_label = "قرآن کریم"
-    elif khatm_bot_cat == "SALAWAT":
-        type_label = "صلوات"
-    elif khatm_bot_cat == "DUA":
-        type_label = "دعا و زیارت"
-    elif khatm_bot_cat == "LAAN":
-        type_label = "لعن"
-    else:
-        type_label = "ذکر و دعا"
-
-    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT:
-        mode_label = "تعهدی (مطالعه سهم مشخص روزانه در ساعت دلخواه شما)"
-    else:
-        mode_label = "آزاد (قرائت در زمان و به مقدار دلخواه شما بدون ساعت اجباری)"
-
-    card_lines = [
-        header_line,
-        niyyat_line,
-        "",
-        f"📖 نوع ختم: {type_label}",
-        f"🌿 شیوهٔ برگزاری: {mode_label}",
-        "",
-        "برای پیوستن به این ختم جمعی و همراهی با ما، روی لینک زیر بزنید:",
-        invite_lines_str,
-    ]
-    card_text = "\n".join(card_lines)
+    card_text = build_ready_to_forward_card(khatm, khatm_bot_cat, invite_lines_str)
 
     await target_msg.answer(
         card_text,
@@ -2116,6 +2366,100 @@ async def finish_invite_links(message: Message, state: FSMContext, lang: str):
     )
     if other_langs_btn is not None:
         await target_msg.answer(t("create_khatm.other_lang_hint", lang), reply_markup=other_langs_btn)
+
+
+async def notify_creator_laan_decision(
+    session,
+    khatm: Khatm,
+    token: str | None,
+    *,
+    approved: bool,
+    refunded_amount: int = 0,
+    note: str | None = None,
+) -> None:
+    """Notify the creator on all their linked platforms when an admin approves
+    or rejects their custom La'an khatm (from either Web Panel or Telegram Bot)."""
+    from khatmsaz.bot.notify_adapter import get_notify_fn
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        return
+    accounts = await identity_service.list_identities_for_user(session, khatm.creator_user_id)
+    if approved:
+        khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
+        by_lang = invite_links.build_member_invite_links(
+            khatm_bot_cat, token or "", langs=["fa"], plat_choice="ALL",
+        )
+        invite_lines_str = invite_links.format_invite_lines(by_lang) or "⚠️ لینک دعوت از بخش مدیریت ختم قابل دریافت است."
+        card_text = build_ready_to_forward_card(khatm, khatm_bot_cat, invite_lines_str)
+        msg1 = f"✅ ختم «{khatm.title}» توسط مدیریت تأیید شد و هم‌اکنون فعال است 🌱"
+        if note:
+            msg1 += f"\n💬 توضیح مدیریت: {note}"
+        for acc in accounts:
+            try:
+                await notify(acc.platform.value, acc.subject, msg1)
+                await notify(acc.platform.value, acc.subject, card_text)
+            except Exception:
+                pass
+    else:
+        msg = f"❌ ختم لعن «{khatm.title}» مورد تأیید مدیریت قرار نگرفت و فعال نشد."
+        if note:
+            msg += f"\n💬 علت: {note}"
+        if refunded_amount > 0:
+            msg += f"\n💳 مبلغ {refunded_amount:,} تومان به کیف پول شما بازگردانده شد."
+        for acc in accounts:
+            try:
+                await notify(acc.platform.value, acc.subject, msg)
+            except Exception:
+                pass
+
+
+@router.callback_query(F.data.startswith("lan_mod:") | F.data.startswith("laan:approve:") | F.data.startswith("laan:reject:"))
+async def handle_laan_moderation_callback(callback: CallbackQuery) -> None:
+    """Inline button handler for Super Admins approving/rejecting custom La'an in Telegram."""
+    from khatmsaz.modules.identity.models import UserRole
+    parts = (callback.data or "").split(":", 2)
+    if len(parts) != 3:
+        await safe_answer_callback(callback)
+        return
+    action, khatm_id_str = parts[1], parts[2]
+    approved = action == "approve"
+    platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    admin_ids = {
+        v.strip()
+        for v in get_settings().super_admin_telegram_chat_ids.split(",")
+        if v.strip()
+    }
+    async with session_scope() as session:
+        actor = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        is_allowed = (
+            str(callback.from_user.id) in admin_ids
+            or (actor is not None and actor.role == UserRole.SUPER_ADMIN)
+        )
+        if not is_allowed:
+            await safe_answer_callback(callback, "فقط سوپرادمین مجاز به این عملیات است.", show_alert=True)
+            return
+        try:
+            khatm, token, refunded = await workflow_service.review_laan_khatm_workflow(
+                session,
+                khatm_id=khatm_id_str,
+                approved=approved,
+            )
+            await notify_creator_laan_decision(
+                session,
+                khatm,
+                token,
+                approved=approved,
+                refunded_amount=refunded,
+            )
+        except ValueError:
+            await safe_clear_inline_keyboard(callback.message)
+            await safe_answer_callback(callback, "این ختم قبلاً بررسی شده است.", show_alert=True)
+            return
+    await safe_clear_inline_keyboard(callback.message)
+    status_line = "✅ تأیید و فعال شد" if approved else "❌ رد و لغو شد"
+    await callback.message.answer(f"{status_line}: «{khatm.title}»")
+    await safe_answer_callback(callback, status_line)
 
 
 @router.callback_query(F.data.startswith("ck:invlangs:"))
@@ -2126,10 +2470,14 @@ async def send_other_language_links(callback: CallbackQuery) -> None:
     lang = getattr(callback.message.bot, "khatmsaz_language", None) or "fa"
     async with session_scope() as session:
         khatm_id = await invitation_service.resolve_khatm_id(session, token)
-        khatm = await session.get(Khatm, khatm_id)
+        khatm = await session.get(Khatm, khatm_id) if khatm_id else None
+        if khatm is None:
+            await safe_answer_callback(callback, t("my_khatms.creator.khatm_not_found", lang), show_alert=True)
+            return
         khatm_bot_cat = await invite_links.resolve_khatm_category_value(session, khatm)
     by_lang = invite_links.build_member_invite_links(khatm_bot_cat, token, langs=["ar", "en"], plat_choice="ALL")
     lines = invite_links.format_invite_lines(by_lang) or t("create_khatm.no_other_lang_links", lang)
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(lines, link_preview_options=LinkPreviewOptions(is_disabled=True))
     await safe_answer_callback(callback)
+

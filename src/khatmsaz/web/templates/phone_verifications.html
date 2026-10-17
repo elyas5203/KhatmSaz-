@@ -1,10 +1,24 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}احراز شماره‌های خارجی | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-sky-500 tracking-wider uppercase mb-1">هویت و پشتیبانی</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">تأیید شماره‌های خارج از ایران</h1>
-  <p class="text-slate-400 text-sm">شمارهٔ کامل را فقط بعد از بررسی واقعی مالکیت تأیید کنید. تأیید، دائمی و معادل رمز یکبارمصرف است.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-sky-400 tracking-wider uppercase mb-1">صف احراز شماره دستی</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">تأیید شماره‌های خارج از ایران</h1>
+      {{ help_button(
+        "راهنمای احراز شماره‌های خارجی",
+        "کاربرانی که شماره خارج از کشور دارند و پیامک کد تأیید دریافت نمی‌کنند، درخواست احراز هویت دستی ثبت می‌کنند. تأیید شما معادل رمز یکبارمصرف است.",
+        [
+          "نام کاربر، تاریخ ثبت درخواست و شماره کامل E.164 را بررسی کنید.",
+          "در صورت تأیید مالکیت شماره، دکمه سبز «تأیید شماره» را بزنید.",
+          "در غیر این صورت، دکمه قرمز «رد درخواست» را بزنید."
+        ],
+        "نکته: پس از تأیید، شماره به عنوان هویت اصلی ذخیره شده و کاربر مجاز به ساخت ختم می‌شود."
+      ) }}
+    </div>
+  </div>
 </section>
 
 {% if saved == 'approved' %}

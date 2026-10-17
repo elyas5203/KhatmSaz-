@@ -25,7 +25,7 @@ def test_formal_quran_reminder_mentions_deadline_action_and_help():
     text = reminder_text(khatm, "quran", share_label("quran", start=56, end=57), deadline=23)
     assert "صفحات 56 تا 57" in text
     assert "ساعت 23:00 امشب (به وقت ایران)" in text
-    assert "قرائت بخش فوق انجام شد" in text
+    assert "اعلام انجام قرائت" in text
     assert "دوستان یا آشنایان" in text
     assert "صاحب‌الزمان علیه السلام" in text
 
@@ -81,11 +81,11 @@ def test_time_aware_greeting_and_deadline_formatting():
     assert "امشب" in format_deadline(22)
 
     # Button labels by family
-    assert "قرائت بخش فوق انجام شد" in done_button_label("quran")
-    assert "ذکر صلوات فرستاده شد" in done_button_label("salawat")
+    assert "اعلام انجام قرائت" in done_button_label("quran")
+    assert "اعلام انجام ذکر صلوات" in done_button_label("salawat")
     assert "قرائت دعا" in done_button_label("dua")
     assert "قرائت زیارت" in done_button_label("ziyarat")
-    assert "ذکر لعن انجام شد" in done_button_label("laan")
+    assert "اعلام انجام ذکر لعن" in done_button_label("laan")
 
 
 def test_reminder_text_for_morning_salawat():
@@ -95,7 +95,7 @@ def test_reminder_text_for_morning_salawat():
     )
     assert "صبح‌تون بخیر" in text
     assert "10:00 صبح امروز" in text
-    assert "ذکر صلوات فرستاده شد" in text
+    assert "اعلام انجام ذکر صلوات" in text
     assert "امشب" not in text
 
 

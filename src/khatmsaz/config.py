@@ -18,6 +18,9 @@ class Settings(BaseSettings):
 
     telegram_bot_token: str = ""
     telegram_bot_username: str = ""
+    # Dedicated Admin Bot (@khatmsaz_admin_bot, DEC-PY-0125, MASTER-12)
+    admin_bot_token: str = "8804225228:AAHPfsV4E8oSxjoGSqpD4S3GgkPJxuZKEH4"
+    admin_bot_username: str = "khatmsaz_admin_bot"
     # Private channel containing the canonical 604-page Quran image/audio
     # posts. The bot itself must be a member before it can forward messages.
     quran_source_telegram_chat_id: int = -1001127138974
@@ -25,6 +28,10 @@ class Settings(BaseSettings):
     bale_bot_token: str = ""
     bale_api_base_url: str = "https://tapi.bale.ai"
     bale_bot_username: str = ""
+    # Dedicated Bale channel/chat where uploaded media is archived and gets a Bale file_id
+    bale_media_storage_chat_id: int | None = None
+    # Scratch chat/channel in Telegram used to forward and inspect channel posts
+    telegram_scratch_chat_id: int | None = None
 
     admin_web_enabled: bool = True
     admin_web_host: str = "0.0.0.0"
@@ -67,6 +74,7 @@ class Settings(BaseSettings):
     # are intentionally not application configuration.
     payping_api_token: str = ""
     payping_callback_url: str = "https://khatmsaz.com/payments/payping/callback"
+    payping_direct_url: str = "https://ppng.ir/d/VFBD"
 
     # Cost to create a khatm, deducted from the creator's wallet
     # (credit_toman first, then balance_toman — see wallet.service.spend).

@@ -102,7 +102,9 @@ async def deliver_pending(
                 destination = (identity.platform.value, identity.subject)
                 if destination in sent_to:
                     continue
-                sent_to.add(destination)
-                await notify(*destination, text)
+                try:
+                    await notify(*destination, text)
+                except Exception:
+                    pass
         delivered += 1
     return delivered

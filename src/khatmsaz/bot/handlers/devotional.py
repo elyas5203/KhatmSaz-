@@ -2,6 +2,7 @@
 
 from html import escape
 from io import BytesIO
+from uuid import UUID
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
@@ -24,14 +25,14 @@ def _reciter_picker_keyboard(slug: str, variants: list) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text=f"🎙 {variant.reciter_label or variant.reciter_id or 'قاری'}",
-            callback_data=f"devotional_reciter:{slug}:{variant.reciter_id}",
+            callback_data=f"drec:{variant.id}",
         )]
         for variant in variants
     ])
 
 
 async def _send_portable_media(
-    message: Message, *, kind: str, asset_ref: str, platform: Platform, filename: str,
+    message: Message, *, kind: str, asset_ref: str, platform: Platform, filename: str, caption: str | None = None,
 ) -> None:
     """Retry a creator-bot file_id by downloading and re-uploading it.
 
@@ -41,14 +42,38 @@ async def _send_portable_media(
     ``wrong file identifier``.  The live registry gives us the owning
     creator bot without persisting tokens or media bytes in the database.
     """
+    forward_source = content_service.decode_telegram_forward_ref(asset_ref)
+    if forward_source is not None:
+        source_chat_id, source_message_id = forward_source
+        if hasattr(message, "forward"):
+            try:
+                await message.forward(source_chat_id, source_message_id)
+                return
+            except Exception:
+                pass
+        else:
+            try:
+                await message.bot.forward_message(
+                    chat_id=message.chat.id,
+                    from_chat_id=source_chat_id,
+                    message_id=source_message_id,
+                )
+                return
+            except Exception:
+                pass
+
     sender = getattr(message, {
         "IMAGE": "answer_photo",
         "PDF": "answer_document",
         "AUDIO": "answer_audio",
+        "VIDEO": "answer_video",
     }[kind])
     direct_error: TelegramBadRequest | None = None
     try:
-        await sender(asset_ref)
+        if caption:
+            await sender(asset_ref, caption=caption)
+        else:
+            await sender(asset_ref)
         return
     except TelegramBadRequest as exc:
         if "wrong file identifier" not in str(exc).lower():
@@ -60,19 +85,59 @@ async def _send_portable_media(
         raise direct_error
     buffer = BytesIO()
     await source_bot.download(asset_ref, destination=buffer)
-    await sender(BufferedInputFile(buffer.getvalue(), filename=filename))
+    input_file = BufferedInputFile(buffer.getvalue(), filename=filename)
+    if caption:
+        await sender(input_file, caption=caption)
+    else:
+        await sender(input_file)
 
 
 async def deliver_devotional_media(
     session, message: Message, *, slug: str, asset, platform: Platform, lang: str,
+    page_numbers: list[int] | None = None,
 ) -> bool:
     """Sends every registered piece of media for one devotional asset:
-    PDF, image page(s) in order, then audio. Owner request (2026-09-22):
-    a dua can have several image pages (pagination) and several reciters
-    to choose between — this checks the new multi-media table first,
-    falling back to the older single audio_ref/image_ref columns for
-    content registered before that table existed. Shared by `/devotional`
-    and the khatm-participation recitation flow (`portions.py`)."""
+    Video clips (if present), or PDF, image page(s) in order, then audio.
+    Owner request: when video clips are available (e.g. Khutbah Fadakiah),
+    send the video directly instead of separate text and audio."""
+    # Owner rule: if video clips are present, deliver videos directly
+    video_pages = await content_service.list_devotional_video_pages(session, slug, platform.value)
+    if video_pages:
+        if page_numbers:
+            filtered = [v for v in video_pages if v.page_number in page_numbers]
+            if filtered:
+                video_pages = filtered
+        elif len(video_pages) > 1:
+            # Multi-part devotional: default to part 1 instead of blasting all parts
+            video_pages = [min(video_pages, key=lambda v: v.page_number)]
+        for vid in video_pages:
+            caption = content_service.resolve_devotional_video_caption(slug, asset.title, vid)
+            await _send_portable_media(
+                message, kind="VIDEO", asset_ref=vid.asset_ref, platform=platform,
+                filename=f"{slug}-{vid.page_number}.mp4", caption=caption,
+            )
+            # Check and send part-specific PDF if registered
+            part_pdf = await content_service.get_devotional_pdf(session, slug, platform.value, page_number=vid.page_number)
+            if part_pdf:
+                caption_pdf = part_pdf.reciter_label or f"📄 متن {asset.title} — بخش {vid.page_number}"
+                await _send_portable_media(
+                    message, kind="PDF", asset_ref=part_pdf.asset_ref, platform=platform,
+                    filename=f"{slug}-{vid.page_number}.pdf", caption=caption_pdf,
+                )
+            # Check and send part-specific Audio if registered
+            if session is not None and hasattr(session, "scalar"):
+                part_media = await content_service.list_devotional_media_for_part(
+                    session, slug=slug, page_number=vid.page_number, asset_platform=platform.value
+                )
+                for part_aud in part_media:
+                    if part_aud.kind == "AUDIO" and isinstance(getattr(part_aud, "asset_ref", None), str):
+                        caption_aud = part_aud.reciter_label or f"🔊 صوت {asset.title} — بخش {vid.page_number}"
+                        await _send_portable_media(
+                            message, kind="AUDIO", asset_ref=part_aud.asset_ref, platform=platform,
+                            filename=f"{slug}-{vid.page_number}.mp3", caption=caption_aud,
+                        )
+        return True
+
     has_reading_media = False
     image_pages = await content_service.list_devotional_image_pages(session, slug, platform.value)
     if image_pages:
@@ -117,10 +182,32 @@ async def deliver_devotional_media(
     return has_reading_media
 
 
-@router.callback_query(F.data.startswith("devotional_reciter:"))
+@router.callback_query(F.data.startswith("drec:") | F.data.startswith("devotional_reciter:"))
 async def send_devotional_reciter_choice(callback) -> None:
-    _, slug, reciter_id = callback.data.split(":", 2)
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if callback.data.startswith("drec:"):
+        media_id_str = callback.data.split(":", 1)[1]
+        async with session_scope() as session:
+            try:
+                media = await session.get(content_service.DevotionalMedia, UUID(media_id_str))
+            except (ValueError, TypeError):
+                media = None
+            asset = await session.get(content_service.DevotionalAsset, media.devotional_asset_id) if media else None
+        if media is None or asset is None:
+            await safe_answer_callback(callback, "این صوت دیگر در دسترس نیست.", show_alert=True)
+            return
+        await _send_portable_media(
+            callback.message,
+            kind="AUDIO",
+            asset_ref=media.asset_ref,
+            platform=platform,
+            filename=f"{asset.slug}-{media.reciter_id or 'audio'}.mp3",
+            caption=f"🎙 {media.reciter_label or media.reciter_id} — {escape(asset.title)}",
+        )
+        await safe_answer_callback(callback)
+        return
+
+    _, slug, reciter_id = callback.data.split(":", 2)
     async with session_scope() as session:
         variants = await content_service.list_devotional_audio_variants(session, slug, platform.value)
         asset = await content_service.get_devotional_asset(session, slug)
@@ -128,8 +215,12 @@ async def send_devotional_reciter_choice(callback) -> None:
     if chosen is None or asset is None:
         await safe_answer_callback(callback, "این صوت دیگر در دسترس نیست.", show_alert=True)
         return
-    await callback.message.answer_audio(
-        chosen.asset_ref,
+    await _send_portable_media(
+        callback.message,
+        kind="AUDIO",
+        asset_ref=chosen.asset_ref,
+        platform=platform,
+        filename=f"{slug}-{reciter_id or 'audio'}.mp3",
         caption=f"🎙 {chosen.reciter_label or chosen.reciter_id} — {escape(asset.title)}",
     )
     await safe_answer_callback(callback)

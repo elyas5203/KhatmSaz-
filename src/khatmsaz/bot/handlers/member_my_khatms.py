@@ -13,7 +13,7 @@ from khatmsaz.modules.participation.models import Participation, ParticipationSt
 from khatmsaz.modules.allocation.models import PortionUnitKind
 from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.khatm import service as khatm_service
-from khatmsaz.modules.khatm.models import Khatm
+from khatmsaz.modules.khatm.models import Khatm, KhatmTypeEnum
 from khatmsaz.bot.keyboards import (
     MY_KHATMS_BUTTON_TEXTS,
     commitment_quantity_keyboard,
@@ -63,24 +63,49 @@ async def list_member_khatms(message: Message) -> None:
             if khatm is None:
                 continue
 
-            buttons = [
-                [InlineKeyboardButton(
-                    text="📅 " + t("menu.today", lang),
-                    callback_data=f"today_pick:{p.id}",
-                )],
-                # Per-khatm reminder time: someone in several khatms can set a
-                # different delivery hour for each (owner request 2026-09-27).
-                [InlineKeyboardButton(
-                    text=t("my_khatms.button.reminder_hour", lang),
-                    callback_data=f"mk_hourmenu:{p.id}",
-                )],
-                [InlineKeyboardButton(
-                    text="🚪 " + t("my_khatms.button.leave", lang),
-                    callback_data=f"leave_ask:{p.id}",
-                )],
-            ]
+            is_open = (
+                khatm.khatm_type == KhatmTypeEnum.OPEN
+                or str(getattr(khatm.khatm_type, "value", khatm.khatm_type)).upper() == "OPEN"
+            )
+            if is_open:
+                buttons = [
+                    [InlineKeyboardButton(
+                        text=t("menu.today", lang),
+                        callback_data=f"today_pick:{p.id}",
+                    )],
+                    [InlineKeyboardButton(
+                        text="🚪 " + t("my_khatms.button.leave", lang),
+                        callback_data=f"leave_ask:{p.id}",
+                    )],
+                ]
+            else:
+                buttons = [
+                    [InlineKeyboardButton(
+                        text=t("menu.today", lang),
+                        callback_data=f"today_pick:{p.id}",
+                    )],
+                    # Per-khatm reminder time: someone in several khatms can set a
+                    # different delivery hour for each (owner request 2026-09-27).
+                    [InlineKeyboardButton(
+                        text=t("my_khatms.button.reminder_hour", lang),
+                        callback_data=f"mk_hourmenu:{p.id}",
+                    )],
+                    [InlineKeyboardButton(
+                        text="🚪 " + t("my_khatms.button.leave", lang),
+                        callback_data=f"leave_ask:{p.id}",
+                    )],
+                ]
             kb = InlineKeyboardMarkup(inline_keyboard=buttons)
-            await message.answer(f"🔹 {khatm.title}", reply_markup=kb)
+            from khatmsaz.bot.member_copy import get_khatm_identifier
+            from html import escape
+            title, creator_name, niyyat = await get_khatm_identifier(session, khatm, lang)
+            card_lines = [f"🔹 <b>{escape(title)}</b>"]
+            if creator_name:
+                card_lines.append(f"👤 <b>از طرف:</b> {escape(creator_name)}")
+            if niyyat:
+                card_lines.append(f"🤲 <b>به نیت:</b> {escape(niyyat)}")
+            card_text = "\n".join(card_lines)
+            await message.answer(card_text, reply_markup=kb)
 
 
 @router.callback_query(F.data.startswith("mk_hourmenu:"))

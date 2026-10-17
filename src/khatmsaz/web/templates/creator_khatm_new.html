@@ -1,73 +1,220 @@
 {% extends "creator_base.html" %}
-{% block title %}{{ t('web.creator.create_title', lang) }} | ختم‌ساز{% endblock %}
+{% block title %}ساخت ختم جدید | ختم‌ساز{% endblock %}
 {% block content %}
+
+<!-- Header & Back Navigation -->
 <section class="mb-6">
-  <a href="/creator/khatms" class="text-sm text-emerald-400 hover:text-emerald-300">{{ t('web.creator.create_back', lang) }}</a>
-  <h1 class="text-2xl sm:text-3xl font-bold text-white mt-3 mb-2">{{ t('web.creator.create_title', lang) }}</h1>
-  <p class="text-slate-400 text-sm">{{ t('web.creator.create_subtitle', lang) }}</p>
+  <a href="/creator/khatms" class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-bold text-slate-400 hover:text-emerald-400 mb-2 transition-colors">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    <span>انصراف و بازگشت به ختم‌ها</span>
+  </a>
+  <h1 class="text-2xl sm:text-3xl font-black text-white">ساخت ختم جدید</h1>
+  <p class="text-xs sm:text-sm text-slate-400 mt-1">
+    موضوع و شرایط ختم جمعی خود را در چند گام ساده انتخاب کنید:
+  </p>
 </section>
 
+<!-- Error Alert (if any) -->
 {% if error %}
-<div class="mb-5 p-4 rounded-2xl border border-rose-500/25 bg-rose-500/10 text-rose-200 text-sm leading-7">
-  {% if error == 'phone' %}{{ t('web.creator.create_error_phone', lang) }}
-  {% elif error == 'plan_cap' %}{{ t('web.creator.create_error_plan_cap', lang) }}
-  {% elif error == 'wallet' %}{{ t('web.creator.create_error_wallet', lang) }} <a class="underline font-bold" href="/creator/wallet">{{ t('web.creator.create_wallet_link', lang) }}</a>
-  {% elif error == 'plan_unavailable' %}{{ t('web.creator.create_error_plan_unavailable', lang) }}
-  {% elif error == 'category' %}{{ t('web.creator.create_error_category', lang) }}
-  {% elif error == 'amount' %}{{ t('web.creator.create_error_amount', lang) }}
-  {% else %}{{ t('web.creator.create_error_invalid', lang) }}{% endif %}
+<div class="mb-6 p-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs sm:text-sm font-bold flex items-center gap-2">
+  <svg class="h-5 w-5 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  <span>
+    {% if error == 'phone' %}برای ایجاد ختم، ابتدا باید شماره موبایل شما تأیید شده باشد.
+    {% elif error == 'plan_cap' %}به سقف مجاز ساخت ختم در پلن کاربری خود رسیده‌اید.
+    {% elif error == 'wallet' %}موجودی کیف پول شما کافی نیست. <a class="underline font-bold text-white mr-1" href="/creator/wallet">شارژ کیف پول</a>
+    {% elif error == 'plan_unavailable' %}این قابلیت در پلن فعلی فعال نیست.
+    {% elif error == 'category' %}دسته‌بندی انتخاب‌شده معتبر نیست.
+    {% elif error == 'amount' %}لطفاً تعداد یا دور معتبری وارد کنید.
+    {% elif error == 'terms_required' %}برای ایجاد ختم، مطالعه و پذیرش قوانین و مقررات الزامی است.
+    {% else %}اطلاعات وارد شده معتبر نیست. لطفاً مجدداً بررسی نمایید.{% endif %}
+  </span>
 </div>
 {% endif %}
 
-<form method="post" action="/creator/khatms/create" class="space-y-5" id="create-khatm-form">
+<form method="post" action="/creator/khatms/create" class="space-y-6" id="create-khatm-form">
   <input type="hidden" name="csrf" value="{{ csrf }}">
 
+  <!-- Step 1: Content Kind -->
   <section class="glass-panel p-5 sm:p-6 rounded-3xl">
-    <p class="text-xs font-bold text-emerald-400 mb-3">۱ · {{ t('web.creator.create_kind', lang) }}</p>
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {% for value, icon, key in [('quran','📖','web.creator.kind_quran'),('salawat','🕊','web.creator.kind_salawat'),('dua','🤲','web.creator.kind_dua'),('laan','✨','web.creator.kind_laan')] %}
-      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center">۱</span>
+      <h2 class="text-sm sm:text-base font-black text-white">موضوع و قالب ختم را انتخاب کنید</h2>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {% for value, icon, label in [('quran','📖','قرآن کریم'),('salawat','🕊','صلوات'),('dua','🤲','دعا و زیارت'),('khutbah','🎤','خطبه (فدکیه)')] %}
+      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/15 has-[:checked]:text-white flex flex-col items-center text-center group">
         <input type="radio" name="content_kind" value="{{ value }}" class="sr-only" {% if loop.first %}checked{% endif %}>
-        <span class="text-2xl block mb-2">{{ icon }}</span><span class="font-bold text-sm">{{ t(key, lang) }}</span>
+        <span class="text-3xl block mb-2 group-hover:scale-110 transition-transform">{{ icon }}</span>
+        <span class="font-bold text-xs sm:text-sm text-slate-200">{{ label }}</span>
       </label>
       {% endfor %}
     </div>
-    <div id="category-wrap" class="mt-4 hidden">
-      <label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_category', lang) }}</label>
-      <select name="category_id" id="category-id" class="input-field mt-1">
-        <optgroup label="{{ t('web.creator.kind_dua', lang) }}" id="dua-options">
+
+    <!-- Dynamic Sub-category Dropdown (for Dua, Khutbah) -->
+    <div id="category-wrap" class="mt-5 hidden pt-4 border-t border-white/5">
+      <label class="block text-xs font-bold text-slate-300 mb-2">انتخاب عنوان مشخص دعا / زیارت / خطبه:</label>
+      <select name="category_id" id="category-id" class="input-field max-w-md">
+        <optgroup label="دعا و زیارت" id="dua-options">
           {% for item in dua_categories %}<option value="{{ item.id }}" data-kind="dua">{{ item.title }}</option>{% endfor %}
         </optgroup>
-        <optgroup label="{{ t('web.creator.kind_laan', lang) }}" id="laan-options">
-          {% for item in laan_categories %}<option value="{{ item.id }}" data-kind="laan">{{ item.title }}</option>{% endfor %}
+        <optgroup label="خطبه‌ها" id="khutbah-options">
+          {% for item in khutbah_categories %}<option value="{{ item.id }}" data-kind="khutbah">{{ item.title }}</option>{% endfor %}
         </optgroup>
       </select>
-      <p id="category-empty" class="hidden text-xs text-amber-300 mt-2">{{ t('web.creator.create_category_empty', lang) }}</p>
+      <p id="category-empty" class="hidden text-xs text-amber-300 mt-2">هیچ موردی برای این موضوع در سیستم تعریف نشده است.</p>
     </div>
+
+    <!-- Edition for Quran -->
     <div id="edition-wrap" class="mt-4">
-      <p class="text-xs font-bold text-slate-400">{{ t('web.creator.create_edition', lang) }}</p>
-      <p class="mt-1 rounded-xl border border-white/5 bg-slate-900/40 px-4 py-3 text-sm text-slate-200">مدینه (حفص) — ۶۰۴ صفحه</p>
+      <div class="p-3.5 rounded-2xl bg-slate-900/50 border border-white/5 flex items-center justify-between text-xs">
+        <span class="text-slate-400">رسم‌الخط و الگوی قرائت:</span>
+        <span class="font-bold text-emerald-400">مدینه (حفص) — ۶۰۴ صفحه</span>
+      </div>
     </div>
   </section>
 
+  <!-- Step 2: Participation Mode -->
   <section class="glass-panel p-5 sm:p-6 rounded-3xl">
-    <p class="text-xs font-bold text-emerald-400 mb-3">۲ · {{ t('web.creator.create_mode', lang) }}</p>
-    <div class="grid grid-cols-2 gap-3">
-      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10"><input type="radio" name="khatm_type" value="OPEN" class="sr-only" checked><span class="font-bold">{{ t('web.label.OPEN', lang) }}</span></label>
-      <label class="glass-card p-4 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/10"><input type="radio" name="khatm_type" value="COMMITMENT" class="sr-only"><span class="font-bold">{{ t('web.label.COMMITMENT', lang) }}</span></label>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center">۲</span>
+      <h2 class="text-sm sm:text-base font-black text-white">شیوهٔ مشارکت همراهان</h2>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      <!-- Open -->
+      <label class="glass-card p-4 sm:p-5 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/15 group">
+        <input type="radio" name="khatm_type" value="OPEN" class="sr-only" checked>
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold flex-none">
+            🌱
+          </div>
+          <div>
+            <span class="font-bold text-sm text-white block mb-1">ختم آزاد (همگانی و پویا)</span>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              هر شرکت‌کننده در هر زمان به مقدار دلخواه سهم برمی‌دارد و قرائت می‌کند. بدون محدودیت سفت‌وسخت ظرفیت یا تعهد روزانه.
+            </p>
+          </div>
+        </div>
+      </label>
+
+      <!-- Commitment -->
+      <label class="glass-card p-4 sm:p-5 rounded-2xl cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-500/15 group">
+        <input type="radio" name="khatm_type" value="COMMITMENT" class="sr-only">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold flex-none">
+            🤝
+          </div>
+          <div>
+            <span class="font-bold text-sm text-white block mb-1">ختم تعهدی (منظم با یادآوری روزانه)</span>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              هر عضو متعهد می‌شود سهم مشخصی را به طور منظم در روز قرائت کند و سر ساعت یادآوری پیام دریافت می‌نماید.
+            </p>
+          </div>
+        </div>
+      </label>
     </div>
   </section>
 
-  <section class="glass-panel p-5 sm:p-6 rounded-3xl grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="md:col-span-2"><p class="text-xs font-bold text-emerald-400">۳ · {{ t('web.creator.create_details', lang) }}</p></div>
-    <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_optional_title', lang) }}</label><input name="title" maxlength="200" class="input-field mt-1" placeholder="{{ t('web.creator.create_title_placeholder', lang) }}"></div>
-    <div id="amount-wrap" class="hidden"><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_amount', lang) }}</label><input name="amount" type="number" min="1" class="input-field mt-1" inputmode="numeric"></div>
-    <div><label class="text-xs font-bold text-slate-400">{{ t('web.creator.create_visibility', lang) }}</label><select name="visibility" class="input-field mt-1"><option value="UNLISTED">{{ t('web.creator.visibility_unlisted', lang) }}</option><option value="PUBLIC">{{ t('web.creator.visibility_public', lang) }}</option><option value="PRIVATE">{{ t('web.creator.visibility_private', lang) }}</option></select></div>
+  <!-- Step 3: Details -->
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="w-6 h-6 rounded-full bg-emerald-500 text-white text-xs font-black flex items-center justify-center">۳</span>
+      <h2 class="text-sm sm:text-base font-black text-white">مشخصات و عنوان ختم</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان دلخواه ختم (اختیاری)</label>
+        <input name="title" maxlength="200" class="input-field" placeholder="در صورت خالی بودن، نام خودکار گذاشته می‌شود">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">نیت ختم (اختیاری)</label>
+        <input name="niyyat" maxlength="200" class="input-field" placeholder="مثلاً: هدیه به ساحت مقدس امام زمان (عج) و سلامتی بیماران">
+      </div>
+
+      <div id="amount-wrap" class="hidden">
+        <label class="block text-xs font-bold text-slate-300 mb-1.5" id="amount-label">تعداد کل ذکر یا دور ختم</label>
+        <input name="amount" type="number" min="1" class="input-field" placeholder="مثلاً ۱۴۰۰۰ یا ۱۰۰" inputmode="numeric">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">سطح انتشار و مشاهده</label>
+        <select name="visibility" class="input-field">
+          <option value="UNLISTED">بدون فهرست (فقط کسانی که لینک را دارند)</option>
+          <option value="PUBLIC">عمومی (قابل مشاهده در لیست ختم‌های عمومی)</option>
+          <option value="PRIVATE">خصوصی (با تایید شما برای هر عضو)</option>
+        </select>
+      </div>
+    </div>
   </section>
 
-  <section class="glass-panel p-5 rounded-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-    <p class="text-sm text-slate-300">{{ t('web.creator.create_price', lang, price=creation_price or 0) }}</p>
-    <button class="btn justify-center px-8" type="submit" {% if creation_price is none %}disabled{% endif %}>{{ t('web.creator.create_submit', lang) }}</button>
+  <!-- Step 4: Terms & Rules Agreement (قوانین و مقررات ایجاد و مدیریت ختم) -->
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl border border-amber-500/20">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-black flex items-center justify-center">۴</span>
+      <h2 class="text-sm sm:text-base font-black text-white">قوانین و مقررات ایجاد و مدیریت ختم</h2>
+    </div>
+
+    <div class="p-4 rounded-2xl bg-slate-950/60 border border-white/10 text-xs sm:text-sm text-slate-300 space-y-3 leading-relaxed max-h-64 overflow-y-auto">
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۱.</span>
+        <span>اعضای هر ختم متعلق به سازنده آن ختم هستند و اعضا با ختم‌های دیگر قاطی نمی‌شوند.</span>
+      </div>
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۲.</span>
+        <span>در صورت نیاز به ارسال پیام گروهی (عکس، متن، ویس و...) به هر ختم، تعرفه ارسال دریافت می‌گردد.</span>
+      </div>
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۳.</span>
+        <div>
+          <span>بابت تأمین هزینه‌های سرور، نگهداری و توسعه ربات؛ گروه سازنده (خدمتگزاران تک) اجازه دارد هفته‌ای ۱ یا ۲ پیام تبلیغاتی با رعایت قالب شرعی و اخلاقی برای همه اعضای ختم‌ها ارسال کند.</span>
+          <p class="text-amber-300/90 text-xs font-semibold mt-1">تبصره: در صورت عدم تمایل به ارسال پیام تبلیغاتی هفتگی برای اعضای ختم شما، سازنده ختم می‌تواند هزینه آبونمان را پرداخت کند.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۴.</span>
+        <span>در صورت نیاز به ارسال پیام توسط سازنده به اعضای خود، لازم است پیام قبل از ارسال توسط تیم خدمتگزاران تک به تأیید برسد. طبیعی است محتوای حاوی مسائل ضد اخلاقی، سیاسی و غیرشرعی به تأیید نخواهد رسید.</span>
+      </div>
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۵.</span>
+        <span>در صورتی که سازنده ختم بخواهد ختم خود را غیرفعال کند و توان مدیریت ختم را نداشته باشد، لازم است درخواست خود را به صورت کتبی به پشتیبانی خدمتگزاران تک ارسال نماید و طبیعی است بعد از بسته شدن لینک ختم، مدیریت ختم به مجموعه خدمتگزاران تک منتقل می‌گردد و اعضای قبلی می‌توانند به ختم خود ادامه دهند.</span>
+      </div>
+      <div class="flex items-start gap-2">
+        <span class="text-amber-400 font-bold flex-none">۶.</span>
+        <span>در صورتی که درخواست خاصی برای توسعه و افزایش امکانات ربات‌ها داشتید، لازم است از طریق پیام به شماره <b dir="ltr" class="text-emerald-400">+98 905 124 0561</b> داخل تلگرام یا بله به تیم خدمتگزاران تک بفرستید؛ در صورت تأیید توسط تیم فنی، توسعه مورد نظر در دستور کار قرار خواهد گرفت (درخواست‌هایی با حجم برنامه‌نویسی اختصاصی، فقط با دریافت هزینه جداگانه انجام خواهد شد).</span>
+      </div>
+    </div>
+
+    <label class="mt-4 flex items-center gap-3 cursor-pointer select-none group">
+      <input type="checkbox" name="accept_rules" id="accept_rules" required value="1" class="w-5 h-5 rounded-lg border-white/20 bg-slate-900/80 text-emerald-500 focus:ring-emerald-400 focus:ring-offset-0">
+      <span class="text-xs sm:text-sm font-bold text-slate-200 group-hover:text-emerald-300 transition-colors">
+        قوانین و مقررات فوق را به طور کامل خواندم و می‌پذیرم.
+      </span>
+    </label>
+  </section>
+
+  <!-- Step 5: Submission & Cost -->
+  <section class="glass-panel p-5 sm:p-6 rounded-3xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border border-emerald-500/20">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-lg">
+        ✨
+      </div>
+      <div>
+        <span class="text-xs text-slate-400 block">هزینهٔ ایجاد ختم:</span>
+        <span class="text-sm font-black text-emerald-300">
+          {% if creation_price and creation_price > 0 %}{{ '{:,}'.format(creation_price) }} تومان{% else %}رایگان هدیه به بانیان محترم{% endif %}
+        </span>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-primary text-sm sm:text-base justify-center px-8 py-3.5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+      </svg>
+      <span>تأیید قوانین و ساخت ختم جمعی</span>
+    </button>
   </section>
 </form>
 
@@ -79,17 +226,35 @@
   const categoryEmpty = document.getElementById('category-empty');
   const editionWrap = document.getElementById('edition-wrap');
   const amountWrap = document.getElementById('amount-wrap');
+  const amountLabel = document.getElementById('amount-label');
+
   function sync() {
     const kind = radios.find(r => r.checked).value;
     editionWrap.classList.toggle('hidden', kind !== 'quran');
     amountWrap.classList.toggle('hidden', kind === 'quran');
-    categoryWrap.classList.toggle('hidden', !['dua','laan'].includes(kind));
-    [...categorySelect.querySelectorAll('option')].forEach(o => o.hidden = o.dataset.kind !== kind);
-    const first = [...categorySelect.querySelectorAll('option')].find(o => o.dataset.kind === kind);
-    if (first) first.selected = true;
-    categoryEmpty.classList.toggle('hidden', !['dua','laan'].includes(kind) || Boolean(first));
+
+    if (kind === 'salawat') {
+      amountLabel.textContent = 'تعداد کل ذکر هدف (مثلاً ۱۴۰۰۰ یا ۱۰۰۰۰۰):';
+    } else if (kind === 'khutbah') {
+      amountLabel.textContent = 'تعداد دور خواندن خطبه (هر دور = ۵ بخش کامل):';
+    } else if (kind === 'dua') {
+      amountLabel.textContent = 'تعداد دور قرائت دعا یا زیارت:';
+    }
+
+    const needsCat = ['dua','khutbah'].includes(kind);
+    categoryWrap.classList.toggle('hidden', !needsCat);
+
+    if (needsCat) {
+      [...categorySelect.querySelectorAll('option')].forEach(o => o.hidden = o.dataset.kind !== kind);
+      const first = [...categorySelect.querySelectorAll('option')].find(o => o.dataset.kind === kind);
+      if (first) first.selected = true;
+      categoryEmpty.classList.toggle('hidden', Boolean(first));
+    }
   }
-  radios.forEach(r => r.addEventListener('change', sync)); sync();
+
+  radios.forEach(r => r.addEventListener('change', sync));
+  sync();
 })();
 </script>
+
 {% endblock %}

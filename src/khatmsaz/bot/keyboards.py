@@ -3,6 +3,7 @@ intentionally shallow (DOMAIN_MODEL.md §4) — a new button here is a product
 decision, not just a UI tweak.
 """
 
+import inspect
 from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
@@ -37,13 +38,47 @@ ABOUT_US_BUTTON_TEXT = t("menu.about_us", "fa")
 ABOUT_US_BUTTON_TEXTS = variants("menu.about_us")
 
 CREATE_BUTTON_TEXTS = variants("menu.create")
-MY_KHATMS_BUTTON_TEXTS = variants("menu.my_khatms")
-TODAY_BUTTON_TEXTS = variants("menu.today")
+MY_KHATMS_BUTTON_TEXTS = frozenset(variants("menu.my_khatms")) | {
+    "📋 ختم‌های من",
+    "🕋 ختم‌های من",
+    "ختم‌های من",
+    "ختم های من",
+    "لیست ختم‌های من",
+    "فهرست ختم‌های من",
+}
+TODAY_BUTTON_TEXTS = frozenset(variants("menu.today")) | {
+    "📖 دریافت سهم قرائت",
+    "دریافت سهم قرائت",
+    "📖 دریافت سهم امروز",
+    "دریافت سهم امروز",
+    "📖 انجام قرائت امروز",
+    "📖 اعلام انجام قرائت امروز",
+    "📖 اعلام انجام قرائت",
+    "انجام قرائت امروز",
+    "اعلام انجام قرائت امروز",
+    "اعلام انجام قرائت",
+}
 REPORT_BUTTON_TEXTS = variants("menu.report")
-SETTINGS_BUTTON_TEXTS = variants("menu.settings")
-HELP_BUTTON_TEXTS = variants("menu.help")
+SETTINGS_BUTTON_TEXTS = frozenset(variants("menu.settings")) | {
+    "⚙️ تنظیمات",
+    "تنظیمات",
+    "تنظیمات حساب",
+}
+HELP_BUTTON_TEXTS = frozenset(variants("menu.help")) | {
+    "❓ راهنما",
+    "راهنما",
+    "راهنمای بات",
+    "راهنمای کامل",
+}
 PUBLIC_KHATMS_BUTTON_TEXTS = variants("menu.public_khatms")
-SUPPORT_BUTTON_TEXTS = variants("menu.support")
+SUPPORT_BUTTON_TEXTS = frozenset(variants("menu.support")) | {
+    "📩 پشتیبانی و ارتباط",
+    "پشتیبانی و ارتباط",
+    "پشتیبانی",
+    "ارتباط با پشتیبانی",
+    "تماس با پشتیبانی",
+    "ارتباط با پشتیبان",
+}
 CONTACT_CREATOR_BUTTON_TEXTS = variants("menu.contact_creator")
 CUSTOM_KHATM_BUTTON_TEXTS = variants("menu.custom_khatm")
 CREATOR_REQUEST_BUTTON_TEXTS = variants("menu.creator_request")
@@ -485,12 +520,12 @@ def help_create_actions_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
     )
 
 
-def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False) -> InlineKeyboardMarkup:
+def help_manage_actions_keyboard(lang: str = "fa", is_creator: bool = False, is_admin: bool = False, is_member: bool = False) -> InlineKeyboardMarkup:
     buttons = []
     if is_creator or is_admin:
         buttons.append([InlineKeyboardButton(text=t("help.button.my_khatms", lang), callback_data="my_khatms:open")])
-        buttons.append([InlineKeyboardButton(text=t("help.button.creator_panel", lang), callback_data="creator:web_login")])
-    if is_admin:
+    if is_admin and not is_member:
+        # MASTER-19: Creator panel button hidden per user request. Admin panel remains reachable via admin bot.
         buttons.append([InlineKeyboardButton(text=t("help.button.admin_panel", lang), callback_data="admin:web_login")])
     buttons.append([InlineKeyboardButton(text=t("help.button.back", lang), callback_data="help:home")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -525,13 +560,13 @@ def template_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text=t("ck.tpl.quran", lang), callback_data="ck:tpl:QURAN_PAGE")],
             [InlineKeyboardButton(text=t("ck.tpl.salawat", lang), callback_data="ck:group:SALAWAT")],
             [InlineKeyboardButton(text=t("ck.tpl.dua", lang), callback_data="ck:group:DUA")],
-            [InlineKeyboardButton(text=t("ck.tpl.laan", lang), callback_data="ck:group:LAAN")],
+            [InlineKeyboardButton(text=t("ck.tpl.khutbah", lang), callback_data="ck:group:KHUTBAH")],
             _ck_cancel_row(lang),
         ]
     )
 
 
-_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲"}
+_CATEGORY_GROUP_EMOJI = {"SALAWAT": "📿", "LAAN": "🗡", "DUA": "🤲", "KHUTBAH": "📜"}
 
 
 def category_choice_keyboard(
@@ -640,12 +675,13 @@ def visibility_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def public_khatms_keyboard(khatms) -> InlineKeyboardMarkup | None:
     if not khatms:
         return None
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=f"🌱 پیوستن به «{khatm.title[:40]}»", callback_data=f"public_join:{khatm.id}")]
-            for khatm in khatms
-        ]
-    )
+    rows = []
+    for khatm in khatms:
+        is_transferred = getattr(khatm, "transfer_request_status", "NONE") == "APPROVED"
+        prefix = "🤝 [عمومی - تک] " if is_transferred else "🌱 پیوستن به "
+        rows.append([InlineKeyboardButton(text=f"{prefix}«{khatm.title[:35]}»", callback_data=f"public_join:{khatm.id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
 
 
 def advertising_choice_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
@@ -666,6 +702,29 @@ def confirm_keyboard(*, allow_coupon: bool = False, lang: str = "fa") -> InlineK
     rows.append([InlineKeyboardButton(text="✏️ ویرایش مشخصات", callback_data="ck:edit_menu")])
     return InlineKeyboardMarkup(
         inline_keyboard=rows
+    )
+
+
+def rules_agreement_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=t("ck.accept_rules", lang),
+                    callback_data="ck:accept_rules",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text=t("ck.back_to_confirm", lang),
+                    callback_data="ck:back_to_confirm",
+                ),
+                InlineKeyboardButton(
+                    text=t("ck.cancel", lang),
+                    callback_data="ck:cancel",
+                ),
+            ],
+        ]
     )
 
 
@@ -696,10 +755,14 @@ def coupon_entry_keyboard(lang: str = "fa") -> InlineKeyboardMarkup:
 def portion_done_keyboard(
     khatm_id: str, *, family: str | None = None, allow_snooze: bool = True, undo_completed_id: str | None = None,
     undo_next_id: str | None = None, lang: str = "fa",
+    start: int | None = None, end: int | None = None, count: int | None = None, title: str | None = None,
 ) -> InlineKeyboardMarkup:
     """For a portion that's still PENDING (not completed yet) — shows the
     content + "done" buttons. Tailors the "done" label to the devotional family."""
-    if family == "salawat":
+    if start is not None or end is not None or count is not None or title is not None:
+        from khatmsaz.bot.member_copy import done_button_label
+        done_text = done_button_label(family or "quran", lang, count=count, start=start, end=end, title=title)
+    elif family == "salawat":
         done_text = t("portions.button.done.salawat", lang)
     elif family in ("dua", "ziyarat"):
         done_text = t("portions.button.done.dua", lang)
@@ -719,9 +782,8 @@ def portion_done_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -739,9 +801,8 @@ def post_completion_keyboard(
     if allow_snooze:
         rows.append([InlineKeyboardButton(text=t("portions.button.snooze", lang), callback_data=f"snooze_ask:{khatm_id}")])
     if undo_completed_id:
-        next_id = undo_next_id or "none"
         rows.append([InlineKeyboardButton(
-            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}:{next_id}"
+            text=t("portions.button.undo", lang), callback_data=f"undo:{undo_completed_id}"
         )])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -881,10 +942,18 @@ def commitment_count_log_keyboard(pid: str, lang: str = "fa") -> InlineKeyboardM
     )
 
 
-def regular_commitment_done_keyboard(pid: str, lang: str = "fa", family: str | None = None) -> InlineKeyboardMarkup:
+def regular_commitment_done_keyboard(
+    pid: str, lang: str = "fa", family: str | None = None,
+    *, count: int | None = None, start: int | None = None, end: int | None = None, title: str | None = None,
+) -> InlineKeyboardMarkup:
     """One-tap completion for the concrete REGULAR occurrence just sent."""
     from khatmsaz.bot.member_copy import done_button_label
-    btn_text = done_button_label(family, lang) if family else t("commit.regular.done_button", lang)
+    has_details = any(x is not None for x in (count, start, end)) or bool(title)
+    btn_text = (
+        done_button_label(family, lang, count=count, start=start, end=end, title=title)
+        if (family or has_details)
+        else t("commit.regular.done_button", lang)
+    )
     return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
         text=btn_text, callback_data=f"regular_done:{pid}"
     )]])
@@ -960,7 +1029,7 @@ def leave_all_keyboard(targets: list[tuple[str, str]]) -> InlineKeyboardMarkup |
 
 
 def creator_khatm_keyboard(
-    khatm_id: str, *, can_cancel: bool = True, lang: str = "fa"
+    khatm_id: str, *, can_cancel: bool = False, transfer_status: str = "NONE", lang: str = "fa"
 ) -> InlineKeyboardMarkup:
     rows = [
         [
@@ -973,11 +1042,34 @@ def creator_khatm_keyboard(
         ],
         [InlineKeyboardButton(text=t("cs.settings", lang), callback_data=f"cs:menu:{khatm_id}")],
     ]
-    if can_cancel:
-        rows[-1].append(InlineKeyboardButton(text=t("cs.cancel_khatm", lang), callback_data=f"cancel_khatm_ask:{khatm_id}"))
+    if transfer_status == "PENDING":
+        rows.append([
+            InlineKeyboardButton(text="⏳ لغو درخواست واگذاری مدیریت", callback_data=f"khatm_transfer_cancel:{khatm_id}")
+        ])
+    elif transfer_status != "APPROVED":
+        rows.append([
+            InlineKeyboardButton(text="🤝 واگذاری مدیریت به پشتیبانی", callback_data=f"khatm_transfer_ask:{khatm_id}")
+        ])
+    rows.append([
+        InlineKeyboardButton(text="🔙 بازگشت به ختم‌های من", callback_data="my_khatms:open")
+    ])
     return InlineKeyboardMarkup(
         inline_keyboard=rows
     )
+
+
+def khatm_transfer_confirm_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="✅ تأیید و ارسال درخواست به پشتیبانی", callback_data=f"khatm_transfer_confirm:{khatm_id}"),
+            ],
+            [
+                InlineKeyboardButton(text="🔙 انصراف", callback_data=f"khatm_transfer_dismiss:{khatm_id}"),
+            ],
+        ]
+    )
+
 
 
 def creator_settings_keyboard(
@@ -1030,7 +1122,7 @@ def creator_settings_keyboard(
                 callback_data=f"cs:snooze:{khatm_id}",
             )],
         ])
-    rows.append([InlineKeyboardButton(text=t("cs.back_my_khatms", lang), callback_data="my_khatms:open")])
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_id}")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
@@ -1062,8 +1154,8 @@ def creator_schedule_keyboard(khatm_id: str, lang: str = "fa") -> InlineKeyboard
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t("cs.sched.off", lang), callback_data=f"cs:schedule_set:{khatm_id}:off")],
         [InlineKeyboardButton(text=t("cs.sched.daily", lang), callback_data=f"cs:schedule_set:{khatm_id}:daily")],
-        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:0,1,2,3,4")],
-        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekly:5,6")],
+        [InlineKeyboardButton(text=t("cs.sched.workdays", lang), callback_data=f"cs:schedule_set:{khatm_id}:workdays")],
+        [InlineKeyboardButton(text=t("cs.sched.weekend", lang), callback_data=f"cs:schedule_set:{khatm_id}:weekend")],
         [InlineKeyboardButton(text=t("cs.sched.every3", lang), callback_data=f"cs:schedule_set:{khatm_id}:every:3")],
         [InlineKeyboardButton(text=t("cs.sched.date", lang), callback_data=f"cs:schedule_date:{khatm_id}")],
         [InlineKeyboardButton(text=t("cs.back", lang), callback_data=f"cs:menu:{khatm_id}")],
@@ -1093,7 +1185,10 @@ async def safe_clear_inline_keyboard(message: Message) -> None:
 
 async def safe_answer_callback(callback: CallbackQuery, text: str | None = None, show_alert: bool = False) -> None:
     try:
-        await callback.answer(text=text, show_alert=show_alert)
+        if text is not None:
+            await callback.answer(text, show_alert=show_alert)
+        else:
+            await callback.answer(show_alert=show_alert)
     except Exception:
         pass
 
@@ -1102,7 +1197,7 @@ import base64
 import uuid
 
 _JOIN_ROUTE_PLATFORMS = ("TELEGRAM", "BALE")
-_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN")
+_JOIN_ROUTE_CATEGORIES = ("QURAN", "SALAWAT", "DUA_ZIYARAT", "LAAN", "KHUTBAH")
 _JOIN_ROUTE_LANGUAGES = ("fa", "ar", "en")
 
 
@@ -1114,9 +1209,11 @@ def _join_route_byte(bot) -> int | None:
     language = getattr(bot, "khatmsaz_language", None)
     if platform not in _JOIN_ROUTE_PLATFORMS or category not in _JOIN_ROUTE_CATEGORIES or language not in _JOIN_ROUTE_LANGUAGES:
         return None
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
     index = (
-        _JOIN_ROUTE_PLATFORMS.index(platform) * 12
-        + _JOIN_ROUTE_CATEGORIES.index(category) * 3
+        _JOIN_ROUTE_PLATFORMS.index(platform) * stride_platform
+        + _JOIN_ROUTE_CATEGORIES.index(category) * stride_category
         + _JOIN_ROUTE_LANGUAGES.index(language)
     )
     return index + 1
@@ -1147,10 +1244,13 @@ def unpack_join_callback_route(data: str) -> tuple[str, str, str] | None:
     if len(raw) < 33 or raw[32] == 0:
         return None
     index = raw[32] - 1
-    if index >= len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES):
+    total_slots = len(_JOIN_ROUTE_PLATFORMS) * len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    if index >= total_slots:
         return None
-    platform_index, remainder = divmod(index, 12)
-    category_index, language_index = divmod(remainder, 3)
+    stride_platform = len(_JOIN_ROUTE_CATEGORIES) * len(_JOIN_ROUTE_LANGUAGES)
+    stride_category = len(_JOIN_ROUTE_LANGUAGES)
+    platform_index, remainder = divmod(index, stride_platform)
+    category_index, language_index = divmod(remainder, stride_category)
     return (
         _JOIN_ROUTE_PLATFORMS[platform_index],
         _JOIN_ROUTE_CATEGORIES[category_index],
@@ -1166,12 +1266,22 @@ async def bail_if_menu_button(message: Message, state: FSMContext) -> bool:
     text = (message.text or "").strip()
     if text not in RESERVED_MENU_TEXTS and not text.startswith("/"):
         return False
+    current_state = None
+    if hasattr(state, "get_state"):
+        try:
+            res = state.get_state()
+            current_state = await res if inspect.isawaitable(res) else res
+        except Exception:
+            current_state = None
+    if current_state and "entering_phone" in str(current_state) and text in PHONE_SHARE_BUTTON_TEXTS:
+        return False
     await state.clear()
     # Import lazily because navigation.py imports the keyboard builders.
     from khatmsaz.bot.navigation import resolve_home_navigation
 
     lang, role, keyboard = await resolve_home_navigation(message)
-    key = "navigation.admin_interrupted" if role.value == "SUPER_ADMIN" else "navigation.interrupted"
+    is_admin = getattr(role, "value", role) == "SUPER_ADMIN"
+    key = "navigation.admin_interrupted" if is_admin else "navigation.interrupted"
     await message.answer(
         t(key, lang),
         reply_markup=keyboard,
@@ -1205,3 +1315,80 @@ def join_delivery_hour_keyboard(participation_id: str, lang: str = "fa") -> Inli
          InlineKeyboardButton(text=labels[21], callback_data=f"set_reminder:{participation_id}:21:0")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_members_list_keyboard(
+    khatm_id,
+    members: list,
+    page: int = 0,
+    page_size: int = 8,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Build an interactive, paginated keyboard of active khatm members for the creator."""
+    khatm_hex = khatm_id.hex if hasattr(khatm_id, "hex") else uuid.UUID(str(khatm_id)).hex
+    total_members = len(members)
+    total_pages = max(1, (total_members + page_size - 1) // page_size)
+    page = max(0, min(page, total_pages - 1))
+    start_idx = page * page_size
+    page_members = members[start_idx : start_idx + page_size]
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for participation, member in page_members:
+        part_hex = participation.id.hex if hasattr(participation.id, "hex") else uuid.UUID(str(participation.id)).hex
+        display_name = member.display_name or t("my_khatms.creator.member_no_name", lang)
+        btn_text = f"👤 {display_name[:24]}"
+        rows.append([InlineKeyboardButton(text=btn_text, callback_data=f"km:v:{part_hex}")])
+
+    if total_pages > 1:
+        nav_row: list[InlineKeyboardButton] = []
+        if page > 0:
+            nav_row.append(InlineKeyboardButton(text="◀️ قبلی", callback_data=f"km:p:{khatm_hex}:{page - 1}"))
+        nav_row.append(InlineKeyboardButton(text=f"صفحه {page + 1} از {total_pages}", callback_data="km:noop"))
+        if page < total_pages - 1:
+            nav_row.append(InlineKeyboardButton(text="بعدی ▶️", callback_data=f"km:p:{khatm_hex}:{page + 1}"))
+        rows.append(nav_row)
+
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_id}")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_detail_keyboard(
+    khatm_id,
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Action buttons on member detail card: Remove Member and Back to List."""
+    khatm_hex = khatm_id.hex if hasattr(khatm_id, "hex") else uuid.UUID(str(khatm_id)).hex
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="❌ حذف این عضو از ختم", callback_data=f"km:ask:{part_hex}")],
+        [InlineKeyboardButton(text="🔙 بازگشت به لیست اعضا", callback_data=f"km:list:{khatm_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_remove_step1_keyboard(
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Step 1 confirmation buttons: proceed to final step or cancel."""
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="⚠️ بله، ادامه حذف (مرحله ۲)", callback_data=f"km:conf:{part_hex}")],
+        [InlineKeyboardButton(text="❌ انصراف و بازگشت", callback_data=f"km:v:{part_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def creator_member_remove_step2_keyboard(
+    participation_id,
+    lang: str = "fa",
+) -> InlineKeyboardMarkup:
+    """Step 2 (Final) confirmation buttons: execute removal or cancel."""
+    part_hex = participation_id.hex if hasattr(participation_id, "hex") else uuid.UUID(str(participation_id)).hex
+    rows = [
+        [InlineKeyboardButton(text="🔴 تأیید نهایی و لغو عضویت", callback_data=f"km:do:{part_hex}")],
+        [InlineKeyboardButton(text="❌ انصراف و بازگشت", callback_data=f"km:v:{part_hex}")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+

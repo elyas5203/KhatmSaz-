@@ -152,6 +152,7 @@ async def enter_name(message: Message, state: FSMContext) -> None:
 @router.message(ProfileEdit.entering_phone, ~F.text.startswith("/"))
 async def enter_phone(message: Message, state: FSMContext) -> None:
     lang = (await state.get_data()).get("language", "fa")
+    shared = message.contact is not None
     if message.contact:
         phone = message.contact.phone_number
     else:
@@ -159,20 +160,38 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
             return
         phone = (message.text or "").strip()
     try:
-        phone = phone_service.normalize_e164(phone)
+        if shared and (
+            getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM) != Platform.TELEGRAM
+            or message.contact.user_id != message.from_user.id
+        ):
+            raise phone_service.OtpError("contact does not belong to sender")
+        phone = (
+            phone_service.normalize_shared_contact(phone)
+            if shared else phone_service.normalize_e164(phone)
+        )
     except phone_service.OtpError:
         await _profile_error(message, state, t("registration.phone_invalid", lang))
         return
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    async with session_scope() as session:
-        user = await identity_service.find_by_platform(
-            session, platform, str(message.chat.id)
-        )
-        verified = (
-            await phone_repository.verified_claim_for_user(session, user.id)
-            if user is not None
-            else None
-        )
+    try:
+        async with session_scope() as session:
+            user = await identity_service.find_by_platform(
+                session, platform, str(message.chat.id)
+            )
+            verified = (
+                await phone_repository.verified_claim_for_user(session, user.id)
+                if user is not None else None
+            )
+            if user is not None and shared and phone_service.is_foreign_phone(phone) and (
+                verified is None or verified.e164 == phone
+            ):
+                await phone_service.direct_verify_phone(
+                    session, user_id=user.id, e164=phone,
+                    action_context="PROFILE_FOREIGN_SHARED_CONTACT",
+                )
+    except phone_service.OtpError:
+        await _profile_error(message, state, t("registration.shared_phone_invalid", lang))
+        return
     if verified is not None and verified.e164 != phone:
         await state.clear()
         _lang, _role, keyboard = await resolve_home_navigation(message, lang)
@@ -181,7 +200,7 @@ async def enter_phone(message: Message, state: FSMContext) -> None:
             reply_markup=keyboard,
         )
         return
-    await state.update_data(phone=phone)
+    await state.update_data(phone=phone, shared_foreign_claim=phone if shared and phone_service.is_foreign_phone(phone) else None)
     from khatmsaz.bot.keyboards import home_keyboard_for_bot
     try:
         transient = await message.answer("✅", reply_markup=home_keyboard_for_bot(message.bot, lang))
@@ -236,6 +255,16 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             return
         await identity_service.set_display_name(session, user.id, data["full_name"])
         await settings_service.save_profile(session, user.id, contact_phone=data["phone"], province=data["province"], city=data["city"], gender=Gender(callback.data.split(":", 2)[2]))
+        if phone_service.is_foreign_phone(data["phone"]) and data.get("shared_foreign_claim") != data["phone"]:
+            try:
+                await phone_service.direct_verify_phone(
+                    session,
+                    user_id=user.id,
+                    e164=data["phone"],
+                    action_context="PROFILE_FOREIGN_DIRECT_VERIFY",
+                )
+            except phone_service.OtpError:
+                pass
     await _delete_profile_prompt(callback.message, state)
     await callback.answer()
 

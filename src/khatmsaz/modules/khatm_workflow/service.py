@@ -26,7 +26,8 @@ combinations exist today:
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
+from datetime import datetime, timezone
+from uuid import UUID
 
 from khatmsaz.modules.allocation import service as allocation_service
 from khatmsaz.modules.allocation.models import KhatmPortion
@@ -144,6 +145,11 @@ class KhatmUnavailableError(Exception):
     """A completed or cancelled khatm cannot accept new members/work."""
 
 
+class KhatmJoinLinkClosedError(KhatmUnavailableError):
+    """Raised when trying to join a khatm whose join link has been closed by management."""
+    pass
+
+
 async def create_and_launch_khatm(
     session: AsyncSession,
     *,
@@ -182,6 +188,7 @@ async def create_and_launch_khatm(
     coupon_code: str | None = None,
     content_category_id=None,
     description: str | None = None,
+    require_admin_approval: bool = False,
 ) -> tuple[Khatm, str]:
     """`creation_price_toman` (DOMAIN_MODEL.md §7: creating a khatm costs
     money, joining is free) is charged from the creator's wallet — credit
@@ -224,14 +231,22 @@ async def create_and_launch_khatm(
         extra["daily_commitment_amount"] = daily_commitment_amount
 
     if template_type == KhatmTemplateType.SALAWAT:
-        if khatm_type == KhatmTypeEnum.OPEN:
-            extra["repetition_target"] = salawat_open_target
-        else:
-            # Reused field for the other meaning: the fixed amount every
-            # committed participant is assigned, not a shared pool target.
-            extra["repetition_target"] = (
+        target_val = (
+            salawat_open_target if khatm_type == KhatmTypeEnum.OPEN else (
                 salawat_open_target if salawat_open_target is not None else salawat_commitment_quantity
             )
+        )
+        if content_category_id:
+            from khatmsaz.modules.khatm_category import service as cat_service
+            from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
+            cat = await cat_service.get(session, content_category_id)
+            if cat is not None and cat.group == KhatmCategoryGroup.KHUTBAH:
+                if target_val is not None:
+                    # Each round of Khutbah contains 5 sections (Fadakiah) or 8 sections (Ghadir).
+                    sections_per_round = 8 if (cat.devotional_slug and "ghadir" in cat.devotional_slug) else 5
+                    target_val = int(target_val) * sections_per_round
+        extra["repetition_target"] = target_val
+        if khatm_type == KhatmTypeEnum.COMMITMENT:
             # Capacity + waiting list also applies to SALAWAT+COMMITMENT
             # (owner decision, 2026-09-20): a waitlisted participant reads
             # along freely via the open contribution pool, same as
@@ -276,6 +291,7 @@ async def create_and_launch_khatm(
         schedule_value=schedule_value,
         visibility=visibility,
         allowed_platforms=allowed_platforms,
+        pending_lan_approval=require_admin_approval,
         **extra,
         start_at=start_at,
         end_at=end_at,
@@ -301,10 +317,52 @@ async def create_and_launch_khatm(
             total_pages = QURAN_EDITIONS[quran_edition_id]["total_pages"]
             await allocation_service.generate_quran_page_plan(session, khatm.id, total_pages, pages_per_portion)
 
-    await khatm_service.activate_khatm(session, khatm.id)
+    if not require_admin_approval:
+        await khatm_service.activate_khatm(session, khatm.id)
 
     token = await invitation_service.create_invitation(session, khatm.id, creator_user_id)
     return khatm, token
+
+
+async def review_laan_khatm_workflow(
+    session: AsyncSession,
+    *,
+    khatm_id,
+    approved: bool,
+    updated_description: str | None = None,
+) -> tuple[Khatm, str | None, int]:
+    """Approve or reject a pending custom La'an khatm (DEC-PY-0118).
+    Returns (khatm, invite_token, refunded_amount_toman)."""
+    khatm = await khatm_service.review_laan_khatm(
+        session,
+        khatm_id=khatm_id,
+        approved=approved,
+        updated_description=updated_description,
+    )
+    refunded_amount = 0
+    if not approved and int(khatm.creation_price_toman or 0) > 0:
+        amount = max(0, int(khatm.creation_price_toman))
+        invoiced_refund = await wallet_service.refund_purchase_invoice(
+            session,
+            user_id=khatm.creator_user_id,
+            kind=InvoiceKind.KHATM_CREATION,
+            resource_ref=str(khatm.id),
+            description=f"بازپرداخت رد ختم لعن سفارشی: {khatm.title}",
+        )
+        if invoiced_refund is not None:
+            refunded_amount = invoiced_refund
+        else:
+            await wallet_service.refund_cash(
+                session,
+                khatm.creator_user_id,
+                amount,
+                description=f"بازپرداخت رد ختم لعن سفارشی: {khatm.title}",
+            )
+            refunded_amount = amount
+    token = await invitation_service.get_or_create_for_khatm(
+        session, khatm.id, khatm.creator_user_id
+    )
+    return khatm, token, refunded_amount
 
 
 async def join_via_token(
@@ -348,12 +406,20 @@ async def _complete_join(
     if khatm is None or khatm.status != KhatmStatus.ACTIVE:
         raise KhatmUnavailableError()
 
+    if getattr(khatm, "join_link_closed", False):
+        active_p = await participation_service.get_active(session, khatm_id, user_id)
+        if active_p is None:
+            raise KhatmJoinLinkClosedError("join link has been closed by management")
+
     # Quran readers choose their own daily page count after joining.  They are
     # deliberately open participations: no automatic 1..N allocation, no
     # done/snooze lifecycle and no capacity/waiting-list slot.
     is_member_controlled_quran = (khatm.khatm_type == KhatmTypeEnum.OPEN)
     capacity = None
-    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type == KhatmTemplateType.SALAWAT:
+    if khatm.khatm_type == KhatmTypeEnum.COMMITMENT and khatm.template_type in (
+        KhatmTemplateType.SALAWAT,
+        KhatmTemplateType.QURAN_PAGE,
+    ):
         capacity = khatm.capacity
 
     participation, was_waitlisted = await participation_service.join(
@@ -388,7 +454,7 @@ async def leave_khatm(
     `reason` (DOMAIN_MODEL.md §3 Q98) is a quick-pick code, stored for later
     churn analysis — never shown to the creator today."""
     participation = await participation_service.get_by_id(session, participation_id)
-    if participation is None:
+    if participation is None or participation.status == ParticipationStatus.LEFT:
         return None, None
 
     was_committed = participation.is_committed
@@ -493,3 +559,93 @@ async def resolve_missed_commitment(
         await participation_service.set_committed(session, participation_id, False)
         return None, None
     return await leave_khatm(session, participation_id, reason="creator_replace")
+
+
+class KhatmTransferError(RuntimeError):
+    """Raised when a khatm transfer request or approval cannot be fulfilled."""
+    pass
+
+
+async def request_khatm_transfer(
+    session: AsyncSession, *, khatm_id, creator_user_id, reason: str | None = None
+) -> Khatm:
+    """Submit a request to deactivate join link and transfer management to Khedmatgozaran Tak (Rule 5)."""
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
+    if khatm is None or str(khatm.creator_user_id) != str(creator_user_id):
+        raise KhatmTransferError("khatm is not owned by the creator")
+    if khatm.status != KhatmStatus.ACTIVE:
+        raise KhatmTransferError("only active khatms can be transferred")
+    if getattr(khatm, "transfer_request_status", "NONE") == "PENDING":
+        raise KhatmTransferError("transfer request is already pending")
+
+    khatm.transfer_request_status = "PENDING"
+    khatm.transfer_request_reason = reason.strip() if reason else None
+    khatm.transfer_requested_at = datetime.now(timezone.utc)
+    return khatm
+
+
+async def cancel_khatm_transfer_request(
+    session: AsyncSession, *, khatm_id, creator_user_id
+) -> Khatm:
+    """Cancel a pending transfer request while it is still under review."""
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
+    if khatm is None or str(khatm.creator_user_id) != str(creator_user_id):
+        raise KhatmTransferError("khatm is not owned by the creator")
+    if getattr(khatm, "transfer_request_status", "NONE") != "PENDING":
+        raise KhatmTransferError("no pending transfer request to cancel")
+
+    khatm.transfer_request_status = "NONE"
+    khatm.transfer_request_reason = None
+    khatm.transfer_requested_at = None
+    return khatm
+
+
+async def approve_khatm_transfer(
+    session: AsyncSession, *, khatm_id, admin_user_id, admin_note: str | None = None
+) -> tuple[Khatm, UUID, str]:
+    """Approve delegation of khatm management to Khedmatgozaran Tak (Rule 5 & MASTER-34).
+    1. Retires/revokes previous invite links created by original creator.
+    2. Converts khatm visibility to PUBLIC so it can be discovered in public directories.
+    3. Issues a new public invitation link under Admin ownership.
+    4. Preserves active participants without interruption.
+    5. Reassigns creator_user_id to the service admin.
+    Returns (khatm, original_creator_user_id, new_invitation_token).
+    """
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
+    if khatm is None:
+        raise KhatmTransferError("khatm not found")
+    if khatm.status != KhatmStatus.ACTIVE:
+        raise KhatmTransferError("only active khatms can be transferred")
+
+    original_creator_id = khatm.creator_user_id
+    admin_uuid = UUID(str(admin_user_id)) if not isinstance(admin_user_id, UUID) else admin_user_id
+
+    khatm.transfer_request_status = "APPROVED"
+    khatm.join_link_closed = False
+    khatm.visibility = KhatmVisibility.PUBLIC
+    khatm.transferred_to_admin_at = datetime.now(timezone.utc)
+    khatm.transferred_from_user_id = original_creator_id
+    khatm.creator_user_id = admin_uuid
+
+    # 1. Invalidate all previous invitations
+    await invitation_service.revoke_all_for_khatm(session, khatm.id)
+
+    # 2. Generate new active public invitation token under admin
+    new_token = await invitation_service.create_invitation(session, khatm.id, admin_uuid)
+
+    return khatm, original_creator_id, new_token
+
+
+
+async def reject_khatm_transfer(
+    session: AsyncSession, *, khatm_id, admin_user_id, admin_note: str | None = None
+) -> tuple[Khatm, UUID]:
+    """Reject a transfer request. Khatm remains under creator ownership."""
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
+    if khatm is None:
+        raise KhatmTransferError("khatm not found")
+
+    original_creator_id = khatm.creator_user_id
+    khatm.transfer_request_status = "REJECTED"
+    return khatm, original_creator_id
+

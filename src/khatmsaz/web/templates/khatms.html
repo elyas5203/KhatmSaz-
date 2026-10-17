@@ -1,63 +1,176 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
-{% block title %}ختم‌ها | ختم‌ساز{% endblock %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}مدیریت ختم‌ها | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-sky-500 tracking-wider uppercase mb-1">مدیریت محتوا</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">همهٔ ختم‌ها {{ tooltip("لیست تمامی ختم‌های ایجاد شده در سیستم. شما می‌توانید وضعیت هر ختم را مانیتور کرده و در صورت نیاز آن‌ها را مدیریت کنید.") }}</h1>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-sky-400 tracking-wider uppercase mb-1">اتاق فرمان ختم‌ها</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیریت جامع ختم‌ها</h1>
+      {{ help_button(
+        "راهنمای مدیریت جامع ختم‌ها",
+        "در این صفحه فهرست تمام ختم‌های برگزارشده و در حال برگزاری در ربات‌ها را مشاهده می‌کنید. می‌توانید بر اساس خانواده (قرآن، صلوات، دعا، لعن، خطبه) و وضعیت فیلتر کنید یا خودتان مستقیم از پنل وب ختم جدید بسازید.",
+        [
+          "برای پیدا کردن ختم، از کادر جستجو و فیلترهای بالا (خانواده و وضعیت) استفاده کنید.",
+          "برای مشاهده جزئیات، مدیریت اعضا، ثبت سهم‌های باز و تنظیمات، روی کارت هر ختم کلیک کنید.",
+          "برای ساخت ختم تازه توسط مدیریت، روی دکمه سبز «➕ ساخت ختم جدید توسط ادمین» کلیک کنید و مشخصات را وارد فرمایید."
+        ],
+        "نکته: ختم‌هایی که ادمین از این پنل می‌سازد کاملاً رایگان است و مستقیماً در ربات فعال می‌شود."
+      ) }}
+    </div>
+  </div>
+
+  <div>
+    <button type="button"
+      onclick="document.getElementById('createKhatmModal').classList.remove('hidden')"
+      class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" /></svg>
+      <span>➕ ساخت ختم جدید توسط ادمین</span>
+    </button>
+  </div>
 </section>
 
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span>
+    {% if saved == 'created' %}ختم جدید با موفقیت ساخته شد و در بات فعال است ✅
+    {% elif saved == 'error' %}خطایی در اعتبارسنجی مقادیر فرم رخ داد. لطفاً فیلدها را بررسی کنید.
+    {% else %}عملیات با موفقیت انجام شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+<!-- Family Filter Tabs -->
+<div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none">
+  <a href="/khatms?q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if not selected_family %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">همه خانواده‌ها</a>
+  <a href="/khatms?family=quran&q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if selected_family == 'quran' %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">📖 قرآن کریم</a>
+  <a href="/khatms?family=salawat&q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if selected_family == 'salawat' %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">🕊 صلوات</a>
+  <a href="/khatms?family=dua&q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if selected_family == 'dua' %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">🤲 دعا و زیارت</a>
+  <a href="/khatms?family=laan&q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if selected_family == 'laan' %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">🔥 لعن</a>
+  <a href="/khatms?family=khutbah&q={{ query }}&status={{ selected_status }}" class="px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap {% if selected_family == 'khutbah' %}bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20{% else %}bg-slate-800/60 text-slate-300 hover:bg-slate-800{% endif %}">🎤 خطبه‌ها (فدکیه و...)</a>
+</div>
+
+<!-- Search & Status Filter -->
 <form class="flex flex-col sm:flex-row gap-3 w-full mb-8 bg-slate-800/40 p-3 rounded-2xl border border-slate-700/50" method="get">
+  <input type="hidden" name="family" value="{{ selected_family }}">
   <div class="relative flex-1">
     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
     </div>
-    <input name="q" value="{{ query }}" placeholder="عنوان، نام سازنده یا شناسه ختم" autocomplete="off" class="w-full bg-slate-900/60 border border-slate-700 text-white rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors">
+    <input name="q" value="{{ query }}" placeholder="جستجو بر اساس عنوان، نام سازنده یا شناسه ختم..." autocomplete="off" class="w-full bg-slate-900/60 border border-slate-700 text-white rounded-xl pl-4 pr-10 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors">
   </div>
   
-  <select name="status" class="bg-slate-900/60 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-sky-500 transition-colors appearance-none min-w-[150px]">
+  <select name="status" class="bg-slate-900/60 border border-slate-700 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 transition-colors appearance-none min-w-[150px]">
     <option value="">همه وضعیت‌ها</option>
     {% for s in ['ACTIVE','DRAFT','COMPLETED','CANCELLED'] %}
     <option value="{{ s }}" {% if selected_status==s %}selected{% endif %}>{{ fa_label(s) }}</option>
     {% endfor %}
   </select>
   
-  <button type="submit" class="bg-sky-500 hover:bg-sky-400 text-slate-900 px-6 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-lg shadow-sky-500/20">جست‌وجو و فیلتر</button>
+  <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-colors whitespace-nowrap shadow-lg shadow-emerald-500/20 cursor-pointer">جست‌وجو و فیلتر</button>
 </form>
 
-<section class="glass-panel rounded-3xl overflow-hidden mb-8">
-  <div class="flex flex-col divide-y divide-white/5">
-    {% for item, members in rows %}
-    <a href="/khatms/{{ item.id }}" class="flex items-center justify-between p-4 hover:bg-white/5 transition-colors group">
-      <div>
-        <h3 class="font-bold text-white group-hover:text-sky-400 transition-colors mb-1">{{ item.title }}</h3>
-        <div class="flex items-center gap-2">
-          <span class="text-xs text-slate-400 font-medium">{{ members }} عضو فعال</span>
-          <span class="text-slate-600 font-bold">·</span>
-          <span class="text-xs text-slate-400 font-medium">{{ fa_label(item.template_type) }}</span>
+<!-- Khatms List with Progressive Disclosure -->
+<section class="mb-8">
+  <div class="space-y-3">
+    {% for row in enriched_rows %}
+    {% set item = row.khatm %}
+    {% set members = row.members %}
+    <article class="glass-card rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all overflow-hidden">
+      <!-- Glance Summary (Always visible, scan in 2 seconds) -->
+      <div class="p-4 sm:p-5 flex items-center justify-between gap-4 cursor-pointer select-none"
+           onclick="toggleKhatmDisclosure('khatm-{{ item.id }}')">
+        <div class="flex items-center gap-3.5 min-w-0">
+          <div class="w-11 h-11 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-2xl shrink-0 shadow-sm">
+            {{ row.family_emoji }}
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <span class="text-[0.7rem] font-bold px-2.5 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                {{ row.family_label }}
+              </span>
+              <span class="text-[0.7rem] text-slate-400 font-medium px-2 py-0.5 rounded-lg bg-slate-800/60">
+                {{ fa_label(item.khatm_type) }}
+              </span>
+              {% if item.pending_lan_approval %}
+              <span class="text-[0.68rem] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-500/30">
+                ⚠️ در انتظار تأیید لعن
+              </span>
+              {% endif %}
+              {% set transfer_status = (item.transfer_request_status if item.transfer_request_status is defined and item.transfer_request_status else 'NONE') %}
+              {% if transfer_status == 'PENDING' %}
+              <span class="text-[0.68rem] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-500/30">
+                🤝 درخواست واگذاری به تک
+              </span>
+              {% elif transfer_status == 'APPROVED' %}
+              <span class="text-[0.68rem] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-lg font-bold border border-emerald-500/30">
+                🤝 واگذار شده (عمومی)
+              </span>
+              {% endif %}
+            </div>
+            <h3 class="text-base sm:text-lg font-extrabold text-white truncate hover:text-emerald-300 transition-colors">
+              {{ item.title }}
+            </h3>
+          </div>
+        </div>
+
+        <!-- Glance Meta & Expand Chevron -->
+        <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+          <div class="text-left hidden md:block">
+            <span class="text-[0.7rem] text-slate-400 block font-bold">اعضای فعال</span>
+            <strong class="text-sm font-mono text-emerald-400 font-extrabold">{{ members }} نفر</strong>
+          </div>
+
+          {% if item.status.value == 'ACTIVE' %}
+          <span class="px-3 py-1 bg-emerald-500/15 text-emerald-400 text-xs font-bold rounded-xl border border-emerald-500/30 whitespace-nowrap">✅ فعال</span>
+          {% elif item.status.value == 'COMPLETED' %}
+          <span class="px-3 py-1 bg-sky-500/15 text-sky-400 text-xs font-bold rounded-xl border border-sky-500/30 whitespace-nowrap">🏆 تکمیل</span>
+          {% elif item.status.value == 'CANCELLED' %}
+          <span class="px-3 py-1 bg-rose-500/15 text-rose-400 text-xs font-bold rounded-xl border border-rose-500/30 whitespace-nowrap">⛔ لغو</span>
+          {% else %}
+          <span class="px-3 py-1 bg-slate-500/15 text-slate-400 text-xs font-bold rounded-xl border border-slate-500/30 whitespace-nowrap">{{ fa_label(item.status) }}</span>
+          {% endif %}
+
+          <button type="button" class="w-8 h-8 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 flex items-center justify-center transition-transform duration-200" id="chevron-khatm-{{ item.id }}">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+          </button>
         </div>
       </div>
-      
-      <div class="flex items-center gap-3">
-        {% if item.status.value == 'ACTIVE' %}
-        <span class="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-lg border border-emerald-500/20 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% elif item.status.value == 'DRAFT' %}
-        <span class="px-3 py-1 bg-slate-500/10 text-slate-400 text-xs font-bold rounded-lg border border-slate-500/20 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% elif item.status.value == 'COMPLETED' %}
-        <span class="px-3 py-1 bg-sky-500/10 text-sky-400 text-xs font-bold rounded-lg border border-sky-500/20 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% elif item.status.value == 'CANCELLED' %}
-        <span class="px-3 py-1 bg-rose-500/10 text-rose-500 text-xs font-bold rounded-lg border border-rose-500/20 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% else %}
-        <span class="px-3 py-1 bg-slate-500/10 text-slate-400 text-xs font-bold rounded-lg border border-slate-500/20 whitespace-nowrap">{{ fa_label(item.status) }}</span>
-        {% endif %}
-        
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-500 group-hover:text-sky-400 transition-colors opacity-0 group-hover:opacity-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+
+      <!-- Inspect & Act Layer (Hidden by default, smooth expand on click) -->
+      <div id="body-khatm-{{ item.id }}" class="hidden px-5 pb-5 pt-3 border-t border-slate-800/60 bg-slate-950/40 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">سازنده ختم:</span>
+            <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'مدیریت سامانه' }}</strong>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">هدف تعهد / ذکر:</span>
+            <strong class="text-slate-200 font-mono">{{ "{:,}".format(item.repetition_target) if item.repetition_target else 'شمارنده آزاد' }}</strong>
+          </div>
+          <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800">
+            <span class="text-slate-400 block mb-1">نیت ختم:</span>
+            <span class="text-slate-300 truncate block">{{ item.niyyat or 'عمومی و فرج' }}</span>
+          </div>
+        </div>
+
+        <!-- Quick Action Footer -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-800/40">
+          <span class="text-[0.7rem] text-slate-500 font-mono" dir="ltr">کد رهگیری: {{ item.id }}</span>
+          <div class="flex items-center gap-2 self-end sm:self-auto">
+            <a href="/khatms/{{ item.id }}" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all shadow-md flex items-center gap-1.5">
+              <span>ورود به مدیریت و اعضا</span>
+              <span>←</span>
+            </a>
+          </div>
+        </div>
       </div>
-    </a>
+    </article>
     {% else %}
-    <div class="p-12 text-center">
+    <div class="p-12 text-center glass-panel rounded-3xl border border-white/5">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-      <p class="text-slate-400 font-medium">نتیجه‌ای پیدا نشد.</p>
+      <p class="text-slate-400 font-medium">هیچ ختمی با فیلترهای انتخابی یافت نشد.</p>
     </div>
     {% endfor %}
   </div>
@@ -66,15 +179,10 @@
 {% if page > 1 or has_next %}
 <nav class="flex items-center justify-center gap-4 mb-8" aria-label="صفحه‌بندی ختم‌ها">
   {% if page > 1 %}
-  <form method="get">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="status" value="{{ selected_status }}">
-    <input type="hidden" name="page" value="{{ page - 1 }}">
-    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-sky-400 hover:text-sky-300 font-bold transition-colors flex items-center gap-2">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-      صفحه قبل
-    </button>
-  </form>
+  <a href="/khatms?q={{ query }}&family={{ selected_family }}&status={{ selected_status }}&page={{ page - 1 }}" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+    صفحه قبل
+  </a>
   {% else %}
   <div class="w-[110px]"></div>
   {% endif %}
@@ -82,18 +190,146 @@
   <span class="text-sm font-bold text-slate-400 bg-slate-800/50 px-4 py-2 rounded-xl">صفحه {{ page }}</span>
   
   {% if has_next %}
-  <form method="get">
-    <input type="hidden" name="q" value="{{ query }}">
-    <input type="hidden" name="status" value="{{ selected_status }}">
-    <input type="hidden" name="page" value="{{ page + 1 }}">
-    <button type="submit" class="glass-card px-4 py-2 rounded-xl text-sky-400 hover:text-sky-300 font-bold transition-colors flex items-center gap-2">
-      صفحه بعد
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-    </button>
-  </form>
+  <a href="/khatms?q={{ query }}&family={{ selected_family }}&status={{ selected_status }}&page={{ page + 1 }}" class="glass-card px-4 py-2 rounded-xl text-emerald-400 hover:text-emerald-300 font-bold transition-colors flex items-center gap-2">
+    صفحه بعد
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+  </a>
   {% else %}
   <div class="w-[110px]"></div>
   {% endif %}
 </nav>
 {% endif %}
+
+<!-- Modal: ساخت ختم جدید توسط ادمین -->
+<div id="createKhatmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+  <div class="glass-panel w-full max-w-2xl p-6 sm:p-8 rounded-3xl border border-white/10 my-8">
+    <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+      <div class="flex items-center gap-2">
+        <h2 class="text-xl font-extrabold text-white">➕ ساخت ختم جدید توسط مدیر سامانه</h2>
+        {{ tooltip("ختم‌هایی که از این فرم ساخته می‌شوند رایگان بوده و بدون محدودیت پلن مستقیماً فعال و آمادهٔ دعوت می‌شوند.") }}
+      </div>
+      <button type="button" onclick="document.getElementById('createKhatmModal').classList.add('hidden')" class="text-slate-400 hover:text-white p-2">✕</button>
+    </div>
+
+    <form method="post" action="/khatms/create" class="space-y-5">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">۱. خانواده ختم</label>
+        <select name="content_kind" id="khatmKindSelect" onchange="toggleCategorySelect(this.value)" class="input-field" required>
+          <option value="quran">📖 ختم قرآن کریم (۶۰۴ صفحه‌ای)</option>
+          <option value="salawat" selected>🕊 ختم صلوات</option>
+          <option value="dua">🤲 ختم دعا و زیارت</option>
+          <option value="khutbah">🎤 ختم خطبه (خطبه فدکیه و...)</option>
+        </select>
+      </div>
+
+      <div id="categoryContainer" class="hidden">
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">دسته‌بندی محتوا (دعا/لعن/خطبه)</label>
+        <select name="category_id" id="categorySelect" class="input-field">
+          <option value="">-- انتخاب دسته‌بندی --</option>
+          {% for cat in categories %}
+          <option value="{{ cat.id }}" data-group="{{ cat.group.value }}">{{ cat.title }} ({{ cat.group.value }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۲. نوع برگزاری ختم</label>
+          <select name="khatm_type" id="khatmTypeSelect" onchange="toggleCommitmentFields(this.value)" class="input-field" required>
+            <option value="COMMITMENT" selected>🤝 تعهدی (با سهم مشخص اعضا)</option>
+            <option value="OPEN">🌊 آزاد (شمارندهٔ همگانی بدون تعهد ثابت)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۳. نحوهٔ تعهد اعضا</label>
+          <select name="commitment_policy" id="policySelect" class="input-field">
+            <option value="MEMBER_CHOICE">انتخاب روزانه به دلخواه عضو</option>
+            <option value="FIXED_DAILY">سهم ثابت روزانه برای هر عضو</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۴. عنوان ختم</label>
+          <input name="title" required placeholder="مثلاً: ختم صلوات برای فرج امام زمان (عج)" class="input-field">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۵. نیت ختم (اختیاری)</label>
+          <input name="niyyat" placeholder="مثلاً: سلامتی و تعجیل در فرج" class="input-field">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div id="amountContainer">
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۶. هدف کل / مقدار تعهد</label>
+          <input name="amount" type="number" min="1" value="1000" class="input-field font-mono">
+          <p class="text-[0.68rem] text-slate-500 mt-1">برای صلوات و ادعیه: تعداد کل ذکرها. برای قرآن ۶۰۴ صفحه لحاظ می‌شود.</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">۷. نمایش در لیست عمومی</label>
+          <select name="visibility" class="input-field">
+            <option value="PUBLIC" selected>عمومی (در منوی ختم‌های ربات نمایش داده شود)</option>
+            <option value="PRIVATE">خصوصی (فقط با لینک دعوت اختصاصی)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+        <button type="button" onclick="document.getElementById('createKhatmModal').classList.add('hidden')" class="px-5 py-2.5 rounded-xl text-slate-400 hover:text-white transition-colors text-sm font-bold">انصراف</button>
+        <button type="submit" class="px-7 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">ساخت و فعال‌سازی فوری</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleCategorySelect(kind) {
+  var container = document.getElementById('categoryContainer');
+  var select = document.getElementById('categorySelect');
+  if (kind === 'dua' || kind === 'laan' || kind === 'khutbah') {
+    container.classList.remove('hidden');
+    // filter options if needed
+    for (var i = 0; i < select.options.length; i++) {
+      var opt = select.options[i];
+      var grp = (opt.dataset.group || '').toLowerCase();
+      if (!opt.value) continue;
+      if (kind === 'dua' && (grp === 'dua' || grp === 'ziyarat')) {
+        opt.hidden = false;
+      } else if (kind === grp) {
+        opt.hidden = false;
+      } else {
+        opt.hidden = true;
+      }
+    }
+  } else {
+    container.classList.add('hidden');
+  }
+}
+function toggleCommitmentFields(type) {
+  var policy = document.getElementById('policySelect');
+  if (type === 'OPEN') {
+    policy.disabled = true;
+  } else {
+    policy.disabled = false;
+  }
+}
+function toggleKhatmDisclosure(id) {
+  var body = document.getElementById('body-' + id);
+  var chevron = document.getElementById('chevron-' + id);
+  if (!body) return;
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    body.classList.add('hidden');
+    if (chevron) chevron.style.transform = 'rotate(0deg)';
+  }
+}
+</script>
 {% endblock %}

@@ -122,14 +122,14 @@ async def ensure_creator_phone_verified(message: Message, state: FSMContext) -> 
             if claim is not None:
                 return True
             phone = phone_service.normalize_e164(profile.contact_phone)
-            if manual_phone_service.requires_manual_review(phone):
-                request, created = await manual_phone_service.submit(
+            if phone_service.is_foreign_phone(phone):
+                await phone_service.direct_verify_phone(
                     session,
                     user_id=user.id,
                     e164=phone,
-                    purpose="CREATOR_VERIFY",
+                    action_context="CREATOR_FOREIGN_DIRECT_VERIFY",
                 )
-                manual_request = (request.id, user.display_name, phone, created)
+                return True
             else:
                 challenge, code = await phone_service.request_phone_change_challenge(
                     session, user_id=user.id, e164=phone
@@ -228,14 +228,22 @@ async def receive_new_phone(message: Message, state: FSMContext) -> None:
             if user is None:
                 raise phone_service.OtpError("account not found")
             phone = phone_service.normalize_e164((message.text or "").strip())
-            if manual_phone_service.requires_manual_review(phone):
-                request, created = await manual_phone_service.submit(
+            if phone_service.is_foreign_phone(phone):
+                await phone_service.direct_verify_phone(
                     session,
                     user_id=user.id,
                     e164=phone,
-                    purpose="PHONE_CHANGE",
+                    action_context="CHANGE_PHONE_FOREIGN_DIRECT_VERIFY",
                 )
-                manual_request = (request.id, user.display_name, phone, created)
+                from khatmsaz.bot.handlers.create_khatm import resume_khatm_creation_if_pending
+                if await resume_khatm_creation_if_pending(message, state):
+                    return
+                await state.clear()
+                await message.answer(
+                    t("change_phone.number_changed_success", lang, phone=phone),
+                    reply_markup=main_menu_keyboard(lang),
+                )
+                return
             else:
                 challenge, code = await phone_service.request_phone_change_challenge(
                     session, user_id=user.id, e164=phone

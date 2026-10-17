@@ -54,6 +54,11 @@ def test_panel_buttons_request_chat_entry_before_opening_mini_app():
     assert admin_inline.inline_keyboard[0][0].callback_data == "admin:web_login"
     assert admin_inline.inline_keyboard[0][0].web_app is None
 
-    creator_inline = panel.creator_panel_keyboard("fa")
-    assert creator_inline.inline_keyboard[0][0].callback_data == "creator:web_login"
-    assert creator_inline.inline_keyboard[0][0].web_app is None
+    # MASTER-19: creator:web_login is completely hidden per user request
+    creator_inline = panel.creator_panel_keyboard("fa", is_admin=True)
+    all_cb_admin = [b.callback_data for row in creator_inline.inline_keyboard for b in row]
+    assert "creator:web_login" not in all_cb_admin
+
+    creator_non_admin = panel.creator_panel_keyboard("fa", is_admin=False)
+    all_cb_non_admin = [b.callback_data for row in creator_non_admin.inline_keyboard for b in row]
+    assert "creator:web_login" not in all_cb_non_admin

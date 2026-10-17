@@ -54,6 +54,18 @@ async def _lang_for(chat_id, bot) -> str:
 async def ask_leave_reason(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     participation_id = callback.data.split(":", 1)[1]
+    from khatmsaz.modules.identity.models import Platform
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    async with session_scope() as session:
+        participation = await participation_service.get_by_id(session, participation_id)
+        if participation is None:
+            await safe_answer_callback(callback, t("leave.membership_not_found", lang), show_alert=True)
+            return
+        current_user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        if current_user is None or current_user.id != participation.user_id:
+            await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
+            return
+
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer(
         t("leave.ask_reason", lang),
@@ -65,12 +77,19 @@ async def ask_leave_reason(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("leave_reason:"))
 async def leave_reason_chosen(callback: CallbackQuery) -> None:
     _, participation_id, reason = callback.data.split(":", 2)
+    from khatmsaz.modules.identity.models import Platform
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
 
     async with session_scope() as session:
         participation = await participation_service.get_by_id(session, participation_id)
+        lang = await _lang_for(callback.message.chat.id, callback.bot)
         if participation is None:
-            lang = await _lang_for(callback.message.chat.id, callback.bot)
             await safe_answer_callback(callback, t("leave.membership_not_found", lang), show_alert=True)
+            return
+
+        current_user = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        if current_user is None or current_user.id != participation.user_id:
+            await safe_answer_callback(callback, t("portions.not_a_member", lang), show_alert=True)
             return
 
         requester_lang = await _lang_for_user(session, participation.user_id)
@@ -112,10 +131,20 @@ async def leave_reason_chosen(callback: CallbackQuery) -> None:
 async def approve_leave(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     _, participation_id, reason = callback.data.split(":", 2)
+    from khatmsaz.modules.identity.models import Platform, UserRole
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+
     async with session_scope() as session:
         participation = await participation_service.get_by_id(session, participation_id)
         if participation is None:
             await safe_answer_callback(callback, t("leave.membership_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        caller = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        is_creator = caller and khatm and caller.id == khatm.creator_user_id
+        is_admin = caller and getattr(caller, "role", None) == UserRole.SUPER_ADMIN
+        if not (is_creator or is_admin):
+            await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
             return
         requester_identities = await identity_service.list_identities_for_user(session, participation.user_id)
         requester_lang = await _lang_for_user(session, participation.user_id)
@@ -139,10 +168,20 @@ async def approve_leave(callback: CallbackQuery) -> None:
 async def reject_leave(callback: CallbackQuery) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
     participation_id = callback.data.split(":", 1)[1]
+    from khatmsaz.modules.identity.models import Platform, UserRole
+    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
+
     async with session_scope() as session:
         participation = await participation_service.get_by_id(session, participation_id)
         if participation is None:
             await safe_answer_callback(callback, t("leave.membership_not_found", lang), show_alert=True)
+            return
+        khatm = await khatm_service.get_khatm(session, participation.khatm_id)
+        caller = await identity_service.find_by_platform(session, platform, str(callback.from_user.id))
+        is_creator = caller and khatm and caller.id == khatm.creator_user_id
+        is_admin = caller and getattr(caller, "role", None) == UserRole.SUPER_ADMIN
+        if not (is_creator or is_admin):
+            await safe_answer_callback(callback, t("my_khatms.no_permission", lang), show_alert=True)
             return
         requester_identities = await identity_service.list_identities_for_user(session, participation.user_id)
         requester_lang = await _lang_for_user(session, participation.user_id)
@@ -190,7 +229,7 @@ async def _do_leave(
 
     if promoted_participation is not None:
         notify = get_notify_fn()
-        text = t("leave.promoted_notice", promoted_lang, title=khatm.title)
+        text = t("leave.promoted_notice", promoted_lang, title=khatm.title if khatm else "")
         if promoted_portion is not None:
             text += t("leave.promoted_portion_line", promoted_lang, start=promoted_portion.unit_start, end=promoted_portion.unit_end)
         for identity in promoted_identities:

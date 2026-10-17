@@ -49,37 +49,33 @@ async def get_plan_by_khatm_for_update(session: AsyncSession, khatm_id) -> Khatm
 async def create_next_rotating_portion(
     session: AsyncSession, plan: KhatmAllocationPlan, khatm_id, participation_id,
 ) -> KhatmPortion | None:
-    """Create the reader's next personal Quran range under the locked plan."""
-    from khatmsaz.modules.participation.models import Participation, ParticipationStatus
+    """Create the next sequential collective Quran portion under the plan across all participants."""
+    from khatmsaz.modules.participation.models import Participation
 
     participation = await session.get(Participation, participation_id)
     boundaries = plan.positional_boundaries or []
     if participation is None or not boundaries:
         return None
 
-    if participation.quran_rotation_offset is None:
-        used = set((await session.execute(
-            select(Participation.quran_rotation_offset).where(
-                Participation.khatm_id == khatm_id,
-                Participation.status == ParticipationStatus.ACTIVE,
-                Participation.quran_rotation_offset.is_not(None),
-            )
-        )).scalars())
-        offset = next((candidate for candidate in range(len(boundaries)) if candidate not in used), None)
-        if offset is None:
-            return None
-        participation.quran_rotation_offset = offset
+    # In unified collective progression, query the latest portion for the whole plan
+    latest = (await session.execute(
+        select(KhatmPortion)
+        .where(KhatmPortion.plan_id == plan.id)
+        .order_by(KhatmPortion.sequence.desc(), KhatmPortion.id.desc())
+        .limit(1)
+    )).scalar_one_or_none()
 
-    completed_steps = int((await session.execute(
-        select(func.count()).select_from(KhatmPortion).where(
-            KhatmPortion.plan_id == plan.id,
-            KhatmPortion.participation_id == participation_id,
-        )
-    )).scalar_one())
-    boundary = boundaries[(participation.quran_rotation_offset + completed_steps) % len(boundaries)]
+    if latest is None:
+        boundary = boundaries[0]
+        sequence = 1
+    else:
+        next_idx = (latest.sequence) % len(boundaries)
+        boundary = boundaries[next_idx]
+        sequence = latest.sequence + 1
+
     portion = KhatmPortion(
         id=new_id(), plan_id=plan.id, khatm_id=khatm_id,
-        sequence=completed_steps + 1, unit_kind=PortionUnitKind.POSITIONAL,
+        sequence=sequence, unit_kind=PortionUnitKind.POSITIONAL,
         unit_start=int(boundary[0]), unit_end=int(boundary[1]),
         status=PortionStatus.ASSIGNED, participation_id=participation_id,
     )
@@ -101,9 +97,10 @@ async def allocate_page_amount(session, khatm_id, participation_id, amount):
         await assign_portion(session, portion.id, participation_id)
         return [portion]
     part = await session.get(Participation, participation_id)
+    # Check latest portion across the whole plan (collective handoff between participants)
     latest = (await session.execute(select(KhatmPortion).where(
-        KhatmPortion.plan_id == plan.id, KhatmPortion.participation_id == participation_id,
-    ).order_by(KhatmPortion.sequence.desc()).limit(1))).scalar_one_or_none()
+        KhatmPortion.plan_id == plan.id,
+    ).order_by(KhatmPortion.sequence.desc(), KhatmPortion.id.desc()).limit(1))).scalar_one_or_none()
     if latest is None:
         first = await create_next_rotating_portion(session, plan, khatm_id, participation_id)
         if first is None:

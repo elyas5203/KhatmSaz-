@@ -1,10 +1,24 @@
 {% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}تأیید سازندگان | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-6">
-  <p class="text-xs font-bold text-emerald-500 tracking-wider uppercase mb-1">مدیریت دسترسی</p>
-  <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">درخواست‌های سازنده‌شدن</h1>
-  <p class="text-slate-400 text-sm">کاربرانی که خواسته‌اند سازنده شوند. با تأیید، نقش کاربر به «سازنده» ارتقا می‌یابد و به او اطلاع داده می‌شود.</p>
+<section class="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">صف ارتقا به سازنده</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white">درخواست‌های سازنده‌شدن</h1>
+      {{ help_button(
+        "راهنمای درخواست‌های سازنده‌شدن",
+        "کاربرانی که مایل به برگزاری ختم برای جمع یا هیئت خود هستند، درخواست ارتقا به سازنده ارسال می‌کنند. با تأیید، نقش کاربر به سازنده ارتقا یافته و پیام اطلاع‌رسانی برای او ارسال می‌گردد.",
+        [
+          "مشخصات متقاضی (نام، شماره تماس، استان و شهر) را بررسی کنید.",
+          "برای موافقت، روی دکمه سبز «تأیید و ارتقا به سازنده» کلیک کنید.",
+          "در صورت عدم موافقت، دکمه قرمز «رد» را بزنید."
+        ],
+        "نکته: پس از تأیید، دسترسی سازنده به صورت خودکار فعال شده و ربات به او تبریک می‌گوید."
+      ) }}
+    </div>
+  </div>
 </section>
 
 {% if saved == 'approved' %}

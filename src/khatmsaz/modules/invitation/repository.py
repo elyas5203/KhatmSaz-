@@ -35,3 +35,35 @@ async def mark_accepted(session: AsyncSession, token_hash: str, user_id) -> None
     invitation.accepted_at = datetime.now(timezone.utc)
     invitation.accepted_by_user_id = user_id
     await session.flush()
+
+
+async def list_for_khatm(session: AsyncSession, khatm_id) -> list[KhatmInvitation]:
+    stmt = (
+        select(KhatmInvitation)
+        .where(
+            KhatmInvitation.khatm_id == khatm_id,
+            KhatmInvitation.cancelled_at.is_(None),
+        )
+        .order_by(KhatmInvitation.created_at.desc())
+    )
+    result = await session.execute(stmt)
+    return list(result.scalars().all())
+
+
+async def cancel_all_for_khatm(session: AsyncSession, khatm_id) -> int:
+    """Mark all active invitations for a khatm as cancelled/revoked."""
+    stmt = (
+        select(KhatmInvitation)
+        .where(
+            KhatmInvitation.khatm_id == khatm_id,
+            KhatmInvitation.cancelled_at.is_(None),
+        )
+    )
+    result = await session.execute(stmt)
+    invitations = list(result.scalars().all())
+    now = datetime.now(timezone.utc)
+    for inv in invitations:
+        inv.cancelled_at = now
+    await session.flush()
+    return len(invitations)
+

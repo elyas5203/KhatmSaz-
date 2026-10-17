@@ -17,7 +17,7 @@ from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from khatmsaz.bot.keyboards import bail_if_menu_button, main_menu_keyboard, safe_answer_callback, safe_clear_inline_keyboard
 from khatmsaz.bot.notify_adapter import get_notify_fn
@@ -74,7 +74,19 @@ async def request_khatm_start(callback: CallbackQuery, state: FSMContext) -> Non
     await state.set_state(RequestKhatm.entering_description)
     await state.update_data(lang=lang)
     await safe_clear_inline_keyboard(callback.message)
-    await callback.message.answer(t("khatm_request.ask_description", lang))
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="request_khatm:cancel")]]
+    )
+    await callback.message.answer(t("khatm_request.ask_description", lang), reply_markup=cancel_kb)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data == "request_khatm:cancel")
+async def request_khatm_cancel(callback: CallbackQuery, state: FSMContext) -> None:
+    lang = await _lang_for(callback.message.chat.id, callback.bot)
+    await state.clear()
+    await safe_clear_inline_keyboard(callback.message)
+    await callback.message.answer("ثبت درخواست لغو شد.", reply_markup=main_menu_keyboard(lang))
     await safe_answer_callback(callback)
 
 
@@ -90,7 +102,10 @@ async def request_khatm_description(message: Message, state: FSMContext) -> None
         return
     await state.update_data(request_description=description)
     await state.set_state(RequestKhatm.entering_attachment)
-    await message.answer(t("khatm_request.ask_attachment", lang))
+    cancel_kb = InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="request_khatm:cancel")]]
+    )
+    await message.answer(t("khatm_request.ask_attachment", lang), reply_markup=cancel_kb)
 
 
 @router.message(StateFilter(RequestKhatm.entering_attachment), F.document)

@@ -38,6 +38,7 @@ from khatmsaz.modules.plan.models import ACTIVE_PLAN_TIERS, PlanTier, PricingMod
 from khatmsaz.modules.sms_subscription import service as sms_subscription_service
 from khatmsaz.modules.advertising import service as advertising_service
 from khatmsaz.modules.content import service as content_service
+from khatmsaz.modules.content.migrator import get_bale_devotional_coverage, get_bale_quran_coverage
 from khatmsaz.modules.content.models import QuranAssetKind
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.system_settings import service as system_settings_service
@@ -128,8 +129,21 @@ async def _require_admin(
     platform: Platform,
     permission: AdminPermission = AdminPermission.DASHBOARD_ACCESS,
 ) -> bool:
+    settings = get_settings()
+    user_id = message.from_user.id if message.from_user else message.chat.id
+    if platform == Platform.TELEGRAM:
+        super_admin_ids = [
+            int(x.strip())
+            for x in settings.super_admin_telegram_chat_ids.split(",")
+            if x.strip().isdigit()
+        ]
+        if user_id in super_admin_ids or message.chat.id in super_admin_ids:
+            return True
+
     async with session_scope() as session:
-        user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
+        user = await identity_service.find_by_platform(session, platform, str(user_id))
+        if not user and message.chat:
+            user = await identity_service.find_by_platform(session, platform, str(message.chat.id))
         return await authorization_service.has_permission(session, user, permission)
 
 
@@ -263,6 +277,150 @@ async def admin_quran_source_seed(message: Message) -> None:
     )
 
 
+@router.message(Command("admin_bale_media_status"))
+async def admin_bale_media_status(message: Message) -> None:
+    """Report current media coverage registered for Bale."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.CONTENT_MANAGE):
+        return
+    async with session_scope() as session:
+        cov = await get_bale_quran_coverage(session)
+        dev_cov = await get_bale_devotional_coverage(session)
+    status_emoji = "✅" if cov["ready"] else "⏳"
+    await message.answer(
+        "📊 <b>وضعیت محتوای رسانه‌ای پیام‌رسان بله</b>\n\n"
+        f"📖 <b>قرآن کریم (۶۰۴ صفحه):</b>\n"
+        f"— تصاویر صفحات: {cov['image_count']} از ۶۰۴\n"
+        f"— صوت‌های ترتیل: {cov['audio_count']} از ۶۰۴\n"
+        f"— وضعیت: {status_emoji} {'کامل و آماده تحویل' if cov['ready'] else 'نیازمند همگام‌سازی'}\n\n"
+        f"📿 <b>ادعیه، زیارات و خطبه‌ها:</b>\n"
+        f"— مدیاهای ثبت‌شده بله: {dev_cov['bale_media_count']} از {dev_cov['telegram_media_count']}\n\n"
+        "💡 <i>جهت اجرای همگام‌سازی، از اسکریپت `scripts/migrate_telegram_to_bale.py` استفاده نمایید.</i>"
+    )
+
+
+_bale_sync_running = False
+
+
+async def _run_bale_sync_task(
+    bot: Message,
+    admin_chat_id: int,
+    bale_storage_chat_id: int,
+    scratch_chat_id: int,
+) -> None:
+    global _bale_sync_running
+    try:
+        from khatmsaz.bot.bale.client import build_bale_bot
+        from khatmsaz.bot.telegram.client import build_telegram_bot
+        from khatmsaz.core.bot_registry import get_registry
+        from khatmsaz.modules.content.migrator import TelegramToBaleMigrator
+
+        reg = get_registry()
+        tg_bot = reg.get_creator_bot(Platform.TELEGRAM) if reg else None
+        if not tg_bot:
+            tg_bot = build_telegram_bot()
+
+        bale_bot = reg.get_creator_bot(Platform.BALE) if reg else None
+        if not bale_bot:
+            bale_bot = build_bale_bot()
+
+        last_progress_pct = [0]
+
+        def progress_cb(stage: str, cur: int, total: int):
+            if total > 0 and cur % 100 == 0:
+                pct = int(cur / total * 100)
+                if pct != last_progress_pct[0]:
+                    last_progress_pct[0] = pct
+                    asyncio.create_task(
+                        bot.send_message(
+                            chat_id=admin_chat_id,
+                            text=f"⏳ در حال پیشرفت ({stage}): {cur} از {total} ({pct}%)",
+                        )
+                    )
+
+        migrator = TelegramToBaleMigrator(
+            tg_bot=tg_bot,
+            bale_bot=bale_bot,
+            bale_storage_chat_id=bale_storage_chat_id,
+            tg_scratch_chat_id=scratch_chat_id,
+            delay_seconds=0.5,
+            progress_callback=progress_cb,
+        )
+
+        async with session_scope() as session:
+            res = await migrator.migrate_all(session)
+            cov = await get_bale_quran_coverage(session)
+
+        img_stats = res["quran_images"]
+        audio_stats = res["quran_audio"]
+        dev_stats = res["devotionals"]
+
+        await bot.send_message(
+            chat_id=admin_chat_id,
+            text=(
+                "✅ <b>همگام‌سازی رسانه‌های بله با موفقیت پایان یافت!</b>\n\n"
+                f"📖 <b>تصاویر قرآن:</b> {img_stats.migrated} منتقل‌شده، {img_stats.skipped} از قبل موجود\n"
+                f"🎙 <b>صوت‌های ترتیل:</b> {audio_stats.migrated} منتقل‌شده، {audio_stats.skipped} از قبل موجود\n"
+                f"📿 <b>ادعیه و زیارات:</b> {dev_stats.migrated} منتقل‌شده، {dev_stats.skipped} از قبل موجود\n\n"
+                f"وضعیت نهایی قرآن بله: {cov['image_count']}/604 تصویر و {cov['audio_count']}/604 صوت آماده است."
+            ),
+        )
+    except Exception as exc:
+        logger.error("Error in background Bale sync", exc_info=True)
+        await bot.send_message(
+            chat_id=admin_chat_id,
+            text=f"❌ خطا در حین اجرای همگام‌سازی بله:\n<code>{exc}</code>",
+        )
+    finally:
+        _bale_sync_running = False
+
+
+@router.message(Command("admin_sync_bale"))
+async def admin_sync_bale(message: Message, command: CommandObject) -> None:
+    """Trigger or check Bale sync prerequisite."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.CONTENT_MANAGE):
+        return
+
+    global _bale_sync_running
+    if _bale_sync_running:
+        await message.answer("⚠️ در حال حاضر یک عملیات همگام‌سازی در پس‌زمینه در حال اجرا است. لطفاً تا اتمام آن صبر کنید.")
+        return
+
+    settings = get_settings()
+    target_chat_raw = command.args.strip() if command.args else None
+    storage_chat_id = None
+    if target_chat_raw:
+        try:
+            storage_chat_id = int(target_chat_raw)
+        except ValueError:
+            await message.answer("شناسه چت مقصد بله باید یک عدد معتبر باشد (مثلاً <code>-1001234567890</code>).")
+            return
+    elif settings.bale_media_storage_chat_id:
+        storage_chat_id = settings.bale_media_storage_chat_id
+
+    if not storage_chat_id:
+        storage_chat_id = settings.bale_media_storage_chat_id or 1499052236
+
+    scratch_id = settings.telegram_scratch_chat_id or message.chat.id
+    _bale_sync_running = True
+    asyncio.create_task(
+        _run_bale_sync_task(
+            bot=message.bot,
+            admin_chat_id=message.chat.id,
+            bale_storage_chat_id=storage_chat_id,
+            scratch_chat_id=scratch_id,
+        )
+    )
+    await message.answer(
+        "🚀 <b>عملیات همگام‌سازی رسانه‌ها به بله در پس‌زمینه آغاز شد!</b>\n\n"
+        f"🎯 مقصد بله: <code>{storage_chat_id}</code>\n"
+        "فایل‌ها به صورت خودکار از کانال تلگرام استریم شده و در مخزن بله ذخیره و ثبت می‌شوند.\n"
+        "گزارش‌های پیشرفت و اتمام عملیات در همین گفتگو برای شما ارسال خواهد شد."
+    )
+
+
+
 @router.message(F.forward_origin)
 async def admin_quran_source_forward(message: Message) -> None:
     """Import a forwarded canonical-channel post by reading its Persian caption."""
@@ -275,8 +433,7 @@ async def admin_quran_source_forward(message: Message) -> None:
     if not isinstance(origin, MessageOriginChannel):
         return
     expected_chat_id = get_settings().quran_source_telegram_chat_id
-    if expected_chat_id and origin.chat.id != expected_chat_id:
-        await message.answer("این پیام از کانال قرآن تعیین‌شده نیامده و ثبت نشد.")
+    if not expected_chat_id or origin.chat.id != expected_chat_id:
         return
     parsed = content_service.parse_quran_channel_caption(message.caption or message.text)
     if parsed is None:
@@ -639,23 +796,11 @@ async def admin_plans(message: Message) -> None:
 
 @router.message(Command("admin_ad_rate"))
 async def admin_ad_rate(message: Message, command: CommandObject) -> None:
-    """Append a new reward-credit rate for eligible advertising members."""
+    """Abolished per owner request (MASTER-29)."""
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     if not await _require_admin(message, platform, AdminPermission.MARKETING_MANAGE):
         return
-    raw = (command.args or "").strip()
-    if not raw.isdigit() or int(raw) <= 0:
-        await message.answer("فرمت درست: /admin_ad_rate [مبلغ مثبت به تومان]")
-        return
-    amount = int(raw)
-    async with session_scope() as session:
-        admin = await identity_service.find_by_platform(session, platform, str(message.chat.id))
-        rate = await advertising_service.set_reward_rate(session, amount)
-        await audit_service.record(
-            session, actor_user_id=admin.id, action="AD_REWARD_RATE_UPDATE",
-            details={"amount_toman": amount, "rate_id": str(rate.id)},
-        )
-    await message.answer(f"نرخ پاداش تبلیغات روی {amount:,} تومان تنظیم شد ✅")
+    await message.answer("قابلیت پاداش تبلیغات به درخواست مدیریت به طور کامل حذف و غیرفعال شده است 🌱")
 
 
 @router.message(Command("admin_settings"))

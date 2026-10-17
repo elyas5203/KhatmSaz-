@@ -1,11 +1,24 @@
 {% extends "base.html" %}
-{% from "components.html" import tooltip %}
+{% from "components.html" import tooltip, help_button %}
 {% block title %}رویدادهای حساس | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4">
-  <p class="text-xs font-bold text-rose-500 tracking-wider uppercase mb-1">گزارش فقط‌خواندنی و غیرقابل‌حذف</p>
-  <h1 class="text-3xl sm:text-4xl font-bold text-white mb-2">خط زمانی فعالیت‌های حساس {{ tooltip("این بخش تمام فعالیت‌های مهم و تغییراتی که مدیران در سیستم اعمال می‌کنند را ثبت می‌کند تا از کارهای انجام شده ردپایی باقی بماند.") }}</h1>
-  <p class="text-slate-400 text-sm">تغییر نقش‌ها، امور مالی، نظارت و تصمیم‌های محتوایی اینجا با نام انجام‌دهنده، هدف و زمان تهران ثبت می‌شوند.</p>
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-rose-400 tracking-wider uppercase mb-1">گزارش ممیزی و حسابرسی</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">لاگ ممیزی و رویدادهای حساس</h1>
+      {{ help_button(
+        "راهنمای لاگ ممیزی و رویدادهای حساس",
+        "این بخش تمام فعالیت‌های مهم و تغییراتی که مدیران در سیستم اعمال می‌کنند (شارژ کیف پول، تغییر پلن، تایید/رد درخواست‌ها، ایجاد ختم، تغییر متن و توکن) را با شناسه مدیر، تاریخ دقیق و جزئیات ثبت می‌کند و غیرقابل‌حذف است.",
+        [
+          "تمام رویدادها به ترتیب زمانی از جدید به قدیم نمایش داده می‌شوند.",
+          "برای یافتن نوع خاصی از عملیات (مانند USER، WALLET، یا KHATM) از کادر فیلتر بالا استفاده فرمایید.",
+          "روی هر کارت، انجام‌دهنده، زمان تهران و جزئیات فنی تغییرات نمایش داده شده است."
+        ],
+        "نکته: لاگ‌های ممیزی سیستم جهت حفظ امنیت و شفافیت، تنها قابل خواندن هستند و حتی توسط مدیر کل قابل حذف نیستند."
+      ) }}
+    </div>
+  </div>
 </section>
 
 <form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get" action="/audit">

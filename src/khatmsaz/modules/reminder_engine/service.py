@@ -43,6 +43,7 @@ from khatmsaz.modules.notification import service as notification_service
 from khatmsaz.modules.notification.models import NotificationKind
 from khatmsaz.modules.participation import repository as participation_repository
 from khatmsaz.modules.participation import service as participation_service
+from khatmsaz.modules.participation.models import ParticipationStatus
 from khatmsaz.modules.settings import service as settings_service
 
 
@@ -141,11 +142,55 @@ async def run_once(
     await deliver_share_occurrences()
     await cleanup_completed_shares()
     await process_reservation_warnings()
+    try:
+        await delegate_inactive_portions(session, notify)
+    except Exception:
+        logger.exception("delegate_inactive_portions failed")
+    try:
+        await _send_open_schedule_reminders(session, notify, tz_name)
+    except Exception:
+        logger.exception("_send_open_schedule_reminders failed")
+    try:
+        await check_share_occurrence_misses(session, notify)
+    except Exception:
+        logger.exception("check_share_occurrence_misses failed")
     # Reporting errors cannot roll back successfully delivered member shares.
     await completion_service.deliver_pending(session, notify)
     await monthly_report_service.deliver_due(
         session, notify, report_day=monthly_report_day, report_hour=monthly_report_hour
     )
+    try:
+        from khatmsaz.modules.reporting.creator_daily_report import deliver_creator_daily_reports
+        await deliver_creator_daily_reports(session, notify, tz_name=tz_name)
+    except Exception:
+        logger.exception("deliver_creator_daily_reports failed")
+
+
+async def check_share_occurrence_misses(session: AsyncSession, notify: NotifyFn) -> None:
+    now = datetime.now(timezone.utc)
+    from khatmsaz.modules.share_occurrence.models import ShareOccurrence
+    stmt = (
+        select(ShareOccurrence)
+        .where(
+            ShareOccurrence.committed.is_(True),
+            ShareOccurrence.completed_at.is_(None),
+            ShareOccurrence.deadline_at.isnot(None),
+            ShareOccurrence.deadline_at <= now,
+        )
+    )
+    result = await session.execute(stmt)
+    overdue_occurrences = list(result.scalars())
+    for occ in overdue_occurrences:
+        try:
+            part = await participation_repository.get_by_id(session, occ.participation_id)
+            if part is None or part.status != ParticipationStatus.ACTIVE:
+                continue
+            khatm = await khatm_service.get_khatm(session, part.khatm_id)
+            if khatm is None or khatm.status != KhatmStatus.ACTIVE:
+                continue
+            await _maybe_record_miss_and_notify_creator(session, notify, part, khatm)
+        except Exception:
+            logger.exception("Failed checking miss for occurrence %s", occ.id)
 
 
 async def process_reservation_warnings():
@@ -288,7 +333,10 @@ async def deliver_due_next_portions(
                             from khatmsaz.bot.keyboards import portion_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
                                 session, participation.user_id, text,
-                                portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language),
+                                portion_done_keyboard(
+                                    str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                                    lang=user_settings.language, start=latest_portion.unit_start, end=latest_portion.unit_end,
+                                ),
                                 bot_instance_id=participation.joined_via_bot_instance_id,
                             )
                             if delivered_now:
@@ -313,7 +361,8 @@ async def deliver_due_next_portions(
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
             portion_done_keyboard(
-                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=user_settings.language,
+                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                lang=user_settings.language, start=next_portion.unit_start, end=next_portion.unit_end,
             ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
@@ -355,7 +404,11 @@ async def deliver_due_open_quran_reading(
             continue
         total_pages = content_service.get_quran_total_pages(khatm)
         if participation.open_reading_next_page > total_pages:
-            continue
+            if khatm.repetition_target is None or khatm.repetition_target > total_pages:
+                participation.open_reading_next_page = 1
+                await session.flush()
+            else:
+                continue
 
         preference = await notification_service.get_preference(session, participation.id)
         user_settings = await settings_service.get_or_create(session, participation.user_id)
@@ -479,7 +532,10 @@ async def deliver_due_regular_commitments(
                             from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
                             delivered_now = await _notify_user_with_keyboard(
                                 session, participation.user_id, text,
-                                regular_commitment_done_keyboard(str(participation.id), user_settings.language),
+                                regular_commitment_done_keyboard(
+                                    str(participation.id), user_settings.language, family=family,
+                                    count=count, title=khatm.title,
+                                ),
                                 bot_instance_id=participation.joined_via_bot_instance_id,
                             )
                             if delivered_now:
@@ -510,7 +566,10 @@ async def deliver_due_regular_commitments(
         from khatmsaz.bot.keyboards import regular_commitment_done_keyboard
         delivered_now = await _notify_user_with_keyboard(
             session, participation.user_id, text,
-            regular_commitment_done_keyboard(str(participation.id), user_settings.language),
+            regular_commitment_done_keyboard(
+                str(participation.id), user_settings.language, family=family,
+                count=count, title=khatm.title,
+            ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
         if delivered_now:
@@ -638,7 +697,10 @@ async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_p
         )
         delivered = await _notify_user_with_keyboard(
             session, participation.user_id, text,
-            portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=locale),
+            portion_done_keyboard(
+                str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+                lang=locale, start=portion.unit_start, end=portion.unit_end,
+            ),
             bot_instance_id=participation.joined_via_bot_instance_id,
         )
         if delivered:
@@ -673,7 +735,10 @@ async def _maybe_send_staged_reminder(
     from khatmsaz.bot.keyboards import portion_done_keyboard
     delivered = await _notify_user_with_keyboard(
         session, participation.user_id, text,
-        portion_done_keyboard(str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze), lang=locale),
+        portion_done_keyboard(
+            str(khatm.id), family="quran", allow_snooze=bool(khatm.allow_snooze),
+            lang=locale, start=portion.unit_start, end=portion.unit_end,
+        ),
         bot_instance_id=participation.joined_via_bot_instance_id,
     )
     if delivered:

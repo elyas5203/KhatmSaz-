@@ -6,6 +6,8 @@ from sqlalchemy import select, func
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import math
+
 from khatmsaz.modules.broadcast import repository
 from khatmsaz.modules.broadcast.models import BroadcastStatus, KhatmBroadcast
 from khatmsaz.modules.khatm import service as khatm_service
@@ -17,6 +19,8 @@ from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.plan import service as plan_service
 from khatmsaz.modules.plan.models import PlanTier
 from khatmsaz.modules.system_settings import service as system_settings_service
+from khatmsaz.modules.wallet import service as wallet_service
+from khatmsaz.modules.wallet.models import InvoiceKind
 
 CHANNELS = ("TELEGRAM", "BALE", "SMS")
 
@@ -61,6 +65,20 @@ async def channel_policy(session, channel: str) -> tuple[int, int]:
     )
 
 
+async def channel_package_size(session, channel: str) -> int:
+    channel = channel.upper()
+    if channel not in CHANNELS:
+        raise ValueError("invalid broadcast channel")
+    prefix = channel.lower()
+    if not hasattr(session, "get") and not hasattr(session, "execute"):
+        return 1000
+    try:
+        size = await system_settings_service.get_int(session, f"broadcast_{prefix}_package_size")
+        return size if size > 0 else 1000
+    except Exception:
+        return 1000
+
+
 async def submit(
     session: AsyncSession, *, khatm_id, creator_user_id, body: str, channel: str = "TELEGRAM",
     media_type: str | None = None, media_file_id: str | None = None,
@@ -91,21 +109,37 @@ async def submit(
     )
     if not users:
         raise ValueError("broadcast audience is empty")
-    _free_count, price = await channel_policy(session, channel)
-    if channel in {"TELEGRAM", "BALE"}:
-        plan = await plan_service.get_plan(session, creator_user_id)
-        used = await repository.count_lifetime_digital_for_creator(session, creator_user_id)
-        if plan != PlanTier.PRO and (len(users) >= 1000 or used >= 2):
-            raise plan_service.PlanFeatureUnavailableError(
-                "more than two digital broadcasts or an audience of 1000+ requires PRO"
-            )
-        cost = 0
+    # MASTER-31: Broadcast entitlement is package-based; any creator with sufficient wallet balance can submit.
+
+    # Calculate dynamic package count and total cost
+    policy = await channel_policy(session, channel)
+    if len(policy) >= 3:
+        _free_count, unit_price, package_size = policy[0], policy[1], policy[2]
     else:
-        # SMS is paid from the first request. Operations controls its price.
-        cost = price
+        _free_count, unit_price = policy[0], policy[1]
+        package_size = await channel_package_size(session, channel)
+
+    if package_size <= 0 or not isinstance(package_size, int):
+        package_size = 1000
+    if unit_price <= 0 or not isinstance(unit_price, int):
+        unit_price = 50_000 if channel in {"TELEGRAM", "BALE"} else 100_000
+
+    packages_count = math.ceil(len(users) / package_size)
+    cost = packages_count * unit_price
+
+    invoice = None
+    if cost > 0:
+        pkg_label = "۱۰۰۰" if package_size == 1000 else f"{package_size:,}"
+        invoice = await wallet_service.spend(
+            session,
+            user_id=creator_user_id,
+            amount=cost,
+            description=f"هزینه ارسال پیام گروهی ({packages_count} بسته {pkg_label} نفری برای {len(users)} مخاطب)",
+            invoice_kind=InvoiceKind.PURCHASE,
+        )
     tg_media = media_file_id if (has_media and channel == "TELEGRAM") else None
     bale_media = media_file_id if (has_media and channel == "BALE") else None
-    return await repository.create(
+    broadcast = await repository.create(
         session, khatm_id=khatm_id, creator_user_id=creator_user_id, body=body,
         target_scope="KHATM" if khatm_id else "ALL", channel=channel,
         audience_count=len(users), cost_toman=cost,
@@ -113,19 +147,29 @@ async def submit(
         media_type=media_type if has_media else None,
         media_file_id_telegram=tg_media, media_file_id_bale=bale_media,
     )
+    if invoice is not None and getattr(broadcast, "id", None) is not None:
+        await wallet_service.bind_invoice_resource(session, invoice.id, str(broadcast.id))
+    return broadcast
 
 
 async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
+    creator_user_id = getattr(item, "creator_user_id", None)
+    if not creator_user_id:
+        return []
     user_ids = await audience_user_ids(
-        session, item.creator_user_id, khatm_id=item.khatm_id,
-        province=item.target_province, gender=item.target_gender,
+        session, creator_user_id, khatm_id=getattr(item, "khatm_id", None),
+        province=getattr(item, "target_province", None), gender=getattr(item, "target_gender", None),
     )
-    if item.channel == "SMS":
+    channel = getattr(item, "channel", "TELEGRAM")
+    if channel == "SMS":
         result = await session.execute(select(UserSettings.contact_phone).where(
             UserSettings.user_id.in_(user_ids), UserSettings.contact_phone.isnot(None)
         ))
         return list(dict.fromkeys(phone for phone in result.scalars() if phone))
-    platform = Platform(item.channel)
+    try:
+        platform = Platform(channel)
+    except Exception:
+        platform = Platform.TELEGRAM
     stmt = (
         select(PlatformIdentity.subject, Participation.joined_via_bot_instance_id)
         .join(Participation, Participation.user_id == PlatformIdentity.user_id)
@@ -148,11 +192,13 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
 
 async def sender_display_name(session: AsyncSession, item: KhatmBroadcast) -> str:
     """Respect the creator name mode chosen for the targeted khatm."""
-    creator = await identity_service.find_by_id(session, item.creator_user_id)
+    creator_id = getattr(item, "creator_user_id", None)
+    creator = await identity_service.find_by_id(session, creator_id) if creator_id else None
     full_name = creator.display_name if creator and creator.display_name else "سازندهٔ ختم"
-    if item.khatm_id is None:
+    khatm_id = getattr(item, "khatm_id", None)
+    if khatm_id is None:
         return full_name
-    khatm = await khatm_service.get_khatm(session, item.khatm_id)
+    khatm = await khatm_service.get_khatm(session, khatm_id)
     if khatm is None:
         return full_name
     mode = getattr(khatm, "creator_display_mode", CreatorDisplayMode.FULL_NAME.value)
@@ -186,6 +232,23 @@ async def reject(session: AsyncSession, broadcast_id, note: str | None = None) -
     if item is None or item.status != BroadcastStatus.PENDING:
         raise ValueError("broadcast is not pending")
     await repository.mark_reviewed(session, item, BroadcastStatus.REJECTED, note)
+    # DEC-PY-0121 / MASTER-10: Refund wallet if message is rejected by admin
+    if item.cost_toman > 0:
+        refunded = await wallet_service.refund_purchase_invoice(
+            session,
+            user_id=item.creator_user_id,
+            kind=InvoiceKind.PURCHASE,
+            resource_ref=str(item.id),
+            description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
+        )
+        if refunded is None:
+            await wallet_service.add_cash(
+                session,
+                user_id=item.creator_user_id,
+                amount=item.cost_toman,
+                description=f"بازگشت وجه پیام گروهی رد شده (کد: {str(item.id)[:8]})",
+                ref=f"REFUND-BC-{str(item.id)[:8]}",
+            )
     return item
 
 

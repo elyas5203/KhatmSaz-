@@ -55,7 +55,7 @@ def resolve_bot_category(
     if khatm.template_type in (KhatmTemplateType.DUA, KhatmTemplateType.ZIYARAT):
         return BotCategory.DUA_ZIYARAT
 
-    if category and category.group == KhatmCategoryGroup.DUA:
+    if category and category.group in (KhatmCategoryGroup.DUA, KhatmCategoryGroup.KHUTBAH):
         return BotCategory.DUA_ZIYARAT
 
     return BotCategory.SALAWAT
@@ -103,6 +103,7 @@ async def get_intro_image_for_category(
         BotCategory.SALAWAT.value: "intro_image_salawat",
         BotCategory.DUA_ZIYARAT.value: "intro_image_dua_ziyarat",
         BotCategory.LAAN.value: "intro_image_laan",
+        BotCategory.KHUTBAH.value: "intro_image_khutbah",
     }.get(category)
     if shared_key:
         shared = await system_settings_service.get_str(session, shared_key)

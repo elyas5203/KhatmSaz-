@@ -39,7 +39,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "share.pages": {"fa": "📖 سهم شما از «{title}»: صفحات {pages}", "ar": "📖 حصتك من «{title}»: الصفحات {pages}", "en": "📖 Your share in “{title}”: pages {pages}"},
     "share.amount": {"fa": "🌱 سهم شما از «{title}»: {amount}", "ar": "🌱 حصتك من «{title}»: {amount}", "en": "🌱 Your share in “{title}”: {amount}"},
     "share.followup": {"fa": "⏳ دو ساعت از دریافت این سهم گذشته است. پس از خواندن، انجامش را ثبت کنید؛ تعهد شما تا انجام باقی می‌ماند.", "ar": "⏳ مضت ساعتان على استلام هذه الحصة. سجّل إتمامها بعد القراءة؛ يبقى الالتزام حتى إتمامها.", "en": "⏳ You received this share two hours ago. Confirm it after reading; your commitment remains until completed."},
-    "share.deadline": {"fa": "⏰ کمتر از یک ساعت تا پایان زمان امروز مانده است. لطفاً سهمتان را بخوانید و ثبت کنید تا تعهد انجام‌نشده‌ای باقی نماند.", "ar": "⏰ بقي أقل من ساعة على نهاية وقت اليوم. يرجى قراءة حصتك وتسجيلها كي لا يبقى الالتزام غير مكتمل.", "en": "⏰ Less than an hour remains before today’s deadline. Please read and confirm your share; unfinished commitments remain due."},
+    "share.deadline": {"fa": "🌱 ۲ ساعت تا پایان مهلت امروز باقی مانده است؛ لطفاً در صورت امکان سهم امروز خود را بخوانید و ثبت کنید تا دور ختم با تأخیر مواجه نشود.", "ar": "🌱 بقي ساعتان على نهاية مهلة اليوم؛ يرجى قراءة حصتكم وتسجيلها إن أمكن كي لا يتأخر الختم.", "en": "🌱 2 hours remain before today’s deadline; please read and confirm your share if possible so the khatm round is not delayed."},
     "commit.ask_count.quran": {
         "fa": "چند صفحه می‌خواهید یک‌جا دریافت کنید؟",
         "ar": "كم صفحة تريد استلامها في هذه الحصة؟",
@@ -71,6 +71,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة يقرأ كل عضو الدعاء أو الزيارة يومياً؟ مثلاً مرة واحدة.",
         "en": "How many times daily? (e.g. 1)"
     },
+    "create_khatm.ask_daily_khutbah": {
+        "fa": "هر عضو خطبه را روزانه چند بخش بخواند؟ مثلاً ۱ بخش.",
+        "ar": "كم قسماً من الخطبة يقرأ كل عضو يومياً؟ مثلاً قسم واحد.",
+        "en": "How many sections daily? (e.g. 1)"
+    },
     "days.monday": {"fa": "دوشنبه", "ar": "الاثنين", "en": "Mon"},
     "days.tuesday": {"fa": "سه‌شنبه", "ar": "الثلاثاء", "en": "Tue"},
     "days.wednesday": {"fa": "چهارشنبه", "ar": "الأربعاء", "en": "Wed"},
@@ -92,6 +97,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "commit.unit.salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "commit.unit.dua": {"fa": "مرتبه", "ar": "مرة", "en": "times"},
+    "commit.unit.khutbah": {"fa": "بخش", "ar": "قسم", "en": "section"},
 
 
     "portions.open_reservation_warning": {
@@ -126,9 +132,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
 
     "menu.today": {
-        "fa": "📖 انجام قرائت امروز",
-        "ar": "📖 إنجاز قراءة اليوم",
-        "en": "📖 Complete today's reading",
+        "fa": "📖 دریافت سهم قرائت",
+        "ar": "📖 استلام حصة القراءة",
+        "en": "📖 Receive Recitation Portion",
     },
     "menu.my_khatms": {"fa": "🕋 لیست ختم‌های من", "ar": "🕋 قائمة ختماتي", "en": "🕋 My Khatms List"},
     "menu.report": {"fa": "📈 گزارش عملکرد من", "ar": "📈 تقرير أدائي", "en": "📈 My Performance"},
@@ -238,9 +244,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "📱 Share my phone number",
     },
     "registration.shared_phone_invalid": {
-        "fa": "شمارهٔ اشتراک‌گذاری‌شده معتبر نیست؛ لطفاً شماره را با کد کشور بنویسید.",
-        "ar": "الرقم المشارك غير صالح؛ اكتبه مع رمز الدولة.",
-        "en": "The shared number is not valid. Please type it with the country code.",
+        "fa": "شمارهٔ خودتان ثبت نشد. لطفاً دکمهٔ «اشتراک‌گذاری شماره من» را بزنید و شمارهٔ خودتان را بفرستید.",
+        "ar": "لم يُسجَّل رقمك. اضغط زر مشاركة رقمي وأرسل رقمك أنت.",
+        "en": "Your number was not saved. Please use Share my phone number to send your own number.",
     },
     "registration.phone_invalid": {
         "fa": "لطفاً یک شماره موبایل معتبر بنویسید یا از دکمه اشتراک‌گذاری استفاده کنید.",
@@ -310,19 +316,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Your profile was updated successfully ✅",
     },
     "help.home": {
-        "fa": "📖 <b>راهنمای ختم‌ساز</b>\n\nلازم نیست دستوری حفظ کنید؛ موضوع موردنظرتان را از دکمه‌های زیر انتخاب کنید.\n\nختم می‌تواند «تعهدی» باشد؛ یعنی سهم پذیرفته‌شده باید انجام شود، یا «آزاد» باشد؛ یعنی هرکس بدون تعهد هر مقدار که خواست مشارکت می‌کند. عمومی یا خصوصی بودن فقط روش ورود اعضا را مشخص می‌کند.\n\nبرای دریافت زودتر سهم همان روز، «📖 انجام قرائت امروز» را بزنید.",
-        "ar": "❓ دليل ختم‌ساز\n\nلا تحتاج إلى حفظ الأوامر. اختر الموضوع المطلوب من الأزرار أدناه؛ كل قسم مشروح خطوة بخطوة.\n\nلقراءة حصة اليوم مبكراً اضغط «📖 إنجاز قراءة اليوم» من القائمة السفلية.",
-        "en": "❓ KhatmSaz Guide\n\nYou do not need to memorize commands. Choose a topic with the buttons below; every section is explained step by step.\n\nTo read today's portion early, tap “📖 Complete today's reading” in the bottom menu.",
+        "fa": "📖 <b>راهنمای ختم‌ساز</b>\n\nلازم نیست دستوری حفظ کنید؛ موضوع موردنظرتان را از دکمه‌های زیر انتخاب کنید.\n\nختم می‌تواند «تعهدی» باشد؛ یعنی سهم پذیرفته‌شده باید انجام شود، یا «آزاد» باشد؛ یعنی هرکس بدون تعهد هر مقدار که خواست مشارکت می‌کند. عمومی یا خصوصی بودن فقط روش ورود اعضا را مشخص می‌کند.\n\nبرای دریافت زودتر سهم همان روز، «📖 اعلام انجام قرائت امروز» را بزنید.",
+        "ar": "❓ دليل ختم‌ساز\n\nلا تحتاج إلى حفظ الأوامر. اختر الموضوع المطلوب من الأزرار أدناه؛ كل قسم مشروح خطوة بخطوة.\n\nلقراءة حصة اليوم مبكراً اضغط «📖 إعلان إنجاز قراءة اليوم» من القائمة السفلية.",
+        "en": "❓ KhatmSaz Guide\n\nYou do not need to memorize commands. Choose a topic with the buttons below; every section is explained step by step.\n\nTo read today's portion early, tap “📖 Report Today's Recitation” in the bottom menu.",
     },
     "help.join": {
-        "fa": "👋 شروع و عضویت در یک ختم\n\n۱) لینکی را که سازنده برایتان فرستاده باز کنید.\n۲) اگر اولین بار است، بات نام، شماره موبایل، استان، شهر و جنسیت را مرحله‌به‌مرحله می‌پرسد.\n۳) تنظیم‌های همان ختم را روی یک پیام انتخاب می‌کنید و عضویتتان کامل می‌شود.\n۴) اگر ختم خصوصی باشد، درخواست برای سازنده می‌رود و بعد از تأیید به شما خبر داده می‌شود.\n\nبعد از عضویت، از «📖 انجام قرائت امروز» یک ختم را انتخاب کنید تا سهم همان روز زودتر برایتان فرستاده شود.",
-        "ar": "👋 البدء والانضمام إلى ختمة\n\n١) افتح الرابط الذي أرسله منشئ الختمة.\n٢) سترى التفاصيل أولاً؛ فتح الرابط وحده لا يعني أنك انضممت.\n٣) اضغط زر الانضمام. في المرة الأولى يسألك البوت عن الاسم والهاتف والمحافظة والمدينة والجنس خطوة بخطوة.\n٤) في الختمة الملتزمة، اقرأ التعهد القصير ولا تؤكده إلا إذا قبلته.\n٥) إذا كانت الختمة خاصة، ينتظر طلبك موافقة المنشئ وسيصلك إشعار بعدها.\n\nبعد الانضمام تجد حصصك دائماً في «📖 إنجاز قراءة اليوم» و«🕋 ختماتي».",
-        "en": "👋 Starting and joining a khatm\n\n1) Open the invite link sent by the creator.\n2) You first see the khatm details; opening the link alone does not join you.\n3) Tap the join button. On your first time, the bot asks for your name, phone, province, city, and gender step by step.\n4) For a commitment khatm, read the short pledge and confirm only if you accept it.\n5) For a private khatm, your request waits for the creator's approval and you are notified afterward.\n\nAfter joining, your portions are always available under “📖 Complete today's reading” and “🕋 My Khatms”.",
+        "fa": "👋 شروع و عضویت در یک ختم\n\n۱) لینکی را که سازنده برایتان فرستاده باز کنید.\n۲) اگر اولین بار است، بات نام، شماره موبایل، استان، شهر و جنسیت را مرحله‌به‌مرحله می‌پرسد.\n۳) تنظیم‌های همان ختم را روی یک پیام انتخاب می‌کنید و عضویتتان کامل می‌شود.\n۴) اگر ختم خصوصی باشد، درخواست برای سازنده می‌رود و بعد از تأیید به شما خبر داده می‌شود.\n\nبعد از عضویت، از «📖 اعلام انجام قرائت امروز» یک ختم را انتخاب کنید تا سهم همان روز زودتر برایتان فرستاده شود.",
+        "ar": "👋 البدء والانضمام إلى ختمة\n\n١) افتح الرابط الذي أرسله منشئ الختمة.\n٢) سترى التفاصيل أولاً؛ فتح الرابط وحده لا يعني أنك انضممت.\n٣) اضغط زر الانضمام. في المرة الأولى يسألك البوت عن الاسم والهاتف والمحافظة والمدينة والجنس خطوة بخطوة.\n٤) في الختمة الملتزمة، اقرأ التعهد القصير ولا تؤكده إلا إذا قبلته.\n٥) إذا كانت الختمة خاصة، ينتظر طلبك موافقة المنشئ وسيصلك إشعار بعدها.\n\nبعد الانضمام تجد حصصك دائماً في «📖 إعلان إنجاز قراءة اليوم» و«🕋 ختماتي».",
+        "en": "👋 Starting and joining a khatm\n\n1) Open the invite link sent by the creator.\n2) You first see the khatm details; opening the link alone does not join you.\n3) Tap the join button. On your first time, the bot asks for your name, phone, province, city, and gender step by step.\n4) For a commitment khatm, read the short pledge and confirm only if you accept it.\n5) For a private khatm, your request waits for the creator's approval and you are notified afterward.\n\nAfter joining, your portions are always available under “📖 Report Today's Recitation” and “🕋 My Khatms”.",
     },
     "help.portion": {
-        "fa": "📖 دیدن و انجام سهم\n\n۱) در منوی پایین «📖 انجام قرائت امروز» را بزنید.\n۲) زیر سهم قرآن روی «📖 نمایش محتوای سهم» بزنید تا تصویر صفحه‌ها ارسال شود.\n۳) اگر صوت را روشن کرده باشید، تلاوت همان بازه هم می‌آید. بعضی فایل‌های کانال دو یا سه صفحه را یکجا دارند.\n۴) بعد از خواندن فقط یک بار «✅ انجام دادم» را بزنید؛ تأیید دوم لازم نیست.\n۵) اگر اشتباه زدید، تا پنج دقیقه می‌توانید آخرین ثبت را برگردانید.\n\nبرای ختم آزاد، مقدار انجام‌شده را وارد می‌کنید. در ختم تعهدی می‌توانید مقدار را یک‌جا یا چند مرحله ثبت کنید.",
-        "ar": "📖 عرض الحصة وإتمامها\n\n١) اضغط «📖 إنجاز قراءة اليوم» في القائمة السفلية.\n٢) تحت حصة القرآن اضغط زر عرض المحتوى لتصلك صور الصفحات.\n٣) إذا فعّلت الصوت يصلك تلاوة النطاق نفسه؛ وقد يغطي ملف واحد صفحتين أو ثلاثاً.\n٤) بعد القراءة اضغط «✅ أنجزت» مرة واحدة فقط.\n٥) إذا ضغطت بالخطأ يمكنك التراجع عن آخر تسجيل خلال خمس دقائق.\n\nفي الختمة المفتوحة تُدخل الكمية المنجزة، وفي الملتزمة يمكنك تسجيلها دفعة واحدة أو على مراحل.",
-        "en": "📖 Viewing and completing a portion\n\n1) Tap “📖 Complete today's reading” in the bottom menu.\n2) Under a Quran portion, tap the content button to receive the page images.\n3) If audio is enabled, the matching recitation is sent too; one channel file may cover two or three pages.\n4) After reading, tap “✅ Done” only once.\n5) If you tap by mistake, you can undo the latest completion for five minutes.\n\nFor an open khatm, enter the amount completed. For a commitment khatm, you may record it all at once or in several steps.",
+        "fa": "📖 دیدن و انجام سهم\n\n۱) در منوی پایین «📖 اعلام انجام قرائت امروز» را بزنید.\n۲) زیر سهم قرآن روی «📖 نمایش محتوای سهم» بزنید تا تصویر صفحه‌ها ارسال شود.\n۳) اگر صوت را روشن کرده باشید، تلاوت همان بازه هم می‌آید. بعضی فایل‌های کانال دو یا سه صفحه را یکجا دارند.\n۴) بعد از خواندن فقط یک بار «✅ اعلام انجام قرائت» را بزنید؛ تأیید دوم لازم نیست.\n۵) اگر اشتباه زدید، تا پنج دقیقه می‌توانید آخرین ثبت را برگردانید.\n\nبرای ختم آزاد، مقدار انجام‌شده را وارد می‌کنید. در ختم تعهدی می‌توانید مقدار را یک‌جا یا چند مرحله ثبت کنید.",
+        "ar": "📖 عرض الحصة وإتمامها\n\n١) اضغط «📖 إعلان إنجاز قراءة اليوم» في القائمة السفلية.\n٢) تحت حصة القرآن اضغط زر عرض المحتوى لتصلك صور الصفحات.\n٣) إذا فعّلت الصوت يصلك تلاوة النطاق نفسه؛ وقد يغطي ملف واحد صفحتين أو ثلاثاً.\n٤) بعد القراءة اضغط «✅ إعلان إنجاز القراءة» مرة واحدة فقط.\n٥) إذا ضغطت بالخطأ يمكنك التراجع عن آخر تسجيل خلال خمس دقائق.\n\nفي الختمة المفتوحة تُدخل الكمية المنجزة، وفي الملتزمة يمكنك تسجيلها دفعة واحدة أو على مراحل.",
+        "en": "📖 Viewing and completing a portion\n\n1) Tap “📖 Report Today's Recitation” in the bottom menu.\n2) Under a Quran portion, tap the content button to receive the page images.\n3) If audio is enabled, the matching recitation is sent too; one channel file may cover two or three pages.\n4) After reading, tap “✅ Report reading done” only once.\n5) If you tap by mistake, you can undo the latest completion for five minutes.\n\nFor an open khatm, enter the amount completed. For a commitment khatm, you may record it all at once or in several steps.",
     },
     "help.create": {
         "fa": "➕ ساخت یک ختم جدید\n\n۱) در بات ختم‌ساز «➕ ساخت ختم جدید» را بزنید و در صورت نیاز مشخصات و تأیید شماره را کامل کنید.\n۲) خانوادهٔ محتوا، آزاد یا تعهدی بودن و تنظیم‌های مرتبط را مرحله‌به‌مرحله انتخاب کنید. عنوان مناسب خودکار ساخته می‌شود و با «مرحلهٔ قبل» می‌توانید انتخاب‌ها را اصلاح کنید.\n۳) پیش از ساخت، خلاصه و هزینهٔ نهایی را می‌بینید؛ تا تأیید نهایی چیزی ساخته یا کم نمی‌شود.\n۴) بعد از ساخت، لینک اختصاصی را برای مخاطبانتان بفرستید.\n\nاگر دعای موردنظر در فهرست نیست، «درخواست نوع ختم جدید» را بزنید.",
@@ -340,9 +346,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "⚙️ Personal settings\n\nUse buttons here to manage language, reminder time, timezone, SMS, profile, phone, and previous-account linking. Creators can also open their panel from this page.\n\nEssential commitment reminders stay enabled so accepted shares are not forgotten. Quran audio is available from the Quran portion-content guide.",
     },
     "help.manage": {
-        "fa": "🧭 مدیریت ختمی که ساخته‌اید\n\n۱) «📊 پنل سازنده» را باز کنید؛ لینک دعوت، QR، آمار، اعضا، موارد نیازمند توجه و CSV آنجاست.\n۲) از «ختم‌های من» می‌توانید عنوان، خوش‌آمد، نمایش عمومی، پیام‌رسان‌های مجاز، لحن یادآوری، مهلت و افزایش امن هدف را ویرایش کنید. کاهش هدف و تغییر ساختار قرآن برای حفظ سابقه بسته است.\n۳) پیام گروهی متنی، عکس، فیلم یا ویس پس از تأیید محتوا ارسال می‌شود و می‌تواند بر اساس ختم، استان و جنسیت فیلتر شود.\n۴) لغو ختم پولی فقط پیش از ورود اولین عضو با بازپرداخت داخلی ممکن است.\n\nاطلاعات اعضا خصوصی است و فقط سازندهٔ همان ختم و مدیر مجاز آن را می‌بینند.",
-        "ar": "🧭 إدارة ختمة أنشأتها\n\n١) افتح لوحة المنشئ للوصول إلى رابط الدعوة وQR والإحصاءات والأعضاء والتنبيهات وCSV.\n٢) من ختماتي يمكنك تعديل العنوان والترحيب والظهور والمنصات ونبرة التذكير والمهلة وزيادة الهدف بأمان. خفض الهدف وتغيير بنية القرآن مغلقان لحماية السجل.\n٣) تُرسل الرسائل النصية أو الصور أو الفيديو أو الصوت بعد مراجعة المحتوى، مع تصفية حسب الختمة والمحافظة والجنس.\n٤) استرداد إلغاء الختمة المدفوعة متاح فقط قبل انضمام أول عضو.\n\nبيانات الأعضاء خاصة بالمنشئ والمدير المصرح.",
-        "en": "🧭 Managing a khatm you created\n\n1) Open the Creator Panel for the invite link, QR, statistics, members, attention items, and CSV.\n2) My Khatms lets you edit title, welcome, visibility, allowed platforms, reminder tone, deadline, and safe goal increases. Goal decreases and Quran restructuring stay locked to protect history.\n3) Text, photo, video, or voice broadcasts are sent after content approval and can target by khatm, province, and gender.\n4) A paid khatm can be cancelled with an internal refund only before the first member joins.\n\nMember data is private to that khatm's creator and authorized admins.",
+        "fa": "🧭 مدیریت ختمی که ساخته‌اید\n\n۱) «📊 پنل سازنده» را باز کنید؛ لینک دعوت، QR، آمار، اعضا، موارد نیازمند توجه و CSV آنجاست.\n۲) از «ختم‌های من» می‌توانید عنوان، خوش‌آمد، نمایش عمومی، پیام‌رسان‌های مجاز، لحن یادآوری، مهلت و افزایش امن هدف را ویرایش کنید. کاهش هدف و تغییر ساختار قرآن برای حفظ سابقه بسته است.\n۳) پیام گروهی متنی، عکس، فیلم یا ویس پس از تأیید محتوا ارسال می‌شود و می‌تواند بر اساس ختم، استان و جنسیت فیلتر شود.\n۴) در صورت عدم توانایی در مدیریت، می‌توانید طبق قانون ۵ مدیریت ختم را به پشتیبانی خدمتگزاران تک واگذار کنید تا اعضا به ختم خود ادامه دهند.\n\nاطلاعات اعضا خصوصی است و فقط سازندهٔ همان ختم و مدیر مجاز آن را می‌بینند.",
+        "ar": "🧭 إدارة ختمة أنشأتها\n\n١) افتح لوحة المنشئ للوصول إلى رابط الدعوة وQR والإحصاءات والأعضاء والتنبيهات وCSV.\n٢) من ختماتي يمكنك تعديل العنوان والترحيب والظهور والمنصات ونبرة التذكير والمهلة وزيادة الهدف بأمان. خفض الهدف وتغيير بنية القرآن مغلقان لحماية السجل.\n٣) تُرسل الرسائل النصية أو الصور أو الفيديو أو الصوت بعد مراجعة المحتوى، مع تصفية حسب الختمة والمحافظة والجنس.\n٤) في حال عدم القدرة على إدارة الختمة، يمكنك نقل إدارتها إلى دعم خدمة تك ليتمكن الأعضاء من مواصلة الختمة.\n\nبيانات الأعضاء خاصة بالمنشئ والمدير المصرح.",
+        "en": "🧭 Managing a khatm you created\n\n1) Open the Creator Panel for the invite link, QR, statistics, members, attention items, and CSV.\n2) My Khatms lets you edit title, welcome, visibility, allowed platforms, reminder tone, deadline, and safe goal increases. Goal decreases and Quran restructuring stay locked to protect history.\n3) Text, photo, video, or voice broadcasts are sent after content approval and can target by khatm, province, and gender.\n4) If unable to continue managing the khatm, you can transfer management to Tak support per Rule 5 so members can continue reciting.\n\nMember data is private to that khatm's creator and authorized admins.",
     },
     "help.button.join": {"fa": "👋 شروع و عضویت", "ar": "👋 البدء والانضمام", "en": "👋 Start and Join"},
     "help.button.portion": {"fa": "📖 سهم و انجام", "ar": "📖 الحصة والإنجاز", "en": "📖 Portions and Completion"},
@@ -377,6 +383,9 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "create_khatm.category_prompt.LAAN": {
         "fa": "کدام لعن را می‌خواهید؟", "ar": "أي لعن تريد؟", "en": "Which la'an do you want?",
+    },
+    "create_khatm.category_prompt.KHUTBAH": {
+        "fa": "کدام خطبه را می‌خواهید؟", "ar": "أي خطبة تريد؟", "en": "Which khutbah do you want?",
     },
     "create_khatm.category_empty": {
         "fa": "هنوز گزینه‌ای در این بخش فعال نشده است. مدیریت باید ابتدا زیرمجموعه‌های این بخش را اضافه کند.",
@@ -493,6 +502,22 @@ _STRINGS: dict[str, dict[str, str]] = {
             "as they want until the khatm's total goal is reached."
         ),
     },
+    "create_khatm.mode_explanation.khutbah": {
+        "fa": (
+            "🔒 <b>تعهدی:</b> بخش‌های مشخص‌شده از خطبه سر ساعت انتخابی مخاطب با صوت و متن ارسال می‌شود "
+            "تا به یک روتین منظم تبدیل شود و متعهد به قرائت آن در مهلت روزانه است تا دور خطبه کامل شود.\n\n"
+            "🌿 <b>آزاد:</b> ارسال منظم ساعتی ندارد؛ هرکس هر زمان خواست وارد بات می‌شود، بخش‌های خطبه را می‌خواند "
+            "و ثبت می‌کند."
+        ),
+        "ar": (
+            "🔒 <b>ملتزمة:</b> تُرسل أقسام محددة من الخطبة بالصوت والنص في الوقت المحدد.\n\n"
+            "🌿 <b>مفتوحة:</b> لا يوجد التزام؛ يقرأ العضو في أي وقت يشاء."
+        ),
+        "en": (
+            "🔒 <b>Commitment:</b> specific sections of the Khutbah are sent with audio and text at the chosen hour.\n\n"
+            "🌿 <b>Open:</b> no scheduled delivery; members read at their own pace."
+        ),
+    },
     "create_khatm.ask_mode": {
         "fa": "این ختم تعهدی باشه یا آزاد؟\n\n{explanation}",
         "ar": "هل تكون هذه الختمة ملتزمة أم مفتوحة؟\n\n{explanation}",
@@ -595,6 +620,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "ar": "كم مرة ستقرأ اللعن؟ اكتب العدد.",
         "en": "How many la'an recitations will you make? Type a number.",
     },
+    "commit.ask_count.khutbah": {
+        "fa": "چند بخش از خطبه را می‌خواهید بخوانید؟ عدد را بنویسید (مثلاً ۱ یا ۲).",
+        "ar": "كم قسماً من الخطبة تريد أن تقرأ؟ اكتب العدد (مثلاً 1).",
+        "en": "How many sections of the Khutbah will you read? Type a number (e.g. 1).",
+    },
     "commit.ask_count_invalid": {
         "fa": "یک عدد درست بنویس (مثلاً 100).",
         "ar": "اكتب عددًا صحيحًا (مثلاً 100).",
@@ -608,7 +638,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "commit.period.day": {"fa": "روز", "ar": "يوم", "en": "day"},
     "commit.period.week": {"fa": "هفته", "ar": "أسبوع", "en": "week"},
     "commit.period.month": {"fa": "ماه", "ar": "شهر", "en": "month"},
-    "commit.period.these_days": {"fa": "روز انتخاب‌شده", "ar": "يوم محدد", "en": "selected day"},
+    "commit.period.these_days": {"fa": "روزهای انتخابی", "ar": "الأيام المحددة", "en": "selected days"},
     "commit.ask_weekdays": {
         "fa": "کدام روزهای هفته؟ روزهای موردنظر را بزنید (می‌توانید چند روز انتخاب کنید) و بعد «تأیید روزها» را بزنید.",
         "ar": "أي أيام الأسبوع؟ اختر الأيام (يمكن اختيار عدة أيام) ثم اضغط «تأكيد الأيام».",
@@ -635,6 +665,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "در هر {period} چه تعداد لعن می‌فرستید؟ عدد را بنویسید.",
         "ar": "كم مرة ستقرأ اللعن في كل {period}؟ اكتب العدد.",
         "en": "How many la'an recitations per {period}? Type a number.",
+    },
+    "commit.ask_times_per_period.khutbah": {
+        "fa": "چند بخش از خطبه را می‌خواهید در {period} بخوانید؟ عدد را بنویسید (مثلاً ۱ یا ۲). اگر چند روز انتخاب کرده‌اید، این عدد برای هر یک از آن روزهاست.",
+        "ar": "كم قسماً من الخطبة تريد أن تقرأ في {period}؟ اكتب العدد (مثلاً 1).",
+        "en": "How many sections of the Khutbah will you read in {period}? Type a number (e.g. 1).",
     },
     "commit.hour.custom": {
         "fa": "🕒 ساعت دلخواه (مثلاً 13:25)",
@@ -688,7 +723,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "🏠 منوی اصلی", "ar": "🏠 القائمة الرئيسية", "en": "🏠 Main menu",
     },
     "commit.regular.done_button": {
-        "fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت حصتي", "en": "✅ Mark share done",
+        "fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report reading done",
     },
     "commit.regular.done_confirmed": {
         "fa": "✅ قرائت شما ({count} مرتبه) در سیستم ثبت شد و شما در ثواب این ختم شریک شدید.\n\nبا تشکر 🌱",
@@ -732,7 +767,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم قرآن برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة القرآن لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Quran Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -741,7 +776,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم صلوات برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة الصلوات لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Salawat Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -750,7 +785,7 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم دعا و زیارت برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة الدعاء والزيارة لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “Dua and Ziyarat Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
@@ -759,10 +794,19 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": (
             "مخاطبان شما وارد بات «ختم لعن برای صاحب‌الزمان» می‌شوند.\n"
             "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
-            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم فلانی به نیت فرج امام زمان عجل الله...)"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
         ),
         "ar": "يدخل جمهورك إلى بوت «ختمة اللعن لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
         "en": "Your audience enters the “La'an Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
+    },
+    "intro.image_caption.KHUTBAH": {
+        "fa": (
+            "مخاطبان شما وارد بات «ختم خطبه برای صاحب‌الزمان» می‌شوند.\n"
+            "همهٔ ختم‌ها به نیت ظهور امام زمان عجل الله تعالی فرجه الشریف برگزار می‌شوند 🌱\n"
+            "(البته می‌توانید نیابت خاص هم برای ختم مشخص کنید؛ مثلاً: به نیابت از مرحوم مادرم به نیت فرج امام زمان عجل الله...)"
+        ),
+        "ar": "يدخل جمهورك إلى بوت «ختمة الخطبة لصاحب الزمان».\nجميع الختمات بنية ظهور الإمام المهدي عجل الله تعالى فرجه الشريف 🌱",
+        "en": "Your audience enters the “Khutbah Khatm for Sahib al-Zaman” bot.\nEvery khatm is dedicated to the reappearance of Imam Mahdi (AJ) 🌱",
     },
     "reminder.regular_commitment": {
         "fa": "🌱 وقت خواندن سهم شما از «{title}» است: {count} مرتبه.",
@@ -795,6 +839,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "\n\nمثلاً: «این لعن را به نیت ظهور امام زمان علیه‌السلام می‌خوانیم».",
         "ar": "\n\nمثلاً: «نقول هذا اللعن بنية الفرج».",
         "en": "\n\nExample: “We're reciting this la'an with the intention of a swift relief.”",
+    },
+    "create_khatm.welcome_example.khutbah": {
+        "fa": "\n\nمثلاً: «این خطبه را به نیت نشر معارف اهل‌بیت علیهم‌السلام می‌خوانیم».",
+        "ar": "\n\nمثلاً: «نقرأ هذه الخطبة بنية نشر معارف أهل البيت عليهم السلام».",
+        "en": "\n\nExample: “We are reciting this Khutbah for the knowledge of Ahl al-Bayt.”",
     },
     "create_khatm.welcome_suffix": {
         "fa": "\n\n(اختیاری، حداکثر ۵۰۰ کاراکتر؛ اگه نمی‌خواید چیزی بنویسید، دکمهٔ رد کردن رو بزنید):",
@@ -848,6 +897,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "هدف کل این ختم چه تعداد لعن باشد؟ سهم روزانه/هفتگی/ماهانه را هر مخاطب برای خودش انتخاب می‌کند.\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش تعداد هست:",
         "ar": "كم يكون مجموع اللعن في هذه الختمة؟",
         "en": "What should the total la'an goal be?",
+    },
+    "create_khatm.ask_commitment_total.khutbah": {
+        "fa": "این خطبه در مجموع چند دور کامل ختم شود؟\n\nبا تمام‌شدن ختم، مخاطبان نمی‌توانند ادامه دهند؛ اما در آینده امکان افزایش دورها هست:",
+        "ar": "كم دورة كاملة تُختم هذه الخطبة إجمالاً؟",
+        "en": "How many complete cycles of this Khutbah should be completed in total?",
     },
     "create_khatm.commitment_total.custom": {
         "fa": "🔢 عدد دلخواه", "ar": "🔢 رقم مخصص", "en": "🔢 Custom number",
@@ -948,6 +1002,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "create_khatm.group_label.SALAWAT": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "create_khatm.group_label.DUA": {"fa": "دعا یا زیارت", "ar": "دعاء أو زيارة", "en": "Dua or Ziyarat"},
     "create_khatm.group_label.LAAN": {"fa": "لعن", "ar": "لعن", "en": "La'an"},
+    "create_khatm.group_label.KHUTBAH": {"fa": "خطبه", "ar": "خطبة", "en": "Khutbah"},
     "create_khatm.group_label.generic": {"fa": "ذکر شمارشی", "ar": "ذكر عدّي", "en": "Countable recitation"},
     "create_khatm.group_label.quran": {"fa": "قرآن", "ar": "القرآن", "en": "Quran"},
     "create_khatm.progress.header": {"fa": "📋 انتخاب‌های شما تا اینجا:", "ar": "📋 اختياراتك حتى الآن:", "en": "📋 Your choices so far:"},
@@ -1269,19 +1324,20 @@ _STRINGS: dict[str, dict[str, str]] = {
     "my_khatms.category.salawat": {"fa": "🕊 صلوات", "ar": "🕊 الصلوات", "en": "🕊 Salawat"},
     "my_khatms.category.dua": {"fa": "🤲 دعا و زیارت", "ar": "🤲 الدعاء والزيارة", "en": "🤲 Dua & Ziyarat"},
     "my_khatms.category.laan": {"fa": "⚔️ لعن", "ar": "⚔️ اللعن", "en": "⚔️ La'an"},
+    "my_khatms.category.khutbah": {"fa": "📜 خطبه", "ar": "📜 الخطبة", "en": "📜 Khutbah"},
     "my_khatms.button.back": {"fa": "🔙 بازگشت", "ar": "🔙 رجوع", "en": "🔙 Back"},
     # --- portions.py (2026-09-20) ---
     "portions.unit.page": {"fa": "صفحه", "ar": "صفحة", "en": "page"},
-    "portions.button.contribute": {"fa": "✅ انجام سهم", "ar": "✅ إنجاز الحصة", "en": "✅ Complete share"},
+    "portions.button.contribute": {"fa": "📿 دریافت سهم قرائت", "ar": "📿 استلام حصة القراءة", "en": "📿 Receive reading share"},
     "portions.button.show_content": {
         "fa": "📖 نمایش محتوای سهم", "ar": "📖 عرض محتوى الحصة", "en": "📖 Show portion content",
     },
-    "portions.button.done": {"fa": "✅ قرائت بخش فوق انجام شد", "ar": "✅ أنجزت", "en": "✅ I did it"},
-    "portions.button.done.quran": {"fa": "✅ قرائت صفحات انجام شد", "ar": "✅ تمّت القراءة", "en": "✅ Pages Read"},
-    "portions.button.done.salawat": {"fa": "✅ صلوات‌ها فرستاده شد", "ar": "✅ تمّت الصلاة", "en": "✅ Salawat Sent"},
-    "portions.button.done.dua": {"fa": "✅ قرائت دعا / زیارت انجام شد", "ar": "✅ تمّت القراءة", "en": "✅ Dua Recited"},
-    "portions.button.done.laan": {"fa": "✅ ذکر لعن انجام شد", "ar": "✅ تمّ الذكر", "en": "✅ La'an Recited"},
-    "portions.button.done.khutbah": {"fa": "✅ استماع / قرائت بخش انجام شد", "ar": "✅ تم الاستماع / القراءة", "en": "✅ Khutbah Completed"},
+    "portions.button.done": {"fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report reading done"},
+    "portions.button.done.quran": {"fa": "✅ اعلام انجام قرائت صفحات", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report pages read"},
+    "portions.button.done.salawat": {"fa": "✅ اعلام انجام صلوات‌ها", "ar": "✅ إعلان إنجاز الصلاة", "en": "✅ Report salawat sent"},
+    "portions.button.done.dua": {"fa": "✅ اعلام انجام قرائت دعا / زیارت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report dua recited"},
+    "portions.button.done.laan": {"fa": "✅ اعلام انجام ذکر لعن", "ar": "✅ إعلان إنجاز الذكر", "en": "✅ Report la'an recited"},
+    "portions.button.done.khutbah": {"fa": "✅ اعلام انجام قرائت", "ar": "✅ إعلان إنجاز القراءة", "en": "✅ Report recitation done"},
     "portions.button.snooze": {"fa": "⏰ تعویق یادآوری", "ar": "⏰ تأجيل التذكير", "en": "⏰ Snooze reminder"},
     "portions.button.undo": {
         "fa": "↩️ لغو آخرین ثبت (تا ۵ دقیقه)", "ar": "↩️ تراجع عن آخر تسجيل (خلال ۵ دقائق)",
@@ -1495,6 +1551,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "ck.tpl.salawat": {"fa": "📿 ختم صلوات", "ar": "📿 ختم الصلوات", "en": "📿 Salawat khatm"},
     "ck.tpl.dua": {"fa": "🤲 ختم دعا و زیارت", "ar": "🤲 ختم الدعاء والزيارة", "en": "🤲 Dua & Ziyarat khatm"},
     "ck.tpl.laan": {"fa": "🗡 ختم لعن", "ar": "🗡 ختم اللعن", "en": "🗡 La'n khatm"},
+    "ck.tpl.khutbah": {"fa": "📜 ختم خطبه‌ها", "ar": "📜 ختم الخطب", "en": "📜 Khutbah khatm"},
     "ck.cat.custom": {"fa": "➕ دعا یا زیارت دیگر", "ar": "➕ دعاء أو زيارة أخرى", "en": "➕ Another dua or ziyarat"},
     "ck.skip_niyyat": {"fa": "رد کردن ⏭", "ar": "تخطٍّ ⏭", "en": "Skip ⏭"},
     "ck.content_mode.auto": {"fa": "⚙️ خودکار (هرچه موجود بود)", "ar": "⚙️ تلقائي (ما هو متوفر)", "en": "⚙️ Auto (whatever exists)"},
@@ -1518,7 +1575,43 @@ _STRINGS: dict[str, dict[str, str]] = {
     "ck.visibility.private": {"fa": "🔒 عضویت نیاز به تایید من داره", "ar": "🔒 الانضمام يحتاج موافقتي", "en": "🔒 Joining needs my approval"},
     "ck.ads.on": {"fa": "✅ بله، تبلیغات فعال باشد", "ar": "✅ نعم، فعّل الإعلانات", "en": "✅ Yes, enable ads"},
     "ck.ads.off": {"fa": "🚫 خیر، بدون تبلیغات", "ar": "🚫 لا، بدون إعلانات", "en": "🚫 No ads"},
-    "ck.confirm": {"fa": "✅ تایید و شروع ختم", "ar": "✅ تأكيد وبدء الختمة", "en": "✅ Confirm & start"},
+    "ck.confirm": {"fa": "📋 قوانین و تأیید نهایی", "ar": "📋 الشروط والتأكيد النهائي", "en": "📋 Rules & Final Confirm"},
+    "ck.rules_confirm_button": {"fa": "📋 قوانین و تأیید نهایی", "ar": "📋 الشروط والتأكيد النهائي", "en": "📋 Rules & Final Confirm"},
+    "ck.accept_rules": {"fa": "✅ قوانین و مقررات را خواندم و می‌پذیرم", "ar": "✅ قرأت الشروط والأحكام وأوافق عليها", "en": "✅ I have read and agree to the rules"},
+    "ck.back_to_confirm": {"fa": "⬅️ بازگشت به مشخصات", "ar": "⬅️ العودة لتفاصيل الختمة", "en": "⬅️ Back to details"},
+    "create_khatm.rules_text": {
+        "fa": (
+            "📋 <b>قوانین و مقررات ایجاد و مدیریت ختم در ختم‌ساز:</b>\n\n"
+            "۱. اعضای هر ختم متعلق به سازنده آن ختم هستند و اعضا با ختم‌های دیگر قاطی نمی‌شوند.\n\n"
+            "۲. در صورت نیاز به ارسال پیام گروهی (عکس، متن، ویس و...) به هر ختم، تعرفه ارسال دریافت می‌گردد.\n\n"
+            "۳. بابت تأمین هزینه‌های سرور، نگهداری و توسعه ربات؛ گروه سازنده (خدمتگزاران تک) اجازه دارد هفته‌ای ۱ یا ۲ پیام تبلیغاتی با رعایت قالب شرعی و اخلاقی برای همه اعضای ختم‌ها ارسال کند.\n"
+            "<i>تبصره: در صورت عدم تمایل به ارسال پیام تبلیغاتی هفتگی برای اعضای ختم شما، سازنده ختم می‌تواند هزینه آبونمان را پرداخت کند.</i>\n\n"
+            "۴. در صورت نیاز به ارسال پیام توسط سازنده به اعضای خود، لازم است پیام قبل از ارسال توسط تیم خدمتگزاران تک به تأیید برسد. طبیعی است محتوای حاوی مسائل ضد اخلاقی، سیاسی و غیرشرعی به تأیید نخواهد رسید.\n\n"
+            "۵. در صورتی که سازنده ختم بخواهد ختم خود را غیرفعال کند و توان مدیریت ختم را نداشته باشد، لازم است درخواست خود را به صورت کتبی به پشتیبانی خدمتگزاران تک ارسال نماید و طبیعی است بعد از بسته شدن لینک ختم، مدیریت ختم به مجموعه خدمتگزاران تک منتقل می‌گردد و اعضای قبلی می‌توانند به ختم خود ادامه دهند.\n\n"
+            "۶. در صورتی که درخواست خاصی برای توسعه و افزایش امکانات ربات‌ها داشتید، لازم است از طریق پیام به شماره <code>+989051240561</code> داخل تلگرام یا بله به تیم خدمتگزاران تک بفرستید؛ در صورت تأیید توسط تیم فنی، توسعه مورد نظر در دستور کار تیم فنی بر اساس اولویت قرار خواهد گرفت. طبیعی است درخواست‌هایی که حجم برنامه‌نویسی دارند و توسط تیم تأیید شوند فقط با دریافت هزینه جداگانه توسعه داده خواهند شد.\n\n"
+            "⚠️ <i>لطفاً جهت ثبت نهایی ختم و دریافت لینک دعوت اختصاصی، قوانین فوق را تأیید فرمایید:</i>"
+        ),
+        "ar": (
+            "📋 <b>شروط وأحكام إنشاء وإدارة الختمة:</b>\n\n"
+            "١. أعضاء كل ختمة يتبعون لمنظم تلك الختمة ولا يختلطون بختمات أخرى.\n\n"
+            "٢. إرسال الرسائل الجماعية للأعضاء يخضع لتعرفة الإرسال.\n\n"
+            "٣. للمساهمة في تكاليف الخوادم والصيانة، يحق لإدارة المنصة إرسال رسالة أو رسالتين دعائيتين أسبوعياً مع الالتزام بالضوابط الشرعية والأخلاقية (ملاحظة: يمكن للمنظم دفع اشتراك لإلغاء الإعلانات).\n\n"
+            "٤. تخضع رسائل المنظم للأعضاء للمراجعة والموافقة المسبقة من فريق الإدارة منعاً للمحتوى المخالف.\n\n"
+            "٥. في حال رغبة المنظم بإيقاف الختمة أو عدم القدرة على إدارتها، يتم تقديم طلب للدعم وتنتقل إدارة الختمة للمنصة لاستمرار الأعضاء في القراءة.\n\n"
+            "٦. لطلبات التطوير والخصائص الإضافية، يرجى التواصل مع الدعم الفني عبر الرقم <code>+989051240561</code>.\n\n"
+            "⚠️ <i>يرجى تأكيد الموافقة على الشروط والأحكام لإتمام إنشاء الختمة:</i>"
+        ),
+        "en": (
+            "📋 <b>Terms & Conditions for Creating and Managing a Khatm:</b>\n\n"
+            "1. Members belong to the creator of that specific khatm and are never mixed with other khatms.\n\n"
+            "2. Group broadcasts (photo, text, voice, etc.) to members are subject to messaging fees.\n\n"
+            "3. To cover server maintenance and operational costs, the team may send 1 or 2 compliant promotional messages weekly to members (Note: creators may pay a fee to opt out).\n\n"
+            "4. Broadcast messages submitted by the creator require review and approval by the moderation team prior to delivery.\n\n"
+            "5. If a creator wishes to deactivate their khatm or cannot manage it, management transfers to the platform support team so existing members may continue.\n\n"
+            "6. Custom development requests can be sent to technical support at <code>+989051240561</code> on Telegram or Bale.\n\n"
+            "⚠️ <i>Please confirm that you have read and agree to the terms to finish creating your khatm:</i>"
+        ),
+    },
     "ck.coupon": {"fa": "🎟 کد تخفیف دارم", "ar": "🎟 لديّ رمز خصم", "en": "🎟 I have a coupon"},
     "ck.coupon_back": {"fa": "🔙 ادامه بدون کد", "ar": "🔙 المتابعة بدون رمز", "en": "🔙 Continue without code"},
     "ck.back": {"fa": "⬅️ مرحلهٔ قبل", "ar": "⬅️ الخطوة السابقة", "en": "⬅️ Previous step"},
@@ -1655,6 +1748,11 @@ _STRINGS: dict[str, dict[str, str]] = {
         "fa": "یک سؤال کوتاه دیگه 🌱\n\nچه موقعی از روز دوست دارید سهم هر روزتون خودکار براتون فرستاده بشه؟ یکی از دکمه‌های زیر رو بزنید، یا اگه ساعت دقیق‌تری مدنظرتونه، فقط عددش رو بنویسید (بین 0 تا 23):",
         "ar": "سؤال قصير آخر 🌱\n\nفي أي وقت من اليوم تحب أن تصلك حصتك اليومية تلقائياً؟ اضغط أحد الأزرار أدناه، أو إذا أردت ساعة دقيقة أرسل رقمها (بين 0 و23):",
         "en": "One more quick question 🌱\n\nWhat time of day would you like your daily portion sent automatically? Tap one of the buttons below, or type an exact hour (0 to 23) if you prefer:",
+    },
+    "join.ask_delivery_hour_custom": {
+        "fa": "لطفاً ساعت مدنظر خود را به صورت یک عدد بین 0 تا 23 بنویسید (مثلاً 14 برای ۲ بعدازظهر):",
+        "ar": "يرجى إرسال الساعة المطلوبة كرقم بين 0 و23 (مثلاً: 14 للساعة 2 ظهراً):",
+        "en": "Please send your preferred hour as a number between 0 and 23 (e.g. 14 for 2 PM):",
     },
     "delivery_hour.early_morning": {"fa": "🌅 صبح زود", "ar": "🌅 الفجر", "en": "🌅 Early morning"},
     "delivery_hour.morning": {"fa": "☀️ صبح", "ar": "☀️ الصباح", "en": "☀️ Morning"},
@@ -2025,6 +2123,36 @@ _STRINGS: dict[str, dict[str, str]] = {
     },
     "wallet.link_created": {
         "fa": "لینک پرداخت ساخته شد ✅", "ar": "تم إنشاء رابط الدفع ✅", "en": "Payment link created ✅",
+    },
+    "wallet.check_button": {
+        "fa": "🔄 استعلام و ثبت پرداخت (در صورت کسر وجه)",
+        "ar": "🔄 التحقق وتأكيد الدفع (في حال الخصم)",
+        "en": "🔄 Verify & Confirm Payment (if charged)",
+    },
+    "wallet.check_already_credited": {
+        "fa": "✅ این پرداخت قبلاً با موفقیت تأیید شده و کیف پول شما شارژ شده است.",
+        "ar": "✅ تم تأكيد هذا الدفع مسبقاً وشحن محفظتك.",
+        "en": "✅ This payment was already verified and your wallet has been credited.",
+    },
+    "wallet.check_expired": {
+        "fa": "⏳ مهلت زمانی این پرداخت گذشته است. اگر مبلغی از حسابتان کسر شده و برگشت نخورده، حداکثر ظرف ۷۲ ساعت توسط بانک عودت می‌گردد.",
+        "ar": "⏳ انتهت صلاحية هذا الدفع. إذا تم خصم المبلغ ولم يُسترد، سيعاد تلقائياً من البنك.",
+        "en": "⏳ This payment intent has expired. If charged, it will be refunded by the bank.",
+    },
+    "wallet.check_ask_ref": {
+        "fa": "💳 اگر مبلغ از حساب بانکی شما کسر شده اما صفحه بانک تایم‌اوت داد، لطفاً «شماره پیگیری بانک / کد مرجع (RefId)» که در پیامک بانکتان آمده را ارسال فرمایید تا پرداخت شما فوراً در سرور استعلام و کیف پول شارژ شود:\n\n(برای انصراف /cancel را ارسال کنید)",
+        "ar": "💳 إذا تم خصم المبلغ من حسابك، يرجى إرسال رقم التتبع البنكي (RefId) لتأكيد الدفع فوراً:\n\n(للإلغاء أرسل /cancel)",
+        "en": "💳 If you were charged but the callback page timed out, please send the bank tracking number (RefId) from your bank SMS to verify and credit your wallet immediately:\n\n(Send /cancel to cancel)",
+    },
+    "wallet.check_success": {
+        "fa": "🎉 پرداخت شما با موفقیت تأیید شد!\nمبلغ {amount} تومان به موجودی کیف پول افزوده شد.\nشناسه پیگیری: {ref}",
+        "ar": "🎉 تم تأكيد الدفع بنجاح!\nتمت إضافة {amount} تومان إلى محفظتك.\nرقم التتبع: {ref}",
+        "en": "🎉 Payment confirmed successfully!\n{amount} toman has been credited to your wallet.\nTracking ref: {ref}",
+    },
+    "wallet.check_failed": {
+        "fa": "⚠️ بانک یا پی‌پینگ هنوز این شماره پیگیری را تأیید نکرده است. لطفاً دقت فرمایید که شماره پیگیری را به درستی وارد کرده باشید. در صورت کسر وجه و عدم تأیید، مبلغ ظرف ۱۵ الی ۶۰ دقیقه آینده خودکار توسط بانک به حسابتان برگشت داده می‌شود.",
+        "ar": "⚠️ لم يتم تأكيد هذا الرقم بعد من البنك أو بوابة الدفع. في حال الخصم، سيعود المبلغ تلقائياً لحسابك.",
+        "en": "⚠️ The bank or gateway has not confirmed this tracking reference yet. If deducted, it will be automatically refunded by the bank.",
     },
 
     # --- change_phone.py (2026-09-20) ---
@@ -2566,6 +2694,7 @@ _STRINGS: dict[str, dict[str, str]] = {
     "join.preview.type_salawat": {"fa": "صلوات", "ar": "صلوات", "en": "Salawat"},
     "join.preview.type_dua": {"fa": "دعا یا زیارت", "ar": "دعاء أو زيارة", "en": "Dua or Ziyarat"},
     "join.preview.type_laan": {"fa": "لعن", "ar": "لعن", "en": "La'an"},
+    "join.preview.type_khutbah": {"fa": "خطبه", "ar": "خطبة", "en": "Khutbah"},
     "join.preview.type_line": {
         "fa": "\n{icon} نوع ختم: {type}", "ar": "\n{icon} نوع الختمة: {type}", "en": "\n{icon} Khatm type: {type}",
     },
@@ -2588,9 +2717,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "\n🌿 Mode: Open — you have no fixed portion; read as many pages as you want, whenever you want.",
     },
     "join.preview.mode_commitment_quantified": {
-        "fa": "\n🔒 حالت: تعهدی — با عضویت، متعهد می‌شید {count} {unit} انجام بدید.",
-        "ar": "\n🔒 الحالة: ملتزمة — بالانضمام تلتزم بإنجاز {count} {unit}.",
-        "en": "\n🔒 Mode: Commitment — by joining, you pledge to complete {count} {unit}.",
+        "fa": "\n🔒 حالت: تعهدی — هدف کل ختم: {count} {unit} (سهم انتخابی خود را پس از عضویت متعهد می‌شوید).",
+        "ar": "\n🔒 الحالة: ملتزمة — الهدف الكلي للختمة: {count} {unit} (تحدد حصتك وبرنامجك بعد الانضمام).",
+        "en": "\n🔒 Mode: Commitment — Total khatm goal: {count} {unit} (you choose your share and schedule after joining).",
     },
     "join.preview.mode_open_generic": {
         "fa": "\n🌿 حالت: آزاد — هیچ تعهدی نیست؛ هرکس هرچقدر خواست مشارکت می‌کنه.",
@@ -3281,9 +3410,9 @@ _STRINGS: dict[str, dict[str, str]] = {
         "en": "Activates automatically when wallet funds reach {price:,} toman.",
     },
     "report.today_pick": {
-        "fa": "امروز سهم کدام ختم را می‌خواهید زودتر بخوانید؟",
-        "ar": "أي ختمة تريد أن تقرأ حصتها مبكرًا اليوم؟",
-        "en": "Which khatm would you like to read early today?",
+        "fa": "سهم کدام ختم را می‌خواهید دریافت کنید؟",
+        "ar": "أي ختمة تريد استلام حصتها؟",
+        "en": "Which khatm portion would you like to receive?",
     },
     "report.today_already_delivered": {
         "fa": "سهم امروز این ختم قبلاً برایتان فرستاده شده است.",
