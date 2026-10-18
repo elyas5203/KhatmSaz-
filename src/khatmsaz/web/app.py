@@ -2533,8 +2533,8 @@ async def khatm_detail(request: Request, khatm_id: UUID, q: str = "", page: int 
             invite_url=invite_url,
             query=query,
             page=page,
-            has_next=has_next,
             saved=request.query_params.get("saved", ""),
+            error=request.query_params.get("error", ""),
         ),
     )
 
@@ -2591,6 +2591,118 @@ async def admin_update_khatm_route(
     return RedirectResponse(f"/khatms/{khatm_id}?saved=updated", status_code=303)
 
 
+async def _notify_khatm_status_update(
+    khatm_title: str,
+    target_status_val: str,
+    creator_id: UUID,
+    active_member_user_ids: list[UUID],
+) -> None:
+    try:
+        from html import escape
+        from khatmsaz.bot.notify_adapter import get_notify_fn
+        from khatmsaz.modules.identity import service as identity_service
+
+        safe_title = escape(khatm_title)
+        if target_status_val == KhatmStatus.ACTIVE.value:
+            creator_msg = (
+                f"✅ <b>فعال‌سازی مجدد ختم</b>\n\n"
+                f"ختم «{safe_title}» توسط مدیریت سامانه مجدداً فعال گردید."
+            )
+            member_msg = (
+                f"✅ <b>فعال‌سازی مجدد ختم</b>\n\n"
+                f"همراه گرامی، ختم «{safe_title}» مجدداً فعال شد و برنامهٔ تلاوت از سر گرفته شد."
+            )
+        elif target_status_val == KhatmStatus.COMPLETED.value:
+            creator_msg = (
+                f"🏆 <b>تکمیل دورهٔ ختم</b>\n\n"
+                f"ختم «{safe_title}» به پایان رسید و وضعیت آن توسط مدیریت به تکمیل‌شده تغییر یافت.\n"
+                "از زحمات و همراهی خالصانه شما سپاسگزاریم. اجرکم عندالله 🌸"
+            )
+            member_msg = (
+                f"🏆 <b>پایان دورهٔ ختم</b>\n\n"
+                f"همراه گرامی، دورهٔ ختم «{safe_title}» به پایان رسید.\n"
+                "از همراهی صمیمانه و تلاوت‌های ارزشمند شما سپاسگزاریم. قبول حق و مأجور باشید 🌸"
+            )
+        elif target_status_val == KhatmStatus.CANCELLED.value:
+            creator_msg = (
+                f"⛔ <b>لغو ختم</b>\n\n"
+                f"ختم «{safe_title}» توسط مدیریت سامانه لغو شد."
+            )
+            member_msg = (
+                f"⛔ <b>لغو ختم</b>\n\n"
+                f"همراه گرامی، ختم «{safe_title}» توسط مدیریت لغو گردید."
+            )
+        else:
+            return
+
+        notify_fn = get_notify_fn()
+        async with session_scope() as session:
+            # 1. Notify creator
+            creator_idents = await identity_service.list_identities_for_user(session, creator_id)
+            for ident in creator_idents:
+                try:
+                    plat = getattr(ident.platform, "value", str(ident.platform))
+                    await notify_fn(plat, ident.subject, creator_msg)
+                except Exception:
+                    pass
+
+            # 2. Notify active members
+            for uid in active_member_user_ids:
+                member_idents = await identity_service.list_identities_for_user(session, uid)
+                for ident in member_idents:
+                    try:
+                        plat = getattr(ident.platform, "value", str(ident.platform))
+                        await notify_fn(plat, ident.subject, member_msg)
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+
+async def _notify_transfer_parties(
+    khatm_title: str,
+    old_creator_id: UUID,
+    new_creator_id: UUID,
+) -> None:
+    try:
+        from html import escape
+        from khatmsaz.bot.notify_adapter import get_notify_fn
+        from khatmsaz.modules.identity import service as identity_service
+
+        safe_title = escape(khatm_title)
+        old_msg = (
+            "ℹ️ <b>تغییر مدیریت ختم</b>\n\n"
+            f"مدیریت ختم «{safe_title}» توسط پشتیبانی سامانه به کاربر دیگری واگذار گردید.\n"
+            "▫️ لینک دعوت قبلی شما منقضی شد.\n\n"
+            "از زحمات و همراهی خالصانه شما صمیمانه سپاسگزاریم 🌸"
+        )
+        new_msg = (
+            "🎉 <b>واگذاری مدیریت ختم</b>\n\n"
+            f"مدیریت ختم «{safe_title}» توسط پشتیبانی سامانه به شما واگذار شد.\n"
+            "▫️ لینک دعوت اختصاصی جدید برای شما فعال گردید.\n\n"
+            "اکنون می‌توانید از طریق بات سازنده، این ختم را مدیریت فرمایید."
+        )
+        notify_fn = get_notify_fn()
+        async with session_scope() as session:
+            old_idents = await identity_service.list_identities_for_user(session, old_creator_id)
+            for ident in old_idents:
+                try:
+                    plat = getattr(ident.platform, "value", str(ident.platform))
+                    await notify_fn(plat, ident.subject, old_msg)
+                except Exception:
+                    pass
+
+            new_idents = await identity_service.list_identities_for_user(session, new_creator_id)
+            for ident in new_idents:
+                try:
+                    plat = getattr(ident.platform, "value", str(ident.platform))
+                    await notify_fn(plat, ident.subject, new_msg)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+
 @app.post("/khatms/{khatm_id}/status")
 async def admin_change_khatm_status(
     request: Request,
@@ -2616,6 +2728,7 @@ async def admin_change_khatm_status(
         khatm = await session.get(Khatm, khatm_id)
         if khatm is None:
             return HTMLResponse("ختم پیدا نشد.", status_code=404)
+        old_status = khatm.status
         khatm.status = KhatmStatus(target_status)
         if target_status == KhatmStatus.COMPLETED.value:
             khatm.completed_at = datetime.now(tz=ZoneInfo("UTC"))
@@ -2639,9 +2752,126 @@ async def admin_change_khatm_status(
             actor_user_id=admin.id,
             target_khatm_id=khatm.id,
             action="ADMIN_KHATM_STATUS_CHANGE",
-            details={"status": new_status, "refund": refund_creator == "on"},
+            details={"status": target_status, "old_status": old_status.value, "refund": should_refund},
         )
-    return RedirectResponse(f"/khatms/{khatm_id}?saved=status", status_code=303)
+
+        khatm_title = khatm.title
+        creator_id = khatm.creator_user_id
+        from khatmsaz.modules.participation.models import Participation, ParticipationStatus
+        active_member_user_ids = list(
+            (
+                await session.scalars(
+                    select(Participation.user_id).where(
+                        Participation.khatm_id == khatm.id,
+                        Participation.status == ParticipationStatus.ACTIVE,
+                        Participation.user_id != creator_id,
+                    )
+                )
+            ).all()
+        )
+
+    if old_status.value != target_status:
+        import asyncio
+        asyncio.create_task(
+            _notify_khatm_status_update(
+                khatm_title=khatm_title,
+                target_status_val=target_status,
+                creator_id=creator_id,
+                active_member_user_ids=active_member_user_ids,
+            )
+        )
+
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=status_changed", status_code=303)
+
+
+@app.post("/khatms/{khatm_id}/transfer/direct")
+async def admin_direct_transfer_khatm(
+    request: Request,
+    khatm_id: UUID,
+    csrf: str = Form(...),
+    target_identifier: str = Form(...),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    target_input = target_identifier.strip()
+    if not target_input:
+        return RedirectResponse(f"/khatms/{khatm_id}?error=empty_target", status_code=303)
+
+    async with session_scope() as session:
+        target_user = None
+
+        # 1. Try UUID
+        try:
+            target_uuid = UUID(target_input)
+            target_user = await identity_service.find_by_id(session, target_uuid)
+        except (ValueError, AttributeError):
+            pass
+
+        # 2. Try phone number
+        if not target_user:
+            from khatmsaz.modules.phone import normalize_phone_iran
+            from khatmsaz.modules.phone.models import PhoneClaim
+            try:
+                clean_phone = normalize_phone_iran(target_input)
+                claim = await session.scalar(
+                    select(PhoneClaim).where(PhoneClaim.phone_number == clean_phone)
+                )
+                if claim:
+                    target_user = await identity_service.find_by_id(session, claim.user_id)
+            except Exception:
+                pass
+
+        # 3. Try platform chat_id / subject
+        if not target_user:
+            from khatmsaz.modules.identity.models import PlatformIdentity
+            ident = await session.scalar(
+                select(PlatformIdentity).where(PlatformIdentity.subject == target_input)
+            )
+            if ident:
+                target_user = await identity_service.find_by_id(session, ident.user_id)
+
+        if not target_user:
+            return RedirectResponse(f"/khatms/{khatm_id}?error=user_not_found", status_code=303)
+
+        try:
+            khatm, original_creator_id, new_token = await workflow_service.direct_transfer_khatm(
+                session,
+                khatm_id=khatm_id,
+                new_creator_user_id=target_user.id,
+                admin_user_id=admin.id,
+            )
+            khatm_title = khatm.title
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                target_khatm_id=khatm.id,
+                action="ADMIN_DIRECT_KHATM_TRANSFER",
+                details={
+                    "khatm_id": str(khatm.id),
+                    "from_user_id": str(original_creator_id),
+                    "to_user_id": str(target_user.id),
+                    "target_identifier": target_input,
+                },
+            )
+        except workflow_service.KhatmTransferError as exc:
+            return RedirectResponse(f"/khatms/{khatm_id}?error={str(exc)}", status_code=303)
+
+    import asyncio
+    asyncio.create_task(
+        _notify_transfer_parties(
+            khatm_title=khatm_title,
+            old_creator_id=original_creator_id,
+            new_creator_id=target_user.id,
+        )
+    )
+
+    return RedirectResponse(f"/khatms/{khatm_id}?saved=direct_transferred", status_code=303)
 
 
 @app.post("/khatms/{khatm_id}/transfer/approve")

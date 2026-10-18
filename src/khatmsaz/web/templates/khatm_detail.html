@@ -34,10 +34,23 @@
   <span>
     {% if saved == 'created' %}ختم با موفقیت ایجاد و فعال شد ✅
     {% elif saved == 'updated' %}تنظیمات ختم با موفقیت ذخیره شد ✅
-    {% elif saved == 'status_changed' %}وضعیت ختم با موفقیت تغییر یافت ✅
+    {% elif saved == 'status_changed' %}وضعیت ختم با موفقیت تغییر یافت و اعلانات لازم به اعضا و سازنده ارسال گردید ✅
+    {% elif saved == 'direct_transferred' %}مالکیت ختم با موفقیت به کاربر جدید واگذار شد، لینک دعوت قبلی منقضی و لینک جدید صادر گردید ✅
     {% elif saved == 'share_completed' %}سهم عضو با موفقیت ثبت شد ✅
     {% elif saved == 'member_removed' %}عضو با موفقیت حذف شد و لیست انتظار بررسی گردید ✅
     {% else %}تغییرات با موفقیت اعمال شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+  <span>
+    {% if error == 'empty_target' %}لطفاً شناسه کاربری، شماره تلفن یا چت‌آیدی کاربر مقصد را وارد نمایید.
+    {% elif error == 'user_not_found' %}کاربر مقصد با شناسه، شماره تلفن یا آیدی واردشده پیدا نشد.
+    {% elif error == 'user is already the creator of this khatm' %}کاربر انتخاب‌شده در حال حاضر سازنده و مالک همین ختم است.
+    {% else %}{{ error }}{% endif %}
   </span>
 </div>
 {% endif %}
@@ -124,6 +137,28 @@
     <span>مدیریت این ختم طبق بند ۵ قوانین به مجموعه خدمتگزاران تک واگذار گردیده، لینک ورود قدیمی منقضی شده و ختم به صورت عمومی درآمده است.</span>
   </div>
   {% endif %}
+
+  <!-- Direct Transfer Card for Super Admin -->
+  <div class="mt-4 p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🤝</span>
+        <strong class="text-sm font-bold text-indigo-300">واگذاری مستقیم مدیریت ختم به کاربر دیگر</strong>
+        {{ tooltip("ادمین کل می‌تواند مالکیت این ختم را مستقیماً به هر کاربری بر اساس شناسه کاربری (UUID)، شماره موبایل (09...) یا شناسه عددی تلگرام واگذار کند. لینک دعوت قبلی خودکار منقضی و لینک جدید صادر می‌شود.") }}
+      </div>
+      <p class="text-xs text-slate-400 mt-1">
+        با انتقال مستقیم، مدیریت پنل سازنده به کاربر جدید واگذار شده و اعلان‌های رسمی برای هر دو طرف مخابره می‌گردد.
+      </p>
+    </div>
+
+    <form method="post" action="/khatms/{{ khatm.id }}/transfer/direct" onsubmit="return confirm('آیا از انتقال مالکیت این ختم، انقضای لینک قبلی و صدور لینک جدید برای کاربر مقصد اطمینان دارید؟');" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-none">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input name="target_identifier" placeholder="شناسه UUID، شماره یا چت‌آیدی..." required class="input-field py-1.5 px-3 text-xs w-full sm:w-64 font-mono" dir="ltr">
+      <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all cursor-pointer whitespace-nowrap shadow-sm">
+        واگذاری مدیریت ختم
+      </button>
+    </form>
+  </div>
 
   {% if invite_url %}
   <div class="mt-5 pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40 p-3.5 rounded-2xl">

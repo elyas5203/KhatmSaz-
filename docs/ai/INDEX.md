@@ -1,3 +1,8 @@
+## 2026-10-18 — Admin Khatm Management, Direct Ownership Transfer & Intelligent Status Notifications (MASTER-43) [Antigravity]
+- Master Document: [MASTER_43_ADMIN_KHATM_MANAGEMENT_AND_DIRECT_CONTROLS.md](masters/MASTER_43_ADMIN_KHATM_MANAGEMENT_AND_DIRECT_CONTROLS.md) (Direct khatm ownership transfer to any user by Super Admin without verified phone restriction, automatic invite link rotation and two-way notifications, courteous status change notices to creator and active members upon ACTIVE/COMPLETED/CANCELLED, and web panel alert banners).
+- Key files: `src/khatmsaz/modules/khatm_workflow/service.py`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/khatm_detail.html`.
+- Tests: `tests/test_master_43_khatm_management.py`.
+
 ## 2026-10-18 — Support Tickets & Direct Messaging Hub (MASTER-42) [Antigravity]
 - Master Document: [MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md](masters/MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md) (Support ticket database model, Queue 8 in Web Admin Panel /moderation?tab=tickets, direct admin reply dispatch to user chat via notify_adapter, status lifecycle PENDING/ANSWERED/CLOSED, and bot suggestions integration).
 - Key files: `src/khatmsaz/modules/support_ticket/`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/moderation.html`, `src/khatmsaz/bot/handlers/suggestions.py`.

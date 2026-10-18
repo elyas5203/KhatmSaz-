@@ -649,3 +649,40 @@ async def reject_khatm_transfer(
     khatm.transfer_request_status = "REJECTED"
     return khatm, original_creator_id
 
+
+async def direct_transfer_khatm(
+    session: AsyncSession, *, khatm_id, new_creator_user_id, admin_user_id
+) -> tuple[Khatm, UUID, str]:
+    """Directly reassign khatm ownership to new_creator_user_id by Super Admin (MASTER-43).
+    
+    1. Revokes prior invitation tokens for this khatm.
+    2. Sets creator_user_id to new_creator_user_id and records transfer metadata.
+    3. Mints a fresh invitation token for the new creator.
+    """
+    khatm = await khatm_service.get_khatm_for_update(session, khatm_id)
+    if khatm is None:
+        raise KhatmTransferError("khatm not found")
+
+    original_creator_id = khatm.creator_user_id
+    new_creator_uuid = (
+        UUID(str(new_creator_user_id))
+        if not isinstance(new_creator_user_id, UUID)
+        else new_creator_user_id
+    )
+
+    if original_creator_id == new_creator_uuid:
+        raise KhatmTransferError("user is already the creator of this khatm")
+
+    khatm.transferred_from_user_id = original_creator_id
+    khatm.creator_user_id = new_creator_uuid
+    khatm.transferred_to_admin_at = datetime.now(timezone.utc)
+    khatm.transfer_request_status = "DIRECT_TRANSFER"
+
+    # 1. Invalidate all previous invitations
+    await invitation_service.revoke_all_for_khatm(session, khatm.id)
+
+    # 2. Issue fresh token for the new owner
+    new_token = await invitation_service.create_invitation(session, khatm.id, new_creator_uuid)
+
+    return khatm, original_creator_id, new_token
+

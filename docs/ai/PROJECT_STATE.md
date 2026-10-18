@@ -1,3 +1,16 @@
+## Current state — 2026-10-18 — Admin Khatm Management, Direct Ownership Transfer & Intelligent Status Notifications (MASTER-43) [Antigravity]
+- **Direct Khatm Ownership Transfer (`modules/khatm_workflow/service.py` & `web/app.py`):**
+  - Added `direct_transfer_khatm` workflow service enabling Super Admin to transfer khatm ownership directly to any user by UUID, Iranian phone, or platform chat ID (even without prior verified phone number, per owner decision).
+  - Rotates invitation tokens: revokes all prior invite links for the khatm and generates a fresh invitation token for the new creator.
+  - Implemented route `POST /khatms/{khatm_id}/transfer/direct` with CSRF validation, audit logging (`ADMIN_DIRECT_KHATM_TRANSFER`), and background two-way bot notifications informing both old and new creators.
+- **Intelligent Status Change Notifications (`web/app.py`):**
+  - Updated `POST /khatms/{khatm_id}/status`: when status changes to `ACTIVE`, `COMPLETED`, or `CANCELLED`, background worker `_notify_khatm_status_update` dispatches courteous Persian status notices to creator and all active members via `notify_adapter`.
+- **Admin Web UI Enhancements (`web/templates/khatm_detail.html`):**
+  - Added "واگذاری مستقیم مدیریت ختم به کاربر دیگر" card with input field for target user identifier (UUID / phone / chat_id) and confirmation modal.
+  - Added visible green and red alert banners for success (`saved=direct_transferred`, `saved=status_changed`) and error handling (`error=user_not_found`, etc.).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_43_ADMIN_KHATM_MANAGEMENT_AND_DIRECT_CONTROLS.md` and registered `DEC-PY-0135`.
+- **Validation:** Added 5 tests in `tests/test_master_43_khatm_management.py` (100% PASS), and verified combined regression suite passes with 21/21 tests passing.
+
 ## Current state — 2026-10-18 — Support Tickets & Direct Messaging Hub in Web & Bots (MASTER-42) [Antigravity]
 - **Support Ticket Engine & Persistence (`src/khatmsaz/modules/support_ticket/`):**
   - Created dedicated module `support_ticket` (`models.py`, `repository.py`, `service.py`) with lifecycle states `PENDING`, `ANSWERED`, `CLOSED`.
