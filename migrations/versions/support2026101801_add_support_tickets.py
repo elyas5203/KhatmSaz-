@@ -28,13 +28,13 @@ def upgrade() -> None:
             replied_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
             replied_at TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-        );
-        CREATE INDEX IF NOT EXISTS ix_support_tickets_status ON support_tickets(status);
-        CREATE INDEX IF NOT EXISTS ix_support_tickets_sender ON support_tickets(sender_user_id);
-        CREATE INDEX IF NOT EXISTS ix_support_tickets_target_creator ON support_tickets(target_creator_id);
-        CREATE INDEX IF NOT EXISTS ix_support_tickets_created_at ON support_tickets(created_at);
+        )
         """
     )
+    op.execute("CREATE INDEX IF NOT EXISTS ix_support_tickets_status ON support_tickets(status)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_support_tickets_sender ON support_tickets(sender_user_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_support_tickets_target_creator ON support_tickets(target_creator_id)")
+    op.execute("CREATE INDEX IF NOT EXISTS ix_support_tickets_created_at ON support_tickets(created_at)")
 
 
 def downgrade() -> None:
