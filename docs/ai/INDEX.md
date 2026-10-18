@@ -1,6 +1,14 @@
+## 2026-10-18 — Multi-Admin Delegation, Alert Sync & Daily Operational Report
+- DEC-PY-0119 — واگذاری نقش ادمین با اختیارات کامل بجز مدیریت نقش‌ها، همگام‌سازی پیام‌های هشدار، و گزارش روزانهٔ ۲۳:۵۰: `DECISIONS.md` و `MULTI_ADMIN_AND_DAILY_REPORT_MASTER.md`.
+- ماژول همگام‌سازی اعلان‌های ادمین‌ها و پیشگیری از اقدام همزمان: `src/khatmsaz/bot/admin_sync.py`.
+- ماژول گزارش عملیاتی روزانه و تبدیل تاریخ جلالی: `src/khatmsaz/modules/reporting/admin_daily_report.py`.
+- جدول پیام‌های اعلان و مایگریشن ادمین: `migrations/versions/admin2026101801_admin_alert_messages.py`.
+- آزمون‌های واحد و شبیه‌سازی: `tests/test_multi_admin_sync_and_daily_report.py`.
+
 ## 2026-10-06 — V3 Wizard & Flow Overhaul Master
 - Master Document: [V3_WIZARD_REDESIGN_MASTER.md](V3_WIZARD_REDESIGN_MASTER.md)
 - Sub-specs: [v3_specs/](v3_specs/) (Creator onboarding, commitment vs free, Khutbah cyclic allocation, La'an moderation, Member UI & daily reporting)
+
 
 ## 2026-10-05 — Unified shares (in progress)
 - Owner's Quran numeric/regular confirmation: DEC-PY-0117 in DECISIONS.md.
@@ -40,6 +48,7 @@
 ---
 
 ## هویت و ثبت‌نام کاربر
+- DEC-PY-0118 — ثبت فوری contact خارجی خود کاربر تلگرام: `DECISIONS.md` و `FOREIGN_SHARED_PHONE_MASTER.md`؛ کد: `modules/phone/service.py` و handlerهای `registration.py`، `member_registration.py`، `profile.py`.
 - DEC-PY-0103 — وضعیت گفت‌وگو در Redis و تأیید مدیر پس از انقضای OTP: `DECISIONS.md` (ورودی ۲۰۲۶-۱۰-۰۱)
 - DEC-PY-0000 — بازنویسی از صفر با پایتون: `docs/ai/archive/DECISIONS_until_DEC-PY-0064.md:515`
 - DEC-PY-0003 — هویت: User داخلی + پلتفرم‌ها: `archive/DECISIONS_until_DEC-PY-0064.md:561`

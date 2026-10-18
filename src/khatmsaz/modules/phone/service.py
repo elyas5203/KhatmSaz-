@@ -44,6 +44,38 @@ def normalize_e164(raw: str) -> str:
     return value
 
 
+def normalize_shared_contact(raw: str) -> str:
+    """Telegram may omit the leading plus from a shared international contact."""
+    value = "".join(raw.strip().replace("-", "").split())
+    if value.isdigit() and not value.startswith(("00", "09", "98")):
+        value = "+" + value
+    return normalize_e164(value)
+
+
+async def accept_shared_foreign_contact(
+    session: AsyncSession, *, user_id, e164: str, contact_user_id: int | None,
+    sender_id: int,
+) -> None:
+    """Record a self-shared foreign Telegram number without SMS or admin review."""
+    phone = normalize_e164(e164)
+    if phone.startswith("+98") or contact_user_id is None or contact_user_id != sender_id:
+        raise OtpError("contact is not a self-shared foreign number")
+    user = await session.get(User, user_id, with_for_update=True)
+    if user is None or user.deleted_at is not None or user.status in {
+        UserStatus.MERGED, UserStatus.SUSPENDED, UserStatus.BANNED,
+    }:
+        raise OtpError("account is not available")
+    await repository.lock_phone(session, phone)
+    owner = await repository.verified_claim(session, phone)
+    if owner is not None and owner.user_id != user_id:
+        raise OtpError("phone belongs to another account")
+    await repository.revoke_user_verified_claims(session, user_id=user_id, except_e164=phone)
+    await repository.create_or_verify_claim(session, user_id=user_id, e164=phone)
+    profile = await settings_service.get_or_create(session, user_id)
+    profile.contact_phone = phone
+    await session.flush()
+
+
 def phone_storage_variants(e164: str) -> set[str]:
     """Forms accepted by the old registration flow before E.164 normalization."""
     normalized = normalize_e164(e164)

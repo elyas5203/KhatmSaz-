@@ -42,11 +42,6 @@ async def notify_admins_of_manual_request(
     *, request_id, display_name: str | None, e164: str, purpose: str,
     sms_otp_expired: bool = False,
 ) -> None:
-    admin_ids = [
-        item.strip()
-        for item in get_settings().super_admin_telegram_chat_ids.split(",")
-        if item.strip()
-    ]
     purpose_label = "تغییر شماره" if purpose == "PHONE_CHANGE" else "فعال‌سازی سازنده"
     request_title = (
         "🔔 بررسی شماره پس از نرسیدن پیامک"
@@ -62,8 +57,15 @@ async def notify_admins_of_manual_request(
         "اگر شماره و هویت او را می‌شناسید تأیید کنید؛ در غیر این صورت درخواست را رد کنید."
     )
     keyboard = _decision_keyboard(request_id)
-    for chat_id in admin_ids:
-        await send_with_keyboard(Platform.TELEGRAM.value, chat_id, text, keyboard)
+    async with session_scope() as session:
+        from khatmsaz.bot.admin_sync import send_alert_to_all_admins
+        await send_alert_to_all_admins(
+            session,
+            alert_type="MANUAL_PHONE",
+            reference_id=str(request_id),
+            text=text,
+            reply_markup=keyboard,
+        )
 
 
 async def _authorized_admin(session, platform: Platform, subject: str):
@@ -113,12 +115,27 @@ async def decide_manual_phone_request(callback: CallbackQuery) -> None:
         await safe_answer_callback(callback, "درخواست نامعتبر است.", show_alert=True)
         return
     platform: Platform = getattr(callback.message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    from khatmsaz.bot.admin_sync import is_admin_alert_handled, mark_admin_alert_handled
     try:
         async with session_scope() as session:
             admin = await _authorized_admin(session, platform, str(callback.from_user.id))
             if admin is None:
                 await safe_answer_callback(callback, "اجازهٔ بررسی این درخواست را ندارید.", show_alert=True)
                 return
+
+            handled, handled_by, action = await is_admin_alert_handled(session, "MANUAL_PHONE", str(request_id))
+            if handled:
+                try:
+                    await callback.message.edit_reply_markup(reply_markup=None)
+                except Exception:
+                    pass
+                await safe_answer_callback(
+                    callback,
+                    f"این درخواست قبلاً توسط «{handled_by or 'ادمین دیگر'}» {action or 'بررسی'} شده است.",
+                    show_alert=True,
+                )
+                return
+
             if decision == "a":
                 request, _ = await manual_service.approve(
                     session, request_id=request_id, admin_user_id=admin.id
@@ -132,11 +149,23 @@ async def decide_manual_phone_request(callback: CallbackQuery) -> None:
                 )
             else:
                 raise manual_service.ManualVerificationError("unknown decision")
+
             identities = await identity_service.list_identities_for_user(
                 session, request.user_id
             )
             requester_settings = await settings_service.get_or_create(session, request.user_id)
             requester_lang = requester_settings.language
+
+            actor_name = admin.display_name or "ادمین"
+            action_label = "تأیید" if decision == "a" else "رد"
+            await mark_admin_alert_handled(
+                session,
+                callback.message.bot,
+                alert_type="MANUAL_PHONE",
+                reference_id=str(request_id),
+                actor_name=actor_name,
+                action_label=action_label,
+            )
     except manual_service.ManualVerificationError as exc:
         await safe_answer_callback(
             callback, f"این درخواست قابل انجام نیست: {exc}", show_alert=True

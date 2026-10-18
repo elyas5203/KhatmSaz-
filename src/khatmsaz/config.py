@@ -81,12 +81,12 @@ class Settings(BaseSettings):
     # message the bot. No admin panel exists yet, so this is how the first
     # admin gets bootstrapped. See DECISIONS.md DEC-PY-0013.
     super_admin_telegram_chat_ids: str = ""
-    # Same idea, separate list, for Bale chat ids (owner request, 2026-09-22
-    # — Bale bot activated). Kept as its own field rather than merging with
-    # the Telegram list because a numeric chat id is only meaningful within
-    # one platform; treating them as one list could accidentally promote
-    # the wrong person if the ids ever coincide.
     super_admin_bale_chat_ids: str = ""
+
+    # Delegated ADMIN chat ids (DEC-PY-0119) — users whose chat ids are listed here
+    # receive all super-admin capabilities and alerts except adding/removing admins.
+    admin_telegram_chat_ids: str = ""
+    admin_bale_chat_ids: str = ""
 
     # Fernet key for encrypting member bot tokens stored in `bot_instances`.
     # Generate once: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

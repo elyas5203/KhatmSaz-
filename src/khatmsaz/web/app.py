@@ -117,6 +117,8 @@ FA_LABELS = {
     "MODERATION_ADMIN": "مدیر نظارت",
     "MARKETING_ADMIN": "مدیر بازاریابی",
     "OPERATIONS_ADMIN": "مدیر عملیات",
+    "ADMIN": "مدیر (ادمین)",
+    "SUPER_ADMIN": "مدیر کل (سوپرادمین)",
     "fa": "فارسی",
     "ar": "عربی",
     "en": "انگلیسی",
@@ -1810,11 +1812,7 @@ async def admins(request: Request, q: str = ""):
                 )
             ).all()
         )
-        found = (
-            await identity_service.search_users(session, q.strip(), limit=30)
-            if q.strip()
-            else []
-        )
+        found = await identity_service.search_users(session, q.strip(), limit=30)
     return templates.TemplateResponse(
         request=request,
         name="admins.html",
@@ -2005,6 +2003,9 @@ async def change_admin_role(
                 action="WEB_ADMIN_ROLE_GRANTED" if action == "grant" else "WEB_ADMIN_ROLE_REVOKED",
                 details={"role": role_value.value},
             )
+            if action == "grant" and role_value == AdminRole.ADMIN:
+                from khatmsaz.bot.admin_sync import notify_new_admin_appointed
+                await notify_new_admin_appointed(session, target.id)
     return RedirectResponse("/admins?saved=1", status_code=303)
 
 

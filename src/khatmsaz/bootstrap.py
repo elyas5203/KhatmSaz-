@@ -352,9 +352,28 @@ async def main() -> None:
         max_instances=1,
         coalesce=True,
     )
+
+    async def _run_daily_admin_report() -> None:
+        try:
+            from khatmsaz.modules.reporting.admin_daily_report import send_daily_admin_report
+            async with session_scope() as session:
+                creator_tg_bot = bots_by_platform.get(Platform.TELEGRAM)
+                await send_daily_admin_report(session, creator_tg_bot, tz_name=settings.app_timezone)
+        except Exception:
+            logger.error("Failed to run daily admin report job", exc_info=True)
+
+    scheduler.add_job(
+        _run_daily_admin_report,
+        "cron",
+        hour=23,
+        minute=50,
+        max_instances=1,
+        coalesce=True,
+    )
+
     scheduler.start()
     runtime_status.mark_scheduler_started()
-    logger.info("Reminder scan scheduled every minute (coalesced, single instance).")
+    logger.info("Reminder scan and 23:50 daily admin report scheduled.")
 
     # --- Shutdown coordination ---
     shutdown_event = asyncio.Event()

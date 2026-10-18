@@ -44,7 +44,9 @@ async def search_users(
     stmt = select(User)
     
     if needle:
+        clean_needle = needle.lstrip("@").strip()
         pattern = f"%{needle}%"
+        clean_pattern = f"%{clean_needle}%"
         stmt = (
             stmt
             .outerjoin(PlatformIdentity, PlatformIdentity.user_id == User.id)
@@ -53,7 +55,10 @@ async def search_users(
                 or_(
                     User.display_name.ilike(pattern),
                     UserSettings.contact_phone.ilike(pattern),
+                    UserSettings.contact_phone.ilike(clean_pattern),
                     PlatformIdentity.subject == needle,
+                    PlatformIdentity.subject == clean_needle,
+                    PlatformIdentity.subject.ilike(clean_pattern),
                     User.id.cast(String).ilike(pattern),
                 )
             )

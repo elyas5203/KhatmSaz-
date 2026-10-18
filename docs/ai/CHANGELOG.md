@@ -1,3 +1,31 @@
+## 2026-10-18 — Interactive Admin/User Management, Chat ID Search, and Instant Admin Notification [Antigravity]
+- **Chat ID and Flexible User Search**: Enhanced `modules/identity/repository.py:search_users` to match Telegram/Bale platform identities (`PlatformIdentity.subject`) with or without `@`, exact & partial `ilike`, alongside phone numbers, names, and UUIDs. When query is empty, it returns latest users with pagination.
+- **Web Admin Panel Enhancements**:
+  - `/admins` now displays the latest users by default rather than an empty view.
+  - User cards display platform chat IDs and user IDs for quick verification.
+  - Role dropdown selects `ADMIN` by default for fast one-click delegation.
+  - Added Persian labels `"ADMIN": "مدیر (ادمین)"` and `"SUPER_ADMIN": "مدیر کل (سوپرادمین)"` to `FA_LABELS`.
+  - Appointing an admin from `/admins` automatically dispatches an instant welcome notification to the new admin.
+- **Telegram Bot User & Admin Management**:
+  - Replaced static text in `bot/handlers/panel.py:admin_panel:users` with an interactive submenu: search by name/phone/chat ID (`AdminUserSearchState.waiting_for_query`), browse recent users, and view active admins.
+  - Users are rendered as concise cards with name, chat ID, phone, and current status.
+  - One-tap inline buttons (`⭐️ مدیر کردن` / `❌ لغو مدیر`) allow Super Admins to toggle admin roles instantly without manually copying UUIDs.
+  - The toggle handler (`admin_role:toggle`) strictly verifies `SUPER_ADMIN` privileges, records audit logs, dynamically flips the button in-place, and delivers an instant Persian welcome notification to the user.
+- **Instant Welcome Notification**: Added `notify_new_admin_appointed` in `bot/admin_sync.py` and hooked it into bot commands (`/admin_role_grant`), web panel grants, and bot panel toggle.
+- **Validation**: Added 4 new unit tests in `tests/test_multi_admin_sync_and_daily_report.py` (total 13 tests PASS). Full test suite (360 PASS) with zero failures. Single Alembic head `admin2026101801`.
+
+## 2026-10-18 — Multi-Admin Delegation, Alert Synchronization, and Daily Admin Report [Antigravity]
+- **Admin Delegation**: Added `AdminRole.ADMIN` with all administrative permissions (dashboard, support, content, moderation, finance, marketing, operations) except role management (`ADMIN_ROLES_MANAGE`), preventing delegated admins from modifying other admins.
+- **Environment Bootstrapping**: Added `admin_telegram_chat_ids` and `admin_bale_chat_ids` to `config.py` and auto-bootstrapped `AdminRole.ADMIN` on startup without granting `SUPER_ADMIN` user role.
+- **Cross-Admin Alert Sync**: Created `AdminAlertMessage` model (`admin_alert_messages` table with single Alembic head `admin2026101801`) and `bot/admin_sync.py` to record alert messages and synchronize updates across all admins. When one admin handles a ticket or verification, other admins' Telegram messages are edited to remove action buttons and display `✅ توسط [نام ادمین] در ساعت [HH:MM] [اقدام] شد`. If clicked concurrently, an alert prevents duplicate action.
+- **Daily Operational Report**: Created `modules/reporting/admin_daily_report.py` with pure-Python Jalali date converter, multi-metric daily aggregation (users, khatms, Quran pages, salawat counts, tickets, verification queues, and wallet top-ups), scheduled daily dispatch at 23:50 (Asia/Tehran) via APScheduler in `bootstrap.py`, and on-demand `/admin_daily_report` command in `bot/handlers/admin.py`.
+- **Validation**: Added 9 new unit tests in `tests/test_multi_admin_sync_and_daily_report.py` (all passed). Full unit test suite (356 tests) passed with 0 failures. Single Alembic head `admin2026101801`.
+
+## 2026-10-15 — Foreign Telegram contact registration [Codex]
+- Shared foreign Telegram contacts now save the normalized phone and verified claim immediately in registration and profile flows, after matching the contact to its sender. Iranian creator phone verification remains on OTP.
+- Added contact normalization and regression tests; documented DEC-PY-0118 in `FOREIGN_SHARED_PHONE_MASTER.md`.
+- No schema change or deployment. PostgreSQL validation remains pending.
+
 ## 2026-10-08 — Antigravity — Wizard Step-by-Step Back Navigation & Khutbah Family Activation
 - **Fixed Wizard Back Navigation Bug (P1):** Fixed critical issue where tapping «مرحله قبل» (`ck:back`) jumped to the very first step (`choosing_template`). Implemented step-by-step reverse FSM routing across all states (`confirming` -> `choosing_visibility` -> `choosing_reminder_tone` -> target/policy/fixed daily -> `entering_creator_contact` -> `entering_welcome` -> `entering_niyyat` -> `choosing_mode` -> category -> template -> cancel).
 - **Added Khutbah Family (P3):** Added «📜 ختم خطبه‌ها» (`ck:group:KHUTBAH`) to `template_choice_keyboard`. Added `KhatmCategoryGroup.KHUTBAH` in domain models, web admin panel, and `i18n` strings with support for sequential parts, audio files, and cycling.
@@ -1807,5 +1835,3 @@ readable: [docs/ai/archive/CHANGELOG_until_2026-09-18.md](archive/CHANGELOG_unti
 - Compressed the creator main menu into three rows.
 - Added the daily deadline question/storage to every commitment devotional family, not only Quran.
 - Reworded creator identity, open-khatm responsibility and member commitment guidance; hardened open/commitment enum detection.
-
-

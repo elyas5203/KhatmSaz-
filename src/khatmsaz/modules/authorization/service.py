@@ -8,6 +8,17 @@ from khatmsaz.modules.identity.models import User, UserRole
 
 
 ROLE_PERMISSIONS: dict[AdminRole, frozenset[AdminPermission]] = {
+    AdminRole.ADMIN: frozenset(
+        {
+            AdminPermission.DASHBOARD_ACCESS,
+            AdminPermission.CONTENT_MANAGE,
+            AdminPermission.FINANCE_MANAGE,
+            AdminPermission.SUPPORT_USERS,
+            AdminPermission.MODERATION_MANAGE,
+            AdminPermission.MARKETING_MANAGE,
+            AdminPermission.OPERATIONS_VIEW,
+        }
+    ),
     AdminRole.CONTENT_ADMIN: frozenset(
         {AdminPermission.DASHBOARD_ACCESS, AdminPermission.CONTENT_MANAGE}
     ),
@@ -73,3 +84,12 @@ async def revoke_role(
     if actor.role != UserRole.SUPER_ADMIN:
         raise PermissionError("only a super admin may revoke delegated roles")
     return await repository.revoke_role(session, user_id=target.id, role=role)
+
+
+async def grant_role_by_system(
+    session: AsyncSession, user_id, role: AdminRole
+):
+    return await repository.grant_role(
+        session, user_id=user_id, role=role, granted_by_user_id=user_id
+    )
+

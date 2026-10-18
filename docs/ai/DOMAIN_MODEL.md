@@ -40,12 +40,13 @@ missed entirely once (see DECISIONS.md DEC-PY-0015).
   phone number as contact info only — **not verified**, trust-based (user's
   explicit choice: "مورد اول باشه اعتماد کنیم"). A participant who later
   becomes a Creator must then verify.
-- **Creators outside Iran use one-time manual review instead of Iranian SMS.**
-  They enter an E.164 number with country code; the request and full number go
-  to an authorized admin. One approval creates the same persistent verified
-  phone claim as OTP, so it is not requested again. Rejection leaves identity
-  unchanged. Iranian numbers may not use this bypass. Payment behavior for
-  foreign creators is intentionally undecided until the owner specifies it.
+- **A self-shared foreign Telegram contact is accepted immediately** (DEC-PY-0118).
+  Its user ID must match the sender; the normalized number is saved with a
+  verified phone claim without SMS or admin review. Iranian numbers still use
+  the existing creator OTP path. Typed foreign numbers in Bale and the
+  `/change_phone` flow still use the existing manual-review route because
+  they do not carry this Telegram self-contact evidence. Payment behavior for
+  foreign creators remains undecided until the owner specifies it.
 - **A user can be a participant in many different creators' khatms
   simultaneously**, and **a creator can run many khatms simultaneously.**
 - **Account linking across platforms**: "قبلاً حساب دارم" flow — a user on a

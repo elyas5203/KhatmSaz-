@@ -16,6 +16,7 @@ class CapabilityType(str, enum.Enum):
 
 
 class AdminRole(str, enum.Enum):
+    ADMIN = "ADMIN"
     CONTENT_ADMIN = "CONTENT_ADMIN"
     FINANCE_ADMIN = "FINANCE_ADMIN"
     SUPPORT_ADMIN = "SUPPORT_ADMIN"
@@ -67,3 +68,27 @@ class AdminRoleGrant(Base):
         UniqueConstraint("user_id", "role", name="uq_admin_role_grants_user_role"),
         Index("ix_admin_role_grants_user_id", "user_id"),
     )
+
+
+class AdminAlertMessage(Base):
+    """Tracks notification messages sent to admins to synchronize actions and prevent duplicate handling."""
+
+    __tablename__ = "admin_alert_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    alert_type: Mapped[str] = mapped_column(String(32))
+    reference_id: Mapped[str] = mapped_column(String(64))
+    chat_id: Mapped[str] = mapped_column(String(32))
+    message_id: Mapped[int] = mapped_column()
+    original_text: Mapped[str | None] = mapped_column(String(4000), nullable=True)
+    handled: Mapped[bool] = mapped_column(default=False)
+    handled_by_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    action_taken: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    handled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("ix_admin_alert_messages_type_ref", "alert_type", "reference_id"),
+        Index("ix_admin_alert_messages_chat_msg", "chat_id", "message_id"),
+    )
+
