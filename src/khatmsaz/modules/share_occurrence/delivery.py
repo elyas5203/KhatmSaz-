@@ -569,21 +569,37 @@ async def deliver(session, occurrence, *, now=None):
     return True
 
 
+async def deliver_immediately_if_due(session, participation_id, *, now=None) -> bool:
+    """If today's scheduled delivery is due (e.g. member joined after their chosen hour),
+    prepare and deliver immediately rather than waiting for the next cron scan.
+    Returns True if an occurrence was delivered, False otherwise."""
+    now = now or datetime.now(timezone.utc)
+    occurrence = await prepare(session, participation_id, now=now)
+    if occurrence is not None and occurrence.delivered_at is None:
+        await deliver(session, occurrence, now=now)
+        return True
+    return False
+
+
 async def remind(session, participation_id, *, now=None):
     from khatmsaz.bot.occurrence_adapter import send_control
     now = now or datetime.now(timezone.utc)
     part = await memberships.get_by_id(session, participation_id)
+    if part is None:
+        return
     khatm = await khatms.get_khatm(session, part.khatm_id)
+    if khatm is None:
+        return
     pref = await preferences.get_preference(session, part.id)
     if pref and (not pref.enabled or (pref.snoozed_until and pref.snoozed_until > now)):
         return
     for occurrence in await repository.list_outstanding(session, participation_id):
-        if not occurrence.committed or occurrence.delivered_at is None:
+        if not occurrence.committed or occurrence.delivered_at is None or getattr(occurrence, "completed_at", None) is not None:
             continue
-        for purpose, due in (("FOLLOWUP", occurrence.delivered_at + timedelta(hours=2)),
-                             ("DEADLINE", occurrence.deadline_at - timedelta(hours=2) if occurrence.deadline_at else None)):
-            if due is None or now < due:
-                continue
-            if purpose == "DEADLINE" and now >= occurrence.deadline_at:
-                continue
-            await send_control(session, part, khatm, occurrence, purpose, now=now)
+        # Owner decision (MASTER-41 / A2): Single-stage evening reminder at 22:00 (2 hours before midnight deadline).
+        # Mid-day 2-hour followup is eliminated to prevent chat clutter.
+        if occurrence.deadline_at is not None:
+            due = occurrence.deadline_at - timedelta(hours=2)
+            if due <= now < occurrence.deadline_at:
+                await send_control(session, part, khatm, occurrence, "DEADLINE", now=now)
+

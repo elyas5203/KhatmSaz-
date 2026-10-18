@@ -79,6 +79,14 @@ async def _save_delivery_time(participation_id: str, hour: int, minute: int = 0)
                         hour=hour, minute=minute, times_per_period=1
                     )
                     part.commitment_per_occurrence = khatm.daily_commitment_amount
+        # Owner rule (MASTER-41 / A1): if today's scheduled hour has already passed upon join,
+        # deliver today's portion immediately rather than waiting for next minute cron scan.
+        try:
+            from khatmsaz.modules.share_occurrence import delivery as share_delivery
+            await share_delivery.deliver_immediately_if_due(session, participation_id)
+        except Exception:
+            pass
+
 
 
 def _parse_delivery_time(raw: str) -> tuple[int, int] | None:

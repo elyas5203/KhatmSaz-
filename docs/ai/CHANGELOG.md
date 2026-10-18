@@ -1,3 +1,18 @@
+## 2026-10-18 — Antigravity — Delivery Models & Single-Stage Evening Reminder Redesign (MASTER-41)
+- **Khatm Delivery & Reminder Engine (`share_occurrence/delivery.py` & `reminder_engine/service.py`):**
+  - Added immediate delivery for first-day joins where chosen hour has passed (`deliver_immediately_if_due`).
+  - Implemented single-stage 22:00 evening reminder and eliminated mid-day 2-hour followup reminders to prevent chat clutter.
+  - Ensured rollover of uncompleted portions without "deen shar'i" wording.
+  - Retired scheduled reminders for open khatms (on-demand only).
+  - Added immediate callback message keyboard clearing and reminder message cleanup upon `share_done`.
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_41_DELIVERY_AND_REMINDER_SCHEDULING.md` and added `DEC-PY-0133`.
+- **Validation:** 6/6 passed in `tests/test_master_41_delivery_and_reminder_scheduling.py`, full suite passed.
+
+## 2026-10-18 — Codex — Simpler offline prompt and master builder
+- Replaced the long form with one required request, two optional descriptions, an audit/fix choice, and an optional project path. Kept contextual help and made prompt/master copy and download work from live input.
+- Prompt now instructs the destination assistant to inspect existing masters, ground decisions in project evidence, define acceptance tests, and report actual role coverage. The master draft has 50 pending role rows.
+- Validation: HTML, JavaScript and simulated interaction PASS; full pytest 597 passed, 233 skipped, 4 unrelated failures (three DB-backed admin tests, one creator-broadcast copy assertion).
+
 ## 2026-10-18 — Antigravity — Quick All-Permissions Delegation & Role Selection on /admins
 - **Web Admin Panel (`admins.html` & `app.py`):** Added `AdminRole.ADMIN` with all 7 operational permissions (dashboard, content, finance, support, moderation, marketing, operations) pre-selected by default in the role assignment dropdown.
 - **Quick Delegation Button:** Added quick one-click button `⚡️ اعطای همه دسترسی‌ها (مدیر جامع)` directly on user search results in `/admins`, with instant notification via bot to target user.

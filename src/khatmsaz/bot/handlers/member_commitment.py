@@ -536,6 +536,15 @@ async def _save_regular(message: Message, state: FSMContext, hour: int, minute: 
         t("commit.regular_saved_detailed", lang, days_text=days_text, hour=f"{hour:02d}:{minute:02d}", times=times, weekly_sum=weekly_sum, unit=unit),
         reply_markup=_home_markup(message),
     )
+    # Owner rule (MASTER-41 / A1): if today's scheduled hour has already passed upon join,
+    # deliver today's portion immediately rather than waiting for next minute cron scan.
+    try:
+        async with session_scope() as session:
+            from khatmsaz.modules.share_occurrence import delivery as share_delivery
+            await share_delivery.deliver_immediately_if_due(session, pid)
+    except Exception:
+        pass
+
 
 
 @router.callback_query(
@@ -658,6 +667,7 @@ async def complete_share(callback: CallbackQuery) -> None:
     async with session_scope() as session:
         await cleanup(session, part, occurrence)
     await safe_answer_callback(callback, "✅ انجام این سهم ثبت شد." if changed else "این سهم قبلاً ثبت شده است.")
+    await safe_clear_inline_keyboard(callback.message)
     if changed:
         from khatmsaz.bot.handlers.portions import _invite_friends_line
         from khatmsaz.bot.member_copy import (

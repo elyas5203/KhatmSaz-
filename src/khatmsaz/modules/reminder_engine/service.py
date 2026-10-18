@@ -628,60 +628,10 @@ async def delegate_inactive_portions(session: AsyncSession, notify: NotifyFn) ->
 
 
 async def _send_open_schedule_reminders(session, notify, tz_name: str) -> None:
-    """Send a scheduled prompt for open khatms at each member's reminder hour."""
-    result = await session.execute(
-        select(Khatm).where(
-            Khatm.status == KhatmStatus.ACTIVE,
-            Khatm.khatm_type == KhatmTypeEnum.OPEN,
-        )
-    )
-    today = datetime.now(ZoneInfo(tz_name)).date()
-    for khatm in result.scalars():
-        if not khatm_service.schedule_is_due(khatm, today):
-            continue
-        for participation in await participation_repository.list_active_for_khatm(session, khatm.id):
-            from khatmsaz.modules.share_occurrence.delivery import is_managed
-            if is_managed(participation, khatm) or participation.commitment_mode == "COUNT":
-                continue
-            preference = await notification_service.get_preference(session, participation.id)
-            if preference is not None and not preference.enabled:
-                continue
-            user_settings = await settings_service.get_or_create(session, participation.user_id)
-            try:
-                user_tz = ZoneInfo(user_settings.timezone)
-            except (KeyError, ValueError):
-                user_tz = ZoneInfo(tz_name)
-            _pref_hour = preference.reminder_hour if preference else await _default_reminder_hour(session)
-            _pref_minute = getattr(preference, "reminder_minute", 0) if preference else 0
-            if not _is_reminder_due(datetime.now(user_tz), _pref_hour, _pref_minute):
-                continue
-            if await notification_service.already_sent_today(session, participation.id, NotificationKind.DAILY_REMINDER):
-                continue
-            text = await _render_or_default(
-                session, _tone_key(khatm, "reminder.open"), locale=user_settings.language,
-                title=khatm.title,
-                default=f"یادآوری همراهی 🌱\nامروز می‌توانید در «{khatm.title}» مشارکت کنید.",
-            )
-            if khatm.template_type == KhatmTemplateType.SALAWAT:
-                from khatmsaz.bot.notify_adapter import send_devotional_content
-                content_delivered = False
-                for identity in await identity_service.list_identities_for_user(session, participation.user_id):
-                    content_delivered = await send_devotional_content(
-                        session, identity.platform.value, identity.subject,
-                        khatm=khatm, lang=user_settings.language,
-                        bot_instance_id=participation.joined_via_bot_instance_id,
-                    ) or content_delivered
-                if not content_delivered:
-                    logger.warning("Skipping open reminder action because khatm content was unavailable: %s", khatm.id)
-                    continue
-            from khatmsaz.bot.keyboards import contribute_keyboard
-            delivered = await _notify_user_with_keyboard(
-                session, participation.user_id, text,
-                contribute_keyboard(str(khatm.id), user_settings.language),
-                bot_instance_id=participation.joined_via_bot_instance_id,
-            )
-            if delivered:
-                await notification_service.record_sent(session, participation.id, NotificationKind.DAILY_REMINDER)
+    """Retired per MASTER-41 (owner decision 2026-10-18): Open khatms have zero
+    scheduled delivery or auto-reminders. Portions are issued purely on-demand."""
+    return
+
 
 
 async def _send_daily_digest(session, notify: NotifyFn, candidates, send_quran_pages: SendQuranPagesFn | None = None) -> None:

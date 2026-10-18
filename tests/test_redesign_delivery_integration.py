@@ -119,20 +119,22 @@ async def test_partial_send_keeps_cursor_and_reuses_content_receipt(monkeypatch)
     assert len(retried) == 1 and "reply_markup" in retried[0]
 
 
-async def test_two_reminders_once_and_cleanup_preserves_content(monkeypatch):
+async def test_single_evening_reminder_and_cleanup_preserves_content(monkeypatch):
     bot, calls = fake_messenger(monkeypatch)
     uid,kid,pid,bid = await membership()
     async with session_scope() as session:
         occurrence = await delivery.prepare(session,pid,now=NOW)
         await delivery.deliver(session,occurrence,now=NOW)
+        # 2-hour followup is eliminated per MASTER-41; remind at +2h does not send anything
         await delivery.remind(session,pid,now=NOW+timedelta(hours=2))
-        await delivery.remind(session,pid,now=NOW+timedelta(hours=2))
+        # Single evening reminder at 22:00 (within 2h of deadline)
         await delivery.remind(session,pid,now=occurrence.deadline_at-timedelta(minutes=30))
-        assert [r.purpose for r in await repository.list_messages(session,occurrence.id)] == ["CONTENT","ACTION","FOLLOWUP","DEADLINE"]
+        assert [r.purpose for r in await repository.list_messages(session,occurrence.id)] == ["CONTENT","ACTION","DEADLINE"]
         await service.complete(session,occurrence.id,user_id=uid,bot_instance_id=bid,record_progress=delivery.record_progress)
         await adapter.cleanup(session,await session.get(Participation,pid),occurrence)
-        assert bot.delete_message.await_count == 3
-        assert len(calls) == 4
+        assert bot.delete_message.await_count == 2
+        assert len(calls) == 3
+
 
 
 async def test_reservation_race_capacity_owner_and_expiry():

@@ -1,3 +1,6 @@
+## 2026-10-18 — سازندهٔ سادهٔ پرامپت و مستر [Codex]
+- فرم آفلاین با یک خواستهٔ ضروری و خروجی پرامپت/پیش‌نویس مستر: `../../SUBAGENT_SWARM_BUILDER.html`. پرامپت مسترهای موجود را بررسی می‌کند؛ راهنمای SUBAGENT_SWARM_50.md در این checkout موجود نیست و اجرای آن باید مشروط گزارش شود.
+
 ## 2026-10-17 — Creator Broadcast & Wallet Recharge Overhaul (MASTER-38) [Antigravity]
 - Master Document: [MASTER_38_CREATOR_BROADCAST_AND_WALLET_RECHARGE.md](masters/MASTER_38_CREATOR_BROADCAST_AND_WALLET_RECHARGE.md) (Direct broadcast button in Khatm Management, 150-Toman per-recipient pricing formula, transparent copy, and 4 wallet top-up packages: 50k, 100k, 500k, and custom).
 - Key files: `src/khatmsaz/bot/keyboards.py`, `src/khatmsaz/bot/handlers/creator_broadcast.py`, `src/khatmsaz/modules/broadcast/service.py`, `src/khatmsaz/bot/handlers/wallet.py`.

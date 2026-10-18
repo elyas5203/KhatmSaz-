@@ -1,3 +1,19 @@
+## Current state — 2026-10-18 — Delivery Models & Single-Stage Evening Reminder Redesign (MASTER-41) [Antigravity]
+- **Khatm Delivery & Reminder Scheduling Engine (`modules/share_occurrence/delivery.py` & `modules/reminder_engine/service.py`):**
+  - **Immediate First-Day Delivery:** Implemented `deliver_immediately_if_due`. When a user joins after their chosen schedule hour (e.g. joined at 15:00 and selected 08:00 AM daily), today's portion is prepared and delivered immediately rather than waiting for next day. Future portions deliver on schedule.
+  - **Single-Stage Evening Reminder at 22:00:** Eliminated 2-hour followup reminders (`FOLLOWUP`) to prevent chat spam per owner mandate. The reminder engine fires a single evening reminder at 22:00 Tehran time (`deadline_at - 2 hours`) for any unread committed portions.
+  - **Yesterday's Portion Rollover Without "Deen Shar'i":** Yesterday's unread portions remain active with their own unique completion buttons. Ensured all user-facing copy and keyboards use gentle terms ("سهم روز گذشته", "سهم‌های باقیمانده") and strictly avoid "دین شرعی".
+  - **Open Khatms Strictly On-Demand:** Retired scheduled reminders (`_send_open_schedule_reminders`) for open khatms per owner confirmation (open khatms have zero automated delivery or scheduled reminders).
+  - **Automatic Reminder Message Cleanup:** Updated `complete_share` in `member_commitment.py` to immediately clear callback message keyboard and delete the 22:00 reminder message via `occurrence_adapter.cleanup`, while preserving media files (audio/video/PDF).
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_41_DELIVERY_AND_REMINDER_SCHEDULING.md` and registered `DEC-PY-0133`.
+- **Validation:** Added 6 tests in `tests/test_master_41_delivery_and_reminder_scheduling.py` (100% PASS), verified all 23 khutbah integration tests and 15 reminder redesign P2 tests pass without regression.
+
+## Current state — 2026-10-18 — Simplified offline prompt and master builder [Codex]
+- Owner said the HTML builder was hard to use and asked for fewer inputs with stronger, more precise outputs.
+- Rebuilt root SUBAGENT_SWARM_BUILDER.html as a short Persian RTL form: one required request, two optional descriptions, a two-choice work mode, and an optional project path behind a disclosure. Both outputs update live. Kept five question-mark help dialogs, copy/download, keyboard tabs, and a 50-row master draft.
+- Generated prompt now requires project instructions and domain sources, discovery and comparison of related master files, a request-to-evidence-to-acceptance trace, bounded 50-role execution when the role guide exists, truthful fallback when absent, safe local change rules, tests, and a final evidence-based report. The builder itself does not read project files.
+- Validation: Node syntax PASS; HTML structure PASS; simulated DOM PASS for empty/filled form, optional inputs, mode, tabs, master rows, help, download; full pytest **597 PASS / 233 SKIP / 4 FAIL**. Three failures are DB-backed admin tests during session commit; one is an existing creator-broadcast copy assertion. No Python/runtime files changed in this task. Migration apply and browser visual inspection NOT RUN. The formerly referenced root SUBAGENT_SWARM_50.md is absent from this checkout; the page no longer links to a missing file and the generated prompt reports its absence honestly.
+
 ## Current state — 2026-10-18 — Quick All-Permissions Delegation & Role Selection on /admins [Antigravity]
 - **Web Admin Panel (`web/templates/admins.html` & `web/app.py`):**
   - Added `AdminRole.ADMIN` with all 7 operational permissions (dashboard, content, finance, support, moderation, marketing, operations) pre-selected by default in the role assignment dropdown.

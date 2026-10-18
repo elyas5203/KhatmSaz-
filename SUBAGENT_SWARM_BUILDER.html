@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>سازندهٔ سادهٔ پرامپت و فایل مستر</title>
+  <style>
+    :root {
+      font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+      color: #173640;
+      background: #edf3f4;
+      --ink: #173640;
+      --muted: #49656d;
+      --teal: #087d80;
+      --teal-dark: #075e62;
+      --line: #cadadd;
+      --paper: #fff;
+      --soft: #f4f9f9;
+      --warning: #a33c38;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 320px; }
+    button, textarea, input { font: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 3px solid #e7a93c; outline-offset: 3px; }
+    .shell { max-width: 1250px; margin: 0 auto; padding: 22px clamp(14px, 3vw, 42px) 48px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .brand { color: var(--ink); text-decoration: none; font-weight: 900; font-size: 15px; }
+    .local-note { color: var(--muted); font-size: 12px; }
+    .hero { padding: clamp(24px, 4vw, 42px); color: #f5fbfb; background: #173640; border-radius: 22px; }
+    .hero .eyebrow { margin: 0 0 9px; color: #a5d7d8; font-size: 13px; font-weight: 800; }
+    h1 { margin: 0 0 10px; font-size: clamp(29px, 3.4vw, 47px); line-height: 1.35; }
+    .hero p:last-child { margin: 0; max-width: 720px; color: #d5e4e7; font-size: 15px; line-height: 1.9; }
+    .steps { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 24px; }
+    .steps span { padding: 8px 12px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--muted); font-size: 12px; }
+    .steps b { color: var(--teal-dark); }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, .95fr); align-items: start; gap: 20px; }
+    .card { min-width: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 35px rgba(25, 66, 77, .055); }
+    .form-card { padding: clamp(20px, 2.6vw, 32px); }
+    .form-card h2, .preview-head h2 { margin: 0 0 7px; font-size: 22px; }
+    .lead { margin: 0 0 22px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .field { margin: 0 0 22px; }
+    .field-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+    .field-head label, .field-head .field-label { font-size: 16px; font-weight: 800; line-height: 1.55; }
+    .optional { color: var(--muted); font-size: 11px; font-weight: 400; white-space: nowrap; }
+    .help-button { flex: 0 0 auto; width: 44px; height: 44px; display: inline-grid; place-items: center; border: 1px solid #9bc5c8; border-radius: 10px; background: #e8f5f4; color: var(--teal-dark); font-size: 19px; font-weight: 900; }
+    .help-button:hover { background: #d5eceb; }
+    textarea, .path-input { width: 100%; padding: 14px 15px; border: 1px solid #a9c0c5; border-radius: 11px; color: var(--ink); background: #fbfdfd; font-size: 15px; line-height: 1.85; }
+    textarea { resize: vertical; min-height: 98px; }
+    #request { min-height: 137px; }
+    textarea:focus, .path-input:focus { outline: 0; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(8, 125, 128, .17); }
+    .hint { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+    .error-text { margin: 7px 0 0; color: var(--warning); font-size: 12px; font-weight: 700; }
+    .error-text[hidden] { display: none; }
+    .choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .choice { display: block; cursor: pointer; }
+    .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .choice span { display: flex; justify-content: center; align-items: center; min-height: 50px; padding: 10px; border: 1px solid #b9cdd0; border-radius: 10px; background: #f8fbfb; color: var(--muted); font-size: 13px; font-weight: 800; text-align: center; }
+    .choice input:checked + span { border-color: var(--teal); background: #e1f3f1; color: var(--teal-dark); box-shadow: inset 0 0 0 1px var(--teal); }
+    .choice input:focus-visible + span { outline: 3px solid #e7a93c; outline-offset: 3px; }
+    .choice:hover span { border-color: var(--teal); }
+    .optional-box { margin: 2px 0 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+    .optional-box summary { padding: 16px 2px; cursor: pointer; color: var(--teal-dark); font-size: 13px; font-weight: 800; }
+    .optional-box[open] .field { margin: 4px 0 19px; }
+    .form-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .form-footer p { margin: 0; color: var(--muted); font-size: 12px; }
+    .quiet-button { border: 0; background: transparent; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; padding: 9px 0; white-space: nowrap; }
+    .preview-card { position: sticky; top: 20px; overflow: hidden; }
+    .preview-head { padding: 23px 24px 17px; }
+    .preview-head p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
+    .tabs { display: flex; gap: 5px; padding: 0 24px; border-bottom: 1px solid var(--line); }
+    .tab { min-height: 47px; padding: 10px 14px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-size: 13px; font-weight: 800; }
+    .tab[aria-selected="true"] { color: var(--teal-dark); border-bottom-color: var(--teal); }
+    .output-wrap { padding: 18px 24px 16px; }
+    .output-wrap label { display: block; margin-bottom: 9px; font-size: 13px; font-weight: 800; }
+    #output { width: 100%; height: min(51vh, 560px); min-height: 350px; padding: 16px; border: 1px solid var(--line); border-radius: 11px; background: var(--soft); color: var(--ink); font-size: 13px; line-height: 1.85; resize: vertical; }
+    .output-actions { display: flex; gap: 9px; padding: 0 24px 20px; }
+    .primary-button, .secondary-button { min-height: 46px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 800; }
+    .primary-button { flex: 1; border: 1px solid var(--teal); background: var(--teal); color: #fff; }
+    .primary-button:hover:not(:disabled) { background: var(--teal-dark); }
+    .secondary-button { border: 1px solid #a5c4c9; background: #fff; color: var(--teal-dark); }
+    .secondary-button:hover:not(:disabled) { background: #eaf5f5; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .status-row { display: flex; justify-content: space-between; gap: 12px; padding: 13px 24px; border-top: 1px solid var(--line); background: var(--soft); color: var(--muted); font-size: 12px; }
+    #status.error { color: var(--warning); font-weight: 800; }
+    #status.success { color: var(--teal-dark); font-weight: 800; }
+    .footer { margin: 22px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; text-align: center; }
+    .footer a { color: var(--teal-dark); }
+    .help-dialog { width: min(620px, calc(100% - 26px)); max-height: 82vh; overflow: auto; padding: 0; border: 1px solid var(--line); border-radius: 17px; background: #fff; color: var(--ink); box-shadow: 0 22px 80px rgba(7, 40, 47, .25); }
+    .help-dialog::backdrop { background: rgba(16, 40, 47, .58); }
+    .help-head { position: sticky; top: 0; display: flex; align-items: start; justify-content: space-between; gap: 16px; padding: 20px 22px 15px; border-bottom: 1px solid var(--line); background: #fff; }
+    .help-head h2 { margin: 0; font-size: 20px; }
+    .close-button { min-height: 44px; padding: 8px 14px; border: 1px solid #a5c4c9; border-radius: 9px; background: #fff; color: var(--teal-dark); font-size: 13px; font-weight: 800; }
+    .help-body { padding: 20px 22px 24px; }
+    .help-body h3 { margin: 16px 0 5px; color: var(--teal-dark); font-size: 14px; }
+    .help-body h3:first-child { margin-top: 0; }
+    .help-body p { margin: 0; font-size: 14px; line-height: 1.9; white-space: pre-line; overflow-wrap: anywhere; }
+    @media (max-width: 930px) { .workspace { grid-template-columns: 1fr; } .preview-card { position: static; } #output { height: 430px; } }
+    @media (max-width: 550px) { .shell { padding: 14px 12px 36px; } .hero { border-radius: 17px; } .choice-row { grid-template-columns: 1fr; } .output-actions { flex-direction: column; } .local-note { font-size: 10px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <noscript><p style="margin:16px;padding:16px;background:#fff;color:#a33c38">برای ساخت خروجی، JavaScript مرورگر را فعال کنید.</p></noscript>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="#main">سازندهٔ پرامپت و مستر</a>
+      <span class="local-note">بدون ارسال اطلاعات به سرور</span>
+    </header>
+
+    <section class="hero" aria-labelledby="pageTitle">
+      <p class="eyebrow">فرم کوتاه برای یک درخواست دقیق</p>
+      <h1 id="pageTitle">فقط بگو چه تغییری می‌خواهی.</h1>
+      <p>یک سؤال ضروری است. دو توضیح اختیاری، نتیجه را دقیق‌تر می‌کند. خروجی پرامپت و پیش‌نویس فایل مستر همان لحظه آماده می‌شوند.</p>
+    </section>
+    <div class="steps" aria-label="مراحل استفاده">
+      <span><b>۱.</b> خواسته‌ات را بنویس</span>
+      <span><b>۲.</b> اگر می‌دانی، مشکل و نتیجهٔ دلخواه را توضیح بده</span>
+      <span><b>۳.</b> پرامپت یا مستر را کپی کن</span>
+    </div>
+
+    <main id="main" class="workspace">
+      <form id="builderForm" class="card form-card" novalidate>
+        <h2>درخواست تو</h2>
+        <p class="lead">لازم نیست اصطلاح فنی بدانی. واضح و به زبان خودت بنویس؛ دستیار باید جزئیات پروژه را با سند و کد بررسی کند.</p>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="request">چه کاری می‌خواهی انجام شود؟ <span class="optional">(ضروری)</span></label>
+            <button class="help-button" type="button" data-help="request" aria-label="راهنمای خواستهٔ اصلی" aria-haspopup="dialog" aria-controls="helpDialog">؟</button>
+          </div>
+          <textarea id="request" name="request" required aria-describedby="requestHint requestError" placeholder="مثلاً: مسیر ثبت‌نام کاربران را بررسی و مشکل پیام خطا را اصلاح کن."></textarea>
+          <p class="hint" id="requestHint">بهتر است فعل و موضوع را بگویی: بررسی کن، اصلاح کن، اضافه کن یا ساده‌تر کن.</p>
+          <p class="error-text" id="requestError" hidden>اول بگو چه کاری می‌خواهی انجام شود.</p>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="current">الان چه اتفاقی می‌افتد؟ <span class="optional">(اختیاری)</span></label>
+            <button class="help-button" type="button" data-help="current" aria-label="راهنمای وضعیت فعلی" aria-haspopup="dialog" aria-controls="helpDialog">؟</button>
+          </div>
+          <textarea id="current" name="current" aria-describedby="currentHint" placeholder="مثلاً: با شمارهٔ تکراری، فرم می‌ماند ولی پیام خطا دیده نمی‌شود."></textarea>
+          <p class="hint" id="currentHint">اگر نمی‌دانی، خالی بگذار تا دستیار از خود پروژه بررسی کند.</p>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <label for="desired">نتیجهٔ خوب از نظر تو چیست؟ <span class="optional">(اختیاری)</span></label>
+            <button class="help-button" type="button" data-help="desired" aria-label="راهنمای نتیجهٔ دلخواه" aria-haspopup="dialog" aria-controls="helpDialog">؟</button>
+          </div>
+          <textarea id="desired" name="desired" aria-describedby="desiredHint" placeholder="مثلاً: پیام خطای روشن نمایش داده شود و اطلاعات فرم پاک نشود."></textarea>
+          <p class="hint" id="desiredHint">رفتار دلخواه را بگو؛ لازم نیست روش پیاده‌سازی را بدانی.</p>
+        </div>
+
+        <div class="field" role="group" aria-labelledby="modeLabel" aria-describedby="modeHint">
+          <div class="field-head">
+            <span class="field-label" id="modeLabel">دستیار فقط بررسی کند یا اصلاح هم بکند؟</span>
+            <button class="help-button" type="button" data-help="mode" aria-label="راهنمای حالت کار" aria-haspopup="dialog" aria-controls="helpDialog">؟</button>
+          </div>
+          <div class="choice-row">
+            <label class="choice"><input type="radio" name="mode" value="fix" checked><span>بررسی و اصلاح فایل‌های محلی</span></label>
+            <label class="choice"><input type="radio" name="mode" value="audit"><span>فقط بررسی و گزارش</span></label>
+          </div>
+          <p class="hint" id="modeHint">اصلاح محلی شامل انتشار، تغییر سرور یا دست‌کاری دادهٔ واقعی نمی‌شود.</p>
+        </div>
+
+        <details class="optional-box">
+          <summary>اگر پروژه در پوشهٔ دیگری است، اینجا مشخص کن</summary>
+          <div class="field">
+            <div class="field-head">
+              <label for="projectPath">مسیر پروژه <span class="optional">(اختیاری)</span></label>
+              <button class="help-button" type="button" data-help="projectPath" aria-label="راهنمای مسیر پروژه" aria-haspopup="dialog" aria-controls="helpDialog">؟</button>
+            </div>
+            <input class="path-input" id="projectPath" name="projectPath" type="text" dir="ltr" aria-describedby="projectPathHint" placeholder="C:/xampp/htdocs/Khatm">
+            <p class="hint" id="projectPathHint">اگر دستیار داخل همان پروژه اجرا می‌شود، خالی بگذار.</p>
+          </div>
+        </details>
+
+        <div class="form-footer">
+          <p>با نوشتن خواسته، هر دو خروجی خودکار ساخته می‌شوند.</p>
+          <button type="reset" class="quiet-button">پاک کردن فرم</button>
+        </div>
+      </form>
+
+      <section class="card preview-card" aria-labelledby="previewTitle">
+        <div class="preview-head">
+          <h2 id="previewTitle">خروجی آمادهٔ استفاده</h2>
+          <p id="previewDescription">پرامپت را به دستیاری بده که به فایل‌های پروژه دسترسی دارد.</p>
+        </div>
+        <div class="tabs" role="tablist" aria-label="نوع خروجی">
+          <button id="promptTab" class="tab" type="button" role="tab" aria-selected="true" aria-controls="outputPanel">پرامپت</button>
+          <button id="masterTab" class="tab" type="button" role="tab" aria-selected="false" aria-controls="outputPanel" tabindex="-1">فایل مستر</button>
+        </div>
+        <div id="outputPanel" role="tabpanel" aria-labelledby="promptTab">
+          <div class="output-wrap">
+            <label id="outputLabel" for="output">متن پرامپت</label>
+            <textarea id="output" readonly spellcheck="false" dir="rtl" aria-label="پرامپت ساخته‌شده"></textarea>
+          </div>
+          <div class="output-actions">
+            <button id="copyButton" class="primary-button" type="button" disabled>کپی پرامپت</button>
+            <button id="downloadButton" class="secondary-button" type="button" disabled>دانلود TXT</button>
+          </div>
+          <div class="status-row">
+            <span id="status" role="status" aria-live="polite">برای شروع، خواسته‌ات را بنویس.</span>
+            <span id="count">۰ نویسه</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <p class="footer">این صفحه فایل‌های پروژه را خودش نمی‌خواند و چیزی را خودکار در پروژه ذخیره نمی‌کند. دستیار باید مسترهای مرتبط را پیدا و بررسی کند. اگر راهنمای SUBAGENT_SWARM_50.md را دارید، آن را هم در ریشهٔ پروژه قرار دهید.</p>
+  </div>
+
+  <dialog id="helpDialog" class="help-dialog" aria-labelledby="helpTitle">
+    <div class="help-head">
+      <h2 id="helpTitle"></h2>
+      <button id="closeHelp" class="close-button" type="button">بستن</button>
+    </div>
+    <div class="help-body">
+      <h3>چه بنویسم؟</h3><p id="helpEntry"></p>
+      <h3>نمونه</h3><p id="helpExample"></p>
+      <h3>چه اثری در خروجی دارد؟</h3><p id="helpEffect"></p>
+      <h3>اگر خالی بماند</h3><p id="helpEmpty"></p>
+    </div>
+  </dialog>
+
+  <script type="text/plain" id="promptTemplate">
+در پروژهٔ مشخص‌شده، درخواست زیر را تا نتیجهٔ قابل بررسی پیگیری کن. پاسخ کلی یا ادعای انجام کار بدون شاهد نده.
+
+درخواست مستقیم من:
+{{REQUEST}}
+
+آنچه اکنون مشاهده می‌کنم (گفتهٔ من، هنوز راستی‌آزمایی نشده):
+{{CURRENT}}
+
+نتیجه‌ای که می‌خواهم:
+{{DESIRED}}
+
+محل پروژه: {{PROJECT_PATH}}
+حالت کار: {{MODE}}
+
+روش لازم:
+۱. ابتدا دستورهای معتبر پروژه، وضعیت شاخه و تغییرات فعلی، نمایهٔ اسناد و قواعد دامنه را بخوان. هر گفتهٔ من را از واقعیت کد و سند جدا نگه دار. اگر موضوع مبهم است، فرض را ثبت کن و فقط برای تصمیمِ واقعاً مسدودکننده سؤال مشخص بپرس.
+۲. پیش از ساخت یا تغییر مستر، همهٔ نام‌های شامل MASTER/master و ارجاع‌های نمایهٔ اسناد را پیدا کن. مسترهای مرتبط را بخوان و برای هر کدام موضوع، وضعیت، همپوشانی، تعارض و منبع معتبر را ثبت کن. تاریخچه را حفظ کن. اگر مستر مرتبط هست همان را تکمیل کن؛ اگر نیست، یک مستر تازه با نام مربوط به همین تغییر بساز. فایل نامرتبط یا مسیر دارای برخورد را بازنویسی نکن.
+۳. نقشهٔ دقیق کار بساز: خواستهٔ من ← قاعدهٔ مستند ← فایل/رفتار واقعی ← علت مسئله ← اقدام لازم ← معیار پذیرش ← آزمون. هر موردی که سند ندارد را «نیازمند تصمیم» علامت بزن؛ قانون محصولی، قیمت، محدودیت یا رفتار تازه حدس نزن.
+۴. فایل SUBAGENT_SWARM_50.md را اگر در پروژه هست بخوان و نسخهٔ ۲ آن را اجرا کن: R01 تا R50 هر کدام با مأموریت، روش، پیش‌شرط، گام اجرایی، حالت لبه، برخورد/ارجاع، واکنش اگر/آنگاه، تحویل و معیار پایان. با ظرفیت واقعی ابزار در موج‌ها کار کن؛ اگر ساب‌ایجنت واقعی ممکن نیست، گذرهای جدا و شماره‌دار انجام بده و صادقانه بگو. N/A یا مسدود فقط با دلیل و شاهد. اگر فایل راهنما در دسترس نیست، نبودنش را اعلام کن، اجرای ۵۰ نقش را ادعا نکن و بررسی‌های مستقل ممکن را ادامه بده.
+۵. یافته‌های مهم یا متعارض را با نقش مکمل و مخالف به چالش بکش؛ اختلاف نسخه، مسیر، داده و پیش‌شرط را حل کن. یافتهٔ تأییدشده باید علت ریشه‌ای، اثر، شدت، اطمینان، بازتولید امن، اصلاح و آزمون پذیرش داشته باشد. رأی اکثریت جای شاهد نیست.
+۶. مستر نهایی باید درخواست مالک، مسترهای موجود و نسبتشان، وضعیت فعلیِ تأییدشده، قواعد معتبر، معیارهای پذیرش، بسته‌های کاری، وابستگی‌ها، جدول واقعی ۵۰ نقش، تصمیم‌های باز، تغییرات و نتیجهٔ آزمون‌ها را داشته باشد. این پیش‌نویسِ تولیدشده از فرم شاهد بررسی پروژه نیست؛ فقط ورودی مالک است.
+۷. {{MODE_INSTRUCTION}}
+۸. آزمون‌های مرتبط را در محیط مجاز و بی‌خطر اجرا کن؛ فرمان، نتیجه و محدودیت هر آزمون را دقیق گزارش کن. پیش از اقدام با اثر بیرونی یا دادهٔ واقعی، مجوز صریح همان اقدام لازم است. رازها را چاپ نکن. در پایان، گزارش را با قالب اجباری خود پروژه و ممیزی مستقل نهایی (R50 فقط اگر راهنمایش موجود بود) ارائه کن؛ فایل‌های تغییرکرده، شواهد، آزمون‌ها، موارد باز و گام بعدی را بنویس.
+  </script>
+
+  <script type="text/plain" id="masterTemplate">
+# {{TITLE}} — مستر تغییر
+
+> وضعیت: پیش‌نویس ساخته‌شده از گفتهٔ مالک. این صفحه هنوز پروژه و مسترهای قبلی را بررسی نکرده است. «انجام شد» فقط پس از مشاهدهٔ تغییر و آزمون واقعی ثبت می‌شود.
+
+## ۱. درخواست مالک
+{{REQUEST}}
+
+## ۲. وضعیت فعلی از نگاه مالک
+{{CURRENT}}
+
+## ۳. نتیجهٔ دلخواه مالک
+{{DESIRED}}
+
+## ۴. محدوده و شیوهٔ کار
+- محل پروژه: {{PROJECT_PATH}}
+- حالت کار: {{MODE}}
+- محدودیت پیش‌فرض: تغییر محلیِ مرتبط؛ بدون انتشار، تغییر تولید یا دادهٔ واقعی.
+- ابهام‌های مؤثر بر رفتار محصول: باید با منبع معتبر یا سؤال از مالک تعیین تکلیف شوند.
+
+## ۵. مسترهای موجود و تصمیم استفاده
+| مسیر | موضوع و وضعیت واقعی | همپوشانی/تعارض | تصمیم و دلیل | شاهد |
+| --- | --- | --- | --- | --- |
+| نیازمند جست‌وجو | نیازمند بررسی | نیازمند بررسی | تکمیل مستر مرتبط یا ساخت فایل تازه | نیازمند ارجاع |
+
+## ۶. واقعیت پروژه و قواعد معتبر
+| ادعا یا قاعده | منبع فایل/خط یا سند | وضعیت تأیید | پرسش باز |
+| --- | --- | --- | --- |
+| نیازمند بررسی | نیازمند ارجاع | تأیید نشده | نیازمند بررسی |
+
+## ۷. نقشهٔ تغییر و پذیرش
+| خواسته | رفتار فعلی و علت ریشه‌ای | اقدام لازم | معیار پذیرش قابل آزمون | وضعیت و شاهد |
+| --- | --- | --- | --- | --- |
+| درخواست بخش ۱ | نیازمند بررسی | نیازمند تصمیم | باید از گفتهٔ مالک و قواعد معتبر استخراج شود | انجام نشده |
+
+## ۸. پوشش ۵۰ نقش
+| نقش | سؤال و محدودهٔ واقعی | وضعیت | شاهد و ارجاع | پیگیری |
+| --- | --- | --- | --- | --- |
+{{ROLE_ROWS}}
+
+برای هر نقش، ۹ فیلد اجرایی راهنمای نسخهٔ ۲ باید واقعاً دنبال شود. هیچ ردیف «انجام شد» بدون شاهد نباشد.
+
+## ۹. حالت‌های لبه، برخورد و ریسک
+| حالت/برخورد | پیش‌شرط | واکنش اگر/آنگاه | نقش پیگیر | نتیجه و شاهد |
+| --- | --- | --- | --- | --- |
+| نیازمند کشف | نیازمند بررسی | نیازمند تصمیم | نیازمند تعیین | هنوز بررسی نشده |
+
+## ۱۰. کارهای انجام‌شده و اعتبارسنجی
+| فایل/اقدام یا فرمان | محیط | نتیجهٔ واقعی | شاهد | وضعیت |
+| --- | --- | --- | --- | --- |
+| هنوز اجرا نشده | — | — | — | NOT RUN |
+
+## ۱۱. تصمیم‌ها و گام بعدی
+- تصمیم‌های باز: نیازمند بررسی.
+- تعارض با مسترهای دیگر: نیازمند بررسی.
+- گام بعدی: جست‌وجوی مسترهای مرتبط و راستی‌آزمایی درخواست مالک.
+  </script>
+
+  <script>
+    (() => {
+      "use strict";
+      const form = document.getElementById("builderForm");
+      const request = document.getElementById("request");
+      const current = document.getElementById("current");
+      const desired = document.getElementById("desired");
+      const projectPath = document.getElementById("projectPath");
+      const output = document.getElementById("output");
+      const promptTemplate = document.getElementById("promptTemplate").textContent.trim();
+      const masterTemplate = document.getElementById("masterTemplate").textContent.trim();
+      const promptTab = document.getElementById("promptTab");
+      const masterTab = document.getElementById("masterTab");
+      const outputPanel = document.getElementById("outputPanel");
+      const copyButton = document.getElementById("copyButton");
+      const downloadButton = document.getElementById("downloadButton");
+      const status = document.getElementById("status");
+      const count = document.getElementById("count");
+      const helpDialog = document.getElementById("helpDialog");
+      const closeHelp = document.getElementById("closeHelp");
+      const digits = "۰۱۲۳۴۵۶۷۸۹";
+      const help = {
+        request: {
+          title: "خواستهٔ اصلی",
+          entry: "بگو دقیقاً چه کاری انجام شود. فعل و موضوع را مشخص کن. اگر چند خواستهٔ مرتبط داری، هر کدام را در یک خط بنویس.",
+          example: "مسیر ثبت‌نام کاربر را بررسی کن و مشکل نمایش پیام خطای شمارهٔ تکراری را اصلاح کن.",
+          effect: "متن تو در ابتدای پرامپت و بخش «درخواست مالک» مستر می‌آید. دستیار باید آن را به کارهای مشخص، شاهد و آزمون پذیرش وصل کند.",
+          empty: "این تنها فیلد ضروری است؛ تا چیزی ننویسی دکمه‌های کپی و دانلود فعال نمی‌شوند."
+        },
+        current: {
+          title: "وضعیت فعلی",
+          entry: "اگر می‌دانی الان چه رخ می‌دهد، آن را با شرایط وقوع و یک نمونه بنویس. حدس را به جای واقعیت قطعی ننویس.",
+          example: "وقتی شمارهٔ تکراری وارد می‌کنم، صفحه منتظر می‌ماند و پیام خطا نمی‌آید.",
+          effect: "در هر دو خروجی به‌عنوان گفتهٔ تو ثبت می‌شود، نه شاهد تأییدشده. دستیار باید آن را در کد یا رفتار واقعی بررسی کند.",
+          empty: "پرامپت از دستیار می‌خواهد وضعیت فعلی را خودش در پروژه پیدا و با شاهد ثبت کند."
+        },
+        desired: {
+          title: "نتیجهٔ دلخواه",
+          entry: "بگو پس از تغییر، کاربر یا سیستم چه چیزی ببیند. روش فنی لازم نیست؛ رفتار نهایی را توصیف کن.",
+          example: "شمارهٔ تکراری پیام روشن فارسی بگیرد و اطلاعات فرم پاک نشود.",
+          effect: "در پرامپت و مستر به‌عنوان خواستهٔ تو می‌آید. دستیار از آن و قواعد معتبر معیارهای پذیرش قابل آزمون می‌سازد.",
+          empty: "دستیار باید نتیجه را از خواستهٔ اصلی و اسناد معتبر استخراج کند؛ اگر یک تصمیم محصولی مبهم بماند، از تو می‌پرسد."
+        },
+        mode: {
+          title: "حالت کار",
+          entry: "«بررسی و اصلاح» یعنی دستیار پس از بررسی، فایل‌های محلیِ مرتبط را تغییر دهد و آزمون کند. «فقط بررسی» یعنی کد محصول را تغییر ندهد و یافته‌ها را گزارش کند.",
+          example: "اگر می‌خواهی مشکل همین حالا در کد محلی اصلاح شود، گزینهٔ اول را نگه دار.",
+          effect: "در هر دو خروجی ثبت می‌شود و دستور عملی پرامپت را تغییر می‌دهد. در هر دو حالت، مستر باید وضعیت واقعی را ثبت کند.",
+          empty: "پیش‌فرض «بررسی و اصلاح فایل‌های محلی» است. هیچ گزینه‌ای مجوز push، deploy یا تغییر دادهٔ واقعی نیست."
+        },
+        projectPath: {
+          title: "مسیر پروژه",
+          entry: "فقط وقتی دستیار از پوشهٔ دیگری کار می‌کند، نشانی پوشهٔ درست پروژه را بده. مسیر فایل HTML یا فایل مستر را لازم نیست بنویسی.",
+          example: "C:/xampp/htdocs/Khatm",
+          effect: "در هر دو خروجی به‌عنوان محل پروژه ثبت می‌شود تا دستیار همان‌جا اسناد، کد و مسترهای قبلی را پیدا کند.",
+          empty: "پیش‌فرض همان پروژه‌ای است که دستیار در آن اجرا می‌شود؛ اگر آن پروژه مشخص نباشد باید از تو مسیر را بپرسد."
+        }
+      };
+      let active = "prompt";
+      let promptText = "";
+      let masterText = "";
+      let lastHelpButton = null;
+
+      const value = (element) => element.value.trim().replace(/\r\n?/g, "\n");
+      const quoted = (text) => text.split("\n").map((line) => "> " + line).join("\n");
+      const numberFa = (number) => String(number).replace(/[0-9]/g, (digit) => digits[Number(digit)]);
+      const renderTemplate = (template, data) => template.replace(/{{([A-Z_]+)}}/g, (_, key) => data[key] ?? "");
+      const selectedMode = () => form.querySelector('input[name="mode"]:checked').value;
+
+      function setStatus(message, kind = "") {
+        status.textContent = message;
+        status.className = kind;
+      }
+
+      function showHelp(key, button) {
+        const item = help[key];
+        if (!item) return;
+        lastHelpButton = button;
+        document.getElementById("helpTitle").textContent = item.title;
+        for (const part of ["entry", "example", "effect", "empty"]) {
+          document.getElementById("help" + part[0].toUpperCase() + part.slice(1)).textContent = item[part];
+        }
+        helpDialog.showModal();
+        closeHelp.focus();
+      }
+
+      function renderOutput() {
+        const isMaster = active === "master";
+        const ready = Boolean(value(request));
+        output.value = ready ? (isMaster ? masterText : promptText) : "اول در کادر «چه کاری می‌خواهی انجام شود؟» خواسته‌ات را بنویس.";
+        promptTab.setAttribute("aria-selected", String(!isMaster));
+        masterTab.setAttribute("aria-selected", String(isMaster));
+        promptTab.tabIndex = isMaster ? -1 : 0;
+        masterTab.tabIndex = isMaster ? 0 : -1;
+        outputPanel.setAttribute("aria-labelledby", isMaster ? "masterTab" : "promptTab");
+        document.getElementById("outputLabel").textContent = isMaster ? "پیش‌نویس فایل مستر" : "متن پرامپت";
+        document.getElementById("previewDescription").textContent = isMaster
+          ? "پیش‌نویس را دانلود کن؛ دستیار باید پس از بررسی مسترهای موجود، آن را تکمیل کند."
+          : "پرامپت را به دستیاری بده که به فایل‌های پروژه دسترسی دارد.";
+        output.setAttribute("aria-label", isMaster ? "پیش‌نویس فایل مستر" : "پرامپت ساخته‌شده");
+        copyButton.textContent = isMaster ? "کپی مستر" : "کپی پرامپت";
+        downloadButton.textContent = isMaster ? "دانلود MD" : "دانلود TXT";
+        copyButton.disabled = !ready;
+        downloadButton.disabled = !ready;
+        document.getElementById("requestError").hidden = ready || !request.dataset.touched;
+        request.setAttribute("aria-invalid", String(!ready && Boolean(request.dataset.touched)));
+        count.textContent = ready ? numberFa(output.value.length) + " نویسه" : "۰ نویسه";
+        setStatus(ready ? (isMaster ? "پیش‌نویس مستر آماده است." : "پرامپت آماده است.") : "برای شروع، خواسته‌ات را بنویس.");
+      }
+
+      function update() {
+        const requestValue = value(request);
+        const currentValue = value(current);
+        const desiredValue = value(desired);
+        const mode = selectedMode();
+        const title = requestValue.split("\n")[0].replace(/[>#|]/g, " ").slice(0, 90).trim() || "تغییر پیشنهادی";
+        const data = {
+          REQUEST: quoted(requestValue),
+          CURRENT: quoted(currentValue || "هنوز توضیح داده نشده؛ وضعیت واقعی باید در پروژه بررسی شود."),
+          DESIRED: quoted(desiredValue || "از درخواست و قواعد معتبر پروژه استخراج شود؛ ابهام محصولی از مالک پرسیده شود."),
+          TITLE: title,
+          PROJECT_PATH: value(projectPath) || "پروژه‌ای که دستیار در آن اجرا می‌شود؛ اگر نامشخص بود مسیر از مالک پرسیده شود",
+          MODE: mode === "audit" ? "فقط بررسی و گزارش" : "بررسی و اصلاح فایل‌های محلیِ مرتبط",
+          MODE_INSTRUCTION: mode === "audit"
+            ? "فقط بررسی کن. فایل‌های محصول را تغییر نده؛ یافته‌ها، طرح اصلاح و آزمون پذیرش را در مستر ثبت کن. انجام اصلاح را ادعا نکن."
+            : "پس از راستی‌آزمایی، اصلاح‌های مرتبط و برگشت‌پذیر را در فایل‌های محلی انجام بده، diff را بازبینی کن و آزمون‌های مربوط را اجرا کن. تغییر روی سرور، دادهٔ واقعی، push و deploy نیازمند مجوز صریح جداگانه است.",
+          ROLE_ROWS: Array.from({ length: 50 }, (_, index) =>
+            "| R" + String(index + 1).padStart(2, "0") + " | نیازمند تعیین | اجرا نشده | — | نیازمند بررسی |"
+          ).join("\n")
+        };
+        promptText = renderTemplate(promptTemplate, data);
+        masterText = renderTemplate(masterTemplate, data);
+        renderOutput();
+      }
+
+      async function copyOutput() {
+        if (copyButton.disabled) return;
+        try {
+          if (!navigator.clipboard || !window.isSecureContext) throw new Error("Clipboard API unavailable");
+          await navigator.clipboard.writeText(output.value);
+          setStatus(active === "master" ? "مستر کپی شد." : "پرامپت کپی شد.", "success");
+        } catch {
+          output.focus();
+          output.select();
+          try {
+            if (document.execCommand("copy")) setStatus(active === "master" ? "مستر کپی شد." : "پرامپت کپی شد.", "success");
+            else setStatus("متن انتخاب شد؛ با Ctrl+C کپی کن.", "error");
+          } catch {
+            setStatus("متن انتخاب شد؛ با Ctrl+C کپی کن.", "error");
+          }
+        }
+      }
+
+      function downloadOutput() {
+        if (downloadButton.disabled) return;
+        const isMaster = active === "master";
+        const blob = new Blob([output.value + "\n"], { type: (isMaster ? "text/markdown" : "text/plain") + ";charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = isMaster ? "CHANGE_MASTER_DRAFT.md" : "SUBAGENT_SWARM_READY_PROMPT.txt";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        setStatus(isMaster ? "پیش‌نویس مستر دانلود شد." : "پرامپت دانلود شد.", "success");
+      }
+
+      function selectTab(kind) {
+        active = kind;
+        renderOutput();
+      }
+
+      form.addEventListener("input", update);
+      form.addEventListener("change", update);
+      form.addEventListener("reset", () => setTimeout(() => { delete request.dataset.touched; update(); }, 0));
+      form.addEventListener("submit", (event) => event.preventDefault());
+      request.addEventListener("blur", () => { request.dataset.touched = "1"; renderOutput(); });
+      promptTab.addEventListener("click", () => selectTab("prompt"));
+      masterTab.addEventListener("click", () => selectTab("master"));
+      for (const [tab, kind] of [[promptTab, "prompt"], [masterTab, "master"]]) {
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+          event.preventDefault();
+          const next = kind === "prompt" ? masterTab : promptTab;
+          selectTab(kind === "prompt" ? "master" : "prompt");
+          next.focus();
+        });
+      }
+      for (const button of document.querySelectorAll("[data-help]")) {
+        button.addEventListener("click", () => showHelp(button.dataset.help, button));
+      }
+      closeHelp.addEventListener("click", () => helpDialog.close());
+      helpDialog.addEventListener("close", () => lastHelpButton?.focus());
+      copyButton.addEventListener("click", copyOutput);
+      downloadButton.addEventListener("click", downloadOutput);
+      update();
+    })();
+  </script>
+</body>
+</html>
