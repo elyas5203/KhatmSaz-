@@ -85,7 +85,8 @@ async def test_execute_add_admin_by_telegram_chat_id():
     rand_int = uuid.uuid4().int % 90000000 + 10000000
     target_chat_id = str(rand_int)
 
-    with patch("khatmsaz.bot.handlers.admin_bot.handlers.audit_service.record", new_callable=AsyncMock):
+    with patch("khatmsaz.bot.handlers.admin_bot.handlers.audit_service.record", new_callable=AsyncMock), \
+         patch("khatmsaz.bot.notify_adapter.send_with_keyboard", new_callable=AsyncMock):
         await _execute_add_admin(mock_msg, target_chat_id)
 
     assert mock_msg.answer.called
@@ -93,6 +94,7 @@ async def test_execute_add_admin_by_telegram_chat_id():
     assert "با موفقیت به عنوان مدیر کل (Super Admin) ثبت شد" in reply_text
 
     async with session_scope() as session:
+        from sqlalchemy import select
         user = await session.execute(
             PlatformIdentity.__table__.select().where(PlatformIdentity.subject == target_chat_id)
         )
@@ -102,10 +104,15 @@ async def test_execute_add_admin_by_telegram_chat_id():
         assert user_row.role == UserRole.SUPER_ADMIN
 
         # Cleanup
+        settings_rows = (await session.execute(
+            select(UserSettings).where(UserSettings.user_id == row.user_id)
+        )).scalars().all()
+        for s in settings_rows:
+            await session.delete(s)
         pi = await session.get(PlatformIdentity, row.id)
         if pi:
             await session.delete(pi)
-            await session.flush()
+        await session.flush()
         await session.delete(user_row)
         await session.commit()
 
