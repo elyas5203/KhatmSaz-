@@ -8,6 +8,15 @@ from khatmsaz.modules.identity.models import User, UserRole
 
 
 ROLE_PERMISSIONS: dict[AdminRole, frozenset[AdminPermission]] = {
+    AdminRole.ADMIN: frozenset({
+        AdminPermission.DASHBOARD_ACCESS,
+        AdminPermission.CONTENT_MANAGE,
+        AdminPermission.FINANCE_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+        AdminPermission.MODERATION_MANAGE,
+        AdminPermission.MARKETING_MANAGE,
+        AdminPermission.OPERATIONS_VIEW,
+    }),
     AdminRole.CONTENT_ADMIN: frozenset(
         {AdminPermission.DASHBOARD_ACCESS, AdminPermission.CONTENT_MANAGE}
     ),

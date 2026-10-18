@@ -1,3 +1,10 @@
+## Current state — 2026-10-18 — Quick All-Permissions Delegation & Role Selection on /admins [Antigravity]
+- **Web Admin Panel (`web/templates/admins.html` & `web/app.py`):**
+  - Added `AdminRole.ADMIN` with all 7 operational permissions (dashboard, content, finance, support, moderation, marketing, operations) pre-selected by default in the role assignment dropdown.
+  - Added quick one-click button `⚡️ اعطای همه دسترسی‌ها (مدیر جامع)` directly on each user card in `/admins`.
+  - Added direct link `۳۶۰° ←` to each user's profile on `/users` where the purple Super Admin promotion button `[ 🛡 ارتقا به مدیر کل ]` is located.
+  - Added instant bot notification to target user upon admin role delegation via `notify_adapter`.
+
 ## Current state — 2026-10-18 — Admin Promotion & Management in Bot and Web Panel (MASTER-40) [Antigravity]
 - **Web Admin Panel (`web/templates/users.html` & `web/app.py`):**
   - Added direct Super Admin promotion/demotion actions in user moderation cards (`promote_admin` and `demote_admin`).

@@ -1,3 +1,8 @@
+## 2026-10-18 — Antigravity — Quick All-Permissions Delegation & Role Selection on /admins
+- **Web Admin Panel (`admins.html` & `app.py`):** Added `AdminRole.ADMIN` with all 7 operational permissions (dashboard, content, finance, support, moderation, marketing, operations) pre-selected by default in the role assignment dropdown.
+- **Quick Delegation Button:** Added quick one-click button `⚡️ اعطای همه دسترسی‌ها (مدیر جامع)` directly on user search results in `/admins`, with instant notification via bot to target user.
+- **Navigation Shortcut:** Added direct link `۳۶۰° ←` to each user's profile on `/users` for one-click promotion to Super Admin.
+
 ## 2026-10-18 — Antigravity — Admin Promotion & Management in Bot and Web Panel (MASTER-40)
 - **Web Admin Panel (`users.html` & `app.py`):** Added `[ 🛡 ارتقا به مدیر کل ]` (`promote_admin`) and `[ 🛡 خلع از مدیریت کل ]` (`demote_admin`) action buttons on user cards with self-demotion protection, audit logging, and automated notification via bot.
 - **Dedicated Admin Bot (`@khatmsaz_admin_bot`):** Added `/admins` command to display all active Super Admins, `/add_admin <chat_id or phone>` (and interactive FSM prompt) to promote users, `/remove_admin` to demote, and added `[ 🛡 مدیریت مدیران کل ]` button to the main dashboard keyboard.

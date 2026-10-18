@@ -16,6 +16,7 @@ class CapabilityType(str, enum.Enum):
 
 
 class AdminRole(str, enum.Enum):
+    ADMIN = "ADMIN"
     CONTENT_ADMIN = "CONTENT_ADMIN"
     FINANCE_ADMIN = "FINANCE_ADMIN"
     SUPPORT_ADMIN = "SUPPORT_ADMIN"

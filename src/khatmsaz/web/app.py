@@ -150,6 +150,8 @@ FA_LABELS = {
     "MODERATION_ADMIN": "مدیر نظارت",
     "MARKETING_ADMIN": "مدیر بازاریابی",
     "OPERATIONS_ADMIN": "مدیر عملیات",
+    "ADMIN": "مدیر (همه دسترسی‌ها)",
+    "SUPER_ADMIN": "مدیر کل (سوپرادمین)",
     "fa": "فارسی",
     "ar": "عربی",
     "en": "انگلیسی",
@@ -3567,6 +3569,27 @@ async def change_admin_role(
                 action="WEB_ADMIN_ROLE_GRANTED" if action == "grant" else "WEB_ADMIN_ROLE_REVOKED",
                 details={"role": role_value.value},
             )
+            if action == "grant":
+                try:
+                    from khatmsaz.bot.notify_adapter import get_notify_fn
+                    from khatmsaz.modules.identity.models import PlatformIdentity
+                    pis = list(
+                        (
+                            await session.scalars(
+                                select(PlatformIdentity).where(PlatformIdentity.user_id == target.id)
+                            )
+                        ).all()
+                    )
+                    role_label = FA_LABELS.get(role_value.value, role_value.value)
+                    notify = get_notify_fn()
+                    for pi in pis:
+                        await notify(
+                            pi.platform.value,
+                            str(pi.subject),
+                            f"🛡 **نقش مدیریتی جدید فعال شد**\n\nشما دسترسی «{role_label}» در سامانه ختم‌ساز را دریافت کردید.",
+                        )
+                except Exception:
+                    pass
     return RedirectResponse("/admins?saved=1", status_code=303)
 
 
