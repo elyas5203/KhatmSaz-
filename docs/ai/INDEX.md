@@ -1,3 +1,8 @@
+## 2026-10-18 — Discount Coupons, Campaign Hub & Redemption Ledger in Web Admin (MASTER-45) [Antigravity]
+- Master Document: [MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md](masters/MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md) (Dedicated coupons and campaign management hub `/coupons` in web admin, campaign KPIs, coupon creation with percent/fixed models and ceilings, zero-data-loss active/inactive toggling, user redemption ledger table linking to user 360 profile, and coupon redemption analytics).
+- Key files: `src/khatmsaz/modules/wallet/repository.py`, `src/khatmsaz/modules/wallet/service.py`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/coupons.html`, `src/khatmsaz/web/templates/base.html`.
+- Tests: `tests/test_master_45_coupons_hub.py`.
+
 ## 2026-10-18 — User 360 Profile & Financial Wallet Management Hub in Web Admin (MASTER-44) [Antigravity]
 - Master Document: [MASTER_44_USER_360_PROFILE_AND_WALLET_MANAGEMENT.md](masters/MASTER_44_USER_360_PROFILE_AND_WALLET_MANAGEMENT.md) (360-degree user profile `/users/{user_id}` in web admin, user identity, connected Telegram/Bale accounts, verified phone claim, user settings, current plan, financial wallets, created khatms, participations, support tickets, wallet manual adjustment with cash vs credit selection, and automated bot notifications).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/user_detail.html`, `src/khatmsaz/web/templates/users.html`.

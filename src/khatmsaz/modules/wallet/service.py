@@ -271,6 +271,8 @@ async def set_coupon(
     per_user_limit: int = 1,
     created_by_user_id=None,
     enabled: bool = True,
+    starts_at: datetime | None = None,
+    ends_at: datetime | None = None,
 ):
     normalized = code.strip().upper()
     if not (3 <= len(normalized) <= 40) or not all(
@@ -285,6 +287,8 @@ async def set_coupon(
         raise ValueError("max discount must be positive")
     if total_redemption_limit is not None and total_redemption_limit <= 0:
         raise ValueError("total limit must be positive")
+    if starts_at is not None and ends_at is not None and ends_at <= starts_at:
+        raise ValueError("تاریخ پایان اعتبار باید بعد از تاریخ شروع باشد.")
     return await repository.upsert_coupon(
         session,
         code=normalized,
@@ -296,6 +300,8 @@ async def set_coupon(
         per_user_limit=per_user_limit,
         created_by_user_id=created_by_user_id,
         enabled=enabled,
+        starts_at=starts_at,
+        ends_at=ends_at,
     )
 
 
@@ -303,8 +309,16 @@ async def set_coupon_enabled(session: AsyncSession, code: str, enabled: bool):
     return await repository.set_coupon_enabled(session, code.strip().upper(), enabled)
 
 
-async def list_coupons(session: AsyncSession):
-    return await repository.list_coupons(session)
+async def list_coupons(session: AsyncSession, *, limit: int = 100):
+    return await repository.list_coupons(session, limit=limit)
+
+
+async def list_coupon_redemptions(session: AsyncSession, *, code: str | None = None, limit: int = 100):
+    return await repository.list_coupon_redemptions(session, code=code, limit=limit)
+
+
+async def get_coupon_redemption_stats(session: AsyncSession):
+    return await repository.get_coupon_redemption_stats(session)
 
 
 async def refund_cash(session: AsyncSession, user_id, amount: int, *, description: str) -> None:

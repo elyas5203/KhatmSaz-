@@ -1,3 +1,22 @@
+## 2026-10-18 — Antigravity — Discount Coupons, Campaign Hub & Redemption Ledger (MASTER-45)
+- **Dedicated Coupons & Campaign Hub (`web/app.py`, `web/templates/coupons.html`, `web/templates/base.html`):**
+  - Added dedicated navigation entry `/coupons` under Group 4 ("امور مالی و سیستم") in desktop sidebar and mobile navigation dock.
+  - Built comprehensive dashboard with 4 KPI cards: Total Coupons, Active Coupons, Total Redemptions, and Total Discount Savings (Toman).
+  - Implemented coupon creation form supporting PERCENT and FIXED discount models, minimum purchase, maximum discount cap, total redemption ceiling, and per-user limits.
+  - Implemented zero-data-loss active/inactive toggle (`POST /coupons/{code}/toggle`) preserving historical invoices and auditability.
+  - Implemented live Redemption Ledger table joining user identity, linking directly to User 360 Profile (`/users/{id}`), displaying invoice ID, exact discount amount in Toman, and Jalali/Tehran timestamp.
+- **Wallet & Coupon Core Service Extensions (`modules/wallet/repository.py` & `modules/wallet/service.py`):**
+  - Extended `upsert_coupon` with optional start/end validity timestamps.
+  - Added `list_coupon_redemptions` joining `User` and `WalletInvoice` with pagination and optional coupon filter.
+  - Added `get_coupon_redemption_stats` aggregating redemptions count and total toman discount grouped by coupon code.
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md` and registered `DEC-PY-0137`.
+- **Validation:** 5/5 tests passed in `tests/test_master_45_coupons_hub.py`, combined regression suite 21/21 passed.
+
+## 2026-10-18 — Codex — Design and UX perspectives in the prompt/master builder
+- Added nine conditional design roles and concrete UI, interaction, Persian copy, accessibility, usability and visual QA checks to `SUBAGENT_SWARM_BUILDER.html` output, without adding form fields.
+- Added skill/plugin discovery and official W3C/WAI, USWDS and Figma MCP references to generated prompts and master drafts. Design roles remain separate from the existing R01–R50 table.
+- Headless Chrome smoke test passed. Full pytest: 619 passed, 233 skipped, 4 unrelated failures (three unavailable local PostgreSQL connections and one stale migration-head expectation). No migration applied.
+
 ## 2026-10-18 — Antigravity — User 360 Profile & Financial Wallet Management Hub (MASTER-44)
 - **User 360 Profile Hub (`web/app.py` & `web/templates/user_detail.html`):**
   - Implemented route `GET /users/{user_id}` and dedicated template `user_detail.html` rendering complete user identity, connected Telegram/Bale accounts, verified phone claim, user settings, current plan, financial wallets, created khatms, participations, and support tickets.

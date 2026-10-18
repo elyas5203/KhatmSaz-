@@ -19,6 +19,7 @@ from khatmsaz.modules.wallet.models import (
     WalletReceiptClaim,
     WalletTransaction,
 )
+from khatmsaz.modules.identity.models import User
 
 
 async def get_by_user(
@@ -197,6 +198,8 @@ async def upsert_coupon(
     per_user_limit: int,
     created_by_user_id=None,
     enabled: bool = True,
+    starts_at: datetime | None = None,
+    ends_at: datetime | None = None,
 ) -> DiscountCoupon:
     coupon = await session.get(DiscountCoupon, code)
     if coupon is None:
@@ -210,6 +213,10 @@ async def upsert_coupon(
     coupon.per_user_limit = per_user_limit
     coupon.enabled = bool(enabled)
     coupon.created_by_user_id = created_by_user_id
+    if starts_at is not None:
+        coupon.starts_at = starts_at
+    if ends_at is not None:
+        coupon.ends_at = ends_at
     await session.flush()
     return coupon
 
@@ -256,11 +263,46 @@ async def create_coupon_redemption(
     return redemption
 
 
-async def list_coupons(session: AsyncSession, *, limit: int = 50) -> list[DiscountCoupon]:
+async def list_coupons(session: AsyncSession, *, limit: int = 100) -> list[DiscountCoupon]:
     result = await session.execute(
         select(DiscountCoupon).order_by(DiscountCoupon.created_at.desc()).limit(limit)
     )
     return list(result.scalars())
+
+
+async def list_coupon_redemptions(
+    session: AsyncSession, *, code: str | None = None, limit: int = 100
+) -> list[tuple[CouponRedemption, User, WalletInvoice | None]]:
+    """List coupon redemptions joined with User and Invoice."""
+    stmt = (
+        select(CouponRedemption, User, WalletInvoice)
+        .join(User, CouponRedemption.user_id == User.id)
+        .outerjoin(WalletInvoice, CouponRedemption.invoice_id == WalletInvoice.id)
+        .order_by(CouponRedemption.redeemed_at.desc())
+        .limit(max(1, min(limit, 500)))
+    )
+    if code:
+        stmt = stmt.where(CouponRedemption.coupon_code == code.strip().upper())
+    return list((await session.execute(stmt)).all())
+
+
+async def get_coupon_redemption_stats(
+    session: AsyncSession,
+) -> dict[str, dict[str, int]]:
+    """Aggregates total uses count and total discount toman per coupon code."""
+    stmt = select(
+        CouponRedemption.coupon_code,
+        func.count(CouponRedemption.id).label("uses_count"),
+        func.coalesce(func.sum(CouponRedemption.discount_amount_toman), 0).label("total_saved_toman"),
+    ).group_by(CouponRedemption.coupon_code)
+    rows = (await session.execute(stmt)).all()
+    return {
+        r.coupon_code: {
+            "uses_count": int(r.uses_count or 0),
+            "total_saved_toman": int(r.total_saved_toman or 0),
+        }
+        for r in rows
+    }
 
 
 async def create_pending_payment(

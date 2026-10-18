@@ -5126,6 +5126,129 @@ async def update_sms_plan_option(
     return RedirectResponse("/finance?saved=sms", status_code=303)
 
 
+@app.get("/coupons", response_class=HTMLResponse)
+async def coupons_dashboard(request: Request):
+    """MASTER-45: Discount Coupons & Campaign Management Hub."""
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+
+    async with session_scope() as session:
+        coupons = await wallet_service.list_coupons(session, limit=200)
+        stats_dict = await wallet_service.get_coupon_redemption_stats(session)
+        redemptions = await wallet_service.list_coupon_redemptions(session, limit=100)
+
+        coupon_rows = [
+            {
+                "coupon": c,
+                "uses_count": stats_dict.get(c.code, {}).get("uses_count", 0),
+                "total_saved_toman": stats_dict.get(c.code, {}).get("total_saved_toman", 0),
+            }
+            for c in coupons
+        ]
+
+        total_coupons = len(coupons)
+        active_coupons = sum(1 for c in coupons if c.enabled)
+        total_uses = sum(r["uses_count"] for r in coupon_rows)
+        total_discount_toman = sum(r["total_saved_toman"] for r in coupon_rows)
+
+        stats = {
+            "total_coupons": total_coupons,
+            "active_coupons": active_coupons,
+            "total_uses": total_uses,
+            "total_discount_toman": total_discount_toman,
+        }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="coupons.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            coupons=coupons,
+            coupon_rows=coupon_rows,
+            redemptions=redemptions,
+            stats=stats,
+            saved=request.query_params.get("saved", ""),
+            error=request.query_params.get("error", ""),
+        ),
+    )
+
+
+@app.post("/coupons/create")
+async def create_coupon_hub(
+    request: Request,
+    csrf: str = Form(...),
+    code: str = Form(...),
+    discount_type: str = Form(...),
+    value: int = Form(...),
+    min_purchase_toman: int = Form(0),
+    total_redemption_limit: str = Form(""),
+    per_user_limit: int = Form(1),
+    max_discount_toman: str = Form(""),
+    is_active: str = Form(""),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    try:
+        kind = CouponDiscountType(discount_type.upper())
+        total_limit = int(total_redemption_limit) if total_redemption_limit.strip() else None
+        max_discount = int(max_discount_toman) if max_discount_toman.strip() else None
+        async with session_scope() as session:
+            coupon = await wallet_service.set_coupon(
+                session,
+                code=code,
+                discount_type=kind,
+                value=value,
+                min_purchase_toman=min_purchase_toman,
+                max_discount_toman=max_discount,
+                total_redemption_limit=total_limit,
+                per_user_limit=per_user_limit,
+                created_by_user_id=admin.id,
+                enabled=is_active == "on",
+            )
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                action="WEB_COUPON_CREATE",
+                details={
+                    "code": coupon.code,
+                    "type": coupon.discount_type,
+                    "value": coupon.value,
+                    "enabled": coupon.enabled,
+                },
+            )
+    except (ValueError, TypeError) as exc:
+        return RedirectResponse(f"/coupons?error={escape(str(exc))}", status_code=303)
+    return RedirectResponse("/coupons?saved=coupon_created", status_code=303)
+
+
+@app.post("/coupons/{code}/toggle")
+async def toggle_coupon_hub(request: Request, code: str, csrf: str = Form(...)):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async with session_scope() as session:
+        coupons = await wallet_service.list_coupons(session)
+        current = next((item for item in coupons if item.code == code.upper()), None)
+        if current is None:
+            return HTMLResponse("کد تخفیف پیدا نشد.", status_code=404)
+        updated = await wallet_service.set_coupon_enabled(session, current.code, not current.enabled)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="WEB_COUPON_TOGGLE",
+            details={"code": updated.code, "enabled": updated.enabled},
+        )
+    return RedirectResponse("/coupons?saved=coupon_toggled", status_code=303)
+
+
 @app.post("/finance/coupons")
 async def create_coupon(
     request: Request,

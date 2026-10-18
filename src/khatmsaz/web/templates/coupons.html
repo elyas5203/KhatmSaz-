@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}مرکز مدیریت کدهای تخفیف و کمپین‌ها | ختم‌ساز{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 pt-2">
+  <div>
+    <p class="text-xs font-bold text-sky-400 tracking-wider uppercase mb-1">امور مالی، ارتقای فروش و وفادارسازی کاربران</p>
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-3">
+      <span>🏷️ مرکز مدیریت کدهای تخفیف و کمپین‌ها</span>
+    </h1>
+  </div>
+
+  <div class="flex items-center gap-3">
+    {{ help_button(
+      "راهنمای مدیریت کدهای تخفیف و کمپین‌ها",
+      "در این بخش می‌توانید برای مناسبت‌ها و اعیاد مذهبی یا کمپین‌های بازاریابی، کدهای تخفیف درصدی یا مبلغ ثابت تعریف نمایید، سقف استفاده کاربران را تعیین کنید و ریز تراکنش‌های استفاده‌شده را بررسی کنید.",
+      [
+        "کد تخفیف: شامل ۳ تا ۴۰ حرف یا عدد انگلیسی (مثلاً EID1405 یا RAMADAN50) است.",
+        "نوع تخفیف: می‌توانید تخفیف «درصدی» (۱ تا ۱۰۰٪) با تعیین حداکثر سقف ریالی، یا «مبلغ ثابت» به تومان انتخاب نمایید.",
+        "سقف استفاده: امکان تعیین سقف برای کل سیستم و سقف مجاز برای هر کاربر وجود دارد (مثلاً هر کاربر فقط ۱ بار).",
+        "عدم حذف فیزیکی: جهت حفظ یکپارچگی حسابداری و اسناد مالی، کدهای تخفیف حذف فیزیکی نمی‌شوند و فقط می‌توانید آن‌ها را فعال یا غیرفعال کنید.",
+        "دفتر کل استفاده‌ها: تمام کاربرانی که کد تخفیف را در بات اعمال کرده‌اند در جدول پایین صفحه با لینک مستقیم به پروفایل ۳۶۰ درجه ثبت شده‌اند."
+      ],
+      "نکته: در صورتی که کاربر کدی را در بات وارد کند، سیستم به صورت آنی حداقل مبلغ خرید و سقف استفاده را چک کرده و تخفیف را از فاکتور کسر می‌کند."
+    ) }}
+  </div>
+</div>
+
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3 shadow-lg shadow-emerald-500/5">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span class="font-bold text-sm">
+    {% if saved == 'coupon_created' %}کد تخفیف با موفقیت ایجاد و فعال گردید ✅
+    {% elif saved == 'coupon_toggled' %}وضعیت کد تخفیف با موفقیت به‌روزرسانی شد ✅
+    {% else %}عملیات با موفقیت انجام شد ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl flex items-center gap-3 shadow-lg shadow-rose-500/5">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+  <span class="font-bold text-sm">{{ error }}</span>
+</div>
+{% endif %}
+
+<!-- Campaign Performance Summary Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <article class="glass-card p-5 rounded-2xl border border-white/5 flex flex-col justify-between">
+    <span class="text-xs font-bold text-slate-400 mb-2">تعداد کل کدهای تخفیف</span>
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold font-mono text-white">{{ stats.total_coupons }}</span>
+      <span class="text-xs text-slate-400">کد</span>
+    </div>
+    <span class="text-[0.7rem] text-slate-500 mt-2">کلیه کدهای تعریف‌شده در سامانه</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 flex flex-col justify-between">
+    <span class="text-xs font-bold text-emerald-300 mb-2">کدهای تخفیف فعال</span>
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold font-mono text-emerald-400">{{ stats.active_coupons }}</span>
+      <span class="text-xs text-emerald-300 font-bold">فعال</span>
+    </div>
+    <span class="text-[0.7rem] text-emerald-400/80 mt-2">آماده دریافت و اعمال توسط کاربران</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl border border-white/5 flex flex-col justify-between">
+    <span class="text-xs font-bold text-slate-400 mb-2">کل دفعات استفاده (Redemptions)</span>
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl font-extrabold font-mono text-sky-400">{{ stats.total_uses }}</span>
+      <span class="text-xs text-slate-400">بار</span>
+    </div>
+    <span class="text-[0.7rem] text-slate-500 mt-2">دفعات اعمال‌شده روی فاکتورها</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl border border-amber-500/20 bg-amber-950/10 flex flex-col justify-between">
+    <span class="text-xs font-bold text-amber-300 mb-2">مجموع تخفیف‌های اعطاشده</span>
+    <div class="flex items-baseline gap-2">
+      <span class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">{{ "{:,}".format(stats.total_discount_toman) }}</span>
+      <span class="text-xs text-amber-300 font-bold">تومان</span>
+    </div>
+    <span class="text-[0.7rem] text-amber-400/80 mt-2">ارزش ریالی کل تخفیف‌های کاربران</span>
+  </article>
+</section>
+
+<!-- Create Coupon Form Section -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+    <div>
+      <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+        <span>➕ تعریف کد تخفیف جدید یا ویرایش</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">ایجاد کوپن‌های مناسبتی و تشویقی با قوانین اعتبارسنجی خودکار</p>
+    </div>
+  </div>
+
+  <form method="post" action="/coupons/create" class="space-y-4">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Code -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">کد تخفیف (لاتین):</label>
+        <input name="code" required minlength="3" maxlength="40" placeholder="مثلاً: EID1405 یا RAMADAN50" class="input-field py-2 px-3 text-xs font-mono uppercase bg-slate-950 border-slate-700 text-white font-bold" dir="ltr">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">حروف و اعداد انگلیسی (بدون فاصله)</span>
+      </div>
+
+      <!-- Discount Type -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">نوع تخفیف:</label>
+        <select name="discount_type" class="input-field py-2 px-3 text-xs bg-slate-950 border-slate-700 text-white font-bold">
+          <option value="PERCENT" selected>درصدی (درصد از مبلغ کل)</option>
+          <option value="FIXED">مبلغ ثابت (کسر تومان از فاکتور)</option>
+        </select>
+      </div>
+
+      <!-- Value -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">مقدار تخفیف:</label>
+        <input name="value" type="number" required min="1" placeholder="مثلاً ۵۰ برای ۵۰٪ یا ۲۰۰۰۰ برای مبلغ ثابت" class="input-field py-2 px-3 text-xs font-mono bg-slate-950 border-slate-700 text-white font-bold">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">درصد (۱ تا ۱۰۰) یا مبلغ به تومان</span>
+      </div>
+
+      <!-- Min Purchase -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">حداقل خرید (تومان):</label>
+        <input name="min_purchase_toman" type="number" value="0" min="0" placeholder="۰ یعنی بدون شرط حداقل" class="input-field py-2 px-3 text-xs font-mono bg-slate-950 border-slate-700 text-white">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">حداقل رقم فاکتور برای فعال شدن کد</span>
+      </div>
+
+      <!-- Max Discount Toman -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">حداکثر سقف تخفیف (تومان):</label>
+        <input name="max_discount_toman" type="number" min="0" placeholder="اختیاری (مخصوص درصدی)" class="input-field py-2 px-3 text-xs font-mono bg-slate-950 border-slate-700 text-white">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">مثلاً تا سقف ۵۰ هزار تومان</span>
+      </div>
+
+      <!-- Total Redemption Limit -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">سقف کل دفعات استفاده:</label>
+        <input name="total_redemption_limit" type="number" min="1" placeholder="خالی یعنی نامحدود" class="input-field py-2 px-3 text-xs font-mono bg-slate-950 border-slate-700 text-white">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">تعداد کل نفراتی که می‌توانند استفاده کنند</span>
+      </div>
+
+      <!-- Per User Limit -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">سقف استفاده هر کاربر:</label>
+        <input name="per_user_limit" type="number" value="1" min="1" required class="input-field py-2 px-3 text-xs font-mono bg-slate-950 border-slate-700 text-white font-bold">
+        <span class="block text-[0.68rem] text-slate-400 mt-1">پیش‌فرض: هر کاربر ۱ بار</span>
+      </div>
+
+      <!-- Active Checkbox -->
+      <div class="flex items-center gap-2 pt-6">
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" name="is_active" checked class="rounded bg-slate-950 border-slate-700 text-emerald-500 focus:ring-emerald-500 h-4 w-4">
+          <span class="text-xs font-bold text-white">کد تخفیف فوراً فعال باشد</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-800">
+      <p class="text-xs text-slate-400">
+        💡 توجه: با ذخیره، کد بلافاصله در سامانه معتبر شده و در صورت یکسان بودن کد با کد قبلی، تنظیمات آن به‌روزرسانی می‌شود.
+      </p>
+      <button type="submit" class="btn px-6 py-2.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+        ثبت و انتشار کد تخفیف 🏷
+      </button>
+    </div>
+  </form>
+</section>
+
+<!-- Coupons List Table Section -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+    <div>
+      <h2 class="text-lg font-extrabold text-white">📋 فهرست کدهای تخفیف تعریف‌شده</h2>
+      <p class="text-xs text-slate-400 mt-1">مدیریت وضعیت فعال/غیرفعال، آمار مصرف و جزئیات هر کوپن</p>
+    </div>
+    <span class="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-xl font-mono">{{ coupons|length }} کد</span>
+  </div>
+
+  {% if coupons %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">کد تخفیف</th>
+          <th class="pb-3 px-3">نوع و میزان تخفیف</th>
+          <th class="pb-3 px-3">شرایط خرید</th>
+          <th class="pb-3 px-3">میزان مصرف</th>
+          <th class="pb-3 px-3">مجموع صرفه‌جویی</th>
+          <th class="pb-3 px-3">وضعیت</th>
+          <th class="pb-3 px-3 text-center">عملیات</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for row in coupon_rows %}
+        {% set c = row.coupon %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <!-- Code -->
+          <td class="py-3 px-3 font-mono font-bold text-sm">
+            <span class="bg-sky-500/15 text-sky-300 border border-sky-500/30 px-2.5 py-1 rounded-lg select-all">{{ c.code }}</span>
+          </td>
+
+          <!-- Type and Value -->
+          <td class="py-3 px-3">
+            {% if c.discount_type == 'PERCENT' %}
+              <strong class="text-emerald-400 font-mono text-sm">{{ c.value }}٪</strong>
+              <span class="text-slate-400 text-[0.7rem] block">
+                {% if c.max_discount_toman %}تا سقف {{ "{:,}".format(c.max_discount_toman) }} ت{% else %}بدون سقف ریالی{% endif %}
+              </span>
+            {% else %}
+              <strong class="text-emerald-400 font-mono text-sm">{{ "{:,}".format(c.value) }}</strong>
+              <span class="text-slate-400 text-[0.7rem]">تومان ثابت</span>
+            {% endif %}
+          </td>
+
+          <!-- Conditions -->
+          <td class="py-3 px-3 text-slate-300">
+            <div>حداقل: <span class="font-mono">{{ "{:,}".format(c.min_purchase_toman) }}</span> ت</div>
+            <div class="text-[0.7rem] text-slate-500">هر کاربر: <span class="font-mono text-slate-400">{{ c.per_user_limit }}</span> بار</div>
+          </td>
+
+          <!-- Usage Progress -->
+          <td class="py-3 px-3">
+            <div class="flex items-center gap-1.5 font-mono">
+              <strong class="text-white">{{ row.uses_count }}</strong>
+              <span class="text-slate-500">/</span>
+              <span class="text-slate-400">{{ c.total_redemption_limit if c.total_redemption_limit else 'نامحدود' }}</span>
+            </div>
+            {% if c.total_redemption_limit %}
+            <div class="w-24 bg-slate-800 rounded-full h-1.5 mt-1 overflow-hidden">
+              <div class="bg-sky-500 h-1.5 rounded-full" style="width: {{ [100, (row.uses_count / c.total_redemption_limit * 100)|int]|min }}%"></div>
+            </div>
+            {% endif %}
+          </td>
+
+          <!-- Total Saved -->
+          <td class="py-3 px-3 font-mono font-bold text-amber-400">
+            {{ "{:,}".format(row.total_saved_toman) }} تومان
+          </td>
+
+          <!-- Status -->
+          <td class="py-3 px-3">
+            {% if c.enabled %}
+              <span class="status active whitespace-nowrap">فعال ✅</span>
+            {% else %}
+              <span class="status cancelled whitespace-nowrap">غیرفعال 🔒</span>
+            {% endif %}
+          </td>
+
+          <!-- Actions -->
+          <td class="py-3 px-3 text-center">
+            <form method="post" action="/coupons/{{ c.code }}/toggle">
+              <input type="hidden" name="csrf" value="{{ csrf }}">
+              {% if c.enabled %}
+                <button type="submit" class="text-[0.7rem] font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-xl border border-rose-500/20 transition-all cursor-pointer">
+                  غیرفعال‌سازی
+                </button>
+              {% else %}
+                <button type="submit" class="text-[0.7rem] font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-3 py-1.5 rounded-xl border border-emerald-500/20 transition-all cursor-pointer">
+                  فعال‌سازی مجدد
+                </button>
+              {% endif %}
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 text-slate-500 text-xs">
+    هنوز هیچ کد تخفیفی در سامانه تعریف نشده است. می‌توانید از فرم بالا اولین کد را ایجاد کنید.
+  </div>
+  {% endif %}
+</section>
+
+<!-- Redemption Ledger (User Usage History) -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+    <div>
+      <h2 class="text-lg font-extrabold text-white flex items-center gap-2">
+        <span>📖 دفتر کل ردگیری استفاده کاربران (Redemption Ledger)</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">سوابق شفاف از اعمال کدهای تخفیف روی صورت‌حساب‌ها با لینک مستقیم به پروفایل ۳۶۰ درجه</p>
+    </div>
+    <span class="text-xs font-bold text-slate-400 bg-slate-800 px-3 py-1 rounded-xl font-mono">{{ redemptions|length }} تراکنش</span>
+  </div>
+
+  {% if redemptions %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">کد تخفیف</th>
+          <th class="pb-3 px-3">کاربر استفاده‌کننده</th>
+          <th class="pb-3 px-3">مبلغ تخفیف</th>
+          <th class="pb-3 px-3">شناسه فاکتور</th>
+          <th class="pb-3 px-3">شرح فاکتور</th>
+          <th class="pb-3 px-3">تاریخ و زمان استفاده</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for r in redemptions %}
+        {% set red = r[0] %}
+        {% set usr = r[1] %}
+        {% set inv = r[2] %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <!-- Code -->
+          <td class="py-3 px-3 font-mono font-bold text-sky-400">
+            <span class="bg-sky-500/10 px-2 py-0.5 rounded">{{ red.coupon_code }}</span>
+          </td>
+
+          <!-- User -->
+          <td class="py-3 px-3 font-bold text-white">
+            <a href="/users/{{ usr.id }}" class="hover:text-emerald-400 flex items-center gap-1.5" title="مشاهده پروفایل ۳۶۰ درجه">
+              <span>👤 {{ usr.display_name or 'کاربر بدون نام' }}</span>
+              <span class="text-[0.65rem] text-sky-400">۳۶۰° ←</span>
+            </a>
+          </td>
+
+          <!-- Discount Amount -->
+          <td class="py-3 px-3 font-mono font-bold text-emerald-400">
+            {{ "{:,}".format(red.discount_amount_toman) }} تومان
+          </td>
+
+          <!-- Invoice ID -->
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">
+            {{ red.invoice_id }}
+          </td>
+
+          <!-- Invoice Description -->
+          <td class="py-3 px-3 text-slate-300 max-w-xs truncate">
+            {{ inv.description if inv else '-' }}
+          </td>
+
+          <!-- Time -->
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">
+            {{ red.redeemed_at.strftime('%Y-%m-%d %H:%M') if red.redeemed_at else '-' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 text-slate-500 text-xs">
+    تاکنون هیچ کاربری از کدهای تخفیف استفاده نکرده است.
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

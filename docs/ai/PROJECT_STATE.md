@@ -1,3 +1,23 @@
+## Current state — 2026-10-18 — Discount Coupons, Campaign Hub & Redemption Ledger in Web Admin (MASTER-45) [Antigravity]
+- **Dedicated Coupons & Campaign Hub (`web/app.py`, `web/templates/coupons.html`, `web/templates/base.html`):**
+  - Added dedicated navigation entry `/coupons` under Group 4 ("امور مالی و سیستم") in desktop sidebar and mobile navigation dock.
+  - Built comprehensive dashboard with 4 KPI cards: Total Coupons, Active Coupons, Total Redemptions, and Total Discount Savings (Toman).
+  - Implemented coupon creation form with support for PERCENT and FIXED discount models, minimum purchase, maximum discount cap, total redemption ceiling, and per-user limits.
+  - Implemented zero-data-loss active/inactive toggle (`POST /coupons/{code}/toggle`) preserving historical invoices and auditability.
+  - Implemented live Redemption Ledger table joining user identity, linking directly to User 360 Profile (`/users/{id}`), displaying invoice ID, exact discount amount in Toman, and Jalali/Tehran timestamp.
+- **Wallet & Coupon Core Service Extensions (`modules/wallet/repository.py` & `modules/wallet/service.py`):**
+  - Extended `upsert_coupon` with optional start/end validity timestamps.
+  - Added `list_coupon_redemptions` joining `User` and `WalletInvoice` with pagination and optional coupon filter.
+  - Added `get_coupon_redemption_stats` aggregating redemptions count and total toman discount grouped by coupon code.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md` and registered `DEC-PY-0137`.
+- **Validation:** Added 5 tests in `tests/test_master_45_coupons_hub.py` (100% PASS), and verified combined regression suite passes with 21/21 tests passing.
+
+## Current state — 2026-10-18 — Design and UX roles in the local prompt/master builder [Codex]
+- **What and why:** Expanded `SUBAGENT_SWARM_BUILDER.html` in response to the owner's request for designer, UI, UX and related personas. Generated prompts now require nine evidence-based design perspectives when a task has a user-facing interface; generated master drafts include a separate role matrix and skill/plugin availability table. No additional form fields were added.
+- **Research and boundaries:** Read the local `ui-ux-pro-max`, `frontend-design` and `webapp-testing` skills and checked official W3C/WAI, USWDS and Figma MCP guidance. Output requires verification that skills/plugins and design files actually exist, keeps these roles separate from R01–R50, and records N/A for backend-only work.
+- **Validation:** Headless Chrome smoke test passed for prompt/master generation, design content, R01/R50 rows, help dialog and absence of browser errors. `python -m pytest -q`: 619 passed, 233 skipped, 4 failed. Three failures require an unavailable local PostgreSQL connection on port 55433; the migration-graph test expects an older head (`khatm2026101501` instead of current `support2026101801`). These failures are outside the HTML change. No migration was applied.
+- **Remaining:** The standalone `SUBAGENT_SWARM_50.md` file is absent in this checkout; the builder already tells the receiving assistant not to claim its 50-role protocol ran when that file is unavailable. PostgreSQL-backed and migration checks need a separate project environment/reconciliation.
+
 ## Current state — 2026-10-18 — User 360 Profile & Financial Wallet Management Hub in Web Admin (MASTER-44) [Antigravity]
 - **User 360 Profile Hub (`web/app.py` & `web/templates/user_detail.html`):**
   - Implemented route `GET /users/{user_id}` and dedicated template `user_detail.html` rendering complete user identity, connected Telegram/Bale accounts, verified phone claim, user settings, current plan, financial wallets, created khatms, participations, and support tickets.
