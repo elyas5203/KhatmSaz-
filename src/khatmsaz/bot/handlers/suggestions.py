@@ -24,6 +24,7 @@ from khatmsaz.modules.khatm.models import Khatm
 from khatmsaz.modules.bot_registry.models import BotInstance
 import logging
 import uuid
+from datetime import datetime, timezone
 
 logger = logging.getLogger("khatmsaz")
 router = Router(name="suggestions")
@@ -234,6 +235,20 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
             session, actor_user_id=user.id, action="USER_SUGGESTION", details={"text": text, "target": target_creator_id},
         )
         
+        from khatmsaz.modules.support_ticket import service as support_ticket_service
+        target_creator_uuid = (
+            uuid.UUID(target_creator_id)
+            if target_creator_id != "SUPER_ADMIN"
+            else None
+        )
+        await support_ticket_service.submit_ticket(
+            session,
+            sender_user_id=user.id,
+            body=text,
+            target_role="SUPER_ADMIN" if target_creator_id == "SUPER_ADMIN" else "CREATOR",
+            target_creator_id=target_creator_uuid,
+        )
+        
         if target_creator_id == "SUPER_ADMIN":
             if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
                 await state.clear()
@@ -369,6 +384,20 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                     except Exception as e:
                         logger.error(f"Failed to send reply to user {target_user_id} on {pid.platform.value}: {e}")
                 if delivered:
+                    from khatmsaz.modules.support_ticket.models import SupportTicket, SupportTicketStatus
+                    pending_tickets = list((await session.execute(
+                        select(SupportTicket)
+                        .where(
+                            SupportTicket.sender_user_id == target_user.id,
+                            SupportTicket.status == SupportTicketStatus.PENDING,
+                        )
+                    )).scalars().all())
+                    for pt in pending_tickets:
+                        pt.status = SupportTicketStatus.ANSWERED
+                        pt.reply_text = text
+                        pt.replied_by_user_id = sender.id
+                        pt.replied_at = datetime.now(timezone.utc)
+                    await session.flush()
                     await message.answer("پاسخ شما با موفقیت به کاربر ارسال شد.", reply_markup=home_keyboard_for_bot(message.bot, "fa"))
                 else:
                     await message.answer("خطا در ارسال پیام به کاربر.")

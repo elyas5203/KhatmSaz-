@@ -399,7 +399,9 @@ def _audit_details(details: dict) -> list[tuple[str, str]]:
     return rows
 
 
-def _tehran_time(value: datetime) -> str:
+def _tehran_time(value: datetime | None) -> str:
+    if value is None:
+        return "—"
     return value.astimezone(ZoneInfo("Asia/Tehran")).strftime("%Y-%m-%d · %H:%M")
 
 
@@ -1958,10 +1960,13 @@ async def moderation_center(request: Request, tab: str = "laan"):
     if admin is None:
         return _login_redirect()
     from khatmsaz.modules.khatm_request import service as khatm_request_service
+    from khatmsaz.modules.support_ticket import service as support_ticket_service
+    from khatmsaz.modules.support_ticket.models import SupportTicketStatus
     async with session_scope() as session:
         laan_khatms = await khatm_service.list_pending_laan_khatms(session)
         cover_khatms = await khatm_service.list_pending_covers(session)
         khatm_requests = await khatm_request_service.list_pending(session)
+        tickets_list = await support_ticket_service.list_admin_tickets(session, limit=100)
         broadcasts_pending = await broadcast_service.list_pending(session)
         phones_pending = await manual_phone_repository.list_pending(session)
         creators_pending = await creator_request_service.list_pending(session, limit=100)
@@ -1971,6 +1976,7 @@ async def moderation_center(request: Request, tab: str = "laan"):
             {k.creator_user_id for k in laan_khatms if k.creator_user_id}
             | {k.creator_user_id for k in cover_khatms if k.creator_user_id}
             | {r.requester_user_id for r in khatm_requests if r.requester_user_id}
+            | {t.sender_user_id for t in tickets_list if t.sender_user_id}
         )
         users_by_id = (
             {
@@ -2006,10 +2012,20 @@ async def moderation_center(request: Request, tab: str = "laan"):
             }
             for r in khatm_requests
         ]
+        ticket_rows = [
+            {
+                "ticket": t,
+                "sender": users_by_id.get(t.sender_user_id),
+                "time": _tehran_time(t.created_at),
+                "reply_time": _tehran_time(t.replied_at) if t.replied_at else None,
+            }
+            for t in tickets_list
+        ]
         counts = {
             "laan": len(laan_rows),
             "covers": len(cover_rows),
             "requests": len(khatm_req_rows),
+            "tickets": sum(1 for t in tickets_list if t.status == SupportTicketStatus.PENDING),
             "broadcasts": len(broadcasts_pending),
             "phones": len(phones_pending),
             "creators": len(creators_pending),
@@ -2027,6 +2043,7 @@ async def moderation_center(request: Request, tab: str = "laan"):
             laan_rows=laan_rows,
             cover_rows=cover_rows,
             khatm_req_rows=khatm_req_rows,
+            ticket_rows=ticket_rows,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -2197,6 +2214,64 @@ async def decide_khatm_request_moderation(
             await notify(identity.platform.value, identity.subject, msg)
     return RedirectResponse(
         f"/moderation?tab=requests&saved={'req_approved' if approved else 'req_rejected'}",
+        status_code=303,
+    )
+
+
+@app.post("/moderation/tickets/{ticket_id}/reply")
+async def reply_support_ticket(
+    request: Request,
+    ticket_id: UUID,
+    reply_text: str = Form(...),
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if not reply_text.strip():
+        return HTMLResponse("متن پاسخ نمی‌تواند خالی باشد.", status_code=400)
+    from khatmsaz.modules.support_ticket import service as support_ticket_service
+    async with session_scope() as session:
+        try:
+            await support_ticket_service.answer_ticket_by_admin(
+                session,
+                ticket_id=ticket_id,
+                reply_text=reply_text,
+                admin_user_id=admin.id,
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"تیکت یافت نشد: {exc}", status_code=404)
+    return RedirectResponse(
+        "/moderation?tab=tickets&saved=ticket_answered",
+        status_code=303,
+    )
+
+
+@app.post("/moderation/tickets/{ticket_id}/close")
+async def close_support_ticket(
+    request: Request,
+    ticket_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.support_ticket import service as support_ticket_service
+    async with session_scope() as session:
+        try:
+            await support_ticket_service.close_ticket_by_admin(
+                session,
+                ticket_id=ticket_id,
+                admin_user_id=admin.id,
+            )
+        except ValueError as exc:
+            return HTMLResponse(f"تیکت یافت نشد: {exc}", status_code=404)
+    return RedirectResponse(
+        "/moderation?tab=tickets&saved=ticket_closed",
         status_code=303,
     )
 

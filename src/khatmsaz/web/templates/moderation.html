@@ -51,6 +51,16 @@
   <span>ℹ️</span>
   <span>پیشنهاد رد شد و پاسخ برای کاربر فرستاده شد.</span>
 </div>
+{% elif saved == 'ticket_answered' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>پاسخ شما با موفقیت برای کاربر ارسال شد و تیکت به وضعیت پاسخ‌داده‌شده تغییر یافت.</span>
+</div>
+{% elif saved == 'ticket_closed' %}
+<div class="p-4 mb-6 rounded-2xl bg-slate-500/10 border border-slate-500/30 text-slate-300 text-sm font-bold flex items-center gap-2">
+  <span>🔒</span>
+  <span>تیکت بسته شد.</span>
+</div>
 {% endif %}
 
 <!-- Tabs Navigation -->
@@ -66,6 +76,10 @@
   <a href="/moderation?tab=requests" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'requests' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
     <span>💡 پیشنهاد نوع ختم</span>
     <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'requests' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.requests }}</span>
+  </a>
+  <a href="/moderation?tab=tickets" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'tickets' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>💬 تیکت‌های پشتیبانی</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'tickets' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.tickets }}</span>
   </a>
   <div class="h-5 w-px bg-slate-800 hidden lg:block mx-1"></div>
   <a href="/broadcasts" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
@@ -238,6 +252,72 @@
     <span class="text-4xl block mb-2">💡</span>
     <b class="text-white text-base block mb-1">هیچ پیشنهاد نوع ختمی در انتظار بررسی نیست</b>
     <p class="text-xs text-slate-400">تمام درخواست‌های کاربران تعیین تکلیف شده‌اند.</p>
+  </div>
+  {% endfor %}
+</section>
+
+{% elif active_tab == 'tickets' %}
+<!-- TAB 4: SUPPORT TICKETS & FEEDBACK -->
+<section class="space-y-4">
+  {% for row in ticket_rows %}
+  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          {% if row.ticket.status.value == 'PENDING' %}
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">⏳ در انتظار پاسخ</span>
+          {% elif row.ticket.status.value == 'ANSWERED' %}
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">✅ پاسخ داده شده</span>
+          {% else %}
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-slate-500/20 text-slate-300 font-bold">🔒 بسته شده</span>
+          {% endif %}
+          <span class="text-xs text-slate-400">{{ row.time }}</span>
+        </div>
+        <p class="text-xs text-slate-400">
+          ارسال‌شده توسط: <strong class="text-slate-200">{{ row.sender.display_name if row.sender else 'کاربر' }}</strong>
+          (شناسه کاربر: <code class="text-emerald-400">{{ row.ticket.sender_user_id }}</code>)
+        </p>
+      </div>
+      <span class="text-xs text-slate-500 font-mono">شناسه تیکت: {{ row.ticket.id }}</span>
+    </div>
+
+    <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
+      <b class="text-xs text-slate-400 block mb-1">متن پیام / پیشنهاد کاربر:</b>
+      <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.body }}</p>
+    </div>
+
+    {% if row.ticket.status.value == 'ANSWERED' %}
+    <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 mb-4">
+      <div class="flex items-center justify-between mb-1">
+        <b class="text-xs text-emerald-400">پاسخ ارسال‌شده توسط پشتیبانی:</b>
+        {% if row.reply_time %}<span class="text-[0.7rem] text-slate-400">{{ row.reply_time }}</span>{% endif %}
+      </div>
+      <p class="text-xs text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.reply_text }}</p>
+    </div>
+    {% endif %}
+
+    {% if row.ticket.status.value == 'PENDING' %}
+    <form method="post" action="/moderation/tickets/{{ row.ticket.id }}/reply" class="space-y-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div>
+        <textarea name="reply_text" rows="3" required placeholder="متن پاسخ خود را اینجا بنویسید (این پاسخ بلافاصله از طریق ربات به چت تلگرام/بله کاربر ارسال می‌شود)..." class="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none"></textarea>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button type="submit" formaction="/moderation/tickets/{{ row.ticket.id }}/close" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition-all cursor-pointer">
+          بستن بدون پاسخ
+        </button>
+        <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+          💬 ارسال پاسخ مستقیم به کاربر
+        </button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+    <span class="text-4xl block mb-2">💬</span>
+    <b class="text-white text-base block mb-1">صندوق تیکت‌ها و پیشنهادات خالی است</b>
+    <p class="text-xs text-slate-400">هیچ پیامی در انتظار رسیدگی وجود ندارد.</p>
   </div>
   {% endfor %}
 </section>

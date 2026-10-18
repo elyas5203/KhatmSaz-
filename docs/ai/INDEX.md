@@ -1,3 +1,8 @@
+## 2026-10-18 — Support Tickets & Direct Messaging Hub (MASTER-42) [Antigravity]
+- Master Document: [MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md](masters/MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md) (Support ticket database model, Queue 8 in Web Admin Panel /moderation?tab=tickets, direct admin reply dispatch to user chat via notify_adapter, status lifecycle PENDING/ANSWERED/CLOSED, and bot suggestions integration).
+- Key files: `src/khatmsaz/modules/support_ticket/`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/moderation.html`, `src/khatmsaz/bot/handlers/suggestions.py`.
+- Tests: `tests/test_master_42_support_tickets.py`.
+
 ## 2026-10-18 — سازندهٔ سادهٔ پرامپت و مستر [Codex]
 - فرم آفلاین با یک خواستهٔ ضروری و خروجی پرامپت/پیش‌نویس مستر: `../../SUBAGENT_SWARM_BUILDER.html`. پرامپت مسترهای موجود را بررسی می‌کند؛ راهنمای SUBAGENT_SWARM_50.md در این checkout موجود نیست و اجرای آن باید مشروط گزارش شود.
 

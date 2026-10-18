@@ -32,4 +32,5 @@ from khatmsaz.modules.bot_registry import models as _bot_registry_models  # noqa
 from khatmsaz.modules.share_occurrence import models as _share_occurrence_models  # noqa: F401
 from khatmsaz.modules.sms_subscription import models as _sms_subscription_models  # noqa: F401
 from khatmsaz.modules.system_settings import models as _system_settings_models  # noqa: F401
+from khatmsaz.modules.support_ticket import models as _support_ticket_models  # noqa: F401
 

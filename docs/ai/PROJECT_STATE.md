@@ -1,3 +1,20 @@
+## Current state — 2026-10-18 — Support Tickets & Direct Messaging Hub in Web & Bots (MASTER-42) [Antigravity]
+- **Support Ticket Engine & Persistence (`src/khatmsaz/modules/support_ticket/`):**
+  - Created dedicated module `support_ticket` (`models.py`, `repository.py`, `service.py`) with lifecycle states `PENDING`, `ANSWERED`, `CLOSED`.
+  - Registered model in `model_registry.py`, added self-healing DDL in `bootstrap.py`, and authored Alembic migration `migrations/versions/support2026101801_add_support_tickets.py` maintaining single head.
+- **Web Admin Panel Moderation Hub (`web/app.py` & `web/templates/moderation.html`):**
+  - Completed Queue 8 in `/moderation`: added `tab=tickets` with dynamic pending badge counter, sender details, submission date/time, and message cards.
+  - Added action `POST /moderation/tickets/{id}/reply`: validates admin permissions (`SUPPORT_USERS` / `MODERATION_MANAGE`), records audit log `SUPPORT_TICKET_REPLY`, sets status to `ANSWERED`, and dispatches the Persian reply directly to the user's Telegram/Bale chat via `notify_adapter`.
+  - Added action `POST /moderation/tickets/{id}/close` for dismissals without notification.
+  - Made `_tehran_time` None-safe in `web/app.py`.
+- **Bot Suggestions Flow (`bot/handlers/suggestions.py`):**
+  - Updated `receive_suggestion` to persist submitted tickets into `support_tickets`.
+  - Maintained domain isolation per owner mandate: members message their Khatm creator; creators and admins message super admins.
+  - Updated `receive_reply` to mark matching pending tickets as `ANSWERED` when a reply is delivered via bot.
+  - Synchronized approval copy string in `creator_broadcast.py` (`برای تأیید محتوا`).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md` and registered `DEC-PY-0134`.
+- **Validation:** Added 6 tests in `tests/test_master_42_support_tickets.py` (100% PASS), and verified combined regression suite passes with 16/16 tests passing.
+
 ## Current state — 2026-10-18 — Delivery Models & Single-Stage Evening Reminder Redesign (MASTER-41) [Antigravity]
 - **Khatm Delivery & Reminder Scheduling Engine (`modules/share_occurrence/delivery.py` & `modules/reminder_engine/service.py`):**
   - **Immediate First-Day Delivery:** Implemented `deliver_immediately_if_due`. When a user joins after their chosen schedule hour (e.g. joined at 15:00 and selected 08:00 AM daily), today's portion is prepared and delivered immediately rather than waiting for next day. Future portions deliver on schedule.

@@ -462,7 +462,7 @@ async def confirm_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     cost_text = f"{item.cost_toman:,} تومان"
     await callback.message.answer(
-        f"✅ پیام شما با موفقیت برای بررسی و تأیید محتوا ثبت شد.\n\n"
+        f"✅ پیام شما با موفقیت برای تأیید محتوا ثبت شد.\n\n"
         f"👥 مخاطبان: {item.audience_count:,} نفر\n"
         f"💳 مبلغ کسر شده از کیف پول: {cost_text}\n\n"
         "پس از بررسی و تأیید توسط مدیریت، پیام برای تمام اعضا ارسال خواهد شد.",

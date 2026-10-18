@@ -1,3 +1,19 @@
+## 2026-10-18 — Antigravity — Support Tickets & Direct Messaging Hub (MASTER-42)
+- **Support Ticket Module & Models (`modules/support_ticket/`):**
+  - Implemented `SupportTicket` model and `SupportTicketStatus` (`PENDING`, `ANSWERED`, `CLOSED`).
+  - Added repository and service functions for ticket submission, admin listing, answering with multi-platform user dispatch, and closing.
+  - Added Alembic migration `support2026101801_add_support_tickets.py` and self-healing DDL in `bootstrap.py`.
+- **Web Admin Panel Moderation Hub (`web/app.py` & `web/templates/moderation.html`):**
+  - Completed Queue 8 in `/moderation`: added `tab=tickets` displaying pending tickets with count badge, user details, and submission time.
+  - Added actions `POST /moderation/tickets/{id}/reply` and `POST /moderation/tickets/{id}/close`.
+  - Made `_tehran_time` None-safe in `web/app.py`.
+- **Bot Integration (`bot/handlers/suggestions.py`):**
+  - Integrated `support_ticket_service.submit_ticket` into `receive_suggestion`.
+  - Added ticket status auto-update to `ANSWERED` upon reply delivery.
+  - Fixed copy string in `creator_broadcast.py` (`برای تأیید محتوا`).
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_42_SUPPORT_TICKETS_AND_DIRECT_MESSAGING.md` and registered `DEC-PY-0134`.
+- **Validation:** 6/6 tests passed in `tests/test_master_42_support_tickets.py`, 4/4 passed in `tests/test_owner_spec_c.py`.
+
 ## 2026-10-18 — Antigravity — Delivery Models & Single-Stage Evening Reminder Redesign (MASTER-41)
 - **Khatm Delivery & Reminder Engine (`share_occurrence/delivery.py` & `reminder_engine/service.py`):**
   - Added immediate delivery for first-day joins where chosen hour has passed (`deliver_immediately_if_due`).
