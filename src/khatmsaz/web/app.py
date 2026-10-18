@@ -152,6 +152,16 @@ FA_LABELS = {
     "OPERATIONS_ADMIN": "مدیر عملیات",
     "ADMIN": "مدیر (همه دسترسی‌ها)",
     "SUPER_ADMIN": "مدیر کل (سوپرادمین)",
+    "USER": "کاربر عادی",
+    "CREATOR": "سازنده ختم",
+    "WARNED": "اخطارگرفته",
+    "SUSPENDED": "معلق",
+    "BANNED": "مسدود (بن)",
+    "MERGED": "ادغام‌شده",
+    "MANUAL_ADJUSTMENT": "تغییر دستی ادمین",
+    "CREDIT": "اعتبار هدیه",
+    "CHARGE": "شارژ نقدی",
+    "SPEND": "کسر / مصرف",
     "fa": "فارسی",
     "ar": "عربی",
     "en": "انگلیسی",
@@ -3205,6 +3215,127 @@ async def users(request: Request, q: str = "", page: int = 1):
     )
 
 
+@app.get("/users/{user_id}", response_class=HTMLResponse)
+async def user_detail(request: Request, user_id: UUID, tab: str = "khatms"):
+    """MASTER-44: 360-Degree User Profile & Financial Wallet Management Hub."""
+    admin, raw = await _admin(
+        request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
+    )
+    if admin is None:
+        return _login_redirect()
+
+    from khatmsaz.modules.phone.models import PhoneClaim
+    from khatmsaz.modules.plan.models import UserPlan
+    from khatmsaz.modules.support_ticket.models import SupportTicket
+    from khatmsaz.modules.wallet.models import Wallet, WalletInvoice, WalletTransaction
+
+    async with session_scope() as session:
+        target_user = await identity_service.find_by_id(session, user_id)
+        if target_user is None:
+            return HTMLResponse("کاربر مورد نظر یافت نشد.", status_code=404)
+
+        identities = await identity_service.list_identities_for_user(session, user_id)
+        user_settings = await session.get(UserSettings, user_id)
+        phone_claim = (
+            await session.execute(
+                select(PhoneClaim).where(
+                    PhoneClaim.user_id == user_id,
+                    PhoneClaim.verified_at.is_not(None),
+                )
+            )
+        ).scalars().first()
+        user_plan = (
+            await session.execute(select(UserPlan).where(UserPlan.user_id == user_id))
+        ).scalars().first()
+        wallet = await wallet_service.get_or_create_wallet(session, user_id)
+
+        # 1. Created Khatms
+        created_khatms = (
+            await session.execute(
+                select(Khatm)
+                .where(Khatm.creator_user_id == user_id)
+                .order_by(Khatm.created_at.desc())
+                .limit(100)
+            )
+        ).scalars().all()
+
+        # 2. Participations (joined with Khatm)
+        participations_raw = (
+            await session.execute(
+                select(Participation, Khatm)
+                .join(Khatm, Participation.khatm_id == Khatm.id)
+                .where(Participation.user_id == user_id)
+                .order_by(Participation.id.desc())
+                .limit(100)
+            )
+        ).all()
+        participations = [
+            {"participation": p, "khatm": k}
+            for p, k in participations_raw
+        ]
+
+        # 3. Transactions & Invoices
+        invoices = (
+            await session.execute(
+                select(WalletInvoice)
+                .where(WalletInvoice.user_id == user_id)
+                .order_by(WalletInvoice.issued_at.desc())
+                .limit(50)
+            )
+        ).scalars().all()
+
+        transactions = (
+            await session.execute(
+                select(WalletTransaction)
+                .where(WalletTransaction.wallet_id == wallet.id)
+                .order_by(WalletTransaction.created_at.desc())
+                .limit(50)
+            )
+        ).scalars().all()
+
+        # 4. Support Tickets
+        tickets = (
+            await session.execute(
+                select(SupportTicket)
+                .where(SupportTicket.sender_user_id == user_id)
+                .order_by(SupportTicket.created_at.desc())
+                .limit(50)
+            )
+        ).scalars().all()
+
+        counts = {
+            "khatms": len(created_khatms),
+            "participations": len(participations),
+            "invoices": len(invoices) + len(transactions),
+            "tickets": len(tickets),
+        }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="user_detail.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            target_user=target_user,
+            identities=identities,
+            user_settings=user_settings,
+            phone_claim=phone_claim,
+            user_plan=user_plan,
+            wallet=wallet,
+            created_khatms=created_khatms,
+            participations=participations,
+            invoices=invoices,
+            transactions=transactions,
+            tickets=tickets,
+            counts=counts,
+            active_tab=tab,
+            saved=request.query_params.get("saved", ""),
+            error=request.query_params.get("error", ""),
+        ),
+    )
+
+
 @app.post("/users/{user_id}/plan")
 async def admin_set_user_plan(
     request: Request,
@@ -3212,6 +3343,7 @@ async def admin_set_user_plan(
     plan: str = Form(...),
     csrf: str = Form(...),
     q: str = Form(""),
+    redirect_to: str = Form("/users"),
 ):
     admin, raw = await _admin(
         request, AdminPermission.FINANCE_MANAGE, AdminPermission.SUPPORT_USERS
@@ -3233,6 +3365,8 @@ async def admin_set_user_plan(
             action="ADMIN_USER_PLAN_SET",
             details={"plan": tier.value},
         )
+    if redirect_to.startswith("/users/"):
+        return RedirectResponse(f"{redirect_to}?saved=plan_updated", status_code=303)
     return RedirectResponse(f"/users?q={q}&saved=plan", status_code=303)
 
 
@@ -3242,6 +3376,8 @@ async def admin_adjust_user_wallet(
     user_id: UUID,
     cash_delta: int = Form(0),
     credit_delta: int = Form(0),
+    balance_type: str = Form(""),
+    amount: int = Form(0),
     reason: str = Form("تغییر دستی توسط ادمین"),
     csrf: str = Form(...),
     q: str = Form(""),
@@ -3254,9 +3390,15 @@ async def admin_adjust_user_wallet(
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    if balance_type == "credit":
+        credit_delta = amount
+    elif balance_type == "cash":
+        cash_delta = amount
+
     async with session_scope() as session:
         try:
-            await wallet_service.admin_adjust_wallet(
+            wallet = await wallet_service.admin_adjust_wallet(
                 session,
                 user_id,
                 cash_delta=cash_delta,
@@ -3267,11 +3409,45 @@ async def admin_adjust_user_wallet(
                 session,
                 actor_user_id=admin.id,
                 target_user_id=user_id,
-                action="CREDIT_GRANT",
-                details={"cash_delta": cash_delta, "credit_delta": credit_delta, "reason": reason.strip()},
+                action="ADMIN_WALLET_ADJUST",
+                details={
+                    "cash_delta": cash_delta,
+                    "credit_delta": credit_delta,
+                    "reason": reason.strip(),
+                    "balance_type": balance_type or ("cash" if cash_delta != 0 else "credit"),
+                },
             )
+            identities = await identity_service.list_identities_for_user(session, user_id)
         except (ValueError, InsufficientFundsError) as exc:
             return HTMLResponse(f"خطا در تغییر کیف پول: {exc}", status_code=400)
+
+    # Automated bot notification to user (Employer Mandate)
+    try:
+        notify = get_notify_fn()
+    except RuntimeError:
+        notify = None
+    if notify is not None and identities:
+        parts = ["👛 <b>تغییر در موجودی کیف پول ختم‌ساز شما:</b>\n"]
+        if cash_delta != 0:
+            act = "افزایش" if cash_delta > 0 else "کسر"
+            parts.append(f"▫️ <b>موجودی نقدی:</b> {act} به مبلغ <b>{abs(cash_delta):,} تومان</b>")
+        if credit_delta != 0:
+            act = "افزایش" if credit_delta > 0 else "کسر"
+            parts.append(f"▫️ <b>اعتبار هدیه:</b> {act} به مبلغ <b>{abs(credit_delta):,} تومان</b>")
+        if reason.strip():
+            parts.append(f"▫️ <b>علت:</b> {reason.strip()}")
+        parts.append("\n📊 <b>مانده موجودی جدید:</b>")
+        parts.append(f"• موجودی نقدی: <b>{wallet.balance_toman:,} تومان</b>")
+        parts.append(f"• اعتبار هدیه: <b>{wallet.credit_toman:,} تومان</b>")
+        notif_msg = "\n".join(parts)
+        for identity in identities:
+            try:
+                await notify(identity.platform.value, identity.subject, notif_msg)
+            except Exception:
+                pass
+
+    if redirect_to.startswith("/users/"):
+        return RedirectResponse(f"{redirect_to}?saved=wallet_adjusted", status_code=303)
     target_url = f"{redirect_to}?q={q}&saved=wallet" if redirect_to == "/users" else f"/finance?uq={q}&saved=wallet"
     return RedirectResponse(target_url, status_code=303)
 
@@ -3283,6 +3459,7 @@ async def admin_send_direct_message(
     message_text: str = Form(...),
     csrf: str = Form(...),
     q: str = Form(""),
+    redirect_to: str = Form("/users"),
 ):
     admin, raw = await _admin(
         request, AdminPermission.SUPPORT_USERS, AdminPermission.MODERATION_MANAGE
@@ -3293,6 +3470,8 @@ async def admin_send_direct_message(
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     body = message_text.strip()
     if not body:
+        if redirect_to.startswith("/users/"):
+            return RedirectResponse(redirect_to, status_code=303)
         return RedirectResponse(f"/users?q={q}", status_code=303)
     async with session_scope() as session:
         identities = await identity_service.list_identities_for_user(session, user_id)
@@ -3311,6 +3490,8 @@ async def admin_send_direct_message(
         formatted = f"📩 <b>پیام از طرف مدیریت ختم‌ساز:</b>\n\n{body}"
         for identity in identities:
             await notify(identity.platform.value, identity.subject, formatted)
+    if redirect_to.startswith("/users/"):
+        return RedirectResponse(f"{redirect_to}?saved=messaged", status_code=303)
     return RedirectResponse(f"/users?q={q}&saved=messaged", status_code=303)
 
 
@@ -3905,6 +4086,7 @@ async def moderate_user(
     action: str = Form(...),
     csrf: str = Form(...),
     q: str = Form(""),
+    redirect_to: str = Form("/users"),
 ):
     admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
     if admin is None:
@@ -3963,6 +4145,8 @@ async def moderate_user(
             target_user_id=user_id,
             action=f"WEB_ADMIN_{action.upper()}",
         )
+    if redirect_to.startswith("/users/"):
+        return RedirectResponse(f"{redirect_to}?saved=moderated", status_code=303)
     return RedirectResponse(f"/users?q={q}", status_code=303)
 
 

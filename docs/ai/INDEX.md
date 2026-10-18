@@ -1,3 +1,8 @@
+## 2026-10-18 — User 360 Profile & Financial Wallet Management Hub in Web Admin (MASTER-44) [Antigravity]
+- Master Document: [MASTER_44_USER_360_PROFILE_AND_WALLET_MANAGEMENT.md](masters/MASTER_44_USER_360_PROFILE_AND_WALLET_MANAGEMENT.md) (360-degree user profile `/users/{user_id}` in web admin, user identity, connected Telegram/Bale accounts, verified phone claim, user settings, current plan, financial wallets, created khatms, participations, support tickets, wallet manual adjustment with cash vs credit selection, and automated bot notifications).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/user_detail.html`, `src/khatmsaz/web/templates/users.html`.
+- Tests: `tests/test_master_44_user_profile.py`.
+
 ## 2026-10-18 — Admin Khatm Management, Direct Ownership Transfer & Intelligent Status Notifications (MASTER-43) [Antigravity]
 - Master Document: [MASTER_43_ADMIN_KHATM_MANAGEMENT_AND_DIRECT_CONTROLS.md](masters/MASTER_43_ADMIN_KHATM_MANAGEMENT_AND_DIRECT_CONTROLS.md) (Direct khatm ownership transfer to any user by Super Admin without verified phone restriction, automatic invite link rotation and two-way notifications, courteous status change notices to creator and active members upon ACTIVE/COMPLETED/CANCELLED, and web panel alert banners).
 - Key files: `src/khatmsaz/modules/khatm_workflow/service.py`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/khatm_detail.html`.

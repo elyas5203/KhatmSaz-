@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}{{ target_user.display_name or 'کاربر' }} | پروفایل ۳۶۰ درجه{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4 pt-2">
+  <a href="/users" class="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm font-bold bg-slate-800/40 px-4 py-2 rounded-xl">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+    بازگشت به فهرست کاربران
+  </a>
+
+  <div class="flex items-center gap-3">
+    {{ help_button(
+      "راهنمای پروفایل ۳۶۰ درجه کاربر و مدیریت مالی",
+      "در این صفحه اطلاعات کامل و یکپارچهٔ کاربر شامل مشخصات هویتی، اکانت‌های متصل، کیف پول نقدی و اعتباری، ختم‌های ایجادشده، سوابق مشارکت و تیکت‌های پشتیبانی قابل مشاهده و مدیریت است.",
+      [
+        "در بخش کارت کیف پول، می‌توانید موجودی نقدی یا اعتبار هدیه را شارژ یا کسر کنید؛ با ثبت فرم، پیام خودکار حاوی مبلغ و علت به چت بات کاربر ارسال می‌شود.",
+        "در تب ختم‌های ساخته‌شده، تمام ختم‌هایی که کاربر مالک آن‌هاست همراه با وضعیت و دکمه ورود مستقیم به صفحه مدیریت ختم قرار دارد.",
+        "در تب سوابق مشارکت، تمام ختم‌هایی که کاربر در آن‌ها عضو بوده و سهم داشته را مشاهده می‌کنید.",
+        "در بخش فاکتورها، سندهای مالی، تراکنش‌های درگاه و شارژهای دستی ادمین ثبت شده است.",
+        "در تب تیکت‌ها، مکاتبات پشتیبانی کاربر با ادمین قرار دارد."
+      ],
+      "نکته: در صورت کسر موجودی، سیستم اجازهٔ منفی شدن موجودی کیف پول را نخواهد داد."
+    ) }}
+  </div>
+</div>
+
+{% if saved %}
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3 shadow-lg shadow-emerald-500/5">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span class="font-bold text-sm">
+    {% if saved == 'wallet_adjusted' %}موجودی کیف پول با موفقیت به‌روزرسانی شد و پیام خودکار به کاربر مخابره گردید ✅
+    {% elif saved == 'plan_updated' %}پلن اشتراک کاربر با موفقیت تغییر یافت ✅
+    {% elif saved == 'messaged' %}پیام مستقیم با موفقیت به چت کاربر در پیام‌رسان ارسال شد ✅
+    {% elif saved == 'moderated' %}عملیات نظارتی روی کاربر با موفقیت ثبت شد ✅
+    {% else %}تغییرات با موفقیت اعمال گردید ✅{% endif %}
+  </span>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl flex items-center gap-3 shadow-lg shadow-rose-500/5">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+  <span class="font-bold text-sm">{{ error }}</span>
+</div>
+{% endif %}
+
+<!-- Header & 360 User Overview Glass Card -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5 relative overflow-hidden">
+  <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+    <div class="space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="status {{ target_user.status.value|lower }} whitespace-nowrap">{{ fa_label(target_user.status) }}</span>
+        
+        {% if target_user.role.value == 'CREATOR' %}
+          <span class="text-xs bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30 font-bold">⭐️ سازنده ختم</span>
+        {% elif target_user.role.value == 'SUPER_ADMIN' %}
+          <span class="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full border border-purple-500/30 font-bold">🛡 مدیر کل (Super Admin)</span>
+        {% else %}
+          <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1 rounded-full font-bold">عضو عادی</span>
+        {% endif %}
+
+        <span class="text-xs bg-sky-500/20 text-sky-300 px-3 py-1 rounded-full border border-sky-500/30 font-bold">
+          پلن: {{ user_plan.plan.value if user_plan else 'FREE' }}
+        </span>
+      </div>
+
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-3">
+        <span>👤 {{ target_user.display_name or 'کاربر بدون نام' }}</span>
+      </h1>
+
+      <div class="flex flex-wrap items-center gap-4 text-xs text-slate-400 pt-1">
+        <span class="font-mono text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5" dir="ltr">
+          <span class="text-slate-500">UUID:</span> {{ target_user.id }}
+        </span>
+        {% if phone_claim %}
+        <span class="font-mono text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-500/20 flex items-center gap-1" dir="ltr">
+          📱 {{ phone_claim.e164 }} (تأییدشده)
+        </span>
+        {% elif user_settings and user_settings.contact_phone %}
+        <span class="font-mono text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1" dir="ltr">
+          📞 {{ user_settings.contact_phone }} (تماس عادی)
+        </span>
+        {% endif %}
+
+        {% if user_settings and (user_settings.province or user_settings.city) %}
+        <span class="text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+          📍 {{ user_settings.province or '' }} - {{ user_settings.city or '' }}
+        </span>
+        {% endif %}
+
+        {% if user_settings and user_settings.gender %}
+        <span class="text-slate-300 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800">
+          جنسیت: {{ fa_label(user_settings.gender) }}
+        </span>
+        {% endif %}
+
+        <span class="text-slate-500">
+          عضویت: <strong class="text-slate-300 font-mono">{{ target_user.created_at.strftime('%Y-%m-%d %H:%M') if target_user.created_at else '-' }}</strong>
+        </span>
+      </div>
+
+      <!-- Platform Identities Badges -->
+      <div class="flex flex-wrap items-center gap-2 pt-1">
+        <span class="text-xs text-slate-500">پیام‌رسان‌های متصل:</span>
+        {% for ident in identities %}
+        <span class="text-xs bg-slate-900 border border-slate-700/60 px-3 py-1 rounded-xl flex items-center gap-2" dir="ltr">
+          <strong class="{% if ident.platform.value == 'TELEGRAM' %}text-sky-400{% else %}text-emerald-400{% endif %} font-mono">{{ ident.platform.value }}</strong>
+          <span class="text-slate-300 font-mono">{{ ident.subject }}</span>
+          {% if ident.username %}<span class="text-slate-400 font-sans">(@{{ ident.username }})</span>{% endif %}
+        </span>
+        {% else %}
+        <span class="text-xs text-slate-500">هیچ اکانتی متصل نیست</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Quick Action Triggers -->
+    <div class="flex flex-wrap lg:flex-col gap-2.5 flex-none min-w-[200px]">
+      <!-- Change Plan Dropdown -->
+      <details class="relative">
+        <summary class="list-none text-center bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border border-slate-700 flex items-center justify-between gap-2">
+          <span>💎 تغییر پلن کاربر</span>
+          <span class="text-slate-400">▼</span>
+        </summary>
+        <div class="absolute left-0 lg:right-0 top-full mt-2 w-64 p-4 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-30">
+          <h4 class="text-xs font-bold text-white mb-2">انتخاب پلن اشتراک</h4>
+          <form method="post" action="/users/{{ target_user.id }}/plan" class="space-y-3">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="redirect_to" value="/users/{{ target_user.id }}">
+            <select name="plan" class="input-field py-1.5 px-3 text-xs w-full">
+              <option value="FREE" {% if not user_plan or user_plan.plan.value == 'FREE' %}selected{% endif %}>رایگان (FREE)</option>
+              <option value="BASIC" {% if user_plan and user_plan.plan.value == 'BASIC' %}selected{% endif %}>پایه (BASIC)</option>
+              <option value="PRO" {% if user_plan and user_plan.plan.value == 'PRO' %}selected{% endif %}>پرو (PRO)</option>
+            </select>
+            <button type="submit" class="btn w-full py-1.5 text-xs font-bold">ثبت پلن جدید</button>
+          </form>
+        </div>
+      </details>
+
+      <!-- Direct Message Dropdown -->
+      <details class="relative">
+        <summary class="list-none text-center bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border border-sky-500/30 flex items-center justify-between gap-2">
+          <span>💬 ارسال پیام مستقیم</span>
+          <span class="text-sky-400">▼</span>
+        </summary>
+        <div class="absolute left-0 lg:right-0 top-full mt-2 w-72 p-4 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-30">
+          <h4 class="text-xs font-bold text-white mb-2">ارسال پیام رسمی از طریق ربات</h4>
+          <form method="post" action="/users/{{ target_user.id }}/message" class="space-y-3">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="redirect_to" value="/users/{{ target_user.id }}">
+            <textarea name="message_text" rows="3" required placeholder="متن پیام را وارد کنید..." class="input-field py-1.5 px-3 text-xs w-full"></textarea>
+            <button type="submit" class="btn w-full py-1.5 text-xs font-bold">ارسال به تلگرام/بله</button>
+          </form>
+        </div>
+      </details>
+
+      <!-- Moderation Dropdown -->
+      <details class="relative">
+        <summary class="list-none text-center bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-all border border-slate-700 flex items-center justify-between gap-2">
+          <span>⚙️ عملیات نظارت و دسترسی</span>
+          <span class="text-slate-400">▼</span>
+        </summary>
+        <div class="absolute left-0 lg:right-0 top-full mt-2 w-64 p-4 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl z-30">
+          <h4 class="text-xs font-bold text-white mb-2">اقدامات مدیریتی</h4>
+          <form method="post" action="/users/{{ target_user.id }}/moderate" class="grid grid-cols-2 gap-2">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="redirect_to" value="/users/{{ target_user.id }}">
+            <button name="action" value="warn" class="bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">اخطار</button>
+            <button name="action" value="suspend" class="bg-orange-500/10 text-orange-400 hover:bg-orange-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">تعلیق</button>
+            <button name="action" value="reactivate" class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-2 py-1.5 rounded-lg text-xs font-bold transition-all">فعال‌سازی</button>
+            <button name="action" value="ban" onclick="return confirm('آیا از مسدودسازی نهایی این کاربر مطمئن هستید؟')" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all">بن نهایی</button>
+            
+            {% if target_user.role.value == 'USER' %}
+              <button name="action" value="promote" class="bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">⭐️ ارتقا به سازنده</button>
+            {% elif target_user.role.value == 'CREATOR' %}
+              <button name="action" value="demote" onclick="return confirm('آیا از خلع نقش سازنده مطمئن هستید؟')" class="bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">حذف نقش سازنده</button>
+            {% endif %}
+
+            {% if target_user.role.value == 'SUPER_ADMIN' %}
+              <button name="action" value="demote_admin" onclick="return confirm('آیا از خلع این کاربر از مدیریت کل مطمئن هستید؟')" class="bg-purple-900/30 text-purple-300 hover:bg-purple-800 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">🛡 خلع از مدیریت کل</button>
+            {% else %}
+              <button name="action" value="promote_admin" onclick="return confirm('آیا از ارتقای این کاربر به مدیر کل (Super Admin) مطمئن هستید؟')" class="bg-purple-600/20 text-purple-300 hover:bg-purple-600 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">🛡 ارتقا به مدیر کل</button>
+            {% endif %}
+          </form>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Financial & Wallet Management Hub (MASTER-44 Core) -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-emerald-500/20 relative">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="text-xl">👛</span>
+        <h2 class="text-xl font-extrabold text-white">مدیریت مالی، کیف پول و اعتبارات کاربر</h2>
+      </div>
+      <p class="text-xs text-slate-400 mt-1">مشاهده دقیق موجودی نقدی و اعتبار تبلیغاتی، شارژ یا کسر مستقیم با ارسال اعلان خودکار به کاربر</p>
+    </div>
+  </div>
+
+  <!-- Wallet Stat Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
+      <span class="text-xs font-bold text-slate-400 mb-1">موجودی نقدی (Cash Balance)</span>
+      <div class="flex items-baseline gap-2">
+        <span class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">{{ "{:,}".format(wallet.balance_toman) }}</span>
+        <span class="text-xs text-slate-400">تومان</span>
+      </div>
+      <span class="text-[0.7rem] text-slate-500 mt-2">قابل برداشت و پرداخت هزینه ساخت ختم یا پلن‌ها</span>
+    </div>
+
+    <div class="p-5 rounded-2xl bg-slate-900/70 border border-slate-800 flex flex-col justify-between">
+      <span class="text-xs font-bold text-slate-400 mb-1">اعتبار هدیه و تشویقی (Reward Credit)</span>
+      <div class="flex items-baseline gap-2">
+        <span class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">{{ "{:,}".format(wallet.credit_toman) }}</span>
+        <span class="text-xs text-slate-400">تومان</span>
+      </div>
+      <span class="text-[0.7rem] text-slate-500 mt-2">اعتبارات تشویقی سامانه جهت استفاده در خدمات</span>
+    </div>
+
+    <div class="p-5 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex flex-col justify-between">
+      <span class="text-xs font-bold text-emerald-300 mb-1">مجموع توان مالی کاربر</span>
+      <div class="flex items-baseline gap-2">
+        <span class="text-2xl sm:text-3xl font-extrabold font-mono text-white">{{ "{:,}".format(wallet.balance_toman + wallet.credit_toman) }}</span>
+        <span class="text-xs text-emerald-400 font-bold">تومان</span>
+      </div>
+      <span class="text-[0.7rem] text-emerald-400/80 mt-2">مجموع موجودی نقدی به همراه اعتبار هدیه فعال</span>
+    </div>
+  </div>
+
+  <!-- Wallet Adjustment Form (Per Employer Mandate) -->
+  <div class="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80">
+    <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+      <span>⚡ شارژ یا کسر مستقیم موجودی کیف پول</span>
+    </h3>
+    <form method="post" action="/users/{{ target_user.id }}/wallet" class="space-y-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="hidden" name="redirect_to" value="/users/{{ target_user.id }}">
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Balance Type Selection (Employer Decision 2) -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">نوع موجودی:</label>
+          <select name="balance_type" class="input-field py-2 px-3 text-xs w-full bg-slate-950 border-slate-700 text-white font-bold">
+            <option value="cash" selected>موجودی نقدی (Cash Balance)</option>
+            <option value="credit">اعتبار هدیه / تشویقی (Reward Credit)</option>
+          </select>
+        </div>
+
+        <!-- Amount Delta -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">مبلغ تغییر (تومان):</label>
+          <input name="amount" type="number" required placeholder="مثبت برای شارژ، منفی برای کسر (مثلاً ۵۰۰۰۰ یا ۲۰۰۰۰-)" class="input-field py-2 px-3 text-xs font-mono w-full bg-slate-950 border-slate-700 text-white font-bold">
+          <span class="block text-[0.68rem] text-slate-400 mt-1">جهت کسر موجودی، علامت منفی (-) در ابتدای عدد قرار دهید.</span>
+        </div>
+
+        <!-- Reason -->
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">علت / بابت تغییر:</label>
+          <input name="reason" type="text" required placeholder="مثلاً: هدیه اعیاد، رفع اشکال تراکنش، پاداش مشارکت" class="input-field py-2 px-3 text-xs w-full bg-slate-950 border-slate-700 text-white">
+          <span class="block text-[0.68rem] text-slate-400 mt-1">این علت در پیام بات و سند ممیزی ثبت می‌شود.</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-slate-800">
+        <p class="text-xs text-amber-300/90 flex items-center gap-1.5">
+          <span>🔔</span>
+          <span>پس از ثبت، اعلان رسمی تغییر موجودی با ذکر مبلغ و علت به چت بات کاربر ارسال می‌شود.</span>
+        </p>
+        <button type="submit" class="btn px-6 py-2.5 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-lg shadow-emerald-500/20 whitespace-nowrap">
+          ثبت تغییر و اطلاع‌رسانی به کاربر 💳
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- Tabs Navigation for User 360 Records -->
+<div class="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 mb-6">
+  <a href="/users/{{ target_user.id }}?tab=khatms" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'khatms' %}bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>📖 ختم‌های ساخته‌شده</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'khatms' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-sky-400{% endif %} font-mono">{{ counts.khatms }}</span>
+  </a>
+
+  <a href="/users/{{ target_user.id }}?tab=participations" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'participations' %}bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>🤲 سوابق مشارکت و سهم‌ها</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'participations' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-sky-400{% endif %} font-mono">{{ counts.participations }}</span>
+  </a>
+
+  <a href="/users/{{ target_user.id }}?tab=finances" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'finances' %}bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>💳 تراکنش‌ها و فاکتورها</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'finances' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-sky-400{% endif %} font-mono">{{ counts.invoices }}</span>
+  </a>
+
+  <a href="/users/{{ target_user.id }}?tab=tickets" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'tickets' %}bg-sky-500 text-slate-950 shadow-lg shadow-sky-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>🎫 تیکت‌های پشتیبانی</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'tickets' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-sky-400{% endif %} font-mono">{{ counts.tickets }}</span>
+  </a>
+</div>
+
+<!-- Tab 1: Created Khatms -->
+{% if active_tab == 'khatms' %}
+<div class="glass-panel p-6 rounded-3xl border border-white/5 space-y-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="text-base font-extrabold text-white">ختم‌های ایجادشده توسط این کاربر</h3>
+    <span class="text-xs text-slate-400">تعداد: {{ counts.khatms }}</span>
+  </div>
+
+  {% if created_khatms %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">عنوان ختم</th>
+          <th class="pb-3 px-3">نوع / دسته‌بندی</th>
+          <th class="pb-3 px-3">وضعیت</th>
+          <th class="pb-3 px-3">قابلیت دید</th>
+          <th class="pb-3 px-3">تاریخ ایجاد</th>
+          <th class="pb-3 px-3 text-center">عملیات</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for khatm in created_khatms %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="py-3 px-3 font-bold text-white">
+            <a href="/khatms/{{ khatm.id }}" class="hover:text-emerald-400">{{ khatm.title }}</a>
+          </td>
+          <td class="py-3 px-3">
+            <span class="text-[0.7rem] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-md font-mono">{{ fa_label(khatm.template_type) }}</span>
+          </td>
+          <td class="py-3 px-3">
+            <span class="status {{ khatm.status.value|lower }} whitespace-nowrap">{{ fa_label(khatm.status) }}</span>
+          </td>
+          <td class="py-3 px-3 text-slate-300">
+            {% if khatm.visibility.value == 'PRIVATE' %}
+              <span class="text-amber-400">🔒 خصوصی</span>
+            {% else %}
+              <span class="text-slate-400">🌐 عمومی</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-3 font-mono text-slate-400" dir="ltr">
+            {{ khatm.created_at.strftime('%Y-%m-%d %H:%M') if khatm.created_at else '-' }}
+          </td>
+          <td class="py-3 px-3 text-center">
+            <a href="/khatms/{{ khatm.id }}" class="btn py-1 px-3 text-[0.7rem] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200">
+              مدیریت ختم ←
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 text-slate-500 text-xs">
+    این کاربر تاکنون هیچ ختمی ایجاد نکرده است.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Tab 2: Participations -->
+{% if active_tab == 'participations' %}
+<div class="glass-panel p-6 rounded-3xl border border-white/5 space-y-4">
+  <div class="flex items-center justify-between mb-2">
+    <h3 class="text-base font-extrabold text-white">سوابق عضویت و تلاوت در ختم‌ها</h3>
+    <span class="text-xs text-slate-400">تعداد سهم‌ها و عضویت‌ها: {{ counts.participations }}</span>
+  </div>
+
+  {% if participations %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">عنوان ختم</th>
+          <th class="pb-3 px-3">وضعیت عضویت</th>
+          <th class="pb-3 px-3">نوع تعهد</th>
+          <th class="pb-3 px-3">عضو جایگزین (Backup)</th>
+          <th class="pb-3 px-3 text-center">عملیات</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for part_item in participations %}
+        {% set p = part_item.participation %}
+        {% set k = part_item.khatm %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="py-3 px-3 font-bold text-white">
+            <a href="/khatms/{{ k.id }}" class="hover:text-emerald-400">{{ k.title }}</a>
+          </td>
+          <td class="py-3 px-3">
+            <span class="status {{ p.status.value|lower }} whitespace-nowrap">{{ fa_label(p.status) }}</span>
+          </td>
+          <td class="py-3 px-3 text-slate-300">
+            {% if p.is_committed %}
+              <span class="text-emerald-400 font-bold">تعهدی (Committed)</span>
+            {% else %}
+              <span class="text-slate-400">آزاد / لیست انتظار</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-3 text-slate-400 font-mono">
+            {{ 'بله ✅' if p.backup_reader_opt_in else 'خیر' }}
+          </td>
+          <td class="py-3 px-3 text-center">
+            <a href="/khatms/{{ k.id }}" class="btn py-1 px-3 text-[0.7rem] font-bold bg-slate-800 hover:bg-slate-700 text-slate-200">
+              مشاهده ختم ←
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 text-slate-500 text-xs">
+    این کاربر در هیچ ختمی مشارکت نداشته است.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Tab 3: Finances & Ledger -->
+{% if active_tab == 'finances' %}
+<div class="glass-panel p-6 rounded-3xl border border-white/5 space-y-6">
+  <div>
+    <h3 class="text-base font-extrabold text-white mb-1">فاکتورها و اسناد مالی (Invoices)</h3>
+    <p class="text-xs text-slate-400">صورت‌حساب‌های رسمی صادره برای خرید پلن، شارژ کیف پول و خدمات سامانه</p>
+  </div>
+
+  {% if invoices %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">شناسه فاکتور</th>
+          <th class="pb-3 px-3">نوع فاکتور</th>
+          <th class="pb-3 px-3">مبلغ کل</th>
+          <th class="pb-3 px-3">تخفیف</th>
+          <th class="pb-3 px-3">مبلغ پرداختی</th>
+          <th class="pb-3 px-3">وضعیت</th>
+          <th class="pb-3 px-3">شرح</th>
+          <th class="pb-3 px-3">تاریخ</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for inv in invoices %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">{{ inv.id }}</td>
+          <td class="py-3 px-3 font-bold text-slate-200">{{ fa_label(inv.kind) }}</td>
+          <td class="py-3 px-3 font-mono text-slate-300">{{ "{:,}".format(inv.gross_amount_toman) }} ت</td>
+          <td class="py-3 px-3 font-mono text-rose-400">{{ "{:,}".format(inv.discount_amount_toman) }} ت</td>
+          <td class="py-3 px-3 font-mono font-bold text-emerald-400">{{ "{:,}".format(inv.net_amount_toman) }} ت</td>
+          <td class="py-3 px-3">
+            <span class="status {{ inv.status|lower }} whitespace-nowrap">{{ fa_label(inv.status) }}</span>
+          </td>
+          <td class="py-3 px-3 text-slate-300 max-w-xs truncate">{{ inv.description }}</td>
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">
+            {{ inv.issued_at.strftime('%Y-%m-%d %H:%M') if inv.issued_at else '-' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-6 text-slate-500 text-xs">
+    هیچ فاکتوری برای این کاربر صادر نشده است.
+  </div>
+  {% endif %}
+
+  <!-- Transactions Ledger -->
+  <div class="pt-6 border-t border-slate-800">
+    <h3 class="text-base font-extrabold text-white mb-1">ریز تراکنش‌های کیف پول (Wallet Transactions)</h3>
+    <p class="text-xs text-slate-400 mb-4">ثبت گردش حساب ریالی و اعتباری در دفتر کل</p>
+
+    {% if transactions %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-right text-xs">
+        <thead>
+          <tr class="text-slate-400 border-b border-slate-800">
+            <th class="pb-3 px-3">نوع تراکنش</th>
+            <th class="pb-3 px-3">مبلغ (تومان)</th>
+            <th class="pb-3 px-3">توضیحات</th>
+            <th class="pb-3 px-3">کد ارجاع</th>
+            <th class="pb-3 px-3">زمان ثبت</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60">
+          {% for tx in transactions %}
+          <tr class="hover:bg-slate-800/30 transition-colors">
+            <td class="py-3 px-3 font-bold">
+              {% if tx.amount > 0 %}
+                <span class="text-emerald-400">🟢 افزایش / شارژ ({{ tx.type.value }})</span>
+              {% else %}
+                <span class="text-rose-400">🔴 کسر / مصرف ({{ tx.type.value }})</span>
+              {% endif %}
+            </td>
+            <td class="py-3 px-3 font-mono font-bold text-sm {% if tx.amount > 0 %}text-emerald-400{% else %}text-rose-400{% endif %}" dir="ltr">
+              {{ "{:+,}".format(tx.amount) }}
+            </td>
+            <td class="py-3 px-3 text-slate-300">{{ tx.description or '-' }}</td>
+            <td class="py-3 px-3 font-mono text-slate-500 text-[0.7rem]" dir="ltr">{{ tx.ref or '-' }}</td>
+            <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">
+              {{ tx.created_at.strftime('%Y-%m-%d %H:%M') if tx.created_at else '-' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-6 text-slate-500 text-xs">
+      گردش حسابی برای این کیف پول ثبت نشده است.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Tab 4: Support Tickets -->
+{% if active_tab == 'tickets' %}
+<div class="glass-panel p-6 rounded-3xl border border-white/5 space-y-4">
+  <div class="flex items-center justify-between mb-2">
+    <div>
+      <h3 class="text-base font-extrabold text-white">تیکت‌های پشتیبانی ارسالی کاربر</h3>
+      <p class="text-xs text-slate-400">مکاتبات مستقیم کاربر با بخش پشتیبانی ختم‌ساز</p>
+    </div>
+    <a href="/moderation?tab=tickets" class="btn py-1.5 px-3 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200">
+      ورود به صف مدیریت تیکت‌ها ←
+    </a>
+  </div>
+
+  {% if tickets %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="pb-3 px-3">کد تیکت</th>
+          <th class="pb-3 px-3">موضوع</th>
+          <th class="pb-3 px-3">دسته‌بندی</th>
+          <th class="pb-3 px-3">وضعیت</th>
+          <th class="pb-3 px-3">پیام کاربر</th>
+          <th class="pb-3 px-3">پاسخ مدیر</th>
+          <th class="pb-3 px-3">تاریخ ثبت</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for ticket in tickets %}
+        <tr class="hover:bg-slate-800/30 transition-colors">
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">{{ ticket.id }}</td>
+          <td class="py-3 px-3 font-bold text-white">{{ ticket.subject }}</td>
+          <td class="py-3 px-3 text-slate-300">{{ fa_label(ticket.category) }}</td>
+          <td class="py-3 px-3">
+            <span class="status {{ ticket.status.value|lower }} whitespace-nowrap">{{ fa_label(ticket.status) }}</span>
+          </td>
+          <td class="py-3 px-3 text-slate-300 max-w-xs truncate" title="{{ ticket.message }}">{{ ticket.message }}</td>
+          <td class="py-3 px-3 text-emerald-300 max-w-xs truncate" title="{{ ticket.admin_reply or '' }}">{{ ticket.admin_reply or 'هنوز پاسخ داده نشده' }}</td>
+          <td class="py-3 px-3 font-mono text-slate-400 text-[0.7rem]" dir="ltr">
+            {{ ticket.created_at.strftime('%Y-%m-%d %H:%M') if ticket.created_at else '-' }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-12 text-slate-500 text-xs">
+    این کاربر تاکنون تیکت پشتیبانی ثبت نکرده است.
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

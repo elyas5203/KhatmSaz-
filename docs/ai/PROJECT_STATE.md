@@ -1,3 +1,15 @@
+## Current state — 2026-10-18 — User 360 Profile & Financial Wallet Management Hub in Web Admin (MASTER-44) [Antigravity]
+- **User 360 Profile Hub (`web/app.py` & `web/templates/user_detail.html`):**
+  - Implemented route `GET /users/{user_id}` and dedicated template `user_detail.html` rendering complete user identity, connected Telegram/Bale accounts, verified phone claim, user settings, current plan, financial wallets, created khatms, participations, and support tickets.
+  - Added fast-access `۳۶۰° ←` button and direct profile links across all user cards in `web/templates/users.html`.
+- **Financial & Wallet Management Hub (`web/app.py` & `web/templates/user_detail.html`):**
+  - Updated `POST /users/{user_id}/wallet` to support balance type selection (`cash` vs `credit`), positive/negative delta amounts, and custom reasons.
+  - Added automated bot notification informing user immediately via Telegram/Bale of balance change, delta amount, new balance, and reason per owner mandate.
+  - Recorded audit log with action `ADMIN_WALLET_ADJUST`.
+  - Added tabbed layout for Created Khatms, Participations, Financial Invoices & Ledger, and Support Tickets.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_44_USER_360_PROFILE_AND_WALLET_MANAGEMENT.md` and registered `DEC-PY-0136`.
+- **Validation:** Added 5 tests in `tests/test_master_44_user_profile.py` (100% PASS), and verified combined regression suite passes with 16/16 tests passing.
+
 ## Current state — 2026-10-18 — Admin Khatm Management, Direct Ownership Transfer & Intelligent Status Notifications (MASTER-43) [Antigravity]
 - **Direct Khatm Ownership Transfer (`modules/khatm_workflow/service.py` & `web/app.py`):**
   - Added `direct_transfer_khatm` workflow service enabling Super Admin to transfer khatm ownership directly to any user by UUID, Iranian phone, or platform chat ID (even without prior verified phone number, per owner decision).
