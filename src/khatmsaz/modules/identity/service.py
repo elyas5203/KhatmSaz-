@@ -56,23 +56,32 @@ async def resolve_or_provision_user(session: AsyncSession, platform: Platform, c
 async def _bootstrap_super_admin_if_configured(
     session: AsyncSession, platform: Platform, subject: str, user: User
 ) -> None:
-    """No admin panel exists yet, so the very first admin has to be granted
-    somehow — DECISIONS.md DEC-PY-0013: whoever's Telegram chat id is listed
-    in `SUPER_ADMIN_TELEGRAM_CHAT_IDS` gets promoted automatically the next
-    time they message the bot. A no-op for everyone else, every time."""
-    if user.role == UserRole.SUPER_ADMIN:
-        return
+    """Super admins and delegated Admins bootstrapped from configuration (DEC-PY-0013 / DEC-PY-0119)."""
     settings = get_settings()
     if platform == Platform.TELEGRAM:
-        raw_ids = settings.super_admin_telegram_chat_ids
+        raw_super_ids = settings.super_admin_telegram_chat_ids
+        raw_admin_ids = settings.admin_telegram_chat_ids
     elif platform == Platform.BALE:
-        raw_ids = settings.super_admin_bale_chat_ids
+        raw_super_ids = settings.super_admin_bale_chat_ids
+        raw_admin_ids = settings.admin_bale_chat_ids
     else:
         return
-    admin_ids = {s.strip() for s in raw_ids.split(",") if s.strip()}
+
+    super_admin_ids = {s.strip() for s in raw_super_ids.split(",") if s.strip()}
+    if subject in super_admin_ids:
+        if user.role != UserRole.SUPER_ADMIN:
+            await repository.set_role(session, user.id, UserRole.SUPER_ADMIN)
+            user.role = UserRole.SUPER_ADMIN
+        return
+
+    # Check delegated ADMIN (DEC-PY-0119)
+    admin_ids = {s.strip() for s in raw_admin_ids.split(",") if s.strip()}
     if subject in admin_ids:
-        await repository.set_role(session, user.id, UserRole.SUPER_ADMIN)
-        user.role = UserRole.SUPER_ADMIN
+        from khatmsaz.modules.authorization import service as auth_service
+        from khatmsaz.modules.authorization.models import AdminRole
+        roles = await auth_service.list_roles(session, user.id)
+        if AdminRole.ADMIN not in roles:
+            await auth_service.grant_role_by_system(session, user.id, AdminRole.ADMIN)
 
 
 async def list_identities_for_user(session: AsyncSession, user_id: str) -> list[PlatformIdentity]:

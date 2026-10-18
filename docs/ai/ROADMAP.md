@@ -1,3 +1,26 @@
+## 2026-10-18 — Interactive Admin/User Management, Chat ID Search & Instant Notification [Antigravity]
+- [x] Update `MULTI_ADMIN_AND_DAILY_REPORT_MASTER.md` with Section 2.4 and Phases 8–12.
+- [x] Extend `identity/repository.py:search_users` for Chat ID (with/without `@`), phone, name, and recent users by default.
+- [x] Enhance web panel `/admins` to show recent users, platform chat IDs, default `ADMIN` selection, and Persian labels.
+- [x] Implement interactive Telegram bot user management menu (`panel.py`) with search, recent, active admins, and one-tap toggle buttons.
+- [x] Implement `notify_new_admin_appointed` for instant warm welcome message upon role appointment across web, bot, and command.
+- [x] Verify complete test suite (13 new tests in `test_multi_admin_sync_and_daily_report.py`, 360 unit tests PASS, 0 failures).
+
+## 2026-10-18 — Multi-Admin Delegation, Alert Sync & Daily Operational Report [Antigravity]
+- [x] Record DEC-PY-0119 and author `MULTI_ADMIN_AND_DAILY_REPORT_MASTER.md`.
+- [x] Implement delegated `AdminRole.ADMIN` with all administrative permissions except role management.
+- [x] Add `admin_alert_messages` table and Alembic migration `admin2026101801` (single Alembic head).
+- [x] Implement `bot/admin_sync.py` with multi-admin message tracking and Telegram cross-editing.
+- [x] Wire synchronization and duplicate protection into manual phone verification and support ticket reply flows.
+- [x] Implement `modules/reporting/admin_daily_report.py` with Jalali date calculation and Persian report text.
+- [x] Schedule 23:50 daily admin report cron in `bootstrap.py` and implement `/admin_daily_report` command in `admin.py`.
+- [x] Verify complete test suite (9 new tests, 356 unit tests PASS).
+
+## 2026-10-15 — Foreign self-shared contact registration [Codex]
+- [x] Record DEC-PY-0118 and master acceptance criteria; update member, creator and profile contact handlers.
+- [x] Verify foreign/Iranian/mismatched contacts with focused unit tests and run non-integration suite.
+- [ ] Run PostgreSQL integration and Alembic on a disposable database; perform live Telegram QA after authorized deployment.
+
 ## 2026-10-05 — Full share redesign continuation [Codex]
 - [x] Confirm Quran numeric/regular modes with owner (DEC-PY-0117); implement page-aware flows and numeric reservation links.
 - [x] Execute full PostgreSQL-enabled suite: 437 passed; reviewed additive migration and import/diff checks pass locally.

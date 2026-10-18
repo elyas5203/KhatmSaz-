@@ -1,3 +1,41 @@
+## Current state — 2026-10-18 — Interactive Admin/User Management, Chat ID Search, and Instant Admin Notification [Antigravity]
+- Owner request: Make adding admins and managing users easy directly from the Management Panel and Telegram bot; search by Chat ID (numeric or username, with/without `@`); display recent users by default; provide one-tap promote/revoke; send instant notification message to newly appointed admins upon role grant.
+- Master doc `MULTI_ADMIN_AND_DAILY_REPORT_MASTER.md` updated with Section 2.4 and Phases 8–12 all completed and checked off.
+- `modules/identity/repository.py`: Enhanced `search_users` to match `PlatformIdentity.subject` with or without `@` (both exact and partial `ilike`), phone, name, and UUID; returns recent users by default when query is empty.
+- `web/app.py` & `admins.html`: `/admins` lists latest users by default when query is empty; user cards display platform chat IDs; `AdminRole.ADMIN` is default selected; added `ADMIN` and `SUPER_ADMIN` to `FA_LABELS`; web role grant triggers instant welcome notification to the new admin.
+- `bot/handlers/panel.py`: Interactive user management submenu under `admin_panel:users`:
+  - `admin_users:search`: FSM prompt for name/phone/chat ID, renders user cards with inline action buttons.
+  - `admin_users:recent`: Displays latest registered users with action buttons.
+  - `admin_users:admins`: Lists active delegated admins with one-tap revoke buttons.
+  - `admin_role:toggle`: Gated strictly to `SUPER_ADMIN`; grants/revokes `AdminRole.ADMIN`, sends instant welcome notification, records audit log, and dynamically flips the inline button in-place.
+- `bot/admin_sync.py` & `bot/handlers/admin.py`: Implemented `notify_new_admin_appointed` and wired into `/admin_role_grant`, web panel, and bot panel.
+- Validation: 13 tests in `tests/test_multi_admin_sync_and_daily_report.py` PASS; full non-integration suite (360 tests) PASS with 0 failures; single Alembic head `admin2026101801`.
+
+## Current state — 2026-10-18 — Multi-Admin Delegation, Cross-Admin Alert Sync, and 23:50 Daily Operational Report [Antigravity]
+- Owner request (/goal): Add delegated Admin role (`AdminRole.ADMIN`) with all capabilities of Super Admin except role management; synchronize admin action messages so when one handles a ticket or verification, other admins' messages are edited and action buttons removed with operator name and time; and schedule automated daily operational report at 23:50 (Asia/Tehran) via the creator/admin bot, plus on-demand `/admin_daily_report` command.
+- Recorded architecture decision in `DEC-PY-0119` and comprehensive master specification in `MULTI_ADMIN_AND_DAILY_REPORT_MASTER.md`.
+- `modules/authorization/models.py`: Added `ADMIN = "ADMIN"` to `AdminRole`, created `AdminAlertMessage` model with composite index `(alert_type, reference_id)` and `(chat_id, message_id)`.
+- `modules/authorization/service.py`: Added `ROLE_PERMISSIONS[AdminRole.ADMIN]` containing all operational permissions (`DASHBOARD_ACCESS`, `SUPPORT_USERS`, `CONTENT_MANAGE`, `MODERATION_MANAGE`, `FINANCE_MANAGE`, `MARKETING_MANAGE`, `OPERATIONS_VIEW`) while strictly omitting `ADMIN_ROLES_MANAGE`. Added `grant_role_by_system`.
+- `config.py` & `modules/identity/service.py`: Added `admin_telegram_chat_ids` and `admin_bale_chat_ids` config settings and updated `_bootstrap_super_admin_if_configured` to bootstrap delegated admins without elevating their core user role to `SUPER_ADMIN`.
+- `bot/admin_sync.py`: Implemented `record_admin_alert_message`, `is_admin_alert_handled`, `mark_admin_alert_handled` (updates DB and calls `bot.edit_message_text` to append `✅ توسط «نام» در ساعت HH:MM اقدام شد` and remove keyboard), `get_all_admin_telegram_chat_ids`, and `send_alert_to_all_admins`.
+- `bot/notify_adapter.py`: Added `send_with_keyboard_msg` returning the sent message object for message tracking while maintaining full backward compatibility for `send_with_keyboard`.
+- `bot/admin_notifications.py`: Updated `notify_admins` / `notify_super_admins` to broadcast queue notifications to all configured and delegated admins.
+- Handlers updated:
+  - `manual_phone_verification.py`: Broadcasts requests with `send_alert_to_all_admins`, checks `is_admin_alert_handled` to prevent race conditions, and synchronizes actions with `mark_admin_alert_handled`.
+  - `suggestions.py`: Generates unique ticket references, broadcasts alerts to all admins, checks `is_admin_alert_handled` on reply click, authorizes delegated admins with `SUPPORT_USERS` permission, and marks tickets handled across all admins upon reply delivery.
+  - `panel.py` & `help.py`: Recognized delegated admins via `authorization_service.is_admin` for help menus and admin panel navigation.
+  - `admin.py`: Added `/admin_daily_report` command gated by `AdminPermission.OPERATIONS_VIEW`.
+- `modules/reporting/admin_daily_report.py`: Created pure-Python `gregorian_to_jalali` conversion, `get_daily_admin_stats` (today's users, khatms, Quran pages, salawat counts, tickets, verification queues, and wallet top-ups in Asia/Tehran), `generate_daily_admin_report_text`, and `send_daily_admin_report`.
+- `bootstrap.py`: Added cron scheduler job at 23:50 (Asia/Tehran) to automatically generate and send the daily report to all admins.
+- Database: Created Alembic migration `migrations/versions/admin2026101801_admin_alert_messages.py` (`down_revision = "share2026100501"`). Alembic reports single head `admin2026101801`.
+- Validation: 9 new unit/mock tests in `tests/test_multi_admin_sync_and_daily_report.py` PASS; full non-integration suite (356 tests) PASS, 0 failures. Alembic head check PASS. No push or production deployment.
+
+## Current state — 2026-10-15 — Foreign self-shared Telegram phone registration [Codex]
+- Owner requested immediate registration of a foreign number shared with Telegram's contact button, without OTP/admin review, while Iranian creator numbers keep SMS OTP. DEC-PY-0118 and `FOREIGN_SHARED_PHONE_MASTER.md` record the scoped rule and master review.
+- `modules/phone/service.py` now normalizes international contact numbers without a leading plus and atomically stores a self-shared foreign number and verified claim after sender/ownership checks. Registration, member registration, and creator profile handlers call this service at contact receipt. Iranian contacts do not create a claim; switching back to another number in registration revokes a claim created earlier in that form.
+- Validation: 13 focused tests PASS; full non-integration pytest 347 PASS / 230 SKIP; compileall, one Alembic head and diff check PASS. PostgreSQL integration and Alembic apply were not run because the configured local PostgreSQL endpoint was unavailable. No production action, push or deployment. Existing unrelated untracked `New folder/` was untouched.
+- Remaining: run PostgreSQL-backed integration/migration checks on a disposable database and live Telegram foreign/Iranian contact QA after authorized deployment.
+
 ## Current state — 2026-10-05 — Unified share redesign in progress [Codex]
 - Final local gate: 564 tests PASS with integration tests enabled against disposable PostgreSQL; no skips or failures. Reviewed migration upgrade/head, compileall and diff check PASS. The implementation is ready to commit/push; VPS migration/restart/live Persian QA remain separate production actions.
 - Verification update: full opt-in PostgreSQL suite now 437 PASS, zero failures/skips. Subsequent focused routing/audio/debt/consent run: 33 PASS. Alembic head/upgrade on disposable PostgreSQL, compileall and diff check PASS. Evidence and outstanding master gates: audit/evidence/REDESIGN-20261005-CODEX-CHECKPOINT.md. Full redesign remains incomplete; not pushed.
@@ -3011,5 +3049,3 @@ the entries above.
 - Every commitment khatm family (Quran, Salawat, Dua, Ziyarat and La'an) now asks and persists a daily deadline hour. Open khatms do not receive the commitment warning, including when an ORM enum arrives as a string.
 - Member trust copy now identifies Â«Ø³Ø§Ø²Ù†Ø¯Ù‡Ù” Ø®ØªÙ…Â» without the awkward Â«Ø§Ú©Ø§Ù†ØªÂ» wording. Open/commitment responsibility copy and commitment-mode guidance were softened and clarified.
 - Validation: full suite **271 passed, 85 skipped** after the i18n placeholder repair; no migration was added.
-
-

@@ -153,13 +153,24 @@ async def enter_name(message: Message, state: FSMContext) -> None:
 async def receive_shared_contact(message: Message, state: FSMContext) -> None:
     lang = (await state.get_data()).get("language", "fa")
     try:
-        phone = phone_service.normalize_e164(message.contact.phone_number)
+        if getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM) != Platform.TELEGRAM or message.contact.user_id != message.from_user.id:
+            raise phone_service.OtpError("contact does not belong to sender")
+        phone = phone_service.normalize_shared_contact(message.contact.phone_number)
+        if not phone.startswith("+98"):
+            async with session_scope() as session:
+                user = await identity_service.find_by_platform(
+                    session, Platform.TELEGRAM, str(message.from_user.id)
+                )
+                if user is None:
+                    raise phone_service.OtpError("account not found")
+                await phone_service.accept_shared_foreign_contact(
+                    session, user_id=user.id, e164=phone,
+                    contact_user_id=message.contact.user_id, sender_id=message.from_user.id,
+                )
     except phone_service.OtpError:
         await _registration_prompt(message, state, t("registration.shared_phone_invalid", lang), reply_markup=_phone_keyboard(lang))
         return
-    await state.update_data(phone=phone)
-    if not phone.startswith("+98"):
-        await state.update_data(foreign_verified_phone=True)
+    await state.update_data(phone=phone, shared_foreign_claim=phone if not phone.startswith("+98") else (await state.get_data()).get("shared_foreign_claim"))
     await state.set_state(Registration.choosing_province)
     await _remove_phone_keyboard(message)
     await _registration_prompt(message, state, t("registration.ask_province", lang), reply_markup=_province_keyboard(lang))
@@ -245,10 +256,11 @@ async def choose_gender(callback: CallbackQuery, state: FSMContext) -> None:
             city=data["city"],
             gender=gender,
         )
-        if data.get("foreign_verified_phone"):
+        if data.get("shared_foreign_claim") and data["shared_foreign_claim"] != data["phone"]:
             from khatmsaz.modules.phone import repository as phone_repository
-            await phone_repository.create_or_verify_claim(session, user_id=user.id, e164=data["phone"])
-            
+            await phone_repository.revoke_user_verified_claims(
+                session, user_id=user.id, except_e164=data["phone"]
+            )
         pending_token = data.get("pending_join_token")
         user_id = user.id
 

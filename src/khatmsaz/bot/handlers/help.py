@@ -51,9 +51,9 @@ async def _resolve_user_info(message: Message) -> tuple[str, bool, bool]:
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
-        settings = await settings_service.get_or_create(session, user.id)
+        from khatmsaz.modules.authorization import service as authorization_service
         is_creator = user.role in (UserRole.CREATOR, UserRole.SUPER_ADMIN)
-        is_admin = user.role == UserRole.SUPER_ADMIN
+        is_admin = user.role == UserRole.SUPER_ADMIN or await authorization_service.is_admin(session, user)
         return settings.language, is_creator, is_admin
 
 

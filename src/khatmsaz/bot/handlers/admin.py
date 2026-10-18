@@ -1115,6 +1115,9 @@ async def _change_admin_role(
                 action=action,
                 details={"role": role.value},
             )
+            if not revoke and role == AdminRole.ADMIN:
+                from khatmsaz.bot.admin_sync import notify_new_admin_appointed
+                await notify_new_admin_appointed(session, target.id, bot=message.bot)
     if revoke and not changed:
         await message.answer("این نقش از قبل برای کاربر فعال نبود.")
     else:
@@ -1184,3 +1187,17 @@ async def admin_promote(message: Message, command: CommandObject) -> None:
                 except Exception as e:
                     import logging
                     logging.exception(f"Failed to notify promoted user {user.id}")
+
+
+@router.message(Command("admin_daily_report"))
+async def admin_daily_report_cmd(message: Message) -> None:
+    """Send today's operational metrics report to the requesting administrator."""
+    platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    if not await _require_admin(message, platform, AdminPermission.OPERATIONS_VIEW):
+        return
+    async with session_scope() as session:
+        from khatmsaz.modules.reporting.admin_daily_report import generate_daily_admin_report_text
+        report_text = await generate_daily_admin_report_text(
+            session, tz_name=get_settings().app_timezone
+        )
+        await message.answer(report_text, parse_mode="HTML")

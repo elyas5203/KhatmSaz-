@@ -57,11 +57,8 @@ async def handle_creator_request_message(message: Message) -> None:
         f"برای تایید:\n/admin_approve_creator {request.id}\n\n"
         f"برای رد:\n/admin_reject_creator {request.id}"
     )
-    admin_ids = [
-        item.strip() for item in get_settings().super_admin_telegram_chat_ids.split(",") if item.strip()
-    ]
-    for admin_id in admin_ids:
-        await notify(Platform.TELEGRAM.value, admin_id, admin_text)
+    from khatmsaz.bot.admin_notifications import notify_admins
+    await notify_admins(admin_text)
     await message.answer(t("creator_request.submitted", lang))
 
 
@@ -111,20 +108,14 @@ async def handle_creator_request_button(callback: CallbackQuery) -> None:
             return
 
     # Notify admins
-    admin_ids = [
-        item.strip() for item in get_settings().super_admin_telegram_chat_ids.split(",") if item.strip()
-    ]
-    notify = get_notify_fn()
     display_name = user.display_name or "کاربر"
     admin_text = (
         f"درخواست سازنده‌شدن جدید از {display_name} (ID: {user.id})\n\n"
         f"برای تایید:\n/admin_approve_creator {request_id}\n\n"
         f"برای رد:\n/admin_reject_creator {request_id}"
     )
-    # We could send inline keyboard to approve/reject, but for now just text to admins, 
-    # they can use admin panel or command later.
-    for admin_id in admin_ids:
-        await notify(Platform.TELEGRAM.value, admin_id, admin_text)
+    from khatmsaz.bot.admin_notifications import notify_admins
+    await notify_admins(admin_text)
 
     await callback.message.edit_text(t("creator_request.submitted", lang), reply_markup=back_to_support_keyboard(lang))
     await callback.answer()

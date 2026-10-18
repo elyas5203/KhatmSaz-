@@ -37,11 +37,12 @@ class Suggestion(StatesGroup):
 
 async def _resolve_user_context(chat_id, bot) -> tuple[str, bool, bool, bool]:
     platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
+    from khatmsaz.modules.authorization import service as authorization_service
     async with session_scope() as session:
         user = await identity_service.resolve_or_provision_user(session, platform, chat_id)
         settings = await settings_service.get_or_create(session, user.id)
         
-        is_admin = user.role == UserRole.SUPER_ADMIN
+        is_admin = user.role == UserRole.SUPER_ADMIN or await authorization_service.is_admin(session, user)
         is_creator = user.role == UserRole.CREATOR
         
         is_participant = False
@@ -235,19 +236,25 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
         )
         
         if target_creator_id == "SUPER_ADMIN":
-            if user.role not in (UserRole.CREATOR, UserRole.SUPER_ADMIN):
+            from khatmsaz.modules.authorization import service as authorization_service
+            is_adm = (user.role == UserRole.SUPER_ADMIN) or await authorization_service.is_admin(session, user)
+            if user.role != UserRole.CREATOR and not is_adm:
                 await state.clear()
                 await message.answer(t("contact_creator.none", lang), reply_markup=home_keyboard_for_bot(message.bot, lang))
                 return
-            admin_ids = [
-                item.strip() for item in get_settings().super_admin_telegram_chat_ids.split(",") if item.strip()
-            ]
+            ticket_ref = f"{user.id}_{uuid.uuid4().hex[:8]}"
             admin_text = t("suggestions.admin_notice", "fa", name=display_name, text=text)
             markup = InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(text="پاسخ به این سازنده", callback_data=f"reply_user:{user.id}")
+                InlineKeyboardButton(text="پاسخ به این سازنده", callback_data=f"reply_user:{user.id}:{ticket_ref}")
             ]])
-            for chat_id in admin_ids:
-                await send_with_keyboard(Platform.TELEGRAM.value, chat_id, admin_text, markup)
+            from khatmsaz.bot.admin_sync import send_alert_to_all_admins
+            await send_alert_to_all_admins(
+                session,
+                alert_type="SUPPORT_TICKET",
+                reference_id=ticket_ref,
+                text=admin_text,
+                reply_markup=markup,
+            )
         else:
             # Send to creator using their primary platform identity
             creator = await session.get(User, uuid.UUID(target_creator_id))
@@ -291,12 +298,30 @@ async def receive_suggestion(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data.startswith("reply_user:"))
 async def start_reply_to_user(callback: CallbackQuery, state: FSMContext) -> None:
-    target_user_id = callback.data.split(":")[1]
-    
+    parts = callback.data.split(":")
+    target_user_id = parts[1]
+    ticket_ref = parts[2] if len(parts) > 2 else None
+
+    if ticket_ref:
+        from khatmsaz.bot.admin_sync import is_admin_alert_handled
+        async with session_scope() as session:
+            handled, handled_by, action = await is_admin_alert_handled(session, "SUPPORT_TICKET", ticket_ref)
+            if handled:
+                try:
+                    await callback.message.edit_reply_markup(reply_markup=None)
+                except Exception:
+                    pass
+                await safe_answer_callback(
+                    callback,
+                    f"این پیام قبلاً توسط «{handled_by or 'ادمین دیگر'}» {action or 'پاسخ داده'} شده است.",
+                    show_alert=True,
+                )
+                return
+
     # Store in state
     await state.set_state(Suggestion.replying_to_user)
-    await state.update_data(reply_target_user_id=target_user_id)
-    
+    await state.update_data(reply_target_user_id=target_user_id, ticket_ref=ticket_ref)
+
     await callback.message.answer("متن پاسخ خود را بنویسید (برای لغو /cancel را بفرستید):")
     await safe_answer_callback(callback)
 
@@ -305,26 +330,30 @@ async def start_reply_to_user(callback: CallbackQuery, state: FSMContext) -> Non
 async def receive_reply(message: Message, state: FSMContext) -> None:
     if await bail_if_menu_button(message, state):
         return
-        
+
     data = await state.get_data()
     target_user_id = data.get("reply_target_user_id")
+    ticket_ref = data.get("ticket_ref")
     text = (message.text or "").strip()
-    
+
     if not text:
         await message.answer("لطفاً متن بفرستید.")
         return
-        
+
     platform: Platform = getattr(message.bot, "khatmsaz_platform", Platform.TELEGRAM)
+    from khatmsaz.modules.authorization import service as authorization_service
+    from khatmsaz.modules.authorization.models import AdminPermission
+
     async with session_scope() as session:
         sender = await identity_service.resolve_or_provision_user(session, platform, message.chat.id)
 
         target_user = await session.get(User, uuid.UUID(target_user_id))
 
         if target_user:
-            # CRITICAL (owner 2026-09-29): the member uses a MEMBER bot; a reply
-            # sent from the creator bot can't reach them (a bot can't message a
-            # user who never started it). Route the reply through the exact member
-            # bot the member joined via, per platform.
+            is_admin = (sender.role == UserRole.SUPER_ADMIN) or await authorization_service.has_permission(
+                session, sender, AdminPermission.SUPPORT_USERS
+            )
+
             member_routes = []
             inst_rows = (await session.execute(
                 select(BotInstance.platform, Participation.joined_via_bot_instance_id)
@@ -341,7 +370,7 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
             for plat, inst in inst_rows:
                 member_routes.append((plat.value if hasattr(plat, "value") else plat, inst))
 
-            if sender.role != UserRole.SUPER_ADMIN and not member_routes:
+            if not is_admin and not member_routes:
                 await message.answer("شما اجازهٔ پاسخ به این کاربر را ندارید.")
                 await state.clear()
                 return
@@ -351,11 +380,12 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
 
             if identities:
                 notify = get_notify_fn()
-                reply_text = f"📨 پیام از طرف سازندهٔ ختم شما ({sender.display_name or 'سازنده'}):\n\n{text}"
+                sender_label = "پشتیبانی ختم‌ساز" if is_admin else f"سازندهٔ ختم شما ({sender.display_name or 'سازنده'})"
+                reply_text = f"📨 پیام از طرف {sender_label}:\n\n{text}"
                 delivered = False
                 routes = (
                     [(pid.platform.value, None) for pid in identities]
-                    if sender.role == UserRole.SUPER_ADMIN
+                    if is_admin
                     else member_routes
                 )
                 identities_by_platform = {pid.platform.value: pid for pid in identities}
@@ -369,6 +399,17 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                     except Exception as e:
                         logger.error(f"Failed to send reply to user {target_user_id} on {pid.platform.value}: {e}")
                 if delivered:
+                    if ticket_ref:
+                        from khatmsaz.bot.admin_sync import mark_admin_alert_handled
+                        actor_name = sender.display_name or "ادمین"
+                        await mark_admin_alert_handled(
+                            session,
+                            message.bot,
+                            alert_type="SUPPORT_TICKET",
+                            reference_id=ticket_ref,
+                            actor_name=actor_name,
+                            action_label="پاسخ داده",
+                        )
                     await message.answer("پاسخ شما با موفقیت به کاربر ارسال شد.", reply_markup=home_keyboard_for_bot(message.bot, "fa"))
                 else:
                     await message.answer("خطا در ارسال پیام به کاربر.")
@@ -376,5 +417,5 @@ async def receive_reply(message: Message, state: FSMContext) -> None:
                 await message.answer("پلتفرم این کاربر یافت نشد.")
         else:
             await message.answer("کاربر یافت نشد یا اکانتش معتبر نیست.")
-            
+
     await state.clear()
