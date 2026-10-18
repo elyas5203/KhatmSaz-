@@ -1,4 +1,10 @@
+## 2026-10-18 — Antigravity — Admin Promotion & Management in Bot and Web Panel (MASTER-40)
+- **Web Admin Panel (`users.html` & `app.py`):** Added `[ 🛡 ارتقا به مدیر کل ]` (`promote_admin`) and `[ 🛡 خلع از مدیریت کل ]` (`demote_admin`) action buttons on user cards with self-demotion protection, audit logging, and automated notification via bot.
+- **Dedicated Admin Bot (`@khatmsaz_admin_bot`):** Added `/admins` command to display all active Super Admins, `/add_admin <chat_id or phone>` (and interactive FSM prompt) to promote users, `/remove_admin` to demote, and added `[ 🛡 مدیریت مدیران کل ]` button to the main dashboard keyboard.
+- **Master Doc & Testing:** Authored `docs/ai/masters/MASTER_40_ADMIN_PROMOTION_AND_MANAGEMENT.md` and added test suite `tests/test_master_40_admin_promotion_and_management.py`.
+
 ## 2026-10-17 — Antigravity — Test Accounts & Khatms Safe Cascading Purge
+
 - **CLI Purge Utility (`scripts/purge_test_khatms.py`):** Created a dedicated, production-safe database cleanup CLI tool for test accounts. Normalizes Iranian phone numbers (`09...`, `+989...`), resolves user accounts via `phone_claims` and `user_settings`, and purges all created khatms and memberships.
 - **Topological Cascade Deletion:** Executes reverse-dependency cleanup across 19 relational tables in a single ACID transaction (`session.begin()`), preventing foreign key constraint violations while preserving user logins and real users' data.
 - **Execution & Validation:** Performed dry run and executed purge on VPS for numbers `09051240561`, `09336807599`, `09938898263`. Successfully deleted 16 test khatms and 27 memberships (including 630 share messages, 135 occurrences, 52 open contributions/reservations, and 104 notification logs/preferences). Confirmed remaining test khatms = 0, remaining test participations = 0, while 8 real khatms and 99 users remain intact.

@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 from aiogram import F, Router
 from aiogram.filters import Command, CommandObject, StateFilter
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     BufferedInputFile,
     CallbackQuery,
@@ -27,7 +29,7 @@ from aiogram.types import (
     Message,
     WebAppInfo,
 )
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 
 from khatmsaz.config import get_settings
 from khatmsaz.core.bot_registry import get_registry
@@ -43,6 +45,9 @@ from khatmsaz.modules.broadcast.delivery import deliver_broadcast
 from khatmsaz.modules.identity import service as identity_service
 from khatmsaz.modules.identity.models import Platform, PlatformIdentity, User, UserRole
 from khatmsaz.modules.invitation import service as invitation_service
+from khatmsaz.modules.phone.models import PhoneClaim
+from khatmsaz.modules.settings import service as settings_service
+from khatmsaz.modules.settings.models import UserSettings
 from khatmsaz.modules.khatm import service as khatm_service
 from khatmsaz.modules.khatm.models import Khatm, KhatmStatus
 from khatmsaz.modules.khatm_category.models import KhatmCategoryGroup
@@ -162,13 +167,14 @@ def _build_dashboard_keyboard(counts: dict[str, int]) -> InlineKeyboardMarkup:
         ],
         [
             InlineKeyboardButton(text="👥 تفکیک کاربران و دسته‌ها", callback_data="admin:user_analytics"),
-            InlineKeyboardButton(text="📊 وضعیت زنده سرور", callback_data="admin:status"),
+            InlineKeyboardButton(text="🛡 مدیریت مدیران کل", callback_data="admin:manage_admins"),
         ],
         [
             InlineKeyboardButton(text="📑 مشاهده لاگ‌ها", callback_data="admin:logs"),
             InlineKeyboardButton(text="🚨 آخرین خطاها", callback_data="admin:errors"),
         ],
         [
+            InlineKeyboardButton(text="📊 وضعیت زنده سرور", callback_data="admin:status"),
             InlineKeyboardButton(text="🌐 دریافت لینک ورود به پنل (مرورگر / وب)", callback_data="admin:web_link"),
         ],
     ]
@@ -1232,6 +1238,292 @@ async def admin_daily_report_handler(event: Message | CallbackQuery) -> None:
             await event.answer("گزارش روزانه بروزرسانی شد ✅" if is_refresh else None)
     else:
         await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+
+class AdminManagementState(StatesGroup):
+    waiting_for_admin_identifier = State()
+
+
+def _normalize_phone_input(raw: str) -> str:
+    cleaned = raw.strip().replace(" ", "").replace("-", "")
+    if cleaned.startswith("09"):
+        return "+98" + cleaned[1:]
+    elif cleaned.startswith("9") and len(cleaned) == 10:
+        return "+98" + cleaned
+    elif cleaned.startswith("+98"):
+        return cleaned
+    return cleaned
+
+
+async def _get_all_super_admins_data(session) -> list[dict]:
+    users = list((await session.execute(
+        select(User).where(User.role == UserRole.SUPER_ADMIN, User.deleted_at.is_(None)).order_by(User.created_at.asc())
+    )).scalars().all())
+
+    admins_data = []
+    for u in users:
+        pi_stmt = select(PlatformIdentity).where(PlatformIdentity.user_id == u.id)
+        pis = list((await session.execute(pi_stmt)).scalars().all())
+        telegram_ids = [p.subject for p in pis if p.platform == Platform.TELEGRAM]
+        bale_ids = [p.subject for p in pis if p.platform == Platform.BALE]
+
+        phone_claim = (await session.execute(select(PhoneClaim).where(PhoneClaim.user_id == u.id))).scalars().first()
+        user_settings = (await session.execute(select(UserSettings).where(UserSettings.user_id == u.id))).scalars().first()
+        phone = phone_claim.e164 if phone_claim else (user_settings.contact_phone if user_settings else None)
+
+        admins_data.append({
+            "id": u.id,
+            "display_name": u.display_name or "مدیر کل بدون نام",
+            "telegram_ids": telegram_ids,
+            "bale_ids": bale_ids,
+            "phone": phone,
+            "created_at": u.created_at,
+        })
+    return admins_data
+
+
+@router.message(Command("admins", "admin_list"))
+@router.callback_query(F.data.in_({"admin:manage_admins", "admin:admins_refresh"}))
+async def admin_list_handler(event: Message | CallbackQuery, state: FSMContext | None = None) -> None:
+    if not await _is_super_admin(event):
+        await _reject_unauthorized(event)
+        return
+    if state:
+        await state.clear()
+
+    is_callback = bool(getattr(event, "data", None)) or isinstance(event, CallbackQuery)
+    message = event.message if is_callback else event
+
+    async with session_scope() as session:
+        admins = await _get_all_super_admins_data(session)
+
+    lines = [
+        "🛡 <b>مدیریت مدیران کل سامانه (@khatmsaz_admin_bot)</b>\n",
+        f"👥 <b>تعداد مدیران کل فعال:</b> {len(admins)} نفر\n",
+    ]
+    for idx, a in enumerate(admins, 1):
+        tg_str = ", ".join(f"<code>{tid}</code>" for tid in a["telegram_ids"]) if a["telegram_ids"] else "<i>ثبت‌نشده</i>"
+        phone_str = f"<code>{a['phone']}</code>" if a["phone"] else "<i>ثبت‌نشده</i>"
+        lines.append(
+            f"{idx}️⃣ <b>{escape(a['display_name'])}</b>\n"
+            f"   📱 شماره: {phone_str}\n"
+            f"   🆔 تلگرام: {tg_str}\n"
+        )
+
+    lines.append(
+        "➕ <b>افزودن مدیر جدید:</b> روی دکمهٔ «➕ افزودن مدیر جدید» بزنید یا دستور زیر را ارسال کنید:\n"
+        "<code>/add_admin &lt;شناسه تلگرام یا شماره&gt;</code>\n\n"
+        "➖ <b>حذف مدیر:</b> دستور زیر را ارسال کنید:\n"
+        "<code>/remove_admin &lt;شناسه تلگرام یا شماره&gt;</code>"
+    )
+    text = "\n".join(lines)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="➕ افزودن مدیر جدید", callback_data="admin:add_admin_prompt")],
+        [
+            InlineKeyboardButton(text="🔄 بروزرسانی", callback_data="admin:admins_refresh"),
+            InlineKeyboardButton(text="🔙 بازگشت به داشبورد", callback_data="admin:refresh"),
+        ]
+    ])
+    if is_callback:
+        try:
+            await message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        except Exception:
+            await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+        if hasattr(event, "answer"):
+            await event.answer()
+    else:
+        await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+
+@router.callback_query(F.data == "admin:add_admin_prompt")
+async def admin_add_prompt_handler(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await _is_super_admin(callback):
+        await _reject_unauthorized(callback)
+        return
+    await state.set_state(AdminManagementState.waiting_for_admin_identifier)
+    text = (
+        "➕ <b>افزودن مدیر کل جدید (Super Admin)</b>\n\n"
+        "لطفاً <b>شناسه عددی تلگرام</b> (مثلاً <code>5490508090</code>) یا <b>شماره موبایل</b> (مثلاً <code>09123456789</code>) کاربر مورد نظر را ارسال فرمایید:\n\n"
+        "💡 <i>راهنما: کاربر مورد نظر می‌تواند یک‌بار ربات @khatmsaz_admin_bot را استارت کند تا شناسه عددی تلگرام خود را دریافت کرده و برای شما ارسال کند.</i>"
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ انصراف", callback_data="admin:manage_admins")]
+    ])
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_answer_callback(callback)
+
+
+async def _execute_add_admin(message: Message, raw_input: str) -> None:
+    identifier = raw_input.strip()
+    if not identifier:
+        await message.answer("❌ لطفاً شناسه یا شماره را وارد فرمایید.")
+        return
+
+    async with session_scope() as session:
+        target_user = None
+        norm_phone = _normalize_phone_input(identifier)
+        if norm_phone.startswith("+98") and len(norm_phone) >= 12:
+            claim = (await session.execute(select(PhoneClaim).where(PhoneClaim.e164 == norm_phone))).scalars().first()
+            if claim:
+                target_user = await session.get(User, claim.user_id)
+            if not target_user:
+                settings_row = (await session.execute(select(UserSettings).where(UserSettings.contact_phone == norm_phone))).scalars().first()
+                if settings_row:
+                    target_user = await session.get(User, settings_row.user_id)
+        elif identifier.isdigit() and len(identifier) >= 5:
+            target_user = await identity_service.find_by_platform(session, Platform.TELEGRAM, identifier)
+            if target_user is None:
+                target_user = await identity_service.resolve_or_provision_user(session, Platform.TELEGRAM, int(identifier))
+
+        if target_user is None:
+            await message.answer(
+                f"❌ کاربری با شناسه یا شماره <code>{escape(identifier)}</code> یافت نشد.\n\n"
+                f"💡 نکته: اگر با شماره موبایل جستجو کردید، کاربر باید ابتدا در یکی از ربات‌ها عضو شده باشد؛ "
+                f"یا می‌توانید مستقیماً <b>شناسه عددی تلگرام</b> او را ارسال فرمایید تا به صورت خودکار ثبت شود.",
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔙 بازگشت به مدیریت مدیران", callback_data="admin:manage_admins")]
+                ])
+            )
+            return
+
+        await identity_service.repository.set_role(session, target_user.id, UserRole.SUPER_ADMIN)
+        target_user.role = UserRole.SUPER_ADMIN
+
+        caller_id = None
+        if message.from_user:
+            caller_ident = await identity_service.find_by_platform(session, Platform.TELEGRAM, str(message.from_user.id))
+            caller_id = caller_ident.id if caller_ident else target_user.id
+        await audit_service.record(
+            session,
+            actor_user_id=caller_id or target_user.id,
+            target_user_id=target_user.id,
+            action="PROMOTE_SUPER_ADMIN",
+            details={"identifier": identifier},
+        )
+
+        pi_stmt = select(PlatformIdentity).where(PlatformIdentity.user_id == target_user.id)
+        pis = list((await session.execute(pi_stmt)).scalars().all())
+        for pi in pis:
+            notify_text = (
+                "🛡 <b>دسترسی مدیریت کل (Super Admin) فعال شد.</b>\n\n"
+                "حساب کاربری شما به عنوان مدیر ارشد سامانه ختم‌ساز تأیید شد.\n"
+                "هم‌اکنون دسترسی کامل به ربات مدیریت @khatmsaz_admin_bot و پنل وب برای شما برقرار است."
+            )
+            from khatmsaz.bot.notify_adapter import send_with_keyboard
+            from khatmsaz.bot.keyboards import main_menu_keyboard
+            user_settings = await settings_service.get_or_create(session, target_user.id)
+            kb = main_menu_keyboard(user_settings.language, is_creator=True)
+            asyncio.create_task(send_with_keyboard(pi.platform.value, pi.subject, notify_text, kb))
+
+    await message.answer(
+        f"✅ <b>کاربر با موفقیت به عنوان مدیر کل (Super Admin) ثبت شد!</b>\n\n"
+        f"👤 نام: <b>{escape(target_user.display_name or 'بدون نام')}</b>\n"
+        f"🆔 شناسه: <code>{escape(identifier)}</code>\n\n"
+        f"این کاربر اکنون به ربات @khatmsaz_admin_bot و پنل وب دسترسی کامل دارد.",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="👥 مشاهده لیست مدیران", callback_data="admin:manage_admins")],
+            [InlineKeyboardButton(text="🔙 بازگشت به داشبورد", callback_data="admin:refresh")],
+        ])
+    )
+
+
+async def _execute_remove_admin(message: Message, raw_input: str) -> None:
+    identifier = raw_input.strip()
+    if not identifier:
+        await message.answer("❌ لطفاً شناسه یا شماره را وارد فرمایید.")
+        return
+
+    caller_chat_id = str(message.from_user.id) if message.from_user else ""
+    if identifier == caller_chat_id:
+        await message.answer("⛔️ شما نمی‌توانید دسترسی مدیریت خودتان را لغو کنید!")
+        return
+
+    async with session_scope() as session:
+        target_user = None
+        norm_phone = _normalize_phone_input(identifier)
+        if norm_phone.startswith("+98") and len(norm_phone) >= 12:
+            claim = (await session.execute(select(PhoneClaim).where(PhoneClaim.e164 == norm_phone))).scalars().first()
+            if claim:
+                target_user = await session.get(User, claim.user_id)
+            if not target_user:
+                settings_row = (await session.execute(select(UserSettings).where(UserSettings.contact_phone == norm_phone))).scalars().first()
+                if settings_row:
+                    target_user = await session.get(User, settings_row.user_id)
+        elif identifier.isdigit():
+            target_user = await identity_service.find_by_platform(session, Platform.TELEGRAM, identifier)
+
+        if target_user is None:
+            await message.answer(f"❌ کاربری با شناسه یا شماره <code>{escape(identifier)}</code> یافت نشد.", parse_mode="HTML")
+            return
+
+        caller_ident = await identity_service.find_by_platform(session, Platform.TELEGRAM, caller_chat_id)
+        if caller_ident and caller_ident.id == target_user.id:
+            await message.answer("⛔️ شما نمی‌توانید دسترسی مدیریت خودتان را لغو کنید!")
+            return
+
+        await identity_service.repository.set_role(session, target_user.id, UserRole.CREATOR)
+        target_user.role = UserRole.CREATOR
+
+        await audit_service.record(
+            session,
+            actor_user_id=caller_ident.id if caller_ident else target_user.id,
+            target_user_id=target_user.id,
+            action="DEMOTE_SUPER_ADMIN",
+            details={"identifier": identifier},
+        )
+
+    await message.answer(
+        f"✅ <b>دسترسی مدیریت کل کاربر لغو شد.</b>\n\n"
+        f"👤 نام: <b>{escape(target_user.display_name or 'بدون نام')}</b>\n"
+        f"نقش کاربر به «سازنده» تغییر یافت.",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="👥 مشاهده لیست مدیران", callback_data="admin:manage_admins")],
+            [InlineKeyboardButton(text="🔙 بازگشت به داشبورد", callback_data="admin:refresh")],
+        ])
+    )
+
+
+@router.message(Command("add_admin"))
+async def admin_add_cmd_handler(message: Message, command: CommandObject, state: FSMContext) -> None:
+    if not await _is_super_admin(message):
+        await _reject_unauthorized(message)
+        return
+    raw_arg = (command.args or "").strip()
+    if not raw_arg:
+        await admin_add_prompt_handler(message, state)  # type: ignore[arg-type]
+        return
+    await _execute_add_admin(message, raw_arg)
+
+
+@router.message(Command("remove_admin"))
+async def admin_remove_cmd_handler(message: Message, command: CommandObject) -> None:
+    if not await _is_super_admin(message):
+        await _reject_unauthorized(message)
+        return
+    raw_arg = (command.args or "").strip()
+    if not raw_arg:
+        await message.answer("لطفاً شناسه تلگرام یا شماره ادمین مورد نظر را همراه با دستور ارسال کنید:\n<code>/remove_admin 5490508090</code>", parse_mode="HTML")
+        return
+    await _execute_remove_admin(message, raw_arg)
+
+
+@router.message(AdminManagementState.waiting_for_admin_identifier)
+async def admin_add_identifier_input_handler(message: Message, state: FSMContext) -> None:
+    if not await _is_super_admin(message):
+        await _reject_unauthorized(message)
+        return
+    text = (message.text or "").strip()
+    if not text:
+        await message.answer("لطفاً شناسه یا شماره را به صورت متن ارسال فرمایید.")
+        return
+    await state.clear()
+    await _execute_add_admin(message, text)
 
 
 @router.message(StateFilter(None), ~F.text.startswith("/"))

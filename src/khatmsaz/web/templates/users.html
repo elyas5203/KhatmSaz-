@@ -160,6 +160,12 @@
         {% elif user.role.value == 'CREATOR' %}
           <button name="action" value="demote" onclick="return confirm('آیا از خلع نقش سازنده مطمئن هستید؟')" class="bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">حذف نقش سازنده</button>
         {% endif %}
+
+        {% if user.role.value == 'SUPER_ADMIN' %}
+          <button name="action" value="demote_admin" onclick="return confirm('آیا از خلع این کاربر از مدیریت کل مطمئن هستید؟')" class="bg-purple-900/30 text-purple-300 hover:bg-purple-800 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">🛡 خلع از مدیریت کل</button>
+        {% else %}
+          <button name="action" value="promote_admin" onclick="return confirm('آیا از ارتقای این کاربر به مدیر کل (Super Admin) مطمئن هستید؟ این کاربر به تمام بخش‌ها دسترسی کامل خواهد داشت.')" class="bg-purple-600/20 text-purple-300 hover:bg-purple-600 hover:text-white px-2 py-1.5 rounded-lg text-xs font-bold transition-all col-span-2">🛡 ارتقا به مدیر کل</button>
+        {% endif %}
       </form>
 
       <!-- Advanced Management Popups (Plan, Wallet, Message) -->

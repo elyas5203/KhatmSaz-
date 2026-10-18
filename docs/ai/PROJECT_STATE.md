@@ -1,4 +1,18 @@
+## Current state — 2026-10-18 — Admin Promotion & Management in Bot and Web Panel (MASTER-40) [Antigravity]
+- **Web Admin Panel (`web/templates/users.html` & `web/app.py`):**
+  - Added direct Super Admin promotion/demotion actions in user moderation cards (`promote_admin` and `demote_admin`).
+  - Added `[ 🛡 ارتقا به مدیر کل ]` button for non-admins and `[ 🛡 خلع از مدیریت کل ]` for admins.
+  - Implemented self-demotion prevention, audit log recording (`WEB_ADMIN_PROMOTE_ADMIN`), and automated congratulatory notification dispatched to the promoted user's bot chat.
+- **Dedicated Admin Bot (`@khatmsaz_admin_bot`):**
+  - Added command `/admins` (and callback `admin:manage_admins`) displaying live list of Super Admins with Telegram IDs, phones, and names.
+  - Added command `/add_admin <chat_id or phone>` and interactive FSM prompt (`admin:add_admin_prompt`) to promote any user by Telegram chat ID or Iranian mobile number.
+  - Added command `/remove_admin <chat_id or phone>` to demote admins back to creator.
+  - Integrated `[ 🛡 مدیریت مدیران کل ]` button into the admin dashboard keyboard.
+- **Master Documentation:**
+  - Authored `docs/ai/masters/MASTER_40_ADMIN_PROMOTION_AND_MANAGEMENT.md`.
+
 ## Current state — 2026-10-17 — Test Accounts & Khatms Safe Cascading Purge [Antigravity]
+
 - **Dedicated CLI Utility (`scripts/purge_test_khatms.py`):**
   - Created and deployed a clean, atomic database cleanup utility for test accounts:
     - Normalizes phone inputs (`09...`, `+989...`).

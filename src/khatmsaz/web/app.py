@@ -3583,6 +3583,12 @@ async def moderate_user(
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    async def _promote_admin(sess, uid):
+        await identity_service.repository.set_role(sess, uid, UserRole.SUPER_ADMIN)
+
+    async def _demote_admin(sess, uid):
+        await identity_service.repository.set_role(sess, uid, UserRole.CREATOR)
+
     actions = {
         "warn": identity_service.warn,
         "suspend": identity_service.suspend,
@@ -3590,6 +3596,8 @@ async def moderate_user(
         "reactivate": identity_service.reactivate,
         "promote": identity_service.promote_creator,
         "demote": identity_service.demote_creator,
+        "promote_admin": _promote_admin,
+        "demote_admin": _demote_admin,
     }
     if action not in actions or user_id == admin.id:
         return HTMLResponse("عملیات مجاز نیست.", status_code=400)
@@ -3598,7 +3606,7 @@ async def moderate_user(
         if target is None:
             return HTMLResponse("کاربر پیدا نشد.", status_code=404)
         await actions[action](session, user_id)
-        if action in ("promote", "demote"):
+        if action in ("promote", "demote", "promote_admin", "demote_admin"):
             from khatmsaz.bot.keyboards import main_menu_keyboard
             from khatmsaz.modules.settings import service as settings_service
             user_settings = await settings_service.get_or_create(session, target.id)
@@ -3607,9 +3615,15 @@ async def moderate_user(
                 if action == "promote":
                     msg = "🎉 تبریک! حساب شما به **سازنده ختم** ارتقا یافت.\n\nهم‌اکنون منوی اختصاصی مدیریت ختم‌ها برای شما فعال شد. می‌توانید از دکمه‌های پایین صفحه استفاده کنید."
                     kb = main_menu_keyboard(user_settings.language, is_creator=True)
-                else:
+                elif action == "demote":
                     msg = "حساب شما از سطح سازنده به **کاربر عادی** تغییر یافت."
                     kb = main_menu_keyboard(user_settings.language, is_creator=False)
+                elif action == "promote_admin":
+                    msg = "🛡 **دسترسی مدیریت کل (Super Admin) فعال شد.**\n\nحساب شما به عنوان مدیر کل سامانه ختم‌ساز تأیید شد. اکنون می‌توانید از ربات مدیریت @khatmsaz_admin_bot و پنل وب استفاده فرمایید."
+                    kb = main_menu_keyboard(user_settings.language, is_creator=True)
+                else:
+                    msg = "🛡 دسترسی مدیریت کل شما غیرفعال شد و حساب شما به سطح سازنده تغییر یافت."
+                    kb = main_menu_keyboard(user_settings.language, is_creator=True)
                 from khatmsaz.bot.notify_adapter import send_with_keyboard
                 import asyncio
                 asyncio.create_task(
