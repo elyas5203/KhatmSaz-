@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% from "components.html" import tooltip, help_button %}
+{% block title %}مرکز مدیریت بنرها و اطلاعیه‌ها | ختم‌ساز{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">کمپین‌های رسانه‌ای و اطلاع‌رسانی</p>
+    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">مرکز مدیریت بنرها، تبلیغات و اطلاعیه‌ها</h1>
+  </div>
+  <div class="flex items-center gap-2">
+    {{ help_button(
+      "راهنمای بنرها و تبلیغات",
+      "در این مرکز می‌توانید اطلاعیه‌های فرهنگی/مذهبی سیستمی یا بنرهای تبلیغاتی تجاری را تعریف، زمان‌بندی و پایش کنید.",
+      [
+        "تفاوت نوع بنر: بنرهای «فرهنگی/مذهبی» در تمامی ختم‌ها قابل نمایش هستند؛ اما بنرهای «تبلیغاتی تجاری» منحصراً در ختم‌هایی نمایش داده می‌شوند که سازنده گزینه رضایت تبلیغات (advertising_enabled) را فعال کرده باشد.",
+        "جایگاه‌های نمایش: پاورقی سهم روزانه ربات‌ها (متن و دکمه شیشه‌ای زیر سهم روزانه)، صفحه وب دعوت به ختم، یا ارسال مستقیم به مخاطبان.",
+        "ثبت توسط سازندگان: سازندگان ختم می‌توانند برای ختم خود پیام تبلیغاتی ثبت کنند که پس از تأیید در صف نظارت بلافاصله ارسال می‌شود."
+      ],
+      "نکته: با غیرفعال کردن یک بنر، نمایش آن در لحظه در سراسر ربات‌ها و وب‌سایت متوقف می‌شود بدون اینکه سوابق آماری آن حذف شود."
+    ) }}
+  </div>
+</div>
+
+{% if saved == 'banner_created' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>بنر / اطلاعیه جدید با موفقیت ایجاد و ذخیره شد.</span>
+</div>
+{% elif saved == 'banner_toggled' %}
+<div class="p-4 mb-6 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-300 text-sm font-bold flex items-center gap-2">
+  <span>🔄</span>
+  <span>وضعیت فعال‌بودن بنر با موفقیت تغییر کرد.</span>
+</div>
+{% elif saved == 'banner_approved' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>✅</span>
+  <span>بنر تأیید شد و به وضعیت فعال درآمد.</span>
+</div>
+{% elif saved == 'banner_rejected' %}
+<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+  <span>⚠️</span>
+  <span>بنر رد شد و در صورت کسر هزینه از کیف پول سازنده، مبلغ مسترد گردید.</span>
+</div>
+{% elif saved == 'broadcast_sent' %}
+<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+  <span>🚀</span>
+  <span>پیام بنر برای مخاطبان هدف ارسال گردید.</span>
+</div>
+{% elif error %}
+<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+  <span>❌</span>
+  <span>خطا: {{ error }}</span>
+</div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="glass-card rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-bold mb-2">
+      <span>کل بنرها</span>
+      <span class="text-base">🖼️</span>
+    </div>
+    <div class="text-2xl sm:text-3xl font-black text-white font-mono">{{ stats.total_banners }}</div>
+    <div class="text-[0.7rem] text-slate-500 mt-1">کمپین‌های ثبت‌شده در سیستم</div>
+  </div>
+
+  <div class="glass-card rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-bold mb-2">
+      <span>بنرهای فعال</span>
+      <span class="text-base">🟢</span>
+    </div>
+    <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">{{ stats.active_banners }}</div>
+    <div class="text-[0.7rem] text-slate-500 mt-1">در حال نمایش در پلتفرم‌ها</div>
+  </div>
+
+  <div class="glass-card rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-bold mb-2">
+      <span>در انتظار تأیید</span>
+      <span class="text-base">⏳</span>
+    </div>
+    <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{{ stats.pending_review }}</div>
+    <div class="text-[0.7rem] text-slate-500 mt-1">درخواست‌های سازندگان ختم</div>
+  </div>
+
+  <div class="glass-card rounded-2xl p-4 sm:p-5">
+    <div class="flex items-center justify-between text-slate-400 text-xs font-bold mb-2">
+      <span>مجموع نمایش / کلیک</span>
+      <span class="text-base">📊</span>
+    </div>
+    <div class="text-xl sm:text-2xl font-black text-sky-400 font-mono">
+      {{ "{:,}".format(stats.total_impressions) }} <span class="text-xs text-slate-400 font-sans">/</span> {{ "{:,}".format(stats.total_clicks) }}
+    </div>
+    <div class="text-[0.7rem] text-slate-500 mt-1">تعامل مخاطبان با بنرها</div>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+  <!-- Create Banner Form -->
+  <div class="glass-panel rounded-3xl p-6 lg:col-span-1">
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <span>➕</span>
+        <span>تعریف بنر یا اطلاعیه جدید</span>
+      </h2>
+      {{ tooltip("می‌توانید اطلاعیه مذهبی سیستمی یا تبلیغ تجاری جدید با دکمه شیشه‌ای و تصویر تعریف فرمایید.") }}
+    </div>
+
+    <form method="post" action="/banners/create" class="space-y-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">عنوان بنر / کمپین *</label>
+        <input type="text" name="title" required placeholder="مثال: پویش ختم صلوات برای فرج..." class="input-field text-sm">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">
+            نوع بنر *
+            {{ tooltip("بنر فرهنگی/سیستمی در همه ختم‌ها نمایش داده می‌شود؛ بنر تجاری فقط در ختم‌هایی که سازنده رضایت تبلیغ داده است.") }}
+          </label>
+          <select name="banner_type" class="input-field text-xs">
+            <option value="SYSTEM_CULTURAL" selected>🕌 فرهنگی / مذهبی سیستمی</option>
+            <option value="COMMERCIAL_AD">💼 تبلیغاتی تجاری</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">
+            جایگاه نمایش *
+          </label>
+          <select name="placement" class="input-field text-xs">
+            <option value="ALL" selected>🌐 همه جایگاه‌ها</option>
+            <option value="PORTION_FOOTER">📜 پاورقی سهم روزانه ربات‌ها</option>
+            <option value="INVITE_PAGE">📄 صفحه وب معرفی/دعوت ختم</option>
+            <option value="DIRECT_BROADCAST">📢 ارسال مستقیم به کاربران</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">متن بنر / اطلاعیه *</label>
+        <textarea name="content_text" rows="3" required placeholder="متن پیام که برای کاربر نمایش داده می‌شود..." class="input-field text-sm leading-relaxed"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">آدرس تصویر یا پوستر بنر (اختیاری)</label>
+        <input type="url" name="image_url" placeholder="https://... یا /static/uploads/..." class="input-field text-xs font-mono text-left" dir="ltr">
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">متن دکمه شیشه‌ای (اختیاری)</label>
+          <input type="text" name="button_text" placeholder="مثال: عضویت در کانال / مشاهده..." class="input-field text-xs">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">لینک دکمه (URL) (اختیاری)</label>
+          <input type="url" name="button_url" placeholder="https://t.me/..." class="input-field text-xs font-mono text-left" dir="ltr">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <input type="checkbox" name="is_active" id="is_active" value="1" checked class="w-4 h-4 rounded text-emerald-500 bg-slate-900 border-slate-700 focus:ring-emerald-500">
+        <label for="is_active" class="text-xs text-slate-300 font-bold cursor-pointer">
+          بنر بلافاصله فعال شود و در جایگاه‌ها به نمایش درآید
+        </label>
+      </div>
+
+      <button type="submit" class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+        💾 ثبت و فعال‌سازی بنر
+      </button>
+    </form>
+  </div>
+
+  <!-- Banners List Table -->
+  <div class="glass-panel rounded-3xl p-6 lg:col-span-2">
+    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+      <div>
+        <h2 class="text-lg font-bold text-white">فهرست بنرها و کمپین‌ها</h2>
+        <p class="text-xs text-slate-400 mt-0.5">مدیریت وضعیت، پایش آمار بازدید و کنترل فعال‌سازی</p>
+      </div>
+      <span class="text-xs font-mono px-3 py-1 rounded-full bg-slate-800 text-slate-300 font-bold">
+        {{ banners|length }} بنر
+      </span>
+    </div>
+
+    {% if not banners %}
+    <div class="py-12 text-center text-slate-500 text-sm">
+      <div class="text-3xl mb-2">🖼️</div>
+      هنوز هیچ بنر یا اطلاعیه‌ای ثبت نشده است. از فرم روبرو برای ثبت اولین بنر استفاده کنید.
+    </div>
+    {% else %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-right border-collapse text-xs">
+        <thead>
+          <tr class="border-b border-slate-800 text-slate-400 font-bold">
+            <th class="py-3 px-3">عنوان و مشخصات</th>
+            <th class="py-3 px-3">نوع و جایگاه</th>
+            <th class="py-3 px-3">وضعیت</th>
+            <th class="py-3 px-3">آمار تعامل</th>
+            <th class="py-3 px-3 text-center">عملیات</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 text-slate-200">
+          {% for b in banners %}
+          <tr class="hover:bg-slate-800/30 transition-colors">
+            <td class="py-3.5 px-3">
+              <div class="font-bold text-white text-sm">{{ b.title }}</div>
+              <div class="text-[0.7rem] text-slate-400 line-clamp-1 mt-0.5 max-w-xs">{{ b.content_text }}</div>
+              {% if b.button_text and b.button_url %}
+              <div class="mt-1">
+                <a href="{{ b.button_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[0.65rem] text-sky-400 hover:underline">
+                  <span>🔗 {{ b.button_text }}</span>
+                  <span dir="ltr">({{ b.button_url|truncate(25) }})</span>
+                </a>
+              </div>
+              {% endif %}
+            </td>
+
+            <td class="py-3.5 px-3 whitespace-nowrap">
+              <div>
+                {% if b.banner_type.value == 'SYSTEM_CULTURAL' or b.banner_type == 'SYSTEM_CULTURAL' %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-emerald-500/15 text-emerald-300 font-bold">🕌 فرهنگی/مذهبی</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-indigo-500/15 text-indigo-300 font-bold">💼 تبلیغات تجاری</span>
+                {% endif %}
+              </div>
+              <div class="text-[0.7rem] text-slate-400 mt-1">
+                {% if b.placement.value == 'PORTION_FOOTER' or b.placement == 'PORTION_FOOTER' %}
+                📜 پاورقی سهم روزانه
+                {% elif b.placement.value == 'INVITE_PAGE' or b.placement == 'INVITE_PAGE' %}
+                📄 صفحه وب دعوت
+                {% elif b.placement.value == 'DIRECT_BROADCAST' or b.placement == 'DIRECT_BROADCAST' %}
+                📢 ارسال مستقیم
+                {% else %}
+                🌐 همه جایگاه‌ها
+                {% endif %}
+              </div>
+            </td>
+
+            <td class="py-3.5 px-3 whitespace-nowrap">
+              <div class="flex items-center gap-1.5 mb-1">
+                {% if b.is_active %}
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-emerald-400 font-bold">فعال</span>
+                {% else %}
+                <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span class="text-slate-400">غیرفعال</span>
+                {% endif %}
+              </div>
+              <div>
+                {% if b.status.value == 'PENDING' or b.status == 'PENDING' %}
+                <span class="px-2 py-0.5 rounded text-[0.65rem] bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید</span>
+                {% elif b.status.value == 'REJECTED' or b.status == 'REJECTED' %}
+                <span class="px-2 py-0.5 rounded text-[0.65rem] bg-rose-500/20 text-rose-300 font-bold">رد شده</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded text-[0.65rem] bg-slate-800 text-slate-400 font-bold">تأییدشده</span>
+                {% endif %}
+              </div>
+            </td>
+
+            <td class="py-3.5 px-3 whitespace-nowrap font-mono text-[0.75rem]">
+              <div class="text-slate-300">نمایش: <strong class="text-white">{{ "{:,}".format(b.impressions_count) }}</strong></div>
+              <div class="text-slate-400 mt-0.5">کلیک: <strong class="text-sky-400">{{ "{:,}".format(b.clicks_count) }}</strong></div>
+            </td>
+
+            <td class="py-3.5 px-3 text-center whitespace-nowrap">
+              <div class="flex items-center justify-center gap-1.5">
+                <form method="post" action="/banners/{{ b.id }}/toggle">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  <button type="submit" class="px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all cursor-pointer {% if b.is_active %}border-rose-500/30 text-rose-300 hover:bg-rose-500/10{% else %}border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10{% endif %}">
+                    {% if b.is_active %}غیرفعال‌سازی{% else %}فعال‌سازی{% endif %}
+                  </button>
+                </form>
+
+                {% if b.status.value == 'PENDING' or b.status == 'PENDING' %}
+                <a href="/moderation?tab=banners" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold transition-all">
+                  بررسی در صف نظارت
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

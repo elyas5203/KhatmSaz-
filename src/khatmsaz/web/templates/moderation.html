@@ -81,6 +81,10 @@
     <span>💬 تیکت‌های پشتیبانی</span>
     <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'tickets' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.tickets }}</span>
   </a>
+  <a href="/moderation?tab=banners" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'banners' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+    <span>📢 بنرها و تبلیغات</span>
+    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'banners' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.banners }}</span>
+  </a>
   <div class="h-5 w-px bg-slate-800 hidden lg:block mx-1"></div>
   <a href="/broadcasts" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
     <span>📢 پیام گروهی</span>
@@ -318,6 +322,89 @@
     <span class="text-4xl block mb-2">💬</span>
     <b class="text-white text-base block mb-1">صندوق تیکت‌ها و پیشنهادات خالی است</b>
     <p class="text-xs text-slate-400">هیچ پیامی در انتظار رسیدگی وجود ندارد.</p>
+  </div>
+  {% endfor %}
+</section>
+{% elif active_tab == 'banners' %}
+<!-- TAB 5: BANNERS & ADS MODERATION QUEUE -->
+<section class="space-y-4">
+  {% for row in banner_rows %}
+  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید ادمین</span>
+          <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
+        </div>
+        <h3 class="text-lg font-bold text-white">{{ row.banner.title }}</h3>
+        <p class="text-xs text-slate-400 mt-0.5">
+          سازنده: <strong class="text-slate-200">{{ row.creator_name }}</strong>
+          {% if row.banner.creator_user_id %}
+          (<a href="/users/{{ row.banner.creator_user_id }}" class="text-emerald-400 hover:underline">مشاهده پروفایل ۳۶۰°</a>)
+          {% endif %}
+          {% if row.khatm_title %}
+          | ختم: <strong class="text-sky-300">{{ row.khatm_title }}</strong>
+          {% endif %}
+        </p>
+      </div>
+      <div class="text-left flex flex-col items-end">
+        <span class="text-xs text-slate-400 font-mono">شناسه بنر: {{ row.banner.id }}</span>
+        {% if row.banner.cost_toman > 0 %}
+        <span class="text-xs font-bold text-amber-400 mt-1">هزینه کسر شده: {{ "{:,}".format(row.banner.cost_toman) }} تومان</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 mb-4">
+      <div class="flex items-center gap-2 mb-2">
+        {% if row.banner.banner_type.value == 'SYSTEM_CULTURAL' or row.banner.banner_type == 'SYSTEM_CULTURAL' %}
+        <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">🕌 فرهنگی / مذهبی</span>
+        {% else %}
+        <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300 font-bold">💼 تبلیغات تجاری</span>
+        {% endif %}
+        <span class="text-xs text-slate-400">
+          جایگاه: {{ row.banner.placement.value if row.banner.placement.value else row.banner.placement }}
+        </span>
+      </div>
+
+      <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{{ row.banner.content_text }}</p>
+
+      {% if row.banner.image_url %}
+      <div class="mt-3">
+        <img src="{{ row.banner.image_url }}" alt="پوستر بنر" class="max-h-48 rounded-xl object-cover border border-slate-700">
+      </div>
+      {% endif %}
+
+      {% if row.banner.button_text and row.banner.button_url %}
+      <div class="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
+        <span class="text-xs text-slate-400">دکمه شیشه‌ای:</span>
+        <a href="{{ row.banner.button_url }}" target="_blank" rel="noopener" class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold hover:underline inline-flex items-center gap-1">
+          <span>🔗 {{ row.banner.button_text }}</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <form method="post" action="/moderation/banners/{{ row.banner.id }}/decide" class="space-y-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <div>
+        <input type="text" name="admin_note" placeholder="یادداشت مدیر (در صورت رد، علت استرداد هزینه را بنویسید)..." class="input-field text-xs">
+      </div>
+      <div class="flex items-center justify-end gap-3 pt-1">
+        <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد این بنر اطمینان دارید؟ در صورت کسر هزینه، وجه به کیف پول سازنده بازگردانده می‌شود.');" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+          ❌ رد بنر و استرداد وجه
+        </button>
+        <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+          ✅ تأیید و انتشار بنر
+        </button>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+    <span class="text-4xl block mb-2">📢</span>
+    <b class="text-white text-base block mb-1">صف نظارت بنرها و تبلیغات خالی است</b>
+    <p class="text-xs text-slate-400">هیچ بنر یا تبلیغی در انتظار بررسی ادمین وجود ندارد.</p>
   </div>
   {% endfor %}
 </section>

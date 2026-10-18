@@ -14,7 +14,7 @@ from khatmsaz.modules.share_occurrence import repository, service
 from khatmsaz.i18n import t
 
 
-def keyboard(occurrence, khatm=None):
+def keyboard(occurrence, khatm=None, banner=None):
     from khatmsaz.bot.member_copy import done_button_label
     spec = occurrence.content_spec or {}
     family = spec.get("family")
@@ -24,12 +24,18 @@ def keyboard(occurrence, khatm=None):
     ranges = spec.get("ranges")
     amount = getattr(occurrence, "amount", None)
     title = getattr(khatm, "title", None) or spec.get("title")
-    return InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(
+    buttons = [[InlineKeyboardButton(
         text=done_button_label(
             family, lang, count=amount, ranges=ranges, title=title,
         ),
         callback_data=f"share_done:{occurrence.id}",
-    )]])
+    )]]
+    if banner and getattr(banner, "button_text", None) and getattr(banner, "button_url", None):
+        buttons.append([InlineKeyboardButton(
+            text=f"📢 {banner.button_text}",
+            url=banner.button_url,
+        )])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 async def route(session, part, occurrence):
@@ -89,6 +95,20 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
     bot, chat = await route(session, part, occurrence)
     if bot is None:
         return False
+    banner = None
+    try:
+        from khatmsaz.modules.advertising import service as ad_service
+        from khatmsaz.modules.advertising.models import BannerPlacement
+        active_banners = await ad_service.get_active_banners_for_placement(
+            session,
+            BannerPlacement.PORTION_FOOTER,
+            khatm_advertising_enabled=bool(getattr(khatm, "advertising_enabled", False)),
+        )
+        if active_banners:
+            banner = active_banners[0]
+            await ad_service.record_impression(session, banner.id)
+    except Exception:
+        banner = None
     records = {r.component_key: r for r in await repository.list_messages(session, occurrence.id)}
     components = occurrence.content_spec.get("delivery_components")
     if components and occurrence.amount and len(components) > occurrence.amount:
@@ -190,7 +210,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
 
         is_last = (index == len(components) - 1)
         if is_last and method in ("send_video", "send_photo", "send_audio", "send_document", "send_message", "copy_message"):
-            kwargs["reply_markup"] = keyboard(occurrence, khatm)
+            kwargs["reply_markup"] = keyboard(occurrence, khatm, banner=banner)
         elif kwargs.get("reply_markup"):
             kwargs["reply_markup"] = InlineKeyboardMarkup.model_validate(kwargs["reply_markup"])
 
@@ -209,7 +229,7 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
                 if vid_file_id:
                     kw = {"video": vid_file_id, "caption": cap}
                     if is_last:
-                        kw["reply_markup"] = keyboard(occurrence, khatm)
+                        kw["reply_markup"] = keyboard(occurrence, khatm, banner=banner)
                     message = await bot.send_video(chat_id=chat, **kw)
                 else:
                     raise

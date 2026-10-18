@@ -1,3 +1,22 @@
+## 2026-10-18 — Antigravity — Advertising, Banner Hub & Moderation Queue in Web Admin and Bot Delivery (MASTER-46)
+- **Advertising & Banner Management Hub (`web/app.py`, `web/templates/banners.html`, `web/templates/base.html`):**
+  - Added dedicated navigation entry `/banners` under Group 2 ("مدیریت و نظارت") in desktop sidebar and mobile navigation dock.
+  - Implemented 4 KPI summary cards: Total Banners, Active Banners, Total Impressions, and Total Clicks.
+  - Added banner creation form with support for banner types (`SYSTEM_CULTURAL`, `COMMERCIAL_AD`), placements (`ALL`, `PORTION_FOOTER`, `INVITE_PAGE`, `DIRECT_BROADCAST`), target URL, button text, image URL, start/end dates, and daily impression limit.
+  - Added zero-data-loss active/inactive toggle (`POST /banners/{id}/toggle`) preserving historical impression/click analytics.
+- **Creator Banner Submission & Moderation Queue (`web/app.py`, `web/templates/moderation.html`):**
+  - Extended `/moderation` with Queue 5 (`tab=banners`) displaying pending banners submitted by Khatm creators.
+  - Added decision endpoint `POST /moderation/banners/{banner_id}/decide`: upon approval, banner activates immediately; upon rejection, dynamic broadcast fee is automatically refunded back to the creator's wallet.
+- **Bot Delivery & Ethical Separation (`src/khatmsaz/bot/occurrence_adapter.py`):**
+  - Updated `keyboard` and `deliver_occurrence` to query active banners for `PORTION_FOOTER`.
+  - Enforced ethical separation: `SYSTEM_CULTURAL` banners can display across all khatms; `COMMERCIAL_AD` banners are strictly restricted to khatms where `khatm.advertising_enabled = True`.
+  - Recorded impressions upon delivery and appended dynamic action buttons (`📢 {banner.button_text}`).
+- **Database & Architecture (`src/khatmsaz/modules/advertising/`):**
+  - Implemented `AdvertisingBanner` model, repository, and service.
+  - Self-healing DDL added to `bootstrap.py` and single-head Alembic migration `migrations/versions/banners2026101801_add_advertising_banners.py`.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_46_ADVERTISING_AND_BANNER_HUB.md` and registered `DEC-PY-0138`.
+- **Validation:** Added 6 tests in `tests/test_master_46_advertising_hub.py` (100% PASS), and verified combined regression suite passes with 27/27 tests passing.
+
 ## 2026-10-18 — Antigravity — Discount Coupons, Campaign Hub & Redemption Ledger (MASTER-45)
 - **Dedicated Coupons & Campaign Hub (`web/app.py`, `web/templates/coupons.html`, `web/templates/base.html`):**
   - Added dedicated navigation entry `/coupons` under Group 4 ("امور مالی و سیستم") in desktop sidebar and mobile navigation dock.

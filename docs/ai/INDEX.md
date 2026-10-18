@@ -1,3 +1,8 @@
+## 2026-10-18 — Advertising, Banner Hub & Moderation Queue in Web Admin and Bot Delivery (MASTER-46) [Antigravity]
+- Master Document: [MASTER_46_ADVERTISING_AND_BANNER_HUB.md](masters/MASTER_46_ADVERTISING_AND_BANNER_HUB.md) (Centralized advertising and banner management hub `/banners` in web admin, 4 KPI cards, banner creation with SYSTEM_CULTURAL and COMMERCIAL_AD types, zero-data-loss active/inactive toggle, Queue 5 `/moderation?tab=banners` for creator-submitted banners with auto-refund on rejection, and bot occurrence delivery with ethical khatm advertising controls).
+- Key files: `src/khatmsaz/modules/advertising/`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/banners.html`, `src/khatmsaz/web/templates/moderation.html`, `src/khatmsaz/bot/occurrence_adapter.py`.
+- Tests: `tests/test_master_46_advertising_hub.py`.
+
 ## 2026-10-18 — Discount Coupons, Campaign Hub & Redemption Ledger in Web Admin (MASTER-45) [Antigravity]
 - Master Document: [MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md](masters/MASTER_45_DISCOUNT_COUPONS_AND_CAMPAIGN_HUB.md) (Dedicated coupons and campaign management hub `/coupons` in web admin, campaign KPIs, coupon creation with percent/fixed models and ceilings, zero-data-loss active/inactive toggling, user redemption ledger table linking to user 360 profile, and coupon redemption analytics).
 - Key files: `src/khatmsaz/modules/wallet/repository.py`, `src/khatmsaz/modules/wallet/service.py`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/coupons.html`, `src/khatmsaz/web/templates/base.html`.

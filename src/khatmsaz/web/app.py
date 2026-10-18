@@ -1972,21 +1972,29 @@ async def moderation_center(request: Request, tab: str = "laan"):
     from khatmsaz.modules.khatm_request import service as khatm_request_service
     from khatmsaz.modules.support_ticket import service as support_ticket_service
     from khatmsaz.modules.support_ticket.models import SupportTicketStatus
+    from khatmsaz.modules.advertising import service as advertising_service
+    from khatmsaz.modules.advertising.models import AdvertisingBanner, BannerStatus
     async with session_scope() as session:
         laan_khatms = await khatm_service.list_pending_laan_khatms(session)
         cover_khatms = await khatm_service.list_pending_covers(session)
         khatm_requests = await khatm_request_service.list_pending(session)
         tickets_list = await support_ticket_service.list_admin_tickets(session, limit=100)
+        banners_pending = await advertising_service.list_banners(session, status=BannerStatus.PENDING, limit=100)
+        valid_banners = [
+            b for b in banners_pending
+            if isinstance(b, AdvertisingBanner) or (hasattr(b, "title") and hasattr(b, "content_text"))
+        ]
         broadcasts_pending = await broadcast_service.list_pending(session)
         phones_pending = await manual_phone_repository.list_pending(session)
         creators_pending = await creator_request_service.list_pending(session, limit=100)
         categories_pending = await category_service.list_pending_requests(session)
 
         user_ids = (
-            {k.creator_user_id for k in laan_khatms if k.creator_user_id}
-            | {k.creator_user_id for k in cover_khatms if k.creator_user_id}
-            | {r.requester_user_id for r in khatm_requests if r.requester_user_id}
-            | {t.sender_user_id for t in tickets_list if t.sender_user_id}
+            {k.creator_user_id for k in laan_khatms if getattr(k, "creator_user_id", None)}
+            | {k.creator_user_id for k in cover_khatms if getattr(k, "creator_user_id", None)}
+            | {r.requester_user_id for r in khatm_requests if getattr(r, "requester_user_id", None)}
+            | {t.sender_user_id for t in tickets_list if getattr(t, "sender_user_id", None)}
+            | {getattr(b, "creator_user_id", None) for b in valid_banners if getattr(b, "creator_user_id", None)}
         )
         users_by_id = (
             {
@@ -1996,6 +2004,17 @@ async def moderation_center(request: Request, tab: str = "laan"):
                 ).scalars()
             }
             if user_ids
+            else {}
+        )
+        banner_khatm_ids = {getattr(b, "khatm_id", None) for b in valid_banners if getattr(b, "khatm_id", None)}
+        khatms_by_id = (
+            {
+                k.id: k
+                for k in (
+                    await session.execute(select(Khatm).where(Khatm.id.in_(banner_khatm_ids)))
+                ).scalars()
+            }
+            if banner_khatm_ids
             else {}
         )
         laan_rows = [
@@ -2031,11 +2050,21 @@ async def moderation_center(request: Request, tab: str = "laan"):
             }
             for t in tickets_list
         ]
+        banner_rows = [
+            {
+                "banner": b,
+                "creator_name": (users_by_id.get(getattr(b, "creator_user_id", None)).display_name if users_by_id.get(getattr(b, "creator_user_id", None)) else "سیستمی / ادمین"),
+                "khatm_title": (khatms_by_id.get(getattr(b, "khatm_id", None)).title if khatms_by_id.get(getattr(b, "khatm_id", None)) else None),
+                "time": _tehran_time(getattr(b, "created_at", None)),
+            }
+            for b in valid_banners
+        ]
         counts = {
             "laan": len(laan_rows),
             "covers": len(cover_rows),
             "requests": len(khatm_req_rows),
             "tickets": sum(1 for t in tickets_list if t.status == SupportTicketStatus.PENDING),
+            "banners": len(banner_rows),
             "broadcasts": len(broadcasts_pending),
             "phones": len(phones_pending),
             "creators": len(creators_pending),
@@ -2054,6 +2083,7 @@ async def moderation_center(request: Request, tab: str = "laan"):
             cover_rows=cover_rows,
             khatm_req_rows=khatm_req_rows,
             ticket_rows=ticket_rows,
+            banner_rows=banner_rows,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -2282,6 +2312,40 @@ async def close_support_ticket(
             return HTMLResponse(f"تیکت یافت نشد: {exc}", status_code=404)
     return RedirectResponse(
         "/moderation?tab=tickets&saved=ticket_closed",
+        status_code=303,
+    )
+
+
+@app.post("/moderation/banners/{banner_id}/decide")
+async def moderation_decide_banner(
+    request: Request,
+    banner_id: str,
+    decision: str = Form(...),
+    admin_note: str = Form(""),
+    csrf: str = Form(""),
+):
+    admin, raw = await _admin(
+        request, AdminPermission.MODERATION_MANAGE, AdminPermission.SUPPORT_USERS
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.advertising import service as advertising_service
+    bid = uuid.UUID(banner_id)
+    async with session_scope() as session:
+        try:
+            banner = await advertising_service.review_banner(session, bid, decision, admin_note=admin_note)
+        except ValueError as exc:
+            return HTMLResponse(f"بنر یافت نشد: {exc}", status_code=404)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action=f"ADMIN_BANNER_{decision.upper()}",
+            details={"banner_id": str(bid), "title": banner.title, "note": admin_note},
+        )
+    return RedirectResponse(
+        f"/moderation?tab=banners&saved=banner_{'approved' if decision.lower() in ('approve', 'approved') else 'rejected'}",
         status_code=303,
     )
 
@@ -5247,6 +5311,122 @@ async def toggle_coupon_hub(request: Request, code: str, csrf: str = Form(...)):
             details={"code": updated.code, "enabled": updated.enabled},
         )
     return RedirectResponse("/coupons?saved=coupon_toggled", status_code=303)
+
+
+@app.get("/banners", response_class=HTMLResponse)
+async def list_banners_hub(request: Request):
+    admin, raw = await _admin(
+        request,
+        AdminPermission.MODERATION_MANAGE,
+        AdminPermission.CONTENT_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+        AdminPermission.OPERATIONS_VIEW,
+    )
+    if admin is None:
+        return _login_redirect()
+    from khatmsaz.modules.advertising import service as advertising_service
+    async with session_scope() as session:
+        stats = await advertising_service.get_banner_stats(session)
+        banners = await advertising_service.list_banners(session, limit=100)
+    return templates.TemplateResponse(
+        request=request,
+        name="banners.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            stats=stats,
+            banners=banners,
+            saved=request.query_params.get("saved", ""),
+            error=request.query_params.get("error", ""),
+        ),
+    )
+
+
+@app.post("/banners/create")
+async def create_banner_action(
+    request: Request,
+    title: str = Form(...),
+    banner_type: str = Form("SYSTEM_CULTURAL"),
+    placement: str = Form("ALL"),
+    content_text: str = Form(...),
+    image_url: str = Form(""),
+    button_text: str = Form(""),
+    button_url: str = Form(""),
+    is_active: str = Form("0"),
+    csrf: str = Form(""),
+):
+    admin, raw = await _admin(
+        request,
+        AdminPermission.MODERATION_MANAGE,
+        AdminPermission.CONTENT_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if not title.strip() or not content_text.strip():
+        return RedirectResponse("/banners?error=empty_fields", status_code=303)
+
+    from khatmsaz.modules.advertising import service as advertising_service
+    from khatmsaz.modules.advertising.models import BannerStatus
+    active_bool = is_active == "1"
+    async with session_scope() as session:
+        banner = await advertising_service.create_banner(
+            session,
+            title=title,
+            content_text=content_text,
+            banner_type=banner_type,
+            placement=placement,
+            image_url=image_url if image_url.strip() else None,
+            button_text=button_text if button_text.strip() else None,
+            button_url=button_url if button_url.strip() else None,
+            is_active=active_bool,
+            status=BannerStatus.APPROVED,
+        )
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="ADMIN_BANNER_CREATE",
+            details={
+                "banner_id": str(banner.id),
+                "title": banner.title,
+                "banner_type": banner.banner_type.value if hasattr(banner.banner_type, "value") else str(banner.banner_type),
+                "placement": banner.placement.value if hasattr(banner.placement, "value") else str(banner.placement),
+                "is_active": active_bool,
+            },
+        )
+    return RedirectResponse("/banners?saved=banner_created", status_code=303)
+
+
+@app.post("/banners/{banner_id}/toggle")
+async def toggle_banner_action(
+    request: Request,
+    banner_id: str,
+    csrf: str = Form(""),
+):
+    admin, raw = await _admin(
+        request,
+        AdminPermission.MODERATION_MANAGE,
+        AdminPermission.CONTENT_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    from khatmsaz.modules.advertising import service as advertising_service
+    bid = uuid.UUID(banner_id)
+    async with session_scope() as session:
+        new_active = await advertising_service.toggle_banner_active(session, bid)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="ADMIN_BANNER_TOGGLE",
+            details={"banner_id": str(bid), "is_active": new_active},
+        )
+    return RedirectResponse("/banners?saved=banner_toggled", status_code=303)
 
 
 @app.post("/finance/coupons")

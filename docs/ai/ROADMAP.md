@@ -1,3 +1,10 @@
+## 2026-10-18 — Advertising, Banner Hub & Moderation Queue (MASTER-46) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_46_ADVERTISING_AND_BANNER_HUB.md` and document decision DEC-PY-0138.
+- [x] Implement database models, repository, service, bootstrap DDL and Alembic migration `banners2026101801`.
+- [x] Implement Web Admin `/banners` hub (KPIs, banner creation, zero-data-loss toggle) and `/moderation?tab=banners`.
+- [x] Enforce ethical separation (SYSTEM_CULTURAL vs COMMERCIAL_AD) and record impressions in bot occurrence delivery.
+- [x] Add regression suite `tests/test_master_46_advertising_hub.py` (6/6 PASS, 27/27 combined regression pass).
+
 ## 2026-10-15 — Foreign shared-contact correction [Codex]
 - [x] Adapt the fix to the production branch and document DEC-PY-0129 / MASTER-34.
 - [x] Add focused contact normalization and immediate-registration tests.

@@ -401,6 +401,34 @@ async def main() -> None:
                 CREATE INDEX IF NOT EXISTS ix_support_tickets_sender ON support_tickets(sender_user_id);
                 CREATE INDEX IF NOT EXISTS ix_support_tickets_target_creator ON support_tickets(target_creator_id);
                 CREATE INDEX IF NOT EXISTS ix_support_tickets_created_at ON support_tickets(created_at);
+
+                CREATE TABLE IF NOT EXISTS advertising_banners (
+                    id UUID PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    banner_type VARCHAR(32) NOT NULL DEFAULT 'SYSTEM_CULTURAL',
+                    placement VARCHAR(32) NOT NULL DEFAULT 'ALL',
+                    content_text TEXT NOT NULL,
+                    image_url VARCHAR(500),
+                    button_text VARCHAR(100),
+                    button_url VARCHAR(500),
+                    creator_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+                    khatm_id UUID REFERENCES khatms(id) ON DELETE SET NULL,
+                    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+                    status VARCHAR(32) NOT NULL DEFAULT 'APPROVED',
+                    audience_count INTEGER NOT NULL DEFAULT 0,
+                    cost_toman INTEGER NOT NULL DEFAULT 0,
+                    impressions_count INTEGER NOT NULL DEFAULT 0,
+                    clicks_count INTEGER NOT NULL DEFAULT 0,
+                    starts_at TIMESTAMP WITH TIME ZONE,
+                    ends_at TIMESTAMP WITH TIME ZONE,
+                    admin_note VARCHAR(500),
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                );
+                CREATE INDEX IF NOT EXISTS ix_advertising_banners_status_active ON advertising_banners(status, is_active);
+                CREATE INDEX IF NOT EXISTS ix_advertising_banners_placement ON advertising_banners(placement);
+                CREATE INDEX IF NOT EXISTS ix_advertising_banners_banner_type ON advertising_banners(banner_type);
+                CREATE INDEX IF NOT EXISTS ix_advertising_banners_created_at ON advertising_banners(created_at);
             """))
     except Exception as exc:
         logger.debug("Database schema self-heal check: %s", exc)
