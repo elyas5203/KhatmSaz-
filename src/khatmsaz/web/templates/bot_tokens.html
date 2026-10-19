@@ -1,157 +1,447 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}مدیریت باتها | ختم‌ساز{% endblock %}
+
+{% block title %}مرکز جامع مدیریت ناوگان ربات‌ها و تصاویر معرفی | ختم‌ساز{% endblock %}
+
 {% block content %}
-<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+{# Safe context defaults to prevent undefined errors in direct template rendering #}
+{% set fleet_kpis = fleet_kpis or {} %}
+{% set tab = tab or 'telegram' %}
+{% set platform = platform or 'TELEGRAM' %}
+{% set bots = bots or [] %}
+{% set all_bots = all_bots or [] %}
+{% set telegram_bots = telegram_bots or [] %}
+{% set bale_bots = bale_bots or [] %}
+{% set family_intro_images = family_intro_images or {} %}
+{% set saved = saved or '' %}
+{% set error = error or '' %}
+{% set needs_restart = needs_restart or False %}
+
+<!-- Studio Header -->
+<section class="mb-8 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
   <div>
-    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">توکن و تصاویر معرفی بات‌ها</p>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+        <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+        ناوگان ربات‌ها و توکن‌ها
+      </span>
+      <span class="text-xs text-slate-500 font-mono">MASTER-53</span>
+    </div>
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیریت بات‌ها (تلگرام و بله)</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white">مرکز جامع مدیریت ناوگان ربات‌ها و تصاویر معرفی</h1>
       {{ help_button(
-        "راهنمای مدیریت بات‌ها",
-        "ختم‌ساز از معماری چندرباتی استفاده می‌کند (یک بات سازنده برای ساخت و مدیریت ختم و بات‌های عضو برای ۵ خانواده ختم). در این صفحه می‌توانید تصاویر معرفی خانواده‌ها و توکن بات‌های عضو را در تلگرام و بله تنظیم نمایید.",
+        "راهنمای مدیریت ناوگان ربات‌های تلگرام و بله",
+        "سامانه ختم‌ساز از یک ناوگان ۱۸ اسلاتی شامل ۱ ربات سازنده (مدیریت و ساخت ختم) و ۱۷ ربات عضو برای ۵ خانواده ختم (قرآن، صلوات، ادعیه، لعن، خطبه) به زبان‌های فارسی، عربی و انگلیسی در تلگرام و بله بهره می‌برد.",
         [
-          "در بخش اول، تصاویر معرفی مشترک ۵ خانواده (قرآن، صلوات، دعا، لعن، خطبه) را وارد و ذخیره کنید.",
-          "از دکمه‌های تلگرام و بله برای سوئیچ بین پلتفرم‌ها استفاده فرمایید.",
-          "توکن هر بات عضو را در کارت مربوط به آن ثبت کنید؛ توکن‌ها رمزنگاری‌شده در دیتابیس نگهداری می‌شوند."
+          "تب ۱ (ناوگان تلگرام): پایش ربات سازنده، مشاهده وضعیت آنلاین و ویرایش امن توکن‌های ۹ ربات تلگرام با کشوی تاشو.",
+          "تب ۲ (ناوگان بله): مدیریت ۹ ربات متناظر در پیام‌رسان بله و تنظیم شناسه‌ها و توکن‌ها.",
+          "تب ۳ (تصاویر معرفی ۵ خانواده): مشاهده، ثبت لینک یا آپلود مستقیم پوستر معرفی برای قرآن، صلوات، ادعیه، لعن و خطبه.",
+          "تب ۴ (راهنمای BotFather): راهنمای قدم‌به‌قدم ساخت ربات، دریافت توکن و تنظیمات پرایوسی در تلگرام و بله."
         ],
-        "نکته: پس از ذخیره توکن جدید، برای فعال‌سازی آن سرویس بات باید یک بار ری‌استارت شود."
+        "نکته مهم: پس از ذخیره یا تغییر توکن هر ربات عضو، برای فعال‌سازی کامل آن در حلقه پردازش، سرویس khatmsaz یک‌بار باید راه‌اندازی مجدد (Restart) شود."
       ) }}
     </div>
   </div>
+
+  <div class="flex items-center gap-3">
+    <a href="/operations" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      <span>پایش سلامت و لاگ‌ها</span>
+    </a>
+  </div>
 </section>
 
+<!-- Action Alerts -->
 {% if saved %}
-<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  توکن ذخیره شد.
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3 animate-fade-in">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span class="text-sm font-bold">
+    {% if saved == 'token_saved' or saved == '1' %}توکن جدید ربات با موفقیت رمزنگاری و در دیتابیس ذخیره شد ✅
+    {% elif saved == 'family_images' %}تصاویر معرفی ۵ خانواده ختم با موفقیت به‌روزرسانی شدند ✅
+    {% elif saved == 'toggled' %}وضعیت فعال بودن ربات با موفقیت تغییر یافت ✅
+    {% else %}عملیات با موفقیت انجام شد ✅{% endif %}
+  </span>
 </div>
 {% endif %}
 
 {% if needs_restart %}
-<div class="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+<div class="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl flex items-center gap-3 animate-fade-in">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-amber-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
   <div>
-    <p class="font-bold">تغییرات توکن ذخیره شده ولی هنوز اعمال نشده.</p>
-    <p class="text-xs text-amber-500/80 mt-1">برای اعمال، سرویس را ریستارت کنید.</p>
+    <p class="font-bold text-sm">تغییرات توکن در دیتابیس ذخیره شده اما هنوز توسط پروسه فعال خوانده نشده است.</p>
+    <p class="text-xs text-amber-400/80 mt-0.5">برای اعمال تغییرات، سرویس سیستم باید یک بار ری‌استارت شود (از طریق منوی عملیات یا دستور systemctl restart khatmsaz).</p>
   </div>
 </div>
 {% endif %}
 
 {% if error %}
-<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  {{ error }}
+<div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-2xl flex items-center gap-3 animate-fade-in">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+  <span class="text-sm font-bold">{{ error }}</span>
 </div>
 {% endif %}
 
-<!-- Platform Tabs -->
-<section class="glass-panel p-6 rounded-3xl mb-6">
-  <h2 class="text-xl font-bold text-white mb-2">تصویر معرفی خانواده‌های ختم</h2>
-  <p class="text-sm text-slate-400 mb-5">این تصاویر بین همهٔ زبان‌ها و هر دو پیام‌رسان مشترک‌اند. اگر خالی باشد، معرفی فقط متنی ارسال می‌شود.</p>
-  <form method="post" action="/bots/family-intro-images" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    {% for key, label in [('quran','قرآن'),('salawat','صلوات'),('dua_ziyarat','دعا و زیارت'),('laan','لعن'),('khutbah','خطبه')] %}
-    <label class="text-xs font-bold text-slate-300">{{ label }}
-      <input type="url" name="{{ key }}" value="{{ family_intro_images[key] }}" placeholder="https://…/intro.jpg" class="input-field w-full mt-1 font-mono" dir="ltr">
-    </label>
-    {% endfor %}
-    <button type="submit" class="btn md:col-span-2 justify-center">ذخیرهٔ تصاویر مشترک</button>
-  </form>
-</section>
-
-<div class="flex gap-2 mb-6">
-  <a href="/bots?platform=TELEGRAM" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-colors {% if platform == 'TELEGRAM' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white{% endif %}">تلگرام</a>
-  <a href="/bots?platform=BALE" class="px-5 py-2.5 rounded-xl font-bold text-sm transition-colors {% if platform == 'BALE' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30{% else %}bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white{% endif %}">بله</a>
-</div>
-
-<!-- Creator Bot -->
-{% for bot in bots if bot.bot_role == 'CREATOR' %}
-<section class="glass-panel p-6 rounded-3xl mb-6">
-  <div class="flex items-center gap-3 mb-2">
-    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-800 flex items-center justify-center text-white font-bold text-lg shadow-lg">خ</div>
-    <div>
-      <h2 class="text-lg font-bold text-white">{{ bot.display_name }}</h2>
-      <p class="text-xs text-slate-500">بات سازنده — توکن از <code class="text-sky-400">.env</code></p>
+<!-- 4 Core Fleet KPI Cards -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <!-- Card 1: Total Slots -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-sky-500">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span class="text-xs text-slate-400 font-bold">کل اسلات‌های ناوگان</span>
+      </div>
+      <span class="text-xs font-mono text-sky-400 font-bold">{{ fleet_kpis.get('total_slots', 18) }} اسلات</span>
     </div>
-    <div class="mr-auto">
-      {% if bot.token_encrypted %}
-      <span class="status active">فعال</span>
+    <div class="flex items-baseline gap-2 mb-1">
+      <span class="text-2xl font-black text-white font-mono">{{ fleet_kpis.get('total_slots', 18) }}</span>
+      <span class="text-xs text-slate-400">ربات مستقل</span>
+    </div>
+    <div class="text-[0.7rem] text-slate-400">
+      {{ fleet_kpis.get('telegram_count', 9) }} تلگرام | {{ fleet_kpis.get('bale_count', 9) }} بله
+    </div>
+  </article>
+
+  <!-- Card 2: Configured Bots with Token -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-emerald-500">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-xs text-slate-400 font-bold">دارای توکن متصل</span>
+      </div>
+      <span class="text-xs font-mono text-emerald-400 font-bold">{{ fleet_kpis.get('configured_bots', 0) }} / {{ fleet_kpis.get('total_slots', 18) }}</span>
+    </div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: {{ fleet_kpis.get('configured_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>آمادگی ناوگان</span>
+      <span class="font-mono font-bold text-emerald-300">{{ fleet_kpis.get('configured_pct', 0) }}%</span>
+    </div>
+  </article>
+
+  <!-- Card 3: Active Serving Bots -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-amber-500">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span class="text-xs text-slate-400 font-bold">فعال در چرخه خدمت</span>
+      </div>
+      <span class="text-xs font-mono text-amber-400 font-bold">{{ fleet_kpis.get('active_bots', 0) }} / {{ fleet_kpis.get('total_slots', 18) }}</span>
+    </div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: {{ fleet_kpis.get('active_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>ربات‌های فعال (Active)</span>
+      <span class="font-mono font-bold text-amber-300">{{ fleet_kpis.get('active_pct', 0) }}%</span>
+    </div>
+  </article>
+
+  <!-- Card 4: Service Restart Status -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 {% if needs_restart %}border-b-rose-500{% else %}border-b-emerald-500{% endif %}">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full {% if needs_restart %}bg-rose-400 animate-ping{% else %}bg-emerald-400{% endif %}"></span>
+        <span class="text-xs text-slate-400 font-bold">وضعیت ری‌استارت سرویس</span>
+      </div>
+    </div>
+    <div class="flex items-baseline gap-2 mb-1">
+      {% if needs_restart %}
+      <span class="text-base sm:text-lg font-black text-rose-400">نیازمند ری‌استارت</span>
       {% else %}
-      <span class="status draft">بدون توکن</span>
+      <span class="text-base sm:text-lg font-black text-emerald-400">پایدار و همگام</span>
       {% endif %}
     </div>
+    <div class="text-[0.7rem] text-slate-400">
+      {% if needs_restart %}تغییرات توکن در انتظار ری‌استارت پروسه{% else %}تمام توکن‌ها با موفقیت لود شده‌اند{% endif %}
+    </div>
+  </article>
+</section>
+
+<!-- Studio Tabs Navigation -->
+<nav class="flex items-center gap-2 border-b border-white/10 pb-3 mb-8 overflow-x-auto">
+  <a href="/bots?tab=telegram"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'telegram' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>✈️ ناوگان ربات‌های تلگرام (Telegram)</span>
+  </a>
+
+  <a href="/bots?tab=bale"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'bale' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>🌴 ناوگان ربات‌های بله (Bale)</span>
+  </a>
+
+  <a href="/bots?tab=intro_images"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'intro_images' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>🖼 تصاویر معرفی ۵ خانواده ختم</span>
+  </a>
+
+  <a href="/bots?tab=guide"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'guide' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>📘 راهنمای BotFather و ساخت ربات</span>
+  </a>
+</nav>
+
+<!-- ========================================================================= -->
+<!-- TABS 1 & 2: TELEGRAM & BALE BOT FLEET                                      -->
+<!-- ========================================================================= -->
+{% if tab == 'telegram' or tab == 'bale' %}
+{% set current_platform = 'TELEGRAM' if tab == 'telegram' else 'BALE' %}
+{% set fleet_list = telegram_bots if tab == 'telegram' else bale_bots %}
+
+<!-- Creator Bot Card -->
+{% for bot in fleet_list if bot.bot_role == 'CREATOR' %}
+<section class="glass-panel p-6 sm:p-7 rounded-3xl mb-8 border border-white/10 bg-gradient-to-r from-slate-900/80 to-slate-950/80">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300 font-black text-xl flex-none">
+        👑
+      </div>
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            ربات مادر و سازنده (CREATOR)
+          </span>
+          <span class="text-xs font-mono text-slate-400">{{ current_platform }}</span>
+        </div>
+        <h2 class="text-lg sm:text-xl font-bold text-white">{{ bot.display_name }}</h2>
+        <p class="text-xs text-slate-400 mt-0.5">آیدی تلگرام/بله: <span class="font-mono text-emerald-400 font-bold" dir="ltr">@{{ bot.username }}</span></p>
+      </div>
+    </div>
+
+    <div class="flex flex-col sm:items-end gap-1.5">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        توکن امن در env. سرور
+      </span>
+      <span class="text-[0.7rem] text-slate-500">جهت حفاظت از دسترسی، توکن سازنده از فایل تنظیمات خوانده می‌شود.</span>
+    </div>
   </div>
-  {% if bot.username %}
-  <p class="text-xs text-slate-500 mt-2">@{{ bot.username }}</p>
-  {% endif %}
 </section>
 {% endfor %}
 
-<!-- Member Bots Grid -->
-<section class="glass-panel p-6 rounded-3xl">
-  <div class="mb-6 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">باتهای عضو</h2>
-    <p class="text-xs text-slate-500 mt-1">برای هر بات، توکن BotFather و نام کاربری را وارد کنید.</p>
+<!-- Member Bots Section -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
+    <div>
+      <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+        <span>ربات‌های عضو ۵ خانواده ختم (MEMBER BOTS)</span>
+        <span class="text-xs px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">{{ fleet_list|selectattr('bot_role', 'equalto', 'MEMBER')|list|length }} ربات</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">توزیع سهم‌های روزانه، ثبت قرائت‌ها و پیام‌های یادآوری اعضا از طریق این ربات‌ها ارسال می‌گردد.</p>
+    </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for bot in bots if bot.bot_role == 'MEMBER' %}
-    <article class="glass-card p-5 rounded-2xl flex flex-col group" id="bot-{{ bot.id }}">
-      <div class="flex items-start justify-between mb-4">
-        <div>
-          <h3 class="font-bold text-white group-hover:text-emerald-400 transition-colors">{{ bot.display_name }}</h3>
-          <div class="flex gap-2 mt-2">
-            <span class="text-[0.65rem] font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400">{{ bot.category }}</span>
-            <span class="text-[0.65rem] font-bold px-2 py-0.5 rounded bg-violet-500/10 text-violet-400">{{ bot.language }}</span>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    {% for bot in fleet_list if bot.bot_role == 'MEMBER' %}
+    <article class="p-5 rounded-2xl bg-slate-900/70 border border-slate-700/80 flex flex-col justify-between text-xs space-y-4 relative group">
+      <div>
+        <!-- Card Header Badges -->
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-1.5">
+            <span class="px-2.5 py-1 rounded-lg font-bold text-[0.7rem] {% if bot.category == 'quran' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% elif bot.category == 'salawat' %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% elif bot.category == 'dua_ziyarat' %}bg-purple-500/20 text-purple-300 border border-purple-500/30{% elif bot.category == 'laan' %}bg-rose-500/20 text-rose-300 border border-rose-500/30{% else %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% endif %}">
+              {{ bot.category }}
+            </span>
+            <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-slate-800 text-slate-300 border border-slate-700 uppercase">
+              {{ bot.language or 'fa' }}
+            </span>
           </div>
+
+          <!-- Active Toggle Badge & Action -->
+          <form method="post" action="/bots/{{ bot.id }}/toggle" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="tab" value="{{ tab }}">
+            <button type="submit" class="px-2.5 py-0.5 rounded-full text-[0.65rem] font-bold transition-all cursor-pointer flex items-center gap-1.5 {% if bot.is_active %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30{% else %}bg-slate-800 text-slate-400 border border-slate-700 hover:text-white{% endif %}" title="کلیک برای فعال/غیرفعال کردن">
+              <span class="w-1.5 h-1.5 rounded-full {% if bot.is_active %}bg-emerald-400{% else %}bg-slate-600{% endif %}"></span>
+              <span>{% if bot.is_active %}فعال (Active){% else %}غیرفعال{% endif %}</span>
+            </button>
+          </form>
         </div>
-        <div>
-          {% if bot.token_encrypted and bot.is_active %}
-          <span class="status active">فعال</span>
-          {% elif bot.token_encrypted and not bot.is_active %}
-          <span class="status cancelled">غیرفعال</span>
+
+        <h3 class="text-base font-bold text-white mb-1">{{ bot.display_name }}</h3>
+        
+        <p class="text-xs text-slate-400 mb-3 flex items-center justify-between">
+          <span>نام کاربری:</span>
+          {% if bot.username %}
+          <span class="font-mono text-emerald-400 font-bold" dir="ltr">@{{ bot.username }}</span>
           {% else %}
-          <span class="status draft">تنظیم‌نشده</span>
+          <span class="text-slate-500">ثبت‌نشده</span>
+          {% endif %}
+        </p>
+
+        <!-- Token Status Display -->
+        <div class="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800 flex items-center justify-between font-mono text-[0.7rem]">
+          <span class="text-slate-500">توکن رمزنگاری:</span>
+          {% if bot.token_encrypted %}
+          <span class="text-slate-300 tracking-widest font-bold">••••••••••••••••</span>
+          {% else %}
+          <span class="text-rose-400 font-bold font-sans">بدون توکن</span>
           {% endif %}
         </div>
       </div>
 
-      {% if bot.username %}
-      <p class="text-xs text-slate-500 mb-4">@{{ bot.username }}</p>
-      {% endif %}
+      <!-- Progressive Disclosure Drawer for Changing Token -->
+      <details class="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 group/drawer">
+        <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-bold text-emerald-400">
+          <span>🔑 ثبت یا تغییر توکن</span>
+          <span class="text-[0.65rem] group-open/drawer:rotate-180 transition-transform">⌄</span>
+        </summary>
 
-      <!-- Edit form (always visible inline) -->
-      <form method="post" action="/bots/{{ bot.id }}/token" class="border-t border-slate-700/50 pt-4 mt-auto flex flex-col gap-3">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">توکن بات</label>
-          <input type="password" name="token" placeholder="123456:ABC-DEF..." autocomplete="off" class="input-field py-2 text-sm font-mono" dir="ltr">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">نام کاربری (بدون @)</label>
-          <input type="text" name="username" value="{{ bot.username }}" placeholder="KhatmQuranFA_bot" autocomplete="off" class="input-field py-2 text-sm font-mono" dir="ltr">
-        </div>
-        <div>
-          <label class="text-xs text-slate-400 block mb-1">برای تایید، نام نمایشی بات را بنویسید</label>
-          <input type="text" name="confirm_name" placeholder="{{ bot.display_name }}" autocomplete="off" class="input-field py-2 text-sm">
-        </div>
-        <div class="flex gap-2">
-          <button type="submit" class="btn py-2 text-sm flex-1">ذخیره توکن</button>
-          {% if bot.token_encrypted %}
-          <button type="submit" formaction="/bots/{{ bot.id }}/toggle" class="{% if bot.is_active %}bg-rose-500/10 text-rose-400 hover:bg-rose-500{% else %}bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500{% endif %} hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap">{% if bot.is_active %}غیرفعال{% else %}فعال{% endif %}</button>
-          {% endif %}
-        </div>
-      </form>
-      <!-- R2: per-bot intro image shown after commitment/free selection -->
-      <form method="post" action="/bots/{{ bot.id }}/intro_image" class="border-t border-slate-700/50 pt-4 mt-3 flex flex-col gap-2">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <label class="text-xs text-slate-400 block mb-1">عکس معرفی (لینک عکس یا file_id تلگرام) — با کپشن «همه ختم‌ها به نیت صاحب‌الزمان» نشان داده می‌شود</label>
-        <input type="text" name="intro_image_url" value="{{ bot.intro_image_url or '' }}" placeholder="https://…/intro.jpg  یا  AgACAgQAAx…" autocomplete="off" class="input-field py-2 text-sm font-mono" dir="ltr">
-        <button type="submit" class="btn py-2 text-sm">ذخیره عکس معرفی</button>
-      </form>
+        <form method="post" action="/bots/{{ bot.id }}/token" class="space-y-3 mt-3 pt-3 border-t border-slate-800">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="tab" value="{{ tab }}">
+
+          <div>
+            <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">توکن ربات (از BotFather)</label>
+            <input type="password" name="token" placeholder="123456:ABC-DEF..." class="input-field py-1.5 text-xs font-mono w-full" dir="ltr" required>
+          </div>
+
+          <div>
+            <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">نام کاربری ربات (بدون @)</label>
+            <input type="text" name="username" value="{{ bot.username or '' }}" placeholder="my_khatm_bot" class="input-field py-1.5 text-xs font-mono w-full" dir="ltr">
+          </div>
+
+          <div>
+            <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">
+              <span>تایید نام نمایشی:</span>
+              <span class="text-emerald-400 font-normal">«{{ bot.display_name }}»</span>
+            </label>
+            <input type="text" name="confirm_name" placeholder="نام نمایشی دقیق را تایپ کنید..." class="input-field py-1.5 text-xs w-full" required>
+            <p class="text-[0.65rem] text-slate-500 mt-1">جهت اطمینان از عدم تغییر اشتباهی توکن، نام نمایشی را وارد نمایید.</p>
+          </div>
+
+          <button type="submit" class="w-full py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+            ذخیره و رمزنگاری توکن
+          </button>
+        </form>
+      </details>
     </article>
     {% endfor %}
   </div>
 </section>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- TAB 3: FAMILY INTRO IMAGES                                                -->
+<!-- ========================================================================= -->
+{% if tab == 'intro_images' %}
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="pb-6 border-b border-white/10 mb-6">
+    <h2 class="text-xl sm:text-2xl font-extrabold text-white">تصاویر معرفی ۵ خانواده ختم</h2>
+    <p class="text-xs text-slate-400 mt-1">این تصاویر در ابتدای معرفی ختم برای ۵ خانواده (قرآن، صلوات، دعا/زیارت، لعن، خطبه) در هر دو پیام‌رسان تلگرام و بله نمایش داده می‌شوند.</p>
+  </div>
+
+  <form method="post" action="/bots/family-intro-images" enctype="multipart/form-data" class="space-y-6">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="tab" value="intro_images">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {% for key, label, desc in [
+        ('quran', '۱. ختم قرآن کریم', 'تصویر پیش‌فرض معرفی ختم قرآن (تعهدی و آزاد)'),
+        ('salawat', '۲. ختم صلوات', 'تصویر پیش‌فرض پوستر ذکر شریف صلوات'),
+        ('dua_ziyarat', '۳. ادعیه و زیارات', 'تصویر مشترک دعاها و زیارات ائمه اطهار (ع)'),
+        ('laan', '۴. اذکار لعن و برائت', 'تصویر معرفی ختم‌های برائت'),
+        ('khutbah', '۵. خطبه‌های مقدس', 'تصویر معرفی خطبه‌های شریف (نظیر فدکیه)')
+      ] %}
+      <article class="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-bold text-white">{{ label }}</h3>
+            <span class="text-xs font-mono text-slate-500">{{ key }}</span>
+          </div>
+          <p class="text-xs text-slate-400 mb-4">{{ desc }}</p>
+
+          <!-- Current Image Preview -->
+          {% if family_intro_images.get(key) %}
+          <div class="mb-4 p-2 bg-slate-950/60 rounded-xl border border-slate-800 text-center">
+            <a href="{{ family_intro_images.get(key) }}" target="_blank" rel="noopener">
+              <img src="{{ family_intro_images.get(key) }}" alt="{{ label }}" class="max-h-32 mx-auto rounded-lg border border-slate-700 hover:border-emerald-500 transition-colors">
+            </a>
+            <p class="text-[0.65rem] text-slate-500 font-mono mt-1.5 truncate" dir="ltr">{{ family_intro_images.get(key) }}</p>
+          </div>
+          {% endif %}
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">
+                <span>آپلود مستقیم تصویر از کامپیوتر/موبایل:</span>
+              </label>
+              <input type="file" name="file_{{ key }}" accept="image/*" class="input-field text-xs py-1.5 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-300 mb-1">یا آدرس اینترنتی تصویر (URL):</label>
+              <input type="text" name="{{ key }}" value="{{ family_intro_images.get(key, '') }}" placeholder="https://example.com/intro.jpg یا /static/..." class="input-field text-xs py-2 font-mono w-full" dir="ltr">
+            </div>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    <div class="flex justify-end pt-4 border-t border-white/10">
+      <button type="submit" class="px-8 py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+        ذخیره کلیه تصاویر معرفی ۵ خانواده ختم
+      </button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- TAB 4: BOTFATHER GUIDE                                                    -->
+<!-- ========================================================================= -->
+{% if tab == 'guide' %}
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="pb-6 border-b border-white/10 mb-6">
+    <h2 class="text-xl sm:text-2xl font-extrabold text-white">راهنمای جامع اتصال و ساخت ربات‌ها (BotFather)</h2>
+    <p class="text-xs text-slate-400 mt-1">آموزش گام‌به‌گام راه‌اندازی ربات در تلگرام و پیام‌رسان بله و تنظیمات حریم خصوصی</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Telegram BotFather Guide -->
+    <article class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-lg">
+          ✈️
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">راه‌اندازی در تلگرام (Telegram)</h3>
+          <span class="text-xs font-mono text-sky-400">@BotFather</span>
+        </div>
+      </div>
+
+      <ol class="space-y-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed">
+        <li>وارد ربات رسمی <code class="text-emerald-400 font-mono font-bold">@BotFather</code> در تلگرام شوید و دستور <code class="text-emerald-400 font-mono">/start</code> را بزنید.</li>
+        <li>دستور <code class="text-emerald-400 font-mono font-bold">/newbot</code> را ارسال کنید.</li>
+        <li>نام نمایشی ربات (مثلاً: «ختم قرآن صلوات») و سپس یوزرنیم یکتای آن که به <code class="font-mono text-sky-300">bot</code> ختم شود را وارد نمایید.</li>
+        <li>توکن API نمایش داده شده (به فرمت <code class="font-mono text-amber-300">123456789:AA...</code>) را کپی کرده و در تب ناوگان تلگرام ثبت فرمایید.</li>
+        <li><strong>تنظیم حریم خصوصی:</strong> دستور <code class="text-emerald-400 font-mono">/setprivacy</code> را ارسال کنید، ربات را انتخاب کرده و آن را روی <code class="font-mono text-emerald-400">Disable</code> قرار دهید تا ربات در گروه‌ها پیام‌ها را دریافت کند.</li>
+        <li><strong>تنظیم پروفایل و تصویر:</strong> با دستورات <code class="text-emerald-400 font-mono">/setuserpic</code> و <code class="text-emerald-400 font-mono">/setdescription</code> تصویر و توضیحات ربات را تنظیم کنید.</li>
+      </ol>
+    </article>
+
+    <!-- Bale BotFather Guide -->
+    <article class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-4">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+          🌴
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-white">راه‌اندازی در پیام‌رسان بله (Bale)</h3>
+          <span class="text-xs font-mono text-amber-400">بازوی بات‌ساز بله</span>
+        </div>
+      </div>
+
+      <ol class="space-y-3 text-xs text-slate-300 list-decimal list-inside leading-relaxed">
+        <li>در پیام‌رسان بله، وارد بازوی بات‌ساز رسمی <code class="text-emerald-400 font-mono font-bold">@BotFather</code> شوید.</li>
+        <li>دکمه ساخت بازوی جدید یا دستور <code class="text-emerald-400 font-mono">/create</code> را انتخاب کنید.</li>
+        <li>نام بازو و شناسه کاربری دلخواه خود را وارد نمایید.</li>
+        <li>توکن ارائه‌شده توسط بله را کپی کرده و در تب ناوگان بله در کارت مربوطه ثبت کنید.</li>
+        <li>سامانه ختم‌ساز با استفاده از کلاینت استاندارد Bale (سازگار با Bot API تلگرام)، پیام‌ها را به صورت خودکار پولینگ می‌کند.</li>
+      </ol>
+    </article>
+  </div>
+</section>
+{% endif %}
+
 {% endblock %}

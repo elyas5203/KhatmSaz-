@@ -1,3 +1,10 @@
+## 2026-10-19 — Bot Fleet Management & Intro Images Hub (MASTER-53) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md` and document decision DEC-PY-0145.
+- [x] Upgrade Web Admin `/bots` hub with 4 fleet KPI cards and 4-tab architecture (Telegram Fleet, Bale Fleet, Intro Images, BotFather Guide).
+- [x] Implement direct file upload (`UploadFile`) for 5 family intro images to `/static/uploads/intro/`.
+- [x] Implement bot instance toggle active/inactive action (`POST /bots/{id}/toggle`) with audit trail.
+- [x] Add regression suite `tests/test_master_53_bots_hub.py` and run full regression test suite (102/102 PASS).
+
 ## 2026-10-19 — Quran Bank, Reciters & Media Studio (MASTER-52) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md` and document decision DEC-PY-0144.
 - [x] Upgrade Web Admin `/quran` studio with 4 KPI cards and 4-tab architecture (Inspector, Coverage Matrix, Reciters, Sync Tools).

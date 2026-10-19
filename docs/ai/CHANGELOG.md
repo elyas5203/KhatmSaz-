@@ -1,3 +1,16 @@
+## 2026-10-19 — Antigravity — Bot Fleet Management & Intro Images Hub (MASTER-53)
+- **Unified Bot Fleet Hub (`web/app.py` & `web/templates/bot_tokens.html`):**
+  - Upgraded `/bots` with 4 fleet KPI cards: Total Fleet Slots (`total_slots`), Configured Bots with Token (`configured_bots`), Active Bots in Service (`active_bots`), and Service Restart Status (`needs_restart`).
+  - Implemented 4 unified tabs: Tab 1 (Telegram Fleet), Tab 2 (Bale Fleet), Tab 3 (5 Family Intro Images), and Tab 4 (BotFather & Bale Guide).
+- **Direct File Upload for 5 Family Intro Images (`web/app.py` & `web/templates/bot_tokens.html`):**
+  - Implemented direct multipart file upload (`UploadFile`) for Quran, Salawat, Dua & Ziyarat, Laan, and Khutbah intro images to `/static/uploads/intro/` with timestamp prefixes and safe sanitization, coexisting with URL input fallback.
+- **Bot Instance Active Toggle & Security Governance (`web/app.py` & `web/templates/bot_tokens.html`):**
+  - Added `POST /bots/{instance_id}/toggle` allowing admins to toggle member bots active/inactive state without altering tokens, with audit trail (`BOT_ACTIVE_TOGGLED`).
+  - Enforced Creator Bot Token Guard prohibiting editing Creator Bot tokens from the web panel (credentials remain strictly anchored in `.env`).
+  - Enforced confirmation name typing pattern (`confirm_name`) for updating member bot tokens to eliminate accidental edits.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md` and registered `DEC-PY-0145`.
+- **Validation:** 10/10 tests passed in `tests/test_master_53_bots_hub.py`, combined regression suite 102/102 passed.
+
 ## 2026-10-19 — Antigravity — Quran Bank, Reciters & Media Studio (MASTER-52)
 - **Unified Quran Bank & Media Studio (`web/app.py` & `web/templates/quran.html`):**
   - Upgraded `/quran` with 4 coverage KPI cards with percentage and progress bars: Telegram Images Coverage (`telegram_images`), Telegram Audio Coverage (`telegram_audio`), Bale Images Coverage (`bale_images`), and Bale Audio Coverage (`bale_audio`).

@@ -6157,24 +6157,57 @@ async def toggle_template(
 # ---------------------------------------------------------------------------
 
 @app.get("/bots", response_class=HTMLResponse)
-async def bots_page(request: Request, platform: str = "TELEGRAM"):
+async def bots_page(
+    request: Request,
+    platform: str = "TELEGRAM",
+    tab: str = "telegram",
+):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
-    if platform not in ("TELEGRAM", "BALE"):
+
+    tab = tab.strip().lower()
+    if tab not in ("telegram", "bale", "intro_images", "guide"):
+        tab = "telegram" if platform == "TELEGRAM" else "bale"
+
+    if tab == "bale":
+        platform = "BALE"
+    elif tab == "telegram":
         platform = "TELEGRAM"
+    elif platform not in ("TELEGRAM", "BALE"):
+        platform = "TELEGRAM"
+
     async with session_scope() as session:
         all_bots = await bot_registry_service.list_all_instances(session)
         family_intro_images = {
             key: await system_settings_service.get_str(session, f"intro_image_{key}")
             for key in ("quran", "salawat", "dua_ziyarat", "laan", "khutbah")
         }
-    filtered = [b for b in all_bots if b.platform == platform]
+
+    telegram_bots = [b for b in all_bots if b.platform == "TELEGRAM"]
+    bale_bots = [b for b in all_bots if b.platform == "BALE"]
+    filtered = telegram_bots if platform == "TELEGRAM" else bale_bots
+
+    total_slots = len(all_bots)
+    configured_bots = sum(1 for b in all_bots if bool(b.token_encrypted))
+    active_bots = sum(1 for b in all_bots if b.is_active)
     needs_restart = any(
         b.updated_at and b.updated_at > runtime_status.process_started_at()
         for b in all_bots
         if b.bot_role == "MEMBER"
     )
+
+    fleet_kpis = {
+        "total_slots": total_slots,
+        "configured_bots": configured_bots,
+        "configured_pct": round(configured_bots / total_slots * 100) if total_slots else 0,
+        "active_bots": active_bots,
+        "active_pct": round(active_bots / total_slots * 100) if total_slots else 0,
+        "telegram_count": len(telegram_bots),
+        "bale_count": len(bale_bots),
+        "needs_restart": needs_restart,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="bot_tokens.html",
@@ -6183,7 +6216,12 @@ async def bots_page(request: Request, platform: str = "TELEGRAM"):
             admin,
             raw,
             bots=filtered,
+            all_bots=all_bots,
+            telegram_bots=telegram_bots,
+            bale_bots=bale_bots,
             platform=platform,
+            tab=tab,
+            fleet_kpis=fleet_kpis,
             needs_restart=needs_restart,
             saved=request.query_params.get("saved", ""),
             error=request.query_params.get("error", ""),
@@ -6194,33 +6232,70 @@ async def bots_page(request: Request, platform: str = "TELEGRAM"):
 
 @app.post("/bots/family-intro-images")
 async def save_family_intro_images(
-    request: Request, csrf: str = Form(...), quran: str = Form(""),
-    salawat: str = Form(""), dua_ziyarat: str = Form(""), laan: str = Form(""),
+    request: Request,
+    csrf: str = Form(...),
+    tab: str = Form("intro_images"),
+    quran: str = Form(""),
+    salawat: str = Form(""),
+    dua_ziyarat: str = Form(""),
+    laan: str = Form(""),
     khutbah: str = Form(""),
+    file_quran: UploadFile | None = File(None),
+    file_salawat: UploadFile | None = File(None),
+    file_dua_ziyarat: UploadFile | None = File(None),
+    file_laan: UploadFile | None = File(None),
+    file_khutbah: UploadFile | None = File(None),
 ):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    values = {
-        "quran": quran,
-        "salawat": salawat,
-        "dua_ziyarat": dua_ziyarat,
-        "laan": laan,
-        "khutbah": khutbah,
+
+    uploaded_files = {
+        "quran": file_quran,
+        "salawat": file_salawat,
+        "dua_ziyarat": file_dua_ziyarat,
+        "laan": file_laan,
+        "khutbah": file_khutbah,
     }
+
+    values = {
+        "quran": quran if isinstance(quran, str) else str(getattr(quran, "default", "") or ""),
+        "salawat": salawat if isinstance(salawat, str) else str(getattr(salawat, "default", "") or ""),
+        "dua_ziyarat": dua_ziyarat if isinstance(dua_ziyarat, str) else str(getattr(dua_ziyarat, "default", "") or ""),
+        "laan": laan if isinstance(laan, str) else str(getattr(laan, "default", "") or ""),
+        "khutbah": khutbah if isinstance(khutbah, str) else str(getattr(khutbah, "default", "") or ""),
+    }
+
+    # Process any direct file uploads
+    upload_dir = Path("src/khatmsaz/web/static/uploads/intro")
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = int(datetime.now().timestamp())
+
+    for key, uf in uploaded_files.items():
+        if uf is not None and hasattr(uf, "filename") and uf.filename:
+            safe_name = re.sub(r"[^a-zA-Z0-9_\.-]", "_", uf.filename)
+            unique_name = f"{timestamp}_{key}_{safe_name}"
+            file_path = upload_dir / unique_name
+            contents = await uf.read()
+            if contents:
+                file_path.write_bytes(contents)
+                values[key] = f"/static/uploads/intro/{unique_name}"
+
     async with session_scope() as session:
-        try:
-            for key, value in values.items():
-                await system_settings_service.set_str(session, f"intro_image_{key}", value)
-        except ValueError:
-            return HTMLResponse("آدرس هر تصویر باید یک لینک معتبر http یا https باشد.", status_code=400)
+        for key, value in values.items():
+            val = value.strip()
+            if val and not (val.startswith("http://") or val.startswith("https://") or val.startswith("/static/")):
+                return HTMLResponse("آدرس هر تصویر باید یک لینک معتبر http یا مسیر /static/ باشد.", status_code=400)
+            await system_settings_service.set_str(session, f"intro_image_{key}", val)
         await audit_service.record(
-            session, actor_user_id=admin.id, action="FAMILY_INTRO_IMAGES_UPDATE",
+            session,
+            actor_user_id=admin.id,
+            action="FAMILY_INTRO_IMAGES_UPDATE",
             details={key: bool(value.strip()) for key, value in values.items()},
         )
-    return RedirectResponse("/bots?saved=family_images", status_code=303)
+    return RedirectResponse(f"/bots?tab={tab}&saved=family_images", status_code=303)
 
 
 @app.post("/bots/{instance_id}/token")
@@ -6231,6 +6306,7 @@ async def save_bot_token(
     token: str = Form(""),
     username: str = Form(""),
     confirm_name: str = Form(""),
+    tab: str = Form("telegram"),
 ):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
@@ -6238,22 +6314,27 @@ async def save_bot_token(
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
 
+    tab_name = tab if isinstance(tab, str) and tab in ("telegram", "bale", "intro_images", "guide") else "telegram"
+
     async with session_scope() as session:
         instance = await bot_registry_service.get_instance(session, instance_id)
         if instance is None:
             return HTMLResponse("بات پیدا نشد.", status_code=404)
         if instance.bot_role == "CREATOR":
             return RedirectResponse(
-                f"/bots?platform={instance.platform}&error=توکن+بات+سازنده+از+env.+بارگذاری+می‌شود",
+                f"/bots?tab={tab_name}&platform={instance.platform}&error=توکن+بات+سازنده+از+env.+بارگذاری+می‌شود",
                 status_code=303,
             )
-        if confirm_name.strip() != instance.display_name.strip():
+        clean_confirm = confirm_name if isinstance(confirm_name, str) else str(getattr(confirm_name, "default", "") or "")
+        if clean_confirm.strip() != instance.display_name.strip():
             return RedirectResponse(
-                f"/bots?platform={instance.platform}&error=نام+تایید+با+نام+نمایشی+بات+مطابقت+ندارد",
+                f"/bots?tab={tab_name}&platform={instance.platform}&error=نام+تایید+با+نام+نمایشی+بات+مطابقت+ندارد",
                 status_code=303,
             )
+        clean_token = token if isinstance(token, str) else str(getattr(token, "default", "") or "")
+        clean_username = username if isinstance(username, str) else str(getattr(username, "default", "") or "")
         await bot_registry_service.set_bot_token(
-            session, instance_id, token.strip(), username.strip(),
+            session, instance_id, clean_token.strip(), clean_username.strip(),
         )
         await audit_service.record(
             session,
@@ -6262,8 +6343,36 @@ async def save_bot_token(
             details={"instance_id": str(instance_id), "display_name": instance.display_name},
         )
     return RedirectResponse(
-        f"/bots?platform={instance.platform}&saved=1", status_code=303,
+        f"/bots?tab={tab_name}&platform={instance.platform}&saved=token_saved", status_code=303,
     )
+
+
+@app.post("/bots/{instance_id}/toggle")
+async def toggle_bot_instance(
+    request: Request,
+    instance_id: UUID,
+    csrf: str = Form(...),
+    tab: str = Form("telegram"),
+):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    tab_name = tab if isinstance(tab, str) and tab in ("telegram", "bale", "intro_images", "guide") else "telegram"
+    async with session_scope() as session:
+        instance = await bot_registry_service.get_instance(session, instance_id)
+        if instance is None:
+            return HTMLResponse("بات پیدا نشد.", status_code=404)
+        new_state = not instance.is_active
+        await bot_registry_service.toggle_bot_active(session, instance_id, new_state)
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="BOT_ACTIVE_TOGGLED",
+            details={"instance_id": str(instance_id), "display_name": instance.display_name, "is_active": new_state},
+        )
+    return RedirectResponse(f"/bots?tab={tab_name}&platform={instance.platform}&saved=toggled", status_code=303)
 
 
 @app.post("/bots/{instance_id}/intro_image")

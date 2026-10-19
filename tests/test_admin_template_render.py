@@ -256,3 +256,25 @@ def test_quran_page_renders_studio_and_four_kpi_cards():
     assert "صوت‌های بله" in html
     assert "ماتریس ۶۰۴ صفحه" in html
 
+
+def test_bots_page_renders_fleet_kpis_and_tabs():
+    """MASTER-53: bot_tokens.html renders 4 fleet KPIs, 4 tabs, and progressive disclosure without DB."""
+    html = _render(
+        "bot_tokens.html", "/bots",
+        platform="TELEGRAM", tab="telegram",
+        bots=[], all_bots=[], telegram_bots=[], bale_bots=[],
+        family_intro_images={}, saved="", error="", needs_restart=False,
+        fleet_kpis={
+            "total_slots": 18, "configured_bots": 16, "configured_pct": 89,
+            "active_bots": 16, "active_pct": 89, "telegram_count": 9,
+            "bale_count": 9, "needs_restart": False,
+        },
+    )
+
+    assert "مرکز جامع مدیریت ناوگان ربات‌ها و تصاویر معرفی" in html
+    assert "کل اسلات‌های ناوگان" in html
+    assert "دارای توکن متصل" in html
+    assert "فعال در چرخه خدمت" in html
+    assert "ناوگان ربات‌های تلگرام" in html
+
+

@@ -1,3 +1,8 @@
+## 2026-10-19 — Bot Fleet Management & Intro Images Hub (MASTER-53) [Antigravity]
+- Master Document: [MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md](masters/MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md) (Centralized 18-bot fleet command center `/bots` in web admin, 4 fleet KPI cards, 4-tab architecture: Telegram Fleet, Bale Fleet, 5 Family Intro Images, and BotFather/Bale Guides, direct multipart file upload to `/static/uploads/intro/`, Creator bot token protection guard, and member bot active/inactive toggle with audit trail).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/bot_tokens.html`, `src/khatmsaz/modules/bot_registry/service.py`, `src/khatmsaz/core/bot_registry.py`.
+- Tests: `tests/test_master_53_bots_hub.py`, `tests/test_admin_template_render.py`.
+
 ## 2026-10-19 — Quran Bank, Reciters & Media Studio (MASTER-52) [Antigravity]
 - Master Document: [MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md](masters/MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md) (Centralized 604-page Quran studio `/quran` in web admin, 4 coverage KPI cards, 4-tab architecture: Inspector, Coverage Matrix, System Reciters, Channel Seed & Bale Migration Tools, direct multipart file upload to `/static/uploads/quran/`, and asset delete action).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/quran.html`, `src/khatmsaz/modules/content/`, `src/khatmsaz/modules/content/migrator.py`.
