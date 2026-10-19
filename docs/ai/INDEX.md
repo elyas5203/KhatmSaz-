@@ -1,3 +1,8 @@
+## 2026-10-19 — Content & User Moderation Hub (MASTER-55) [Antigravity]
+- Master Document: [MASTER_55_CONTENT_AND_USER_MODERATION_HUB.md](masters/MASTER_55_CONTENT_AND_USER_MODERATION_HUB.md) (Centralized content and user moderation command center `/moderation` in web admin, 4 operational KPI cards, 5-queue architecture: Custom La'n Review, Khatm Cover Images, Khatm Type Proposals, Support Tickets with direct response, and Advertising/Devotional Banners, Auto-Creator and Foreign Auto-Verification alignment, clean removal of dead `/phone-verifications` and `/creator-requests` navigation links).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/moderation.html`, `src/khatmsaz/web/templates/base.html`.
+- Tests: `tests/test_master_55_moderation_hub.py`, `tests/test_admin_template_render.py`.
+
 ## 2026-10-19 — Broadcasts, Creator Messages & Outbound Campaigns Hub (MASTER-54) [Antigravity]
 - Master Document: [MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md](masters/MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md) (Centralized broadcasts and campaigns command center `/broadcasts` in web admin, 4 messaging KPI cards, 4-tab architecture: Pending Review Queue, Broadcasts History & Archive, Servant Ad Campaign, and Tariffs & Package Policies, seamless 303 redirect from `/servant-ad`, direct multipart file upload to `/static/uploads/campaigns/`, rejection note support, and dedicated tariff management).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/broadcasts.html`, `src/khatmsaz/modules/broadcast/service.py`, `src/khatmsaz/modules/servant_ad/service.py`.

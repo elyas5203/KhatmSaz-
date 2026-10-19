@@ -317,4 +317,49 @@ def test_broadcasts_page_renders_kpis_and_tabs():
     assert "تعرفه‌ها و بسته‌های ارسال" in html
 
 
+def test_moderation_page_renders_kpis_and_tabs():
+    """MASTER-55: moderation.html renders 4 KPIs, 5 active tabs, and moderation queues without DB."""
+    html = _render(
+        "moderation.html", "/moderation",
+        active_tab="laan",
+        tab="laan",
+        kpis={
+            "total_pending": 12,
+            "pending_content": 5,
+            "open_tickets": 4,
+            "pending_banners_requests": 3,
+        },
+        counts={
+            "laan": 3,
+            "covers": 2,
+            "requests": 1,
+            "tickets": 4,
+            "banners": 2,
+            "broadcasts": 0,
+            "phones": 0,
+            "creators": 0,
+            "categories": 0,
+        },
+        laan_rows=[],
+        cover_rows=[],
+        khatm_req_rows=[],
+        ticket_rows=[],
+        banner_rows=[],
+        saved="",
+    )
+
+    assert "صف‌های جامع نظارت و تایید صلاحیت" in html
+    assert "کل موارد در انتظار" in html
+    assert "لعن‌ها و کاورها" in html
+    assert "تیکت‌های باز" in html
+    assert "بنرها و پیشنهادات" in html
+    assert "لعن‌های سفارشی" in html
+    assert "کاور ختم‌ها" in html
+    assert "پیشنهاد نوع ختم" in html
+    assert "تیکت‌های پشتیبانی" in html
+    assert "بنرها و تبلیغات" in html
+    assert "هیچ ختم لعن سفارشی در انتظار تأییدی وجود ندارد" in html
+
+
+
 

@@ -1,412 +1,486 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}مرکز نظارت و بررسی درخواست‌ها | ختم‌ساز{% endblock %}
+{% block title %}مرکز جامع نظارت و تایید محتوا | ختم‌ساز{% endblock %}
 {% block content %}
-<div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-  <div>
-    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">مرکز نظارت و تایید صلاحیت محتوا</p>
-    <h1 class="text-2xl sm:text-3xl font-extrabold text-white">صف‌های نظارت و مدیریت درخواست‌ها</h1>
-  </div>
-  <div class="flex items-center gap-2">
-    {{ help_button(
-      "راهنمای مرکز نظارت و تایید",
-      "در این مرکز تمام درخواست‌هایی که نیازمند تایید شرعی، امنیتی یا محتوایی ادمین هستند تجمیع شده‌اند تا بدون نیاز به زدن دستور متنی در ربات، با یک کلیک تایید یا رد شوند.",
-      [
-        "تایید لعن‌های سفارشی: وقتی کاربری متن دلخواه برای لعن می‌نویسد، ختم در وضعیت پیش‌نویس می‌ماند تا شما متن را بخوانید، در صورت نیاز غلط‌های املایی را اصلاح کنید و دکمهٔ «تایید و انتشار» را بزنید.",
-        "بررسی کاور ختم: اگر سازنده عکسی برای پوستر ختم فرستاده باشد، تصویر را چک کرده و تایید یا رد می‌کنید.",
-        "پیشنهادهای نوع ختم: کاربران درخواست اضافه شدن دعاها یا زیارات جدید را ثبت می‌کنند که می‌توانید همراه با یادداشت پاسخ دهید."
-      ],
-      "به محض تایید لعن سفارشی توسط شما، ختم فعال شده و لینک دعوت همراه با کارت ختم به چت تلگرام/بله سازنده ارسال می‌گردد."
-    ) }}
-  </div>
-</div>
+<div class="space-y-6">
 
-{% if saved == 'laan_approved' %}
-<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
-  <span>✅</span>
-  <span>ختم لعن سفارشی با موفقیت تایید شد و لینک دعوت برای سازنده ارسال گردید.</span>
-</div>
-{% elif saved == 'laan_rejected' %}
-<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
-  <span>⚠️</span>
-  <span>ختم لعن رد شد و به سازنده اطلاع داده شد.</span>
-</div>
-{% elif saved == 'cover_approved' %}
-<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
-  <span>✅</span>
-  <span>کاور ختم با موفقیت تایید شد.</span>
-</div>
-{% elif saved == 'cover_rejected' %}
-<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
-  <span>⚠️</span>
-  <span>کاور ختم رد شد.</span>
-</div>
-{% elif saved == 'req_approved' %}
-<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
-  <span>✅</span>
-  <span>پیشنهاد نوع ختم تایید شد و به کاربر اطلاع‌رسانی گردید.</span>
-</div>
-{% elif saved == 'req_rejected' %}
-<div class="p-4 mb-6 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
-  <span>ℹ️</span>
-  <span>پیشنهاد رد شد و پاسخ برای کاربر فرستاده شد.</span>
-</div>
-{% elif saved == 'ticket_answered' %}
-<div class="p-4 mb-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
-  <span>✅</span>
-  <span>پاسخ شما با موفقیت برای کاربر ارسال شد و تیکت به وضعیت پاسخ‌داده‌شده تغییر یافت.</span>
-</div>
-{% elif saved == 'ticket_closed' %}
-<div class="p-4 mb-6 rounded-2xl bg-slate-500/10 border border-slate-500/30 text-slate-300 text-sm font-bold flex items-center gap-2">
-  <span>🔒</span>
-  <span>تیکت بسته شد.</span>
-</div>
-{% endif %}
-
-<!-- Tabs Navigation -->
-<div class="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 mb-6">
-  <a href="/moderation?tab=laan" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'laan' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
-    <span>🔥 لعن‌های سفارشی</span>
-    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'laan' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.laan }}</span>
-  </a>
-  <a href="/moderation?tab=covers" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'covers' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
-    <span>🖼 کاور ختم‌ها</span>
-    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'covers' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.covers }}</span>
-  </a>
-  <a href="/moderation?tab=requests" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'requests' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
-    <span>💡 پیشنهاد نوع ختم</span>
-    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'requests' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.requests }}</span>
-  </a>
-  <a href="/moderation?tab=tickets" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'tickets' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
-    <span>💬 تیکت‌های پشتیبانی</span>
-    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'tickets' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.tickets }}</span>
-  </a>
-  <a href="/moderation?tab=banners" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 {% if active_tab == 'banners' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
-    <span>📢 بنرها و تبلیغات</span>
-    <span class="px-2 py-0.5 rounded-full text-xs {% if active_tab == 'banners' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400{% endif %} font-mono">{{ counts.banners }}</span>
-  </a>
-  <div class="h-5 w-px bg-slate-800 hidden lg:block mx-1"></div>
-  <a href="/broadcasts" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
-    <span>📢 پیام گروهی</span>
-    <span class="text-xs font-mono text-slate-500">({{ counts.broadcasts }})</span>
-  </a>
-  <a href="/phone-verifications" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
-    <span>📱 شماره خارجی</span>
-    <span class="text-xs font-mono text-slate-500">({{ counts.phones }})</span>
-  </a>
-  <a href="/creator-requests" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
-    <span>👑 نقش سازنده</span>
-    <span class="text-xs font-mono text-slate-500">({{ counts.creators }})</span>
-  </a>
-  <a href="/categories" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5">
-    <span>🤲 دعای درخواستی</span>
-    <span class="text-xs font-mono text-slate-500">({{ counts.categories }})</span>
-  </a>
-</div>
-
-{% if active_tab == 'laan' %}
-<!-- TAB 1: LAAN APPROVAL QUEUE -->
-<section class="space-y-4">
-  {% for row in laan_rows %}
-  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید متن</span>
-          <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
-        </div>
-        <h3 class="text-lg font-bold text-white">{{ row.khatm.title }}</h3>
-        <p class="text-xs text-slate-400 mt-0.5">
-          سازنده: <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'ناشناس' }}</strong>
-          (شناسه کاربر: <code class="text-emerald-400">{{ row.khatm.creator_user_id }}</code>)
-        </p>
-      </div>
-      <div class="text-left">
-        <span class="text-xs text-slate-500 font-mono block">شناسه ختم: {{ row.khatm.id }}</span>
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">اتاق فرماندهی نظارت شرعی، محتوایی و پشتیبانی</p>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white">صف‌های جامع نظارت و تایید صلاحیت</h1>
+        {{ help_button(
+          "راهنمای مرکز جامع نظارت و تایید صلاحیت",
+          "در این مرکز تمام درخواست‌هایی که نیازمند تایید شرعی، امنیتی، محتوایی یا پشتیبانی ادمین هستند تجمیع شده‌اند تا بدون نیاز به زدن دستور متنی در ربات، با یک کلیک تایید یا رد شوند.",
+          [
+            "تایید لعن‌های سفارشی: وقتی کاربری متن دلخواه برای لعن می‌نویسد، متن را بازبینی و در صورت لزوم ویرایش کنید و با یک کلیک منتشر فرمایید.",
+            "بررسی کاور ختم: تصاویر و پوسترهای ارسالی سازندگان را بازبینی و تایید یا رد کنید.",
+            "پیشنهادهای نوع ختم: درخواست‌های افزودن ادعیه و زیارات جدید را همراه با یادداشت بازخورد پاسخ دهید.",
+            "تیکت‌های پشتیبانی: پیام‌های کاربران را خوانده و مستقیماً از پنل به چت ربات آن‌ها پاسخ دهید.",
+            "بنرها و تبلیغات: پیام‌های تبلیغاتی یا فرهنگی ثبت‌شده توسط سازندگان را قبل از انتشار تایید فرمایید."
+          ],
+          "نکته: به محض تایید هر آیتم، تغییرات در همان لحظه در تمام ربات‌های تلگرام و بله اعمال شده و پیام به سازنده یا کاربر ارسال می‌گردد."
+        ) }}
       </div>
     </div>
-
-    <form method="post" action="/moderation/laan/{{ row.khatm.id }}/decide" class="space-y-4">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1.5">
-          متن لعن ثبت‌شده توسط کاربر (می‌توانید قبل از تایید ویرایش کنید):
-          {{ tooltip("این متن دقیقاً متنی است که کاربر فرستاده. اگر غلط املایی دارد می‌توانید آن را اصلاح کنید تا با متن اصلاح‌شده ذخیره و منتشر شود.") }}
-        </label>
-        <textarea name="updated_description" rows="3" class="w-full p-3.5 rounded-2xl bg-slate-950/60 border border-slate-700 text-slate-200 text-sm leading-relaxed focus:border-emerald-500 focus:outline-none font-medium">{{ row.khatm.description or row.khatm.title }}</textarea>
-      </div>
-
-      <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
-        <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد کردن این ختم اطمینان دارید؟');" class="px-5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all cursor-pointer">
-          ❌ رد کردن ختم
-        </button>
-        <button type="submit" name="decision" value="approve" class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
-          ✅ تأیید و انتشار ختم (ارسال کارت برای سازنده)
-        </button>
-      </div>
-    </form>
   </div>
-  {% else %}
-  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
-    <span class="text-4xl block mb-2">🎉</span>
-    <b class="text-white text-base block mb-1">هیچ ختم لعن سفارشی در انتظار تأییدی وجود ندارد</b>
-    <p class="text-xs text-slate-400">تمام ختم‌های لعن اختصاصی بررسی و تعیین تکلیف شده‌اند.</p>
-  </div>
-  {% endfor %}
-</section>
 
-{% elif active_tab == 'covers' %}
-<!-- TAB 2: COVERS APPROVAL QUEUE -->
-<section class="space-y-4">
-  {% for row in cover_rows %}
-  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
-    <div class="flex flex-col md:flex-row gap-6">
-      <div class="w-full md:w-56 shrink-0 flex flex-col items-center">
-        {% if row.khatm.cover_ref %}
-        <img src="{{ row.khatm.cover_ref }}" alt="کاور ختم" class="w-full h-48 object-cover rounded-2xl border border-slate-700 shadow-lg" onerror="this.src='/static/khatm-logo.png';">
-        {% else %}
-        <div class="w-full h-48 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 text-xs">بدون پیش‌نمایش</div>
-        {% endif %}
+  <!-- 4 KPIs Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <!-- KPI 1: Total Pending -->
+    <div class="glass-card p-4 rounded-2xl border border-amber-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">کل موارد در انتظار</span>
+        <span class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-sm">⚖️</span>
       </div>
-      <div class="flex-1 flex flex-col justify-between">
+      <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{{ kpis.total_pending if kpis else counts.laan + counts.covers + counts.requests + counts.tickets + counts.banners }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">مجموع کل صف‌های ۵ گانه</p>
+    </div>
+
+    <!-- KPI 2: Pending Content -->
+    <div class="glass-card p-4 rounded-2xl border border-emerald-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">لعن‌ها و کاورها</span>
+        <span class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm">🖼</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">{{ kpis.pending_content if kpis else counts.laan + counts.covers }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">محتوای ختم منتظر انتشار</p>
+    </div>
+
+    <!-- KPI 3: Open Tickets -->
+    <div class="glass-card p-4 rounded-2xl border border-sky-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">تیکت‌های باز</span>
+        <span class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-sm">💬</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-sky-400 font-mono">{{ kpis.open_tickets if kpis else counts.tickets }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">پیام‌های پشتیبانی کاربران</p>
+    </div>
+
+    <!-- KPI 4: Pending Banners & Requests -->
+    <div class="glass-card p-4 rounded-2xl border border-purple-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">بنرها و پیشنهادات</span>
+        <span class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center text-sm">📢</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-purple-400 font-mono">{{ kpis.pending_banners_requests if kpis else counts.requests + counts.banners }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">تبلیغات و پیشنهاد دعاهای جدید</p>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  {% if saved == 'laan_approved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>ختم لعن سفارشی با موفقیت تایید شد و لینک دعوت برای سازنده ارسال گردید.</span>
+  </div>
+  {% elif saved == 'laan_rejected' %}
+  <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+    <span>⚠️</span>
+    <span>ختم لعن رد شد و به سازنده اطلاع داده شد.</span>
+  </div>
+  {% elif saved == 'cover_approved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>کاور ختم با موفقیت تایید شد.</span>
+  </div>
+  {% elif saved == 'cover_rejected' %}
+  <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+    <span>⚠️</span>
+    <span>کاور ختم رد شد.</span>
+  </div>
+  {% elif saved == 'req_approved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>پیشنهاد نوع ختم تایید شد و به کاربر اطلاع‌رسانی گردید.</span>
+  </div>
+  {% elif saved == 'req_rejected' %}
+  <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+    <span>ℹ️</span>
+    <span>پیشنهاد رد شد و پاسخ برای کاربر فرستاده شد.</span>
+  </div>
+  {% elif saved == 'ticket_answered' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>پاسخ شما با موفقیت برای کاربر ارسال شد و تیکت به وضعیت پاسخ‌داده‌شده تغییر یافت.</span>
+  </div>
+  {% elif saved == 'ticket_closed' %}
+  <div class="p-4 rounded-2xl bg-slate-500/10 border border-slate-500/30 text-slate-300 text-sm font-bold flex items-center gap-2">
+    <span>🔒</span>
+    <span>تیکت بسته شد.</span>
+  </div>
+  {% elif saved == 'banner_approved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>بنر با موفقیت تایید شد و در نوبت نمایش قرار گرفت.</span>
+  </div>
+  {% elif saved == 'banner_rejected' %}
+  <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+    <span>⚠️</span>
+    <span>بنر رد شد و وجه به کیف پول سازنده بازگردانده شد.</span>
+  </div>
+  {% endif %}
+
+  <!-- 5 Active Tabs Navigation -->
+  <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 overflow-x-auto scrollbar-none">
+    <a href="/moderation?tab=laan"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if active_tab == 'laan' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>🔥 لعن‌های سفارشی</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if active_tab == 'laan' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400 border border-amber-500/30{% endif %}">{{ counts.laan }}</span>
+    </a>
+
+    <a href="/moderation?tab=covers"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if active_tab == 'covers' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>🖼 کاور ختم‌ها</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if active_tab == 'covers' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400 border border-amber-500/30{% endif %}">{{ counts.covers }}</span>
+    </a>
+
+    <a href="/moderation?tab=requests"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if active_tab == 'requests' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>💡 پیشنهاد نوع ختم</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if active_tab == 'requests' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400 border border-amber-500/30{% endif %}">{{ counts.requests }}</span>
+    </a>
+
+    <a href="/moderation?tab=tickets"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if active_tab == 'tickets' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>💬 تیکت‌های پشتیبانی</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if active_tab == 'tickets' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400 border border-amber-500/30{% endif %}">{{ counts.tickets }}</span>
+    </a>
+
+    <a href="/moderation?tab=banners"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if active_tab == 'banners' %}bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>📢 بنرها و تبلیغات</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if active_tab == 'banners' %}bg-slate-950/20 text-slate-950{% else %}bg-slate-800 text-amber-400 border border-amber-500/30{% endif %}">{{ counts.banners }}</span>
+    </a>
+
+    <div class="h-5 w-px bg-slate-800 hidden lg:block mx-1"></div>
+
+    <a href="/broadcasts" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-all flex items-center gap-1.5 whitespace-nowrap">
+      <span>📢 پیام‌های گروهی</span>
+      <span class="text-xs font-mono text-slate-500">({{ counts.broadcasts }})</span>
+    </a>
+  </div>
+
+  <!-- TAB 1: LAAN APPROVAL QUEUE -->
+  {% if active_tab == 'laan' %}
+  <section class="space-y-4">
+    {% for row in laan_rows %}
+    <div class="glass-panel rounded-3xl p-6 border border-slate-700/60">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
         <div>
-          <div class="flex items-center gap-2 mb-1.5">
-            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">کاور در انتظار بررسی</span>
-            <span class="text-xs text-slate-400">{{ row.time }}</span>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید متن</span>
+            <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
           </div>
-          <h3 class="text-lg font-bold text-white mb-1">{{ row.khatm.title }}</h3>
-          <p class="text-xs text-slate-400 mb-3">
+          <h3 class="text-lg font-bold text-white">{{ row.khatm.title }}</h3>
+          <p class="text-xs text-slate-400 mt-0.5">
             سازنده: <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'ناشناس' }}</strong>
+            {% if row.khatm.creator_user_id %}
+            (<a href="/users/{{ row.khatm.creator_user_id }}" class="text-emerald-400 hover:underline">مشاهده کاربر ۳۶۰°</a>)
+            {% endif %}
           </p>
         </div>
-
-        <form method="post" action="/moderation/covers/{{ row.khatm.id }}/decide" class="space-y-3 pt-3 border-t border-slate-800">
-          <input type="hidden" name="csrf" value="{{ csrf }}">
-          <div>
-            <input type="text" name="note" placeholder="یادداشت مدیر (در صورت رد شدن برای کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
-          </div>
-          <div class="flex items-center justify-end gap-3">
-            <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
-              ❌ رد کاور
-            </button>
-            <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
-              ✅ تأیید کاور
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  {% else %}
-  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
-    <span class="text-4xl block mb-2">🖼</span>
-    <b class="text-white text-base block mb-1">هیچ کاوری در انتظار بررسی نیست</b>
-    <p class="text-xs text-slate-400">تمام تصاویر کاور ارسالی بررسی شده‌اند.</p>
-  </div>
-  {% endfor %}
-</section>
-
-{% elif active_tab == 'requests' %}
-<!-- TAB 3: KHATM TYPE REQUESTS -->
-<section class="space-y-4">
-  {% for row in khatm_req_rows %}
-  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">پیشنهاد جدید</span>
-          <span class="text-xs text-slate-400">{{ row.time }}</span>
+        <div class="text-left">
+          <span class="text-xs text-slate-500 font-mono block">شناسه ختم: {{ row.khatm.id }}</span>
         </div>
-        <p class="text-xs text-slate-400">
-          ارسال‌شده توسط: <strong class="text-slate-200">{{ row.requester.display_name if row.requester else 'کاربر' }}</strong>
-          (شناسه: <code class="text-emerald-400">{{ row.item.requester_user_id }}</code>)
-        </p>
       </div>
-      <span class="text-xs text-slate-500 font-mono">شناسه درخواست: {{ row.item.id }}</span>
+
+      <form method="post" action="/moderation/laan/{{ row.khatm.id }}/decide" class="space-y-4">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">
+            متن لعن ثبت‌شده توسط کاربر (می‌توانید قبل از تایید ویرایش کنید):
+            {{ tooltip("این متن دقیقاً متنی است که کاربر فرستاده. اگر غلط املایی دارد می‌توانید آن را اصلاح کنید تا با متن اصلاح‌شده ذخیره و منتشر شود.") }}
+          </label>
+          <textarea name="updated_description" rows="3" class="w-full p-3.5 rounded-2xl bg-slate-950/60 border border-slate-700 text-slate-200 text-sm leading-relaxed focus:border-emerald-500 focus:outline-none font-medium">{{ row.khatm.description or row.khatm.title }}</textarea>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-3 pt-2">
+          <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد کردن این ختم اطمینان دارید؟');" class="px-5 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs sm:text-sm font-bold transition-all cursor-pointer">
+            ❌ رد کردن ختم
+          </button>
+          <button type="submit" name="decision" value="approve" class="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+            ✅ تأیید و انتشار ختم (ارسال کارت برای سازنده)
+          </button>
+        </div>
+      </form>
     </div>
-
-    <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
-      <b class="text-xs text-slate-400 block mb-1">متن پیشنهاد / توضیحات کاربر:</b>
-      <p class="text-sm text-slate-200 leading-relaxed">{{ row.item.description }}</p>
-      {% if row.item.attachment_ref %}
-      <div class="mt-3 pt-3 border-t border-slate-900 flex items-center gap-2 text-xs text-emerald-400">
-        <span>📎 فایل ضمیمه:</span>
-        <code class="text-[0.7rem] bg-slate-900 px-2 py-1 rounded-lg">{{ row.item.attachment_ref }}</code>
-      </div>
-      {% endif %}
+    {% else %}
+    <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+      <span class="text-4xl block mb-2">🎉</span>
+      <b class="text-white text-base block mb-1">هیچ ختم لعن سفارشی در انتظار تأییدی وجود ندارد</b>
+      <p class="text-xs text-slate-400">تمام ختم‌های لعن اختصاصی بررسی و تعیین تکلیف شده‌اند.</p>
     </div>
+    {% endfor %}
+  </section>
+  {% endif %}
 
-    <form method="post" action="/moderation/khatm-requests/{{ row.item.id }}/decide" class="space-y-3">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div>
-        <input type="text" name="note" placeholder="یادداشت و پاسخ شما برای کاربر (در اعلان به کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
-      </div>
-      <div class="flex items-center justify-end gap-3">
-        <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
-          ❌ رد پیشنهاد
-        </button>
-        <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
-          ✅ تأیید و ثبت در سیستم
-        </button>
-      </div>
-    </form>
-  </div>
-  {% else %}
-  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
-    <span class="text-4xl block mb-2">💡</span>
-    <b class="text-white text-base block mb-1">هیچ پیشنهاد نوع ختمی در انتظار بررسی نیست</b>
-    <p class="text-xs text-slate-400">تمام درخواست‌های کاربران تعیین تکلیف شده‌اند.</p>
-  </div>
-  {% endfor %}
-</section>
-
-{% elif active_tab == 'tickets' %}
-<!-- TAB 4: SUPPORT TICKETS & FEEDBACK -->
-<section class="space-y-4">
-  {% for row in ticket_rows %}
-  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          {% if row.ticket.status.value == 'PENDING' %}
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">⏳ در انتظار پاسخ</span>
-          {% elif row.ticket.status.value == 'ANSWERED' %}
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">✅ پاسخ داده شده</span>
+  <!-- TAB 2: COVERS APPROVAL QUEUE -->
+  {% if active_tab == 'covers' %}
+  <section class="space-y-4">
+    {% for row in cover_rows %}
+    <div class="glass-panel rounded-3xl p-6 border border-slate-700/60">
+      <div class="flex flex-col md:flex-row gap-6">
+        <div class="w-full md:w-56 shrink-0 flex flex-col items-center">
+          {% if row.khatm.cover_ref %}
+          <img src="{{ row.khatm.cover_ref }}" alt="کاور ختم" class="w-full h-48 object-cover rounded-2xl border border-slate-700 shadow-lg" onerror="this.src='/static/khatm-logo.png';">
           {% else %}
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-slate-500/20 text-slate-300 font-bold">🔒 بسته شده</span>
+          <div class="w-full h-48 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-500 text-xs">بدون پیش‌نمایش</div>
           {% endif %}
-          <span class="text-xs text-slate-400">{{ row.time }}</span>
         </div>
-        <p class="text-xs text-slate-400">
-          ارسال‌شده توسط: <strong class="text-slate-200">{{ row.sender.display_name if row.sender else 'کاربر' }}</strong>
-          (شناسه کاربر: <code class="text-emerald-400">{{ row.ticket.sender_user_id }}</code>)
-        </p>
-      </div>
-      <span class="text-xs text-slate-500 font-mono">شناسه تیکت: {{ row.ticket.id }}</span>
-    </div>
+        <div class="flex-1 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 mb-1.5">
+              <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">کاور در انتظار بررسی</span>
+              <span class="text-xs text-slate-400">{{ row.time }}</span>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">{{ row.khatm.title }}</h3>
+            <p class="text-xs text-slate-400 mb-3">
+              سازنده: <strong class="text-slate-200">{{ row.creator.display_name if row.creator else 'ناشناس' }}</strong>
+              {% if row.khatm.creator_user_id %}
+              (<a href="/users/{{ row.khatm.creator_user_id }}" class="text-emerald-400 hover:underline">مشاهده کاربر ۳۶۰°</a>)
+              {% endif %}
+            </p>
+          </div>
 
-    <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
-      <b class="text-xs text-slate-400 block mb-1">متن پیام / پیشنهاد کاربر:</b>
-      <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.body }}</p>
-    </div>
-
-    {% if row.ticket.status.value == 'ANSWERED' %}
-    <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 mb-4">
-      <div class="flex items-center justify-between mb-1">
-        <b class="text-xs text-emerald-400">پاسخ ارسال‌شده توسط پشتیبانی:</b>
-        {% if row.reply_time %}<span class="text-[0.7rem] text-slate-400">{{ row.reply_time }}</span>{% endif %}
-      </div>
-      <p class="text-xs text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.reply_text }}</p>
-    </div>
-    {% endif %}
-
-    {% if row.ticket.status.value == 'PENDING' %}
-    <form method="post" action="/moderation/tickets/{{ row.ticket.id }}/reply" class="space-y-3">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div>
-        <textarea name="reply_text" rows="3" required placeholder="متن پاسخ خود را اینجا بنویسید (این پاسخ بلافاصله از طریق ربات به چت تلگرام/بله کاربر ارسال می‌شود)..." class="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none"></textarea>
-      </div>
-      <div class="flex items-center justify-end gap-3">
-        <button type="submit" formaction="/moderation/tickets/{{ row.ticket.id }}/close" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition-all cursor-pointer">
-          بستن بدون پاسخ
-        </button>
-        <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
-          💬 ارسال پاسخ مستقیم به کاربر
-        </button>
-      </div>
-    </form>
-    {% endif %}
-  </div>
-  {% else %}
-  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
-    <span class="text-4xl block mb-2">💬</span>
-    <b class="text-white text-base block mb-1">صندوق تیکت‌ها و پیشنهادات خالی است</b>
-    <p class="text-xs text-slate-400">هیچ پیامی در انتظار رسیدگی وجود ندارد.</p>
-  </div>
-  {% endfor %}
-</section>
-{% elif active_tab == 'banners' %}
-<!-- TAB 5: BANNERS & ADS MODERATION QUEUE -->
-<section class="space-y-4">
-  {% for row in banner_rows %}
-  <div class="glass-panel rounded-3xl p-6 border-slate-700/60">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
-      <div>
-        <div class="flex items-center gap-2 mb-1">
-          <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید ادمین</span>
-          <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
+          <form method="post" action="/moderation/covers/{{ row.khatm.id }}/decide" class="space-y-3 pt-3 border-t border-slate-800">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <div>
+              <input type="text" name="note" placeholder="یادداشت مدیر (در صورت رد شدن برای کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
+            </div>
+            <div class="flex items-center justify-end gap-3">
+              <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+                ❌ رد کاور
+              </button>
+              <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+                ✅ تأیید کاور
+              </button>
+            </div>
+          </form>
         </div>
-        <h3 class="text-lg font-bold text-white">{{ row.banner.title }}</h3>
-        <p class="text-xs text-slate-400 mt-0.5">
-          سازنده: <strong class="text-slate-200">{{ row.creator_name }}</strong>
-          {% if row.banner.creator_user_id %}
-          (<a href="/users/{{ row.banner.creator_user_id }}" class="text-emerald-400 hover:underline">مشاهده پروفایل ۳۶۰°</a>)
-          {% endif %}
-          {% if row.khatm_title %}
-          | ختم: <strong class="text-sky-300">{{ row.khatm_title }}</strong>
-          {% endif %}
-        </p>
       </div>
-      <div class="text-left flex flex-col items-end">
-        <span class="text-xs text-slate-400 font-mono">شناسه بنر: {{ row.banner.id }}</span>
-        {% if row.banner.cost_toman > 0 %}
-        <span class="text-xs font-bold text-amber-400 mt-1">هزینه کسر شده: {{ "{:,}".format(row.banner.cost_toman) }} تومان</span>
+    </div>
+    {% else %}
+    <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+      <span class="text-4xl block mb-2">🖼</span>
+      <b class="text-white text-base block mb-1">هیچ کاوری در انتظار بررسی نیست</b>
+      <p class="text-xs text-slate-400">تمام تصاویر کاور ارسالی بررسی شده‌اند.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <!-- TAB 3: KHATM TYPE REQUESTS -->
+  {% if active_tab == 'requests' %}
+  <section class="space-y-4">
+    {% for row in khatm_req_rows %}
+    <div class="glass-panel rounded-3xl p-6 border border-slate-700/60">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">پیشنهاد جدید</span>
+            <span class="text-xs text-slate-400">{{ row.time }}</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            ارسال‌شده توسط: <strong class="text-slate-200">{{ row.requester.display_name if row.requester else 'کاربر' }}</strong>
+            {% if row.item.requester_user_id %}
+            (<a href="/users/{{ row.item.requester_user_id }}" class="text-emerald-400 hover:underline">مشاهده کاربر ۳۶۰°</a>)
+            {% endif %}
+          </p>
+        </div>
+        <span class="text-xs text-slate-500 font-mono">شناسه درخواست: {{ row.item.id }}</span>
+      </div>
+
+      <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
+        <b class="text-xs text-slate-400 block mb-1">متن پیشنهاد / توضیحات کاربر:</b>
+        <p class="text-sm text-slate-200 leading-relaxed">{{ row.item.description }}</p>
+        {% if row.item.attachment_ref %}
+        <div class="mt-3 pt-3 border-t border-slate-900 flex items-center gap-2 text-xs text-emerald-400">
+          <span>📎 فایل ضمیمه:</span>
+          <code class="text-[0.7rem] bg-slate-900 px-2 py-1 rounded-lg">{{ row.item.attachment_ref }}</code>
+        </div>
         {% endif %}
       </div>
-    </div>
 
-    <div class="bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 mb-4">
-      <div class="flex items-center gap-2 mb-2">
-        {% if row.banner.banner_type.value == 'SYSTEM_CULTURAL' or row.banner.banner_type == 'SYSTEM_CULTURAL' %}
-        <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">🕌 فرهنگی / مذهبی</span>
-        {% else %}
-        <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300 font-bold">💼 تبلیغات تجاری</span>
-        {% endif %}
-        <span class="text-xs text-slate-400">
-          جایگاه: {{ row.banner.placement.value if row.banner.placement.value else row.banner.placement }}
-        </span>
+      <form method="post" action="/moderation/khatm-requests/{{ row.item.id }}/decide" class="space-y-3">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div>
+          <input type="text" name="note" placeholder="یادداشت و پاسخ شما برای کاربر (در اعلان به کاربر فرستاده می‌شود)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
+        </div>
+        <div class="flex items-center justify-end gap-3">
+          <button type="submit" name="decision" value="reject" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+            ❌ رد پیشنهاد
+          </button>
+          <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+            ✅ تأیید و ثبت در سیستم
+          </button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+      <span class="text-4xl block mb-2">💡</span>
+      <b class="text-white text-base block mb-1">هیچ پیشنهاد نوع ختمی در انتظار بررسی نیست</b>
+      <p class="text-xs text-slate-400">تمام درخواست‌های کاربران تعیین تکلیف شده‌اند.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <!-- TAB 4: SUPPORT TICKETS & FEEDBACK -->
+  {% if active_tab == 'tickets' %}
+  <section class="space-y-4">
+    {% for row in ticket_rows %}
+    <div class="glass-panel rounded-3xl p-6 border border-slate-700/60">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            {% if row.ticket.status.value == 'PENDING' %}
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">⏳ در انتظار پاسخ</span>
+            {% elif row.ticket.status.value == 'ANSWERED' %}
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">✅ پاسخ داده شده</span>
+            {% else %}
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-slate-500/20 text-slate-300 font-bold">🔒 بسته شده</span>
+            {% endif %}
+            <span class="text-xs text-slate-400">{{ row.time }}</span>
+          </div>
+          <p class="text-xs text-slate-400">
+            ارسال‌شده توسط: <strong class="text-slate-200">{{ row.sender.display_name if row.sender else 'کاربر' }}</strong>
+            {% if row.ticket.sender_user_id %}
+            (<a href="/users/{{ row.ticket.sender_user_id }}" class="text-emerald-400 hover:underline">مشاهده کاربر ۳۶۰°</a>)
+            {% endif %}
+          </p>
+        </div>
+        <span class="text-xs text-slate-500 font-mono">شناسه تیکت: {{ row.ticket.id }}</span>
       </div>
 
-      <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{{ row.banner.content_text }}</p>
+      <div class="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 mb-4">
+        <b class="text-xs text-slate-400 block mb-1">متن پیام / پیشنهاد کاربر:</b>
+        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.body }}</p>
+      </div>
 
-      {% if row.banner.image_url %}
-      <div class="mt-3">
-        <img src="{{ row.banner.image_url }}" alt="پوستر بنر" class="max-h-48 rounded-xl object-cover border border-slate-700">
+      {% if row.ticket.status.value == 'ANSWERED' %}
+      <div class="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-800/40 mb-4">
+        <div class="flex items-center justify-between mb-1">
+          <b class="text-xs text-emerald-400">پاسخ ارسال‌شده توسط پشتیبانی:</b>
+          {% if row.reply_time %}<span class="text-[0.7rem] text-slate-400">{{ row.reply_time }}</span>{% endif %}
+        </div>
+        <p class="text-xs text-slate-200 leading-relaxed whitespace-pre-line">{{ row.ticket.reply_text }}</p>
       </div>
       {% endif %}
 
-      {% if row.banner.button_text and row.banner.button_url %}
-      <div class="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
-        <span class="text-xs text-slate-400">دکمه شیشه‌ای:</span>
-        <a href="{{ row.banner.button_url }}" target="_blank" rel="noopener" class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold hover:underline inline-flex items-center gap-1">
-          <span>🔗 {{ row.banner.button_text }}</span>
-        </a>
-      </div>
+      {% if row.ticket.status.value == 'PENDING' %}
+      <form method="post" action="/moderation/tickets/{{ row.ticket.id }}/reply" class="space-y-3">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div>
+          <textarea name="reply_text" rows="3" required placeholder="متن پاسخ خود را اینجا بنویسید (این پاسخ بلافاصله از طریق ربات به چت تلگرام/بله کاربر ارسال می‌شود)..." class="w-full p-3 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none"></textarea>
+        </div>
+        <div class="flex items-center justify-end gap-3">
+          <button type="submit" formaction="/moderation/tickets/{{ row.ticket.id }}/close" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition-all cursor-pointer">
+            بستن بدون پاسخ
+          </button>
+          <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+            💬 ارسال پاسخ مستقیم به کاربر
+          </button>
+        </div>
+      </form>
       {% endif %}
     </div>
+    {% else %}
+    <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+      <span class="text-4xl block mb-2">💬</span>
+      <b class="text-white text-base block mb-1">صندوق تیکت‌ها و پیشنهادات خالی است</b>
+      <p class="text-xs text-slate-400">هیچ پیامی در انتظار رسیدگی وجود ندارد.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
 
-    <form method="post" action="/moderation/banners/{{ row.banner.id }}/decide" class="space-y-3">
-      <input type="hidden" name="csrf" value="{{ csrf }}">
-      <div>
-        <input type="text" name="admin_note" placeholder="یادداشت مدیر (در صورت رد، علت استرداد هزینه را بنویسید)..." class="input-field text-xs">
+  <!-- TAB 5: BANNERS & ADS MODERATION QUEUE -->
+  {% if active_tab == 'banners' %}
+  <section class="space-y-4">
+    {% for row in banner_rows %}
+    <div class="glass-panel rounded-3xl p-6 border border-slate-700/60">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 pb-4 border-b border-slate-800">
+        <div>
+          <div class="flex items-center gap-2 mb-1">
+            <span class="px-2.5 py-0.5 rounded-full text-xs bg-amber-500/20 text-amber-300 font-bold">در انتظار تأیید ادمین</span>
+            <span class="text-xs text-slate-400">ثبت‌شده در: {{ row.time }}</span>
+          </div>
+          <h3 class="text-lg font-bold text-white">{{ row.banner.title }}</h3>
+          <p class="text-xs text-slate-400 mt-0.5">
+            سازنده: <strong class="text-slate-200">{{ row.creator_name }}</strong>
+            {% if row.banner.creator_user_id %}
+            (<a href="/users/{{ row.banner.creator_user_id }}" class="text-emerald-400 hover:underline">مشاهده پروفایل ۳۶۰°</a>)
+            {% endif %}
+            {% if row.khatm_title %}
+            | ختم: <strong class="text-sky-300">{{ row.khatm_title }}</strong>
+            {% endif %}
+          </p>
+        </div>
+        <div class="text-left flex flex-col items-end">
+          <span class="text-xs text-slate-400 font-mono">شناسه بنر: {{ row.banner.id }}</span>
+          {% if row.banner.cost_toman is defined and row.banner.cost_toman and row.banner.cost_toman > 0 %}
+          <span class="text-xs font-bold text-amber-400 mt-1">هزینه کسر شده: {{ "{:,}".format(row.banner.cost_toman) }} تومان</span>
+          {% endif %}
+        </div>
       </div>
-      <div class="flex items-center justify-end gap-3 pt-1">
-        <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد این بنر اطمینان دارید؟ در صورت کسر هزینه، وجه به کیف پول سازنده بازگردانده می‌شود.');" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
-          ❌ رد بنر و استرداد وجه
-        </button>
-        <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
-          ✅ تأیید و انتشار بنر
-        </button>
+
+      <div class="bg-slate-950/60 rounded-2xl p-4 border border-slate-800/80 mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          {% if row.banner.banner_type and (row.banner.banner_type.value == 'SYSTEM_CULTURAL' or row.banner.banner_type == 'SYSTEM_CULTURAL') %}
+          <span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 font-bold">🕌 فرهنگی / مذهبی</span>
+          {% else %}
+          <span class="px-2 py-0.5 rounded-full text-xs bg-indigo-500/20 text-indigo-300 font-bold">💼 تبلیغات تجاری</span>
+          {% endif %}
+          <span class="text-xs text-slate-400">
+            جایگاه: {{ row.banner.placement.value if (row.banner.placement and row.banner.placement.value) else (row.banner.placement or 'عمومی') }}
+          </span>
+        </div>
+
+        <p class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">{{ row.banner.content_text }}</p>
+
+        {% if row.banner.image_url %}
+        <div class="mt-3">
+          <img src="{{ row.banner.image_url }}" alt="پوستر بنر" class="max-h-48 rounded-xl object-cover border border-slate-700">
+        </div>
+        {% endif %}
+
+        {% if row.banner.button_text and row.banner.button_url %}
+        <div class="mt-3 pt-3 border-t border-slate-800 flex items-center gap-2">
+          <span class="text-xs text-slate-400">دکمه شیشه‌ای:</span>
+          <a href="{{ row.banner.button_url }}" target="_blank" rel="noopener" class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 text-xs font-bold hover:underline inline-flex items-center gap-1">
+            <span>🔗 {{ row.banner.button_text }}</span>
+          </a>
+        </div>
+        {% endif %}
       </div>
-    </form>
-  </div>
-  {% else %}
-  <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
-    <span class="text-4xl block mb-2">📢</span>
-    <b class="text-white text-base block mb-1">صف نظارت بنرها و تبلیغات خالی است</b>
-    <p class="text-xs text-slate-400">هیچ بنر یا تبلیغی در انتظار بررسی ادمین وجود ندارد.</p>
-  </div>
-  {% endfor %}
-</section>
-{% endif %}
+
+      <form method="post" action="/moderation/banners/{{ row.banner.id }}/decide" class="space-y-3">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <div>
+          <input type="text" name="admin_note" placeholder="یادداشت مدیر (در صورت رد، علت استرداد هزینه را بنویسید)..." class="w-full p-2.5 rounded-xl bg-slate-950/60 border border-slate-700 text-slate-200 text-xs focus:border-emerald-500 focus:outline-none">
+        </div>
+        <div class="flex items-center justify-end gap-3 pt-1">
+          <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد این بنر اطمینان دارید؟ در صورت کسر هزینه، وجه به کیف پول سازنده بازگردانده می‌شود.');" class="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-bold transition-all cursor-pointer">
+            ❌ رد بنر و استرداد وجه
+          </button>
+          <button type="submit" name="decision" value="approve" class="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md shadow-emerald-500/20 cursor-pointer">
+            ✅ تأیید و انتشار بنر
+          </button>
+        </div>
+      </form>
+    </div>
+    {% else %}
+    <div class="p-12 text-center rounded-3xl border border-dashed border-slate-700/80 bg-slate-900/30">
+      <span class="text-4xl block mb-2">📢</span>
+      <b class="text-white text-base block mb-1">صف نظارت بنرها و تبلیغات خالی است</b>
+      <p class="text-xs text-slate-400">هیچ بنر یا تبلیغی در انتظار بررسی ادمین وجود ندارد.</p>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+</div>
 {% endblock %}

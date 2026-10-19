@@ -11,6 +11,7 @@ from html import escape
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+import uuid
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -2231,6 +2232,19 @@ async def moderation_center(request: Request, tab: str = "laan"):
             "creators": len(creators_pending),
             "categories": len(categories_pending),
         }
+        total_pending = (
+            counts["laan"]
+            + counts["covers"]
+            + counts["requests"]
+            + counts["tickets"]
+            + counts["banners"]
+        )
+        kpis = {
+            "total_pending": total_pending,
+            "pending_content": counts["laan"] + counts["covers"],
+            "open_tickets": counts["tickets"],
+            "pending_banners_requests": counts["requests"] + counts["banners"],
+        }
     return templates.TemplateResponse(
         request=request,
         name="moderation.html",
@@ -2239,7 +2253,9 @@ async def moderation_center(request: Request, tab: str = "laan"):
             admin,
             raw,
             active_tab=tab,
+            tab=tab,
             counts=counts,
+            kpis=kpis,
             laan_rows=laan_rows,
             cover_rows=cover_rows,
             khatm_req_rows=khatm_req_rows,
