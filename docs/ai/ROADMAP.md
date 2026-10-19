@@ -1,3 +1,10 @@
+## 2026-10-19 — Finance, Subscription Plans & Tariffs Hub (MASTER-49) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md` and document decision DEC-PY-0141.
+- [x] Upgrade Web Admin `/finance` with 4 financial KPI cards and gateway connectivity card.
+- [x] Implement invoice time-range filtering (today, 7d, 30d, all), status filtering, and multi-field search.
+- [x] Add direct Shaparak payment link card (https://ppng.ir/d/VFBD) and PayPing gateway health indicators.
+- [x] Add regression suite `tests/test_master_49_finance_hub.py` and run full regression suite (49/49 PASS).
+
 ## 2026-10-19 — Bot Fleet Diagnostics & Real-Time System Health Hub (MASTER-48) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md` and document decision DEC-PY-0140.
 - [x] Upgrade Web Admin `/operations` command center with 4 KPI cards (Database, Scheduler, Bot Fleet, Error Logs).

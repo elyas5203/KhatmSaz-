@@ -1,3 +1,24 @@
+## Current state — 2026-10-19 — Finance, Subscription Plans, Member Caps & Tariffs Hub in Web Admin (MASTER-49) [Antigravity]
+- **Unified Finance, Plans & Gateway Hub (`web/app.py` & `web/templates/finance.html`):**
+  - Upgraded `/finance` with a modern 5-tab progressive disclosure architecture (Plans, Invoices & Refunds, User Wallet Adjustment, Discount Coupons, Policies & SMS).
+  - Implemented 4 financial & gateway KPI cards: Paid Total (Toman), Refunded Total (Toman), Total Invoices Count, and PayPing Gateway Connection Status.
+- **PayPing Gateway Connectivity & Direct Shaparak Payment Link (`web/app.py` & `web/templates/finance.html`):**
+  - Integrated real-time PayPing API token readiness monitor and official callback URL indicator.
+  - Added dedicated Shaparak Direct Payment card featuring `https://ppng.ir/d/VFBD` with one-click clipboard copy and external checkout link for offline top-ups and manual transactions (DEC-PY-0141, MASTER-12).
+- **Advanced Invoice Filtering, Search & Two-Step Refund (`web/app.py` & `web/templates/finance.html`):**
+  - Added time-range filter pills (`all`, `today`, `7d`, `30d`) based on Tehran timezone for revenue tracking.
+  - Added invoice status selector (`ALL`, `PAID`, `REFUNDED`) and multi-criteria search (`q`) across customer name, tracking reference (`external_ref`), description, and UUIDs.
+  - Added client-side two-step confirmation on `POST /finance/invoices/{id}/refund` ensuring zero accidental refunds, instant balance crediting to user wallet, and immutable audit log trail (`INVOICE_REFUND`).
+  - Linked invoice customer names and wallet target users directly to User 360 profile (`/users/{id}`).
+- **3-Tier Subscription Plans & Member Caps Configuration (`web/app.py` & `web/templates/finance.html`):**
+  - Visualized and configured FREE, BASIC, and PRO tiers with explicit member caps: devotional member cap (100 members for FREE) and Quran member cap (302 members for FREE).
+  - Maintained 100% backward compatibility for all plan form attributes (`plan_id`, `pricing_mode`, `price_toman`, `max_devotional_members`, `max_quran_members`, `free_total_member_cap`, `ads_enabled`, `khatm_create`, `enabled`).
+- **Broadcast Tariffs & Discount Coupon Bridge (`web/app.py` & `web/templates/finance.html`):**
+  - Configured broadcast tariffs (Telegram, Bale, SMS) with package size 1,000 members and standard tariff 150,000 Toman per package (MASTER-38).
+  - Added quick banner link bridging Tab 4 directly to the dedicated Discount Coupons Hub (`/coupons`, MASTER-45).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md` and registered `DEC-PY-0141`.
+- **Validation:** Added 8 tests in `tests/test_master_49_finance_hub.py` (100% PASS), and verified combined regression suite passes with 49/49 tests passing across masters 42 to 49.
+
 ## Current state — 2026-10-19 — Bot Fleet Diagnostics & Real-Time System Health Hub in Web Admin (MASTER-48) [Antigravity]
 - **Unified Operations & Health Command Center (`web/app.py` & `web/templates/operations.html`):**
   - Upgraded `/operations` into a unified infrastructure and diagnostics command center combining service readiness, bot fleet health, scheduler diagnostics, system queues, and real-time error log viewer.

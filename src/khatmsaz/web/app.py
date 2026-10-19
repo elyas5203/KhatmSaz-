@@ -5022,22 +5022,66 @@ async def save_template_content(
 
 
 @app.get("/finance", response_class=HTMLResponse)
-async def finance(request: Request, uq: str = ""):
+async def finance(
+    request: Request,
+    uq: str = "",
+    time_range: str = "all",
+    status_filter: str = "ALL",
+    q: str = "",
+):
     admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
     if admin is None:
         return _login_redirect()
+    from datetime import timedelta
+    from khatmsaz.config import get_settings
     from khatmsaz.modules.advertising import service as advertising_service
     from khatmsaz.modules.wallet.models import Wallet
     from khatmsaz.modules.plan.models import UserPlan
+
+    settings = get_settings()
+    gateway_status = {
+        "payping_ready": bool(settings.payping_api_token),
+        "callback_url": settings.payping_callback_url,
+        "direct_url": settings.payping_direct_url or "https://ppng.ir/d/VFBD",
+    }
+
     async with session_scope() as session:
         coupons = await wallet_service.list_coupons(session)
+
+        # Build invoice query with time_range, status_filter, and search q
+        inv_stmt = select(WalletInvoice, User).join(User, User.id == WalletInvoice.user_id)
+        if time_range == "today":
+            start_today = datetime.now(ZoneInfo("Asia/Tehran")).replace(hour=0, minute=0, second=0, microsecond=0)
+            inv_stmt = inv_stmt.where(WalletInvoice.issued_at >= start_today)
+        elif time_range == "7d":
+            start_7d = datetime.now(timezone.utc) - timedelta(days=7)
+            inv_stmt = inv_stmt.where(WalletInvoice.issued_at >= start_7d)
+        elif time_range == "30d":
+            start_30d = datetime.now(timezone.utc) - timedelta(days=30)
+            inv_stmt = inv_stmt.where(WalletInvoice.issued_at >= start_30d)
+
+        if status_filter != "ALL":
+            inv_stmt = inv_stmt.where(WalletInvoice.status == status_filter.upper())
+
+        if q.strip():
+            q_str = f"%{q.strip()}%"
+            or_clauses = [
+                User.display_name.ilike(q_str),
+                WalletInvoice.external_ref.ilike(q_str),
+                WalletInvoice.description.ilike(q_str),
+            ]
+            try:
+                inv_uuid = UUID(q.strip())
+                or_clauses.append(WalletInvoice.id == inv_uuid)
+                or_clauses.append(WalletInvoice.user_id == inv_uuid)
+            except Exception:
+                pass
+            inv_stmt = inv_stmt.where(or_(*or_clauses))
+
         invoice_rows = list(
             (
                 await session.execute(
-                    select(WalletInvoice, User)
-                    .join(User, User.id == WalletInvoice.user_id)
-                    .order_by(WalletInvoice.issued_at.desc())
-                    .limit(50)
+                    inv_stmt.order_by(WalletInvoice.issued_at.desc()).limit(100)
                 )
             ).all()
         )
@@ -5050,6 +5094,9 @@ async def finance(request: Request, uq: str = ""):
             select(func.coalesce(func.sum(WalletInvoice.net_amount_toman), 0)).where(
                 WalletInvoice.status == "REFUNDED"
             )
+        )
+        total_invoices_count = await session.scalar(
+            select(func.count(WalletInvoice.id))
         )
         plan_definitions = list(
             (await session.execute(
@@ -5099,6 +5146,11 @@ async def finance(request: Request, uq: str = ""):
             invoice_rows=invoice_rows,
             paid_total=int(paid_total or 0),
             refunded_total=int(refunded_total or 0),
+            total_invoices_count=int(total_invoices_count or 0),
+            gateway_status=gateway_status,
+            time_range=time_range,
+            status_filter=status_filter,
+            q=q.strip(),
             plan_definitions=plan_definitions,
             sms_plan_options=sms_plan_options,
             broadcast_policies=broadcast_policies,
@@ -5107,6 +5159,7 @@ async def finance(request: Request, uq: str = ""):
             saved=request.query_params.get("saved", ""),
         ),
     )
+
 
 
 @app.post("/finance/wallet/adjust")

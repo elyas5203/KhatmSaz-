@@ -1,3 +1,14 @@
+## 2026-10-19 — Antigravity — Finance, Subscription Plans, Member Caps & Tariffs Hub (MASTER-49)
+- **Unified Finance, Plans & Gateway Hub (`web/app.py` & `web/templates/finance.html`):**
+  - Upgraded `/finance` with 4 financial KPI cards: Paid Total, Refunded Total, Total Invoices Count, and PayPing Gateway Connection Status.
+  - Added dedicated PayPing Gateway and Direct Shaparak payment card featuring `https://ppng.ir/d/VFBD` with one-click copy and checkout links (DEC-PY-0141, MASTER-12).
+  - Enhanced invoice management with time-range filtering (`all`, `today`, `7d`, `30d`), status filtering (`ALL`, `PAID`, `REFUNDED`), search (`q`), and two-step invoice refund.
+  - Visualized and configured FREE, BASIC, and PRO subscription plans with devotional member caps (100) and Quran member caps (302).
+  - Configured broadcast tariffs (Telegram, Bale, SMS) with 1,000-member packages at 150,000 Toman (MASTER-38).
+  - Added quick navigation bridge to dedicated Discount Coupons Hub (`/coupons`, MASTER-45) and User 360 profiles (`/users/{id}`).
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md` and registered `DEC-PY-0141`.
+- **Validation:** 8/8 tests passed in `tests/test_master_49_finance_hub.py`, combined regression suite 49/49 passed.
+
 ## 2026-10-19 — Antigravity — Bot Fleet Diagnostics & Real-Time System Health Hub (MASTER-48)
 - **Unified Operations & Health Command Center (`web/app.py` & `web/templates/operations.html`):**
   - Upgraded `/operations` with 4 core health KPI cards: PostgreSQL Database, Reminder APScheduler, 18-slot Bot Fleet, and Error Log Status.

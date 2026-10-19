@@ -1,3 +1,8 @@
+## 2026-10-19 — Finance, Subscription Plans, Member Caps & Tariffs Hub (MASTER-49) [Antigravity]
+- Master Document: [MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md](masters/MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md) (Centralized finance, subscription plans, member caps and tariffs hub `/finance` in web admin, 4 KPI cards, PayPing gateway connectivity and direct Shaparak payment link `https://ppng.ir/d/VFBD`, advanced invoice filtering and two-step refunds, 3-tier creator subscription plans with devotional member caps (100) and Quran member caps (302), broadcast tariffs (150,000 Toman / 1,000 members), and links to User 360 and Coupons hub).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/finance.html`, `src/khatmsaz/modules/plan/`, `src/khatmsaz/modules/wallet/`, `src/khatmsaz/modules/broadcast/`.
+- Tests: `tests/test_master_49_finance_hub.py`.
+
 ## 2026-10-19 — Bot Fleet Diagnostics & Real-Time System Health Hub (MASTER-48) [Antigravity]
 - Master Document: [MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md](masters/MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md) (Unified operations and diagnostics command center `/operations` in web admin, real-time ping and latency testing across 18 Telegram and Bale bots, manual scheduler scan trigger with audit trail, and live error log console).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/operations.html`, `src/khatmsaz/modules/bot_registry/service.py`, `src/khatmsaz/core/bot_registry.py`.
