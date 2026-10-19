@@ -1,3 +1,16 @@
+## Current state — 2026-10-19 — Quran Bank, Reciters & Media Studio in Web Admin (MASTER-52) [Antigravity]
+- **Unified Quran Bank & Media Studio (`web/app.py` & `web/templates/quran.html`):**
+  - Upgraded `/quran` with 4 coverage KPI cards with percentage and progress bars: Telegram Images Coverage (`telegram_images`), Telegram Audio Coverage (`telegram_audio`), Bale Images Coverage (`bale_images`), and Bale Audio Coverage (`bale_audio`).
+  - Implemented 4 unified tabs: Tab 1 (Page Inspector & Editor), Tab 2 (604-Page Coverage Matrix), Tab 3 (System Reciters & Audio Packs), and Tab 4 (Source Channel Seed & Bale Migration Tools).
+- **Direct File Upload & Asset Delete Governance (`web/app.py` & `web/templates/quran.html`):**
+  - Implemented direct multipart file upload (`UploadFile`) for Quran page images and reciter audio to `/static/uploads/quran/` with timestamp prefixes and safe sanitization, coexisting with `file_id` and channel links (`t.me/...` converted to `tg_forward:...`).
+  - Implemented `POST /quran/asset/{asset_id}/delete` with CSRF protection and audit logging (`QURAN_ASSET_DELETE`).
+- **604-Page Health Matrix & Multi-Reciter Library (`web/app.py` & `web/templates/quran.html`):**
+  - Built interactive 604-cell matrix with status indicators (TG Img, TG Aud, Bale Img, Bale Aud) and status filter pills (`all`, `complete`, `incomplete`, `missing_tg`, `missing_bale`).
+  - Visualized all system reciters (Parhizgar, Minshawi, Abdulbasit, Husary) with active picker status and audio page counts.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md` and registered `DEC-PY-0144`.
+- **Validation:** Added 10 tests in `tests/test_master_52_quran_hub.py` (100% PASS), and verified combined regression suite passes with 91/91 tests passing across masters 42 to 52.
+
 ## Current state — 2026-10-19 — Devotionals, Categories & Message Templates Studio in Web Admin (MASTER-51) [Antigravity]
 - **Unified Devotionals, Categories & Templates Studio (`web/app.py` & `web/templates/devotionals.html`):**
   - Upgraded `/devotionals` (alias `/content`) with 4 content studio KPI cards: Total Devotionals & Khutbahs (`total_devotionals`), Attached Media Files (`total_media_files`), Active Wizard Categories (`active_categories`), and System Message Templates (`total_templates`).

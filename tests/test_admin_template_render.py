@@ -232,3 +232,27 @@ def test_creator_wallet_shows_three_tier_audience_view():
     assert t("web.creator.plan_basic_name", "fa") in html
     assert t("web.creator.plan_ads_off", "fa") in html
     assert "web.creator.plan_" not in html  # no raw i18n keys leaked
+
+
+def test_quran_page_renders_studio_and_four_kpi_cards():
+    """MASTER-52: quran.html renders 4 coverage KPIs, tab navigation, and safe defaults without DB."""
+    html = _render(
+        "quran.html", "/quran",
+        page_num=1, tab="inspector", saved="",
+        coverage={
+            "telegram_images": 604, "telegram_audio": 604,
+            "bale_images": 604, "bale_audio": 604,
+            "tg_images_pct": 100, "tg_audio_pct": 100,
+            "bale_images_pct": 100, "bale_audio_pct": 100,
+        },
+        page_assets=[], reciters=[], reciters_list=[],
+        matrix=[], filter_status="all", q="",
+    )
+
+    assert "استودیو و بانک جامع ۶۰۴ صفحه قرآن کریم" in html
+    assert "تصاویر تلگرام" in html
+    assert "صوت‌های تلگرام" in html
+    assert "تصاویر بله" in html
+    assert "صوت‌های بله" in html
+    assert "ماتریس ۶۰۴ صفحه" in html
+

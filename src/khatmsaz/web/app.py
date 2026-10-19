@@ -5098,26 +5098,129 @@ async def delete_devotional_media(
 
 # --- Quran 604 pages management ----------------------------------------------
 @app.get("/quran", response_class=HTMLResponse)
-async def quran_bank_page(request: Request, page_num: int = 1):
+async def quran_bank_page(
+    request: Request,
+    page_num: int = 1,
+    tab: str = "inspector",
+    filter_status: str = "all",
+    q: str = "",
+):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
-    from khatmsaz.modules.content.models import QuranPageAsset
+    from khatmsaz.modules.content.models import QuranAssetKind, QuranPageAsset
     page_num = max(1, min(604, page_num))
+    tab = tab if tab in ("inspector", "coverage", "reciters", "sync") else "inspector"
+    filter_status = filter_status.strip().lower()
+    if filter_status not in ("all", "complete", "incomplete", "missing_tg", "missing_bale"):
+        filter_status = "all"
+
     async with session_scope() as session:
-        coverage = await content_service.quran_channel_coverage(session)
-        page_assets = list(
+        all_assets = list(
             (
                 await session.execute(
-                    select(QuranPageAsset)
-                    .where(
-                        QuranPageAsset.edition_id == content_service.CANONICAL_EDITION_ID,
-                        QuranPageAsset.page_number == page_num,
+                    select(QuranPageAsset).where(
+                        QuranPageAsset.edition_id == content_service.CANONICAL_EDITION_ID
                     )
-                    .order_by(QuranPageAsset.kind, QuranPageAsset.asset_platform)
                 )
             ).scalars()
         )
+
+        tg_images: set[int] = set()
+        tg_audio: set[int] = set()
+        bale_images: set[int] = set()
+        bale_audio: set[int] = set()
+        reciter_counts: dict[str, int] = {}
+
+        for a in all_assets:
+            p = (a.asset_platform or "TELEGRAM").upper()
+            kind_str = str(getattr(a.kind, "value", a.kind)).upper()
+            if p == "TELEGRAM":
+                if kind_str == "IMAGE":
+                    tg_images.add(a.page_number)
+                elif kind_str == "AUDIO":
+                    tg_audio.add(a.page_number)
+                    if a.reciter_id:
+                        reciter_counts[a.reciter_id] = reciter_counts.get(a.reciter_id, 0) + 1
+            elif p == "BALE":
+                if kind_str == "IMAGE":
+                    bale_images.add(a.page_number)
+                elif kind_str == "AUDIO":
+                    bale_audio.add(a.page_number)
+
+        all_pages_range = set(range(1, 605))
+        complete_pages_set = {
+            p for p in all_pages_range
+            if p in tg_images and p in tg_audio and p in bale_images and p in bale_audio
+        }
+
+        coverage = {
+            "telegram_images": len(tg_images),
+            "telegram_audio": len(tg_audio),
+            "bale_images": len(bale_images),
+            "bale_audio": len(bale_audio),
+            "tg_images_pct": round(len(tg_images) / 604 * 100),
+            "tg_audio_pct": round(len(tg_audio) / 604 * 100),
+            "bale_images_pct": round(len(bale_images) / 604 * 100),
+            "bale_audio_pct": round(len(bale_audio) / 604 * 100),
+            "total_complete_pages": len(complete_pages_set),
+            "total_incomplete_pages": 604 - len(complete_pages_set),
+            "image_count": len(tg_images),
+            "audio_count": len(tg_audio),
+            "ready": len(tg_images) == 604 and len(tg_audio) == 604,
+        }
+
+        # Page assets for inspector
+        page_assets = [a for a in all_assets if a.page_number == page_num]
+        page_assets.sort(key=lambda a: (str(getattr(a.kind, "value", a.kind)), a.asset_platform or ""))
+
+        # 604-page summary matrix for coverage tab
+        matrix = []
+        for p in range(1, 605):
+            has_tg_img = p in tg_images
+            has_tg_aud = p in tg_audio
+            has_bale_img = p in bale_images
+            has_bale_aud = p in bale_audio
+            is_complete = has_tg_img and has_tg_aud and has_bale_img and has_bale_aud
+            missing_tg = not (has_tg_img and has_tg_aud)
+            missing_bale = not (has_bale_img and has_bale_aud)
+
+            # Apply filter
+            if filter_status == "complete" and not is_complete:
+                continue
+            if filter_status == "incomplete" and is_complete:
+                continue
+            if filter_status == "missing_tg" and not missing_tg:
+                continue
+            if filter_status == "missing_bale" and not missing_bale:
+                continue
+            if q and q.isdigit() and int(q) != p:
+                continue
+
+            matrix.append({
+                "page": p,
+                "has_tg_img": has_tg_img,
+                "has_tg_aud": has_tg_aud,
+                "has_bale_img": has_bale_img,
+                "has_bale_aud": has_bale_aud,
+                "is_complete": is_complete,
+            })
+
+        # Reciters metadata
+        reciters_list = []
+        for rid, name_fa in content_service.SYSTEM_RECITERS.items():
+            audio_count = len({
+                a.page_number for a in all_assets
+                if str(getattr(a.kind, "value", a.kind)).upper() == "AUDIO" and a.reciter_id == rid
+            })
+            reciters_list.append({
+                "id": rid,
+                "name_fa": name_fa,
+                "is_active_picker": rid in content_service.RECITERS_WITH_REGISTERED_AUDIO,
+                "audio_pages_count": audio_count,
+                "pct": round(audio_count / 604 * 100),
+            })
+
     return templates.TemplateResponse(
         request=request,
         name="quran.html",
@@ -5126,16 +5229,21 @@ async def quran_bank_page(request: Request, page_num: int = 1):
             admin,
             raw,
             page_num=page_num,
+            tab=tab,
             coverage=coverage,
             page_assets=page_assets,
             reciters=content_service.list_reciters(),
+            reciters_list=reciters_list,
+            matrix=matrix,
+            filter_status=filter_status,
+            q=q,
             saved=request.query_params.get("saved", ""),
         ),
     )
 
 
 @app.post("/quran/seed-channel")
-async def seed_quran_channel(request: Request, csrf: str = Form(...)):
+async def seed_quran_channel(request: Request, csrf: str = Form(...), tab: str = Form("sync")):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
@@ -5149,7 +5257,8 @@ async def seed_quran_channel(request: Request, csrf: str = Form(...)):
             action="QURAN_CHANNEL_SEED",
             details={"result": result},
         )
-    return RedirectResponse("/quran?saved=seeded", status_code=303)
+    tab_name = tab if isinstance(tab, str) and tab in ("inspector", "coverage", "reciters", "sync") else "sync"
+    return RedirectResponse(f"/quran?tab={tab_name}&saved=seeded", status_code=303)
 
 
 @app.post("/quran/asset/save")
@@ -5164,42 +5273,116 @@ async def save_quran_asset(
     asset_ref: str = Form(""),
     remote_file_id: str = Form(""),
     channel_post_id: str = Form(""),
+    tab: str = Form("inspector"),
+    file: UploadFile | None = File(None),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
-    ref = (remote_file_id or asset_ref or "").strip()
-    target_platform = (asset_platform or platform or "TELEGRAM").strip().upper()
+
+    target_platform = (asset_platform or platform or "TELEGRAM")
+    if not isinstance(target_platform, str):
+        target_platform = str(getattr(target_platform, "default", "TELEGRAM") or "TELEGRAM")
+    target_platform = target_platform.strip().upper()
+
+    reciter_id_clean = reciter_id if isinstance(reciter_id, str) else str(getattr(reciter_id, "default", "") or "")
+    reciter_id_clean = reciter_id_clean.strip()
+
+    kind_clean = kind if isinstance(kind, str) else str(getattr(kind, "default", "IMAGE") or "IMAGE")
+    kind_clean = kind_clean.strip().upper()
+
+    ref = ""
+    # Check direct file upload
+    if file is not None and hasattr(file, "filename") and file.filename:
+        safe_name = re.sub(r"[^a-zA-Z0-9_\.-]", "_", file.filename)
+        timestamp = int(datetime.now().timestamp())
+        unique_name = f"{timestamp}_{safe_name}"
+        upload_dir = Path("src/khatmsaz/web/static/uploads/quran")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path = upload_dir / unique_name
+        contents = await file.read()
+        if contents:
+            file_path.write_bytes(contents)
+            ref = f"/static/uploads/quran/{unique_name}"
+
+    if not ref:
+        raw_ref = remote_file_id or asset_ref or ""
+        if not isinstance(raw_ref, str):
+            raw_ref = str(getattr(raw_ref, "default", "") or "")
+        ref = raw_ref.strip()
+
     if not ref:
         return HTMLResponse("شناسه یا آدرس فایل الزامی است.", status_code=400)
+
     if "t.me/" in ref:
-        import re
         m = re.search(r"t\.me/([^/]+)/(\d+)", ref)
         if m:
             ch, mid = m.groups()
             ref = f"tg_forward:@{ch.lstrip('@')}:{mid}"
+
+    tab_name = tab if isinstance(tab, str) and tab in ("inspector", "coverage", "reciters", "sync") else "inspector"
+
     async with session_scope() as session:
         try:
             await content_service.register_quran_page_asset(
                 session,
                 edition_id=content_service.CANONICAL_EDITION_ID,
                 page_number=page_number,
-                kind=kind,
+                kind=kind_clean,
                 asset_ref=ref,
-                reciter_id=reciter_id,
+                reciter_id=reciter_id_clean,
                 asset_platform=target_platform,
             )
             await audit_service.record(
                 session,
                 actor_user_id=admin.id,
                 action="QURAN_ASSET_REGISTER",
-                details={"page": page_number, "kind": kind, "platform": target_platform},
+                details={"page": page_number, "kind": kind_clean, "platform": target_platform, "reciter_id": reciter_id_clean},
             )
         except ValueError as exc:
             return HTMLResponse(f"خطا در ثبت فایل قرآن: {exc}", status_code=400)
-    return RedirectResponse(f"/quran?page_num={page_number}&saved=asset_saved", status_code=303)
+    return RedirectResponse(f"/quran?page_num={page_number}&tab={tab_name}&saved=asset_saved", status_code=303)
+
+
+@app.post("/quran/asset/{asset_id}/delete")
+async def delete_quran_asset(
+    request: Request,
+    asset_id: str,
+    csrf: str = Form(...),
+    page_num: int = Form(1),
+    tab: str = Form("inspector"),
+):
+    admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    try:
+        asset_uuid = UUID(asset_id)
+    except (ValueError, TypeError):
+        return HTMLResponse("شناسه دارایی نامعتبر است.", status_code=400)
+    from khatmsaz.modules.content.models import QuranPageAsset
+    async with session_scope() as session:
+        asset = await session.get(QuranPageAsset, asset_uuid)
+        if asset:
+            page_num = asset.page_number
+            await session.delete(asset)
+            await audit_service.record(
+                session,
+                actor_user_id=admin.id,
+                action="QURAN_ASSET_DELETE",
+                details={
+                    "asset_id": str(asset_uuid),
+                    "page": page_num,
+                    "kind": str(getattr(asset.kind, "value", asset.kind)),
+                    "platform": asset.asset_platform,
+                    "reciter_id": asset.reciter_id,
+                },
+            )
+    tab_name = tab if isinstance(tab, str) and tab in ("inspector", "coverage", "reciters", "sync") else "inspector"
+    return RedirectResponse(f"/quran?page_num={page_num}&tab={tab_name}&saved=asset_deleted", status_code=303)
 
 
 @app.get("/templates", response_class=HTMLResponse)

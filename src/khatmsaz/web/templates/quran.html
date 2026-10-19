@@ -1,202 +1,616 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}بانک ۶۰۴ صفحه قرآن کریم | ختم‌ساز{% endblock %}
+
+{% block title %}استودیو و بانک جامع ۶۰۴ صفحه قرآن کریم | ختم‌ساز{% endblock %}
+
 {% block content %}
-<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+{# Safe context defaults to prevent undefined errors in direct template rendering #}
+{% set coverage = coverage or {} %}
+{% set page_num = page_num or 1 %}
+{% set tab = tab or 'inspector' %}
+{% set matrix = matrix or [] %}
+{% set reciters = reciters or [] %}
+{% set reciters_list = reciters_list or [] %}
+{% set page_assets = page_assets or [] %}
+{% set filter_status = filter_status or 'all' %}
+{% set saved = saved or '' %}
+{% set q = q or '' %}
+
+<!-- Studio Header -->
+<section class="mb-8 pt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
   <div>
-    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">کلام‌الله مجید</p>
+    <div class="flex items-center gap-2 mb-1">
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[0.7rem] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        کلام‌الله مجید
+      </span>
+      <span class="text-xs text-slate-500 font-mono">MASTER-52</span>
+    </div>
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">بانک ۶۰4 صفحه قرآن کریم و قاریان</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white">استودیو و بانک جامع ۶۰۴ صفحه قرآن کریم</h1>
       {{ help_button(
-        "راهنمای بانک ۶۰۴ صفحه قرآن کریم و قاریان",
-        "ختم قرآن کریم در ربات بر پایه قرآن ۶۰۴ صفحه‌ای (رسم‌الخط عثمان‌طه) کار می‌کند. در این صفحه می‌توانید وضعیت پوشش ۶۰۴ صفحه، فایل‌های تصویر و صوت قاریان را در تلگرام و بله مشاهده و مدیریت کنید.",
+        "راهنمای جامع بانک ۶۰۴ صفحه قرآن کریم و قاریان",
+        "ختم قرآن کریم در ربات‌های تلگرام و بله بر پایه قرآن ۶۰۴ صفحه‌ای مصحف عثمان‌طه کار می‌کند. در این استودیو می‌توانید نقشه دارایی‌های صوتی و تصویری هر صفحه را بازرسی، ویرایش و ثبت کنید.",
         [
-          "در کارت‌های بالای صفحه درصد و تعداد پوشش صفحات قرآن در تلگرام و بله را مشاهده کنید.",
-          "اگر سرور تازه راه‌اندازی شده، با زدن دکمه «بارگذاری نقشه ۶۰۴ صفحه از کانال منبع» نقشه کامل را با یک کلیک ثبت کنید.",
-          "برای مشاهده و جایگزینی فایل هر صفحه، شماره صفحه (۱ تا ۶۰۴) را وارد کنید و در فرم پایین، تصویر یا صوت قاری مورد نظر را آپلود یا ثبت کنید."
+          "تب ۱ (بازرس صفحه): ناوبری صفحه به صفحه (۱ تا ۶۰۴)، مشاهده فایل‌های ثبت‌شده، پخش صوت قاری و فرم ثبت یا آپلود مستقیم فایل جدید.",
+          "تب ۲ (ماتریس پوشش): نمای پرنده‌ای ۶۰۴ صفحه با نشانگرهای ۴ گانه سلامت فایل‌ها (تصویر تلگرام، صوت تلگرام، تصویر بله، صوت بله).",
+          "تب ۳ (قاریان): مدیریت قاریان رسمی سیستم (پرهیزگار، منشاوی، عبدالباسط، حصری) و درصد پیشرفت فایل‌های صوتی هر قاری.",
+          "تب ۴ (همگام‌سازی): بارگذاری خودکار نقشه کانال منبع تلگرام با یک کلیک و اتصال به پایپ‌لاین مهاجرت رسانه‌ها به بله."
         ],
-        "نکته: شناسه فایل‌های تلگرام و بله با هم متفاوتند؛ هنگام ثبت دستی به انتخاب پلتفرم دقت کنید."
+        "نکته: فایل‌های تلگرام و بله کاملاً مجزا هستند؛ با بارگذاری نقشه کانال، پوشش تلگرام کامل شده و سپس از طریق اسکریپت مهاجرت به بله منتقل می‌شود."
       ) }}
     </div>
   </div>
 
-  <form method="post" action="/quran/seed-channel" onsubmit="return confirm('آیا از بارگذاری خودکار نقشه ۶۰۴ صفحه از کانال منبع مطمئن هستید؟')">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <button type="submit" class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-      <span>🔄 بارگذاری خودکار نقشه ۶۰۴ صفحه از کانال</span>
-    </button>
-  </form>
+  <div class="flex items-center gap-3">
+    <a href="/quran?tab=coverage" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700 flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      <span>ماتریس ۶۰۴ صفحه</span>
+    </a>
+  </div>
 </section>
 
+<!-- Action Alerts -->
 {% if saved %}
-<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+<div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3 animate-fade-in">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-  <span>
+  <span class="text-sm font-bold">
     {% if saved == 'seeded' %}نقشه ۶۰۴ صفحه قرآن از کانال منبع با موفقیت بارگذاری شد ✅
-    {% elif saved == 'asset_saved' %}فایل صفحه قرآن با موفقیت ذخیره شد ✅
+    {% elif saved == 'asset_saved' %}فایل صفحه قرآن با موفقیت در بانک رسانه ذخیره شد ✅
+    {% elif saved == 'asset_deleted' %}فایل انتخابی صفحه قرآن با موفقیت حذف شد 🗑️
     {% else %}عملیات با موفقیت انجام شد ✅{% endif %}
   </span>
 </div>
 {% endif %}
 
-<!-- Coverage Stats Cards -->
-<section class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-sky-500">
+<!-- 4 Core Coverage KPI Cards -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <!-- Card 1: Telegram Images -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-sky-500 relative overflow-hidden">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-slate-400 font-bold">تصاویر تلگرام</span>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+        <span class="text-xs text-slate-400 font-bold">تصاویر تلگرام</span>
+      </div>
       <span class="text-xs font-mono text-sky-400 font-bold">{{ coverage.get('telegram_images', 0) }} / 604</span>
     </div>
-    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-      <div class="bg-sky-500 h-2 rounded-full" style="width: {{ (coverage.get('telegram_images', 0) / 604 * 100)|round }}%"></div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-sky-500 h-2 rounded-full transition-all duration-500" style="width: {{ coverage.get('tg_images_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>پوشش صفحات</span>
+      <span class="font-mono font-bold text-sky-300">{{ coverage.get('tg_images_pct', 0) }}%</span>
     </div>
   </article>
 
-  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-emerald-500">
+  <!-- Card 2: Telegram Audio -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-emerald-500 relative overflow-hidden">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-slate-400 font-bold">صوت‌های تلگرام</span>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="text-xs text-slate-400 font-bold">صوت‌های تلگرام</span>
+      </div>
       <span class="text-xs font-mono text-emerald-400 font-bold">{{ coverage.get('telegram_audio', 0) }} / 604</span>
     </div>
-    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-      <div class="bg-emerald-500 h-2 rounded-full" style="width: {{ (coverage.get('telegram_audio', 0) / 604 * 100)|round }}%"></div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: {{ coverage.get('tg_audio_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>پوشش صوتی ترتیل</span>
+      <span class="font-mono font-bold text-emerald-300">{{ coverage.get('tg_audio_pct', 0) }}%</span>
     </div>
   </article>
 
-  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-amber-500">
+  <!-- Card 3: Bale Images -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-amber-500 relative overflow-hidden">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-slate-400 font-bold">تصاویر بله</span>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span class="text-xs text-slate-400 font-bold">تصاویر بله</span>
+      </div>
       <span class="text-xs font-mono text-amber-400 font-bold">{{ coverage.get('bale_images', 0) }} / 604</span>
     </div>
-    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-      <div class="bg-amber-500 h-2 rounded-full" style="width: {{ (coverage.get('bale_images', 0) / 604 * 100)|round }}%"></div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: {{ coverage.get('bale_images_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>پوشش صفحات در بله</span>
+      <span class="font-mono font-bold text-amber-300">{{ coverage.get('bale_images_pct', 0) }}%</span>
     </div>
   </article>
 
-  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-purple-500">
+  <!-- Card 4: Bale Audio -->
+  <article class="glass-card p-4 sm:p-5 rounded-2xl border-b-2 border-b-purple-500 relative overflow-hidden">
     <div class="flex items-center justify-between mb-2">
-      <span class="text-xs text-slate-400 font-bold">صوت‌های بله</span>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+        <span class="text-xs text-slate-400 font-bold">صوت‌های بله</span>
+      </div>
       <span class="text-xs font-mono text-purple-400 font-bold">{{ coverage.get('bale_audio', 0) }} / 604</span>
     </div>
-    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-      <div class="bg-purple-500 h-2 rounded-full" style="width: {{ (coverage.get('bale_audio', 0) / 604 * 100)|round }}%"></div>
+    <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="bg-purple-500 h-2 rounded-full transition-all duration-500" style="width: {{ coverage.get('bale_audio_pct', 0) }}%"></div>
+    </div>
+    <div class="flex items-center justify-between text-[0.7rem] text-slate-400">
+      <span>پوشش صوتی در بله</span>
+      <span class="font-mono font-bold text-purple-300">{{ coverage.get('bale_audio_pct', 0) }}%</span>
     </div>
   </article>
 </section>
 
-<!-- Page Inspector -->
+<!-- Studio Tabs Navigation -->
+<nav class="flex items-center gap-2 border-b border-white/10 pb-3 mb-8 overflow-x-auto">
+  <a href="/quran?tab=inspector&page_num={{ page_num }}"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'inspector' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>📖 بازرس صفحه {{ page_num }}</span>
+  </a>
+
+  <a href="/quran?tab=coverage&filter_status={{ filter_status }}"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'coverage' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>📊 ماتریس پوشش ۶۰۴ صفحه</span>
+  </a>
+
+  <a href="/quran?tab=reciters"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'reciters' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>🎙 قاریان و بسته‌های صوتی</span>
+  </a>
+
+  <a href="/quran?tab=sync"
+     class="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap {% if tab == 'sync' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-white/5{% endif %}">
+    <span>🔄 همگام‌سازی و کانال منبع</span>
+  </a>
+</nav>
+
+<!-- ========================================================================= -->
+<!-- TAB 1: PAGE INSPECTOR                                                     -->
+<!-- ========================================================================= -->
+{% if tab == 'inspector' %}
 <section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/5 mb-6">
+  <!-- Page Switcher Bar -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
     <div class="flex items-center gap-3">
-      <h2 class="text-2xl font-extrabold text-white">📖 بازرس صفحه {{ page_num }} از ۶۰۴</h2>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-white flex items-center gap-2">
+        <span>📖 بازرس صفحه {{ page_num }} از ۶۰۴</span>
+      </h2>
       {{ tooltip("فایل‌های صوتی و تصویری ثبت‌شده برای این صفحه در هر دو پیام‌رسان تلگرام و بله.") }}
     </div>
 
-    <!-- Page Switcher -->
-    <div class="flex items-center gap-2">
+    <!-- Navigation Controls -->
+    <div class="flex flex-wrap items-center gap-2">
       {% if page_num > 1 %}
-      <a href="/quran?page_num={{ page_num - 1 }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">← صفحه قبل</a>
+      <a href="/quran?tab=inspector&page_num={{ page_num - 1 }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700">
+        ← صفحه قبل
+      </a>
       {% endif %}
 
       <form method="get" action="/quran" class="flex items-center gap-1.5">
-        <input name="page_num" type="number" min="1" max="604" value="{{ page_num }}" class="input-field py-1 px-2 text-xs font-mono w-20 text-center">
-        <button type="submit" class="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all cursor-pointer">برو</button>
+        <input type="hidden" name="tab" value="inspector">
+        <input name="page_num" type="number" min="1" max="604" value="{{ page_num }}" class="input-field py-1 px-2 text-xs font-mono w-20 text-center" aria-label="شماره صفحه">
+        <button type="submit" class="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all cursor-pointer">
+          برو
+        </button>
       </form>
 
       {% if page_num < 604 %}
-      <a href="/quran?page_num={{ page_num + 1 }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all">صفحه بعد →</a>
+      <a href="/quran?tab=inspector&page_num={{ page_num + 1 }}" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700">
+        صفحه بعد →
+      </a>
       {% endif %}
+
+      <!-- Quick Jump Shortcuts -->
+      <div class="hidden md:flex items-center gap-1 mr-2 border-r border-slate-700 pr-2">
+        <a href="/quran?tab=inspector&page_num=1" class="text-[0.7rem] px-2 py-1 rounded-lg bg-slate-800/80 text-slate-400 hover:text-white" title="سوره فاتحه">صفحه ۱</a>
+        <a href="/quran?tab=inspector&page_num=302" class="text-[0.7rem] px-2 py-1 rounded-lg bg-slate-800/80 text-slate-400 hover:text-white" title="میانه قرآن - سوره کهف">صفحه ۳۰۲</a>
+        <a href="/quran?tab=inspector&page_num=604" class="text-[0.7rem] px-2 py-1 rounded-lg bg-slate-800/80 text-slate-400 hover:text-white" title="پایان قرآن - سوره ناس">صفحه ۶۰۴</a>
+      </div>
     </div>
   </div>
 
   <!-- Assets on this page -->
   <div class="mb-8">
-    <h3 class="text-sm font-bold text-slate-300 mb-3">فایل‌های ثبت‌شده برای صفحه {{ page_num }}:</h3>
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+        <span>فایل‌های ثبت‌شده برای صفحه {{ page_num }}:</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">{{ page_assets|length }} فایل</span>
+      </h3>
+    </div>
+
     {% if page_assets %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {% for asset in page_assets %}
-      <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/60 flex flex-col justify-between text-xs space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="px-2 py-0.5 rounded font-bold {% if asset.kind.value == 'IMAGE' %}bg-sky-500/20 text-sky-300{% else %}bg-emerald-500/20 text-emerald-300{% endif %}">
-            {{ asset.kind.value }}
-          </span>
-          <span class="font-mono text-slate-400 font-bold">{{ asset.asset_platform }}</span>
+      {% set kind_val = asset.kind.value if asset.kind.value is defined else asset.kind %}
+      <div class="p-4 rounded-2xl bg-slate-900/70 border border-slate-700/80 flex flex-col justify-between text-xs space-y-3 relative group">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="px-2.5 py-0.5 rounded-lg font-bold text-[0.7rem] {% if kind_val == 'IMAGE' %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% else %}bg-emerald-500/20 text-emerald-300 border border-emerald-500/30{% endif %}">
+              {% if kind_val == 'IMAGE' %}🖼 تصویر صفحه{% else %}🎧 صوت قاری{% endif %}
+            </span>
+
+            <span class="px-2 py-0.5 rounded-lg text-[0.7rem] font-bold font-mono {% if asset.asset_platform == 'BALE' %}bg-amber-500/20 text-amber-300 border border-amber-500/30{% else %}bg-sky-500/20 text-sky-300 border border-sky-500/30{% endif %}">
+              {{ asset.asset_platform }}
+            </span>
+          </div>
+
+          {% if asset.reciter_id %}
+          <div class="text-slate-300 font-bold mb-1 flex items-center justify-between">
+            <span class="text-slate-400">قاری:</span>
+            <span class="text-emerald-400 font-mono">{{ asset.reciter_id }}</span>
+          </div>
+          {% endif %}
+
+          {% if asset.channel_post_id %}
+          <div class="text-slate-400 text-[0.75rem] flex items-center justify-between mb-1">
+            <span>پست کانال منبع:</span>
+            <span class="font-mono text-slate-200">#{{ asset.channel_post_id }}</span>
+          </div>
+          {% endif %}
+
+          <!-- Audio Preview if URL -->
+          {% if kind_val == 'AUDIO' and (asset.asset_ref.startswith('http') or asset.asset_ref.startswith('/static/')) %}
+          <div class="mt-2 pt-2 border-t border-slate-800">
+            <audio controls src="{{ asset.asset_ref }}" class="w-full h-8 rounded-lg" preload="none"></audio>
+          </div>
+          {% endif %}
+
+          <!-- Image Preview if URL -->
+          {% if kind_val == 'IMAGE' and (asset.asset_ref.startswith('http') or asset.asset_ref.startswith('/static/')) %}
+          <div class="mt-2 pt-2 border-t border-slate-800 text-center">
+            <a href="{{ asset.asset_ref }}" target="_blank" rel="noopener">
+              <img src="{{ asset.asset_ref }}" alt="تصویر صفحه {{ page_num }}" class="max-h-28 mx-auto rounded-lg border border-slate-700 hover:border-emerald-500 transition-colors">
+            </a>
+          </div>
+          {% endif %}
+
+          <!-- Identifier Reference -->
+          <div class="mt-2 pt-2 border-t border-slate-800">
+            <p class="text-[0.65rem] text-slate-500 font-mono truncate" dir="ltr" title="{{ asset.asset_ref }}">
+              {{ asset.asset_ref }}
+            </p>
+          </div>
         </div>
 
-        {% if asset.reciter_id %}
-        <p class="text-slate-300 font-bold">قاری: <span class="text-emerald-400 font-mono">{{ asset.reciter_id }}</span></p>
-        {% endif %}
+        <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+          <span class="text-[0.65rem] text-slate-500 font-mono" dir="ltr">
+            {{ asset.created_at.strftime('%Y-%m-%d %H:%M') if asset.created_at else '' }}
+          </span>
 
-        {% if asset.channel_post_id %}
-        <p class="text-slate-400">پست کانال: <span class="font-mono text-slate-200">{{ asset.channel_post_id }}</span></p>
-        {% endif %}
-
-        {% if asset.remote_file_id %}
-        <p class="text-[0.65rem] text-slate-500 font-mono truncate" dir="ltr" title="{{ asset.remote_file_id }}">
-          file_id: {{ asset.remote_file_id }}
-        </p>
-        {% endif %}
-
-        <span class="text-[0.65rem] text-slate-600 font-mono" dir="ltr">{{ asset.created_at.strftime('%Y-%m-%d %H:%M') if asset.created_at else '' }}</span>
+          <!-- Delete Action Form -->
+          <form method="post" action="/quran/asset/{{ asset.id }}/delete" onsubmit="return confirm('آیا از حذف این فایل صفحه مطمئن هستید؟')" class="inline">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="page_num" value="{{ page_num }}">
+            <input type="hidden" name="tab" value="inspector">
+            <button type="submit" class="text-rose-400 hover:text-rose-300 text-[0.7rem] font-bold flex items-center gap-1 cursor-pointer transition-colors p-1 rounded hover:bg-rose-500/10">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <span>حذف</span>
+            </button>
+          </form>
+        </div>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <p class="text-xs text-slate-500 p-4 bg-slate-900/40 rounded-xl">هنوز فایلی برای صفحه {{ page_num }} ثبت نشده است. از فرم پایین می‌توانید فایل جدید ثبت کنید.</p>
+    <div class="p-6 bg-slate-900/40 border border-slate-800 rounded-2xl text-center">
+      <p class="text-xs text-slate-400 mb-1">هنوز هیچ فایل صوتی یا تصویری برای صفحه {{ page_num }} ثبت نشده است.</p>
+      <p class="text-[0.7rem] text-slate-500">می‌توانید با استفاده از فرم زیر، فایل تصویر یا صوت این صفحه را ثبت یا آپلود کنید.</p>
+    </div>
     {% endif %}
   </div>
 
   <!-- Form to Register / Replace Asset with Progressive Disclosure -->
-  <details class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 group/quran">
+  <details class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 group/quran" open>
     <summary class="cursor-pointer list-none flex items-center justify-between text-sm font-bold text-white">
-      <span>➕ ثبت / جایگزینی فایل برای صفحه {{ page_num }}</span>
+      <div class="flex items-center gap-2">
+        <span class="text-emerald-400">➕</span>
+        <span>ثبت یا جایگزینی فایل برای صفحه {{ page_num }}</span>
+      </div>
       <span class="text-xs text-emerald-400 group-open/quran:rotate-180 transition-transform">⌄</span>
     </summary>
-    <form method="post" action="/quran/asset/save" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-800">
+
+    <form method="post" action="/quran/asset/save" enctype="multipart/form-data" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-800">
       <input type="hidden" name="csrf" value="{{ csrf }}">
       <input type="hidden" name="page_number" value="{{ page_num }}">
+      <input type="hidden" name="tab" value="inspector">
 
       <div>
         <label class="block text-xs font-bold text-slate-300 mb-1">نوع فایل</label>
-        <select name="kind" class="input-field text-xs py-1.5">
-          <option value="IMAGE">🖼 تصویر صفحه</option>
-          <option value="AUDIO">🎧 صوت قاری</option>
+        <select name="kind" class="input-field text-xs py-2">
+          <option value="IMAGE">🖼 تصویر مصحف (عثمان‌طه)</option>
+          <option value="AUDIO">🎧 صوت قاری (ترتیل)</option>
         </select>
       </div>
 
       <div>
         <label class="block text-xs font-bold text-slate-300 mb-1">پیام‌رسان (پلتفرم)</label>
-        <select name="asset_platform" class="input-field text-xs py-1.5">
-          <option value="TELEGRAM">تلگرام</option>
-          <option value="BALE">بله</option>
+        <select name="asset_platform" class="input-field text-xs py-2">
+          <option value="TELEGRAM">تلگرام (Telegram)</option>
+          <option value="BALE">بله (Bale)</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-slate-300 mb-1">قاری (برای صوت)</label>
-        <select name="reciter_id" class="input-field text-xs py-1.5">
-          <option value="">-- بدون قاری (تصویر) --</option>
-          {% for r in reciters %}
-          <option value="{{ r.id }}">{{ r.name_fa }} ({{ r.id }})</option>
+        <label class="block text-xs font-bold text-slate-300 mb-1">قاری (فقط برای صوت)</label>
+        <select name="reciter_id" class="input-field text-xs py-2">
+          <option value="">-- بدون قاری (برای تصویر) --</option>
+          {% for r in reciters_list %}
+          <option value="{{ r.id }}" {% if r.id == 'parhizgar' %}selected{% endif %}>{{ r.name_fa }} ({{ r.id }})</option>
           {% endfor %}
         </select>
       </div>
 
+      <!-- Direct Upload -->
       <div class="sm:col-span-2">
-        <label class="block text-xs font-bold text-slate-300 mb-1">شناسه فایل در پیام‌رسان (file_id)</label>
-        <input name="remote_file_id" placeholder="file_id دریافتی از تلگرام یا بله..." class="input-field text-xs py-1.5 font-mono" dir="ltr">
+        <label class="block text-xs font-bold text-slate-300 mb-1">
+          <span>آپلود مستقیم فایل از دستگاه</span>
+          <span class="text-[0.65rem] text-emerald-400 mr-1">(صوت MP3 یا تصویر JPG/PNG)</span>
+        </label>
+        <input type="file" name="file" accept="image/*,audio/*" class="input-field text-xs py-1.5 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer">
       </div>
 
       <div>
         <label class="block text-xs font-bold text-slate-300 mb-1">شماره پست کانال (اختیاری)</label>
-        <input name="channel_post_id" type="number" placeholder="مثلاً 1024" class="input-field text-xs py-1.5 font-mono">
+        <input name="channel_post_id" type="number" placeholder="مثلاً 1024" class="input-field text-xs py-2 font-mono">
+      </div>
+
+      <!-- Or Remote File ID / Telegram Link -->
+      <div class="sm:col-span-3">
+        <label class="block text-xs font-bold text-slate-300 mb-1">
+          <span>یا شناسه فایل در پیام‌رسان (file_id) / لینک پیام کانال</span>
+        </label>
+        <input name="remote_file_id" placeholder="file_id اختصاصی تلگرام/بله یا لینک به فرمت t.me/channel/123..." class="input-field text-xs py-2 font-mono" dir="ltr">
+        <p class="text-[0.65rem] text-slate-500 mt-1">اگر فایل را مستقیم آپلود کردید، نیازی به پر کردن این فیلد نیست.</p>
       </div>
 
       <div class="sm:col-span-3 flex justify-end pt-2">
-        <button type="submit" class="px-6 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all cursor-pointer">
+        <button type="submit" class="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
           ذخیره فایل صفحه {{ page_num }}
         </button>
       </div>
     </form>
   </details>
 </section>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- TAB 2: 604-PAGE COVERAGE MATRIX                                           -->
+<!-- ========================================================================= -->
+{% if tab == 'coverage' %}
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-white/10 mb-6">
+    <div>
+      <h2 class="text-xl sm:text-2xl font-extrabold text-white">ماتریس پوشش ۶۰۴ صفحه قرآن کریم</h2>
+      <p class="text-xs text-slate-400 mt-1">نمایش وضعیت سلامت فایل‌های تصویری و صوتی صفحات در پیام‌رسان‌های تلگرام و بله</p>
+    </div>
+
+    <!-- Filter Pills -->
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="/quran?tab=coverage&filter_status=all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if filter_status == 'all' %}bg-emerald-500 text-slate-950{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+        همه صفحات (۶۰۴)
+      </a>
+      <a href="/quran?tab=coverage&filter_status=complete" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if filter_status == 'complete' %}bg-emerald-500 text-slate-950{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+        ✅ کامل (هر ۴ فایل)
+      </a>
+      <a href="/quran?tab=coverage&filter_status=incomplete" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if filter_status == 'incomplete' %}bg-amber-500 text-slate-950{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+        ⚠️ ناقص (کمتر از ۴ فایل)
+      </a>
+      <a href="/quran?tab=coverage&filter_status=missing_tg" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if filter_status == 'missing_tg' %}bg-rose-500 text-white{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+        ❌ ناقص در تلگرام
+      </a>
+      <a href="/quran?tab=coverage&filter_status=missing_bale" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if filter_status == 'missing_bale' %}bg-rose-500 text-white{% else %}bg-slate-800 text-slate-300 hover:bg-slate-700{% endif %}">
+        ❌ ناقص در بله
+      </a>
+    </div>
+  </div>
+
+  <!-- Legend & Search -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+    <div class="flex flex-wrap items-center gap-4 text-xs">
+      <span class="text-slate-400 font-bold">راهنمای نشانگرها:</span>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+        <span class="text-slate-300">تصویر تلگرام</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+        <span class="text-slate-300">صوت تلگرام</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+        <span class="text-slate-300">تصویر بله</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+        <span class="text-slate-300">صوت بله</span>
+      </div>
+    </div>
+
+    <!-- Quick Page Search -->
+    <form method="get" action="/quran" class="flex items-center gap-2">
+      <input type="hidden" name="tab" value="coverage">
+      <input type="hidden" name="filter_status" value="{{ filter_status }}">
+      <input name="q" placeholder="جستجوی شماره صفحه..." value="{{ q }}" class="input-field py-1 px-3 text-xs font-mono w-40 text-center">
+      <button type="submit" class="px-3 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold">بیاب</button>
+      {% if q %}
+      <a href="/quran?tab=coverage&filter_status={{ filter_status }}" class="text-slate-500 hover:text-slate-300 text-xs">✕</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- 604 Matrix Cells -->
+  <div>
+    <p class="text-xs text-slate-400 mb-3">نمایش <span class="font-mono font-bold text-emerald-400">{{ matrix|length }}</span> صفحه (برای مشاهده و ویرایش روی هر صفحه کلیک کنید):</p>
+    
+    {% if matrix %}
+    <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-2 max-h-[65vh] overflow-y-auto p-1">
+      {% for item in matrix %}
+      <a href="/quran?tab=inspector&page_num={{ item.page }}" 
+         class="p-2.5 rounded-xl text-center border transition-all flex flex-col items-center justify-between gap-1.5 hover:scale-105 {% if item.is_complete %}bg-slate-900/40 border-emerald-500/30 hover:border-emerald-400{% else %}bg-slate-900/60 border-slate-700/60 hover:border-amber-400{% endif %}"
+         title="صفحه {{ item.page }}">
+        <span class="font-mono text-xs font-bold {% if item.is_complete %}text-emerald-300{% else %}text-slate-300{% endif %}">
+          {{ item.page }}
+        </span>
+
+        <div class="flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full {{ 'bg-sky-400' if item.has_tg_img else 'bg-slate-700' }}" title="تصویر تلگرام"></span>
+          <span class="w-1.5 h-1.5 rounded-full {{ 'bg-emerald-400' if item.has_tg_aud else 'bg-slate-700' }}" title="صوت تلگرام"></span>
+          <span class="w-1.5 h-1.5 rounded-full {{ 'bg-amber-400' if item.has_bale_img else 'bg-slate-700' }}" title="تصویر بله"></span>
+          <span class="w-1.5 h-1.5 rounded-full {{ 'bg-purple-400' if item.has_bale_aud else 'bg-slate-700' }}" title="صوت بله"></span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-8 text-center text-slate-500 bg-slate-900/40 rounded-2xl">
+      هیچ صفحه‌ای با این فیلتر یافت نشد.
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- TAB 3: SYSTEM RECITERS                                                    -->
+<!-- ========================================================================= -->
+{% if tab == 'reciters' %}
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="pb-6 border-b border-white/10 mb-6">
+    <h2 class="text-xl sm:text-2xl font-extrabold text-white">مدیریت قاریان و بسته‌های صوتی ترتیل</h2>
+    <p class="text-xs text-slate-400 mt-1">قاریان تعریف‌شده در سیستم جهت قرائت ترتیل ۶۰۴ صفحه قرآن کریم</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    {% for r in reciters_list %}
+    <article class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-lg font-bold text-white">{{ r.name_fa }}</h3>
+            <span class="text-xs font-mono text-slate-400">شناسه: {{ r.id }}</span>
+          </div>
+          {% if r.is_active_picker %}
+          <span class="px-2.5 py-1 rounded-full text-[0.7rem] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            ✅ فعال در ربات
+          </span>
+          {% else %}
+          <span class="px-2.5 py-1 rounded-full text-[0.7rem] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            ⏳ در نوبت تکمیل صوت
+          </span>
+          {% endif %}
+        </div>
+
+        <div class="mb-4">
+          <div class="flex items-center justify-between text-xs text-slate-400 mb-1.5">
+            <span>صفحات صوتی ثبت‌شده:</span>
+            <span class="font-mono font-bold text-emerald-400">{{ r.audio_pages_count }} / 604 صفحه</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div class="bg-emerald-500 h-2 rounded-full transition-all" style="width: {{ r.pct }}%"></div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          {% if r.id == 'parhizgar' %}
+          ترتیل استاندارد و پیش‌فرض سامانه با تفکیک دقیق ۶۰۴ صفحه. فایل‌های صوتی این قاری از کانال منبع رسمی بارگذاری شده است.
+          {% elif r.id == 'minshawi' %}
+          ترتیل استاد محمد صدیق منشاوی. بسته‌های صوتی این قاری پس از بارگذاری در بانک، در انتخاب قاری ربات برای کاربران فعال خواهد شد.
+          {% elif r.id == 'abdulbasit' %}
+          ترتیل ماندگار استاد عبدالباسط عبدالصمد.
+          {% else %}
+          ترتیل استاد محمود خلیل حصری.
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between">
+        <a href="/quran?tab=inspector&page_num=1" class="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1">
+          <span>ثبت صوت جدید در بازرس صفحات ←</span>
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- ========================================================================= -->
+<!-- TAB 4: SYNC TOOLS & CHANNEL SEED                                          -->
+<!-- ========================================================================= -->
+{% if tab == 'sync' %}
+<section class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5">
+  <div class="pb-6 border-b border-white/10 mb-6">
+    <h2 class="text-xl sm:text-2xl font-extrabold text-white">ابزارهای خودکارسازی، بذر کانال و همگام‌سازی</h2>
+    <p class="text-xs text-slate-400 mt-1">بارگذاری سریع نقشه ۶۰۴ صفحه از کانال رسمی منبع و پایپ‌لاین مهاجرت به پیام‌رسان بله</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Tool 1: Source Channel Seed -->
+    <article class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg">
+            🔄
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">بارگذاری خودکار نقشه ۶۰۴ صفحه از کانال</h3>
+            <span class="text-xs text-emerald-400">کانال منبع رسمی تلگرام</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+          کانال منبع تلگرام شامل تمام ۶۰۴ صفحه تصویری عثمان‌طه و صوت‌های ترتیل استاد پرهیزگار است. این عملیات به صورت کاملاً ایمن (Idempotent) بوده و بدون ایجاد رکورد تکراری، نقشه کامل را در پایگاه داده ثبت می‌کند.
+        </p>
+
+        <div class="p-3 bg-slate-800/40 rounded-xl border border-slate-700/60 text-xs text-slate-400 mb-4 space-y-1">
+          <div class="flex items-center justify-between">
+            <span>تعداد پیام‌های تصویری:</span>
+            <span class="font-mono text-slate-200">۶۰۴ صفحه</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span>تعداد پیام‌های صوتی:</span>
+            <span class="font-mono text-slate-200">بسته‌های بازه صفحات</span>
+          </div>
+        </div>
+      </div>
+
+      <form method="post" action="/quran/seed-channel" onsubmit="return confirm('آیا از بارگذاری خودکار نقشه ۶۰۴ صفحه از کانال منبع مطمئن هستید؟')">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input type="hidden" name="tab" value="sync">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          <span>اجرای بارگذاری نقشه ۶۰۴ صفحه</span>
+        </button>
+      </form>
+    </article>
+
+    <!-- Tool 2: Telegram-to-Bale Pipeline -->
+    <article class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-lg">
+            ⚡️
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white">پایپ‌لاین انتقال رسانه به بله (Bale)</h3>
+            <span class="text-xs text-amber-400">سرویس خودکار مهاجرت مدیا (DEC-PY-0127)</span>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed mb-4">
+          به دلیل تفاوت شناسه‌های فایلی تلگرام و بله، پایپ‌لاین پس‌زمینه فایل‌ها را به صورت استریم از تلگرام دریافت کرده و در کانال ذخیره‌سازی بله آپلود می‌کند تا شناسه بله تولید و ذخیره شود.
+        </p>
+
+        <div class="p-3 bg-slate-800/40 rounded-xl border border-slate-700/60 text-xs text-slate-300 space-y-2 mb-4 font-mono text-[0.7rem]" dir="ltr">
+          <p class="text-slate-400 font-sans text-xs">دستورات مدیریت مهاجرت در بات مدیریت:</p>
+          <p class="text-emerald-400">/admin_bale_media_status</p>
+          <p class="text-emerald-400">/admin_sync_bale</p>
+        </div>
+      </div>
+
+      <div class="p-3 rounded-xl bg-slate-800/60 border border-slate-700 text-center">
+        <span class="text-xs text-slate-400">همگام‌سازی از طریق ربات ادمین و ترمینال سرور در دسترس است.</span>
+      </div>
+    </article>
+  </div>
+</section>
+{% endif %}
+
 {% endblock %}

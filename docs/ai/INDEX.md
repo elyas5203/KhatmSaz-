@@ -1,3 +1,8 @@
+## 2026-10-19 — Quran Bank, Reciters & Media Studio (MASTER-52) [Antigravity]
+- Master Document: [MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md](masters/MASTER_52_QURAN_BANK_RECITERS_AND_MEDIA_STUDIO.md) (Centralized 604-page Quran studio `/quran` in web admin, 4 coverage KPI cards, 4-tab architecture: Inspector, Coverage Matrix, System Reciters, Channel Seed & Bale Migration Tools, direct multipart file upload to `/static/uploads/quran/`, and asset delete action).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/quran.html`, `src/khatmsaz/modules/content/`, `src/khatmsaz/modules/content/migrator.py`.
+- Tests: `tests/test_master_52_quran_hub.py`, `tests/test_admin_template_render.py`.
+
 ## 2026-10-19 — Devotionals, Categories & Message Templates Studio (MASTER-51) [Antigravity]
 - Master Document: [MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md](masters/MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md) (Centralized devotionals, categories and templates studio `/devotionals` and `/content` in web admin, 4 KPI cards, 4-tab architecture, seamless redirects from `/categories` and `/templates`, direct file uploads, prayer requests fulfillment queue, category creation/toggle, and multilingual message templates with versioning).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/devotionals.html`, `src/khatmsaz/modules/devotional/`, `src/khatmsaz/modules/category/`, `src/khatmsaz/modules/template/`.
