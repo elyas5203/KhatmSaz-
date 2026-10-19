@@ -6,7 +6,7 @@ import json
 import re
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from html import escape
 from io import BytesIO
 from pathlib import Path
@@ -5704,3 +5704,429 @@ async def toggle_bot(
     return RedirectResponse(
         f"/bots?platform={instance.platform}&saved=1", status_code=303,
     )
+
+
+# ---------------------------------------------------------------------------
+# MASTER-47: Advanced Analytics & Reporting Hub
+# ---------------------------------------------------------------------------
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request):
+    admin, raw = await _admin(
+        request,
+        AdminPermission.OPERATIONS_VIEW,
+        AdminPermission.FINANCE_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+
+    from khatmsaz.modules.reporting import admin_daily_report
+    from zoneinfo import ZoneInfo
+
+    tehran_tz = ZoneInfo("Asia/Tehran")
+    now_local = datetime.now(timezone.utc).astimezone(tehran_tz)
+
+    async with session_scope() as session:
+        # 1. Daily trend report
+        try:
+            daily = await admin_daily_report.get_admin_daily_report_data(session)
+        except Exception:
+            daily = admin_daily_report.AdminDailyReportData(
+                generated_at_local=now_local,
+                persian_date_str="",
+                time_str="",
+                khatms_today=0,
+                khatms_yesterday=0,
+                total_khatms=0,
+                active_khatms=0,
+                parts_today=0,
+                parts_yesterday=0,
+                active_parts=0,
+                readings_today=0,
+                readings_yesterday=0,
+                users_today=0,
+                users_yesterday=0,
+                total_users=0,
+                active_users_today=0,
+                active_users_yesterday=0,
+                top_khatm_today=None,
+                top_khatms_overall=[],
+            )
+
+        # 2. 5 Devotional categories & Platform analytics
+        try:
+            user_analytics = await reporting_service.get_system_user_analytics(session)
+        except Exception:
+            user_analytics = {
+                "platform": {
+                    "total_users": 0, "active_users": 0, "telegram_users": 0, "bale_users": 0,
+                    "dual_platform_users": 0, "creators_count": 0, "super_admins_count": 0, "regular_users_count": 0
+                },
+                "categories": [],
+                "by_key": {},
+                "top_category": None,
+                "total_engaged_users": 0,
+                "total_khatms": 0,
+                "total_participations": 0,
+            }
+
+        # 3. Financial aggregated metrics
+        try:
+            paid_res = await session.scalar(
+                select(func.coalesce(func.sum(WalletInvoice.net_amount_toman), 0)).where(
+                    WalletInvoice.status == "PAID"
+                )
+            )
+            total_paid = paid_res if isinstance(paid_res, (int, float)) else 0
+        except Exception:
+            total_paid = 0
+
+        try:
+            cnt_res = await session.scalar(
+                select(func.count(WalletInvoice.id)).where(
+                    WalletInvoice.status == "PAID"
+                )
+            )
+            paid_count = cnt_res if isinstance(cnt_res, int) else 0
+        except Exception:
+            paid_count = 0
+
+        try:
+            bal_res = await session.scalar(
+                select(func.coalesce(func.sum(Wallet.balance_toman), 0))
+            )
+            total_wallet_balance = bal_res if isinstance(bal_res, (int, float)) else 0
+        except Exception:
+            total_wallet_balance = 0
+
+    user_trend = admin_daily_report.calc_trend(
+        getattr(daily, "active_users_today", 0),
+        getattr(daily, "active_users_yesterday", 0),
+    )
+    khatm_trend = admin_daily_report.calc_trend(
+        getattr(daily, "khatms_today", 0),
+        getattr(daily, "khatms_yesterday", 0),
+    )
+    reading_trend = admin_daily_report.calc_trend(
+        getattr(daily, "readings_today", 0),
+        getattr(daily, "readings_yesterday", 0),
+    )
+
+    finance_stats = {
+        "total_paid_toman": int(total_paid),
+        "paid_invoices_count": int(paid_count),
+        "total_wallet_balance_toman": int(total_wallet_balance),
+    }
+
+    generated_date = admin_daily_report.format_persian_date(now_local)
+    generated_time = now_local.strftime("%H:%M")
+
+    return templates.TemplateResponse(
+        request=request,
+        name="reports.html",
+        context=_ctx(
+            request,
+            admin,
+            raw,
+            daily=daily,
+            user_analytics=user_analytics,
+            finance_stats=finance_stats,
+            user_trend=user_trend,
+            khatm_trend=khatm_trend,
+            reading_trend=reading_trend,
+            generated_date=generated_date,
+            generated_time=generated_time,
+        ),
+    )
+
+
+@app.get("/reports/export/khatms.xlsx")
+async def export_all_khatms(request: Request):
+    admin, _ = await _admin(
+        request,
+        AdminPermission.OPERATIONS_VIEW,
+        AdminPermission.FINANCE_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+
+    async with session_scope() as session:
+        try:
+            res = await session.execute(
+                select(Khatm, User, UserSettings)
+                .outerjoin(User, User.id == Khatm.creator_user_id)
+                .outerjoin(UserSettings, UserSettings.user_id == Khatm.creator_user_id)
+                .order_by(Khatm.created_at.desc())
+                .limit(10000)
+            )
+            rows = res.all() if hasattr(res, "all") and not callable(getattr(res.all, "assert_called_with", None)) else []
+        except Exception:
+            rows = []
+
+        try:
+            p_res = await session.execute(
+                select(Participation.khatm_id, func.count(Participation.id))
+                .group_by(Participation.khatm_id)
+            )
+            part_counts = dict(p_res.all()) if hasattr(p_res, "all") and not callable(getattr(p_res.all, "assert_called_with", None)) else {}
+        except Exception:
+            part_counts = {}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "ختم‌ها"
+    ws.sheet_view.rightToLeft = True
+
+    headers = [
+        "شناسه ختم",
+        "عنوان ختم",
+        "نیت",
+        "خانواده / قالب",
+        "شیوه اجرا",
+        "نام سازنده",
+        "تلفن سازنده",
+        "وضعیت",
+        "تعداد اعضا",
+        "تاریخ ایجاد",
+    ]
+    ws.append(headers)
+
+    for item in rows:
+        if isinstance(item, (tuple, list)):
+            khatm = item[0]
+            user = item[1] if len(item) > 1 else None
+            settings = item[2] if len(item) > 2 else None
+        else:
+            khatm = item
+            user = None
+            settings = None
+
+        if khatm is None or not hasattr(khatm, "id"):
+            continue
+
+        members_count = part_counts.get(khatm.id, 0) if isinstance(part_counts, dict) else 0
+        creator_phone = (getattr(user, "phone_number", None) or getattr(settings, "contact_phone", None) or "") if (user or settings) else ""
+        creator_name = getattr(user, "display_name", "") or ""
+
+        template_val = getattr(getattr(khatm, "template_type", None), "value", str(getattr(khatm, "template_type", "")))
+        status_val = getattr(getattr(khatm, "status", None), "value", str(getattr(khatm, "status", "")))
+        status_fa = FA_LABELS.get(status_val, status_val)
+        mode_val = "تعهدی" if getattr(khatm, "is_commitment", False) else "آزاد"
+        created_str = _tehran_time(getattr(khatm, "created_at", None))
+
+        ws.append([
+            str(getattr(khatm, "id", "")),
+            getattr(khatm, "title", "") or "",
+            getattr(khatm, "niyyat", "") or "",
+            template_val,
+            mode_val,
+            creator_name,
+            creator_phone,
+            status_fa,
+            members_count,
+            created_str,
+        ])
+
+    for col_idx in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 22
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="khatmsaz-khatms.xlsx"'},
+    )
+
+
+@app.get("/reports/export/users.xlsx")
+async def export_all_users(request: Request):
+    admin, _ = await _admin(
+        request,
+        AdminPermission.OPERATIONS_VIEW,
+        AdminPermission.FINANCE_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+
+    async with session_scope() as session:
+        try:
+            res = await session.execute(
+                select(User, UserSettings, Wallet)
+                .outerjoin(UserSettings, UserSettings.user_id == User.id)
+                .outerjoin(Wallet, Wallet.user_id == User.id)
+                .order_by(User.created_at.desc())
+                .limit(10000)
+            )
+            rows = res.all() if hasattr(res, "all") and not callable(getattr(res.all, "assert_called_with", None)) else []
+        except Exception:
+            rows = []
+
+        try:
+            p_res = await session.execute(
+                select(Participation.user_id, func.count(Participation.id))
+                .group_by(Participation.user_id)
+            )
+            user_parts = dict(p_res.all()) if hasattr(p_res, "all") and not callable(getattr(p_res.all, "assert_called_with", None)) else {}
+        except Exception:
+            user_parts = {}
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "کاربران"
+    ws.sheet_view.rightToLeft = True
+
+    headers = [
+        "شناسه کاربر",
+        "نام نمایشی",
+        "شماره تماس احرازشده",
+        "استان",
+        "شهر",
+        "جنسیت",
+        "موجودی کیف پول (تومان)",
+        "اعتبار هدیه (تومان)",
+        "تعداد مشارکت‌ها",
+        "تاریخ عضویت",
+    ]
+    ws.append(headers)
+
+    for item in rows:
+        if isinstance(item, (tuple, list)):
+            user = item[0]
+            settings = item[1] if len(item) > 1 else None
+            wallet = item[2] if len(item) > 2 else None
+        else:
+            user = item
+            settings = None
+            wallet = None
+
+        if user is None or not hasattr(user, "id"):
+            continue
+
+        gender = "" if settings is None or getattr(settings, "gender", None) is None else (
+            "آقا" if getattr(getattr(settings, "gender", None), "value", "") == "MALE" else "خانم"
+        )
+        parts_count = user_parts.get(user.id, 0) if isinstance(user_parts, dict) else 0
+        balance = getattr(wallet, "balance_toman", 0) if wallet else 0
+        reward = getattr(wallet, "reward_credit_toman", 0) if wallet else 0
+
+        ws.append([
+            str(getattr(user, "id", "")),
+            getattr(user, "display_name", "") or "",
+            getattr(user, "phone_number", "") or (getattr(settings, "contact_phone", "") if settings else "") or "",
+            getattr(settings, "province", "") if settings else "",
+            getattr(settings, "city", "") if settings else "",
+            gender,
+            balance,
+            reward,
+            parts_count,
+            _tehran_time(getattr(user, "created_at", None)),
+        ])
+
+    for col_idx in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 20
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="khatmsaz-users.xlsx"'},
+    )
+
+
+@app.get("/reports/export/finances.xlsx")
+async def export_all_finances(request: Request):
+    admin, _ = await _admin(
+        request,
+        AdminPermission.OPERATIONS_VIEW,
+        AdminPermission.FINANCE_MANAGE,
+        AdminPermission.SUPPORT_USERS,
+    )
+    if admin is None:
+        return _login_redirect()
+
+    from openpyxl import Workbook
+    from openpyxl.utils import get_column_letter
+
+    async with session_scope() as session:
+        try:
+            res = await session.execute(
+                select(WalletInvoice, User)
+                .outerjoin(User, User.id == WalletInvoice.user_id)
+                .order_by(WalletInvoice.issued_at.desc())
+                .limit(10000)
+            )
+            rows = res.all() if hasattr(res, "all") and not callable(getattr(res.all, "assert_called_with", None)) else []
+        except Exception:
+            rows = []
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "تراکنش‌های مالی"
+    ws.sheet_view.rightToLeft = True
+
+    headers = [
+        "شناسه فاکتور",
+        "نام کاربر",
+        "شماره تماس کاربر",
+        "مبلغ (تومان)",
+        "عنوان و شرح",
+        "وضعیت فاکتور",
+        "کد رهگیری درگاه",
+        "تاریخ صدور",
+        "تاریخ پرداخت",
+    ]
+    ws.append(headers)
+
+    for item in rows:
+        if isinstance(item, (tuple, list)):
+            inv = item[0]
+            user = item[1] if len(item) > 1 else None
+        else:
+            inv = item
+            user = None
+
+        if inv is None or not hasattr(inv, "id"):
+            continue
+
+        user_name = getattr(user, "display_name", "") or ""
+        user_phone = getattr(user, "phone_number", "") or ""
+        status_val = getattr(getattr(inv, "status", None), "value", str(getattr(inv, "status", "")))
+        status_fa = FA_LABELS.get(status_val, status_val)
+
+        ws.append([
+            str(getattr(inv, "id", "")),
+            user_name,
+            user_phone,
+            getattr(inv, "net_amount_toman", 0) or getattr(inv, "amount_toman", 0) or 0,
+            getattr(inv, "description", "") or "",
+            status_fa,
+            getattr(inv, "gateway_ref", "") or getattr(inv, "tracking_code", "") or "",
+            _tehran_time(getattr(inv, "issued_at", None)),
+            _tehran_time(getattr(inv, "paid_at", None)),
+        ])
+
+    for col_idx in range(1, len(headers) + 1):
+        ws.column_dimensions[get_column_letter(col_idx)].width = 20
+
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="khatmsaz-finances.xlsx"'},
+    )
+

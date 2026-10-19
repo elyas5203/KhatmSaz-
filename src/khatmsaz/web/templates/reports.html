@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% from "components.html" import help_button, tooltip %}
+{% block title %}مرکز گزارشات و تحلیل‌های آماری | ختم‌ساز{% endblock %}
+{% block content %}
+<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">داده‌کاوی، تحلیل روندها و صادرات گزارشات</p>
+    <div class="flex items-center gap-3">
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مرکز گزارشات و تحلیل‌های آماری</h1>
+      {{ help_button(
+        "راهنمای مرکز گزارشات و تحلیل‌های آماری",
+        "این بخش نمای ۳۶۰ درجه‌ای و یکپارچه از نبض عملیاتی سامانه ختم‌ساز را به شما نمایش می‌دهد. اطلاعات این صفحه به صورت مستقیم از پایگاه داده و بر اساس ساعت رسمی تهران محاسبه می‌شوند.",
+        [
+          "کارت‌های شاخص‌های کلیدی: آمار عملکرد امروز (ساعت ۰۰:۰۰ بامداد تا الان) را با روز قبل مقایسه کرده و روند صعودی (↗️) یا کاهشی (↘️) را نشان می‌دهند.",
+          "ماتریس ۵ خانواده معنوی: نشان می‌دهد میزان مشارکت و محبوبیت بین ختم‌های قرآن، صلوات، ادعیه و زیارات، لعن و خطبه‌ها به چه صورت توزیع شده است.",
+          "بخش صادرات اکسل: به شما امکان می‌دهد در هر لحظه کل اطلاعات خام ختم‌ها، مشخصات اعضا یا دفترچه فاکتورها را در قالب فایل استاندارد اکسل (با فونت و چیدمان راست‌به‌چپ) دانلود کنید."
+        ],
+        "نکته: فایل‌های خروجی اکسل مستقیماً توسط سرور تولید شده و برای باز کردن در نرم‌افزار مایکروسافت اکسل یا گوگل‌شیتس بهینه‌سازی شده‌اند."
+      ) }}
+    </div>
+  </div>
+
+  <div class="flex items-center gap-2">
+    <span class="text-xs text-slate-400 bg-slate-900/60 px-3 py-1.5 rounded-xl border border-slate-800 font-mono">
+      تاریخ گزارش: {{ generated_date }} | {{ generated_time }}
+    </span>
+  </div>
+</section>
+
+<!-- 4 TOP KPI CARDS WITH TREND INDICATORS -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <!-- Card 1: Users & DAU -->
+  <div class="glass-panel p-5 rounded-3xl border border-white/5 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-bold text-slate-400">کاربران فعال امروز (DAU)</span>
+      <div class="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold">👥</div>
+    </div>
+    <div class="flex items-baseline gap-2 mb-2">
+      <span class="text-3xl font-black text-white font-mono">{{ "{:,}".format(daily.active_users_today) }}</span>
+      <span class="text-xs text-slate-400">نفر فعال</span>
+    </div>
+    <div class="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+      <span class="text-slate-400">دیروز: <strong class="text-slate-200 font-mono">{{ "{:,}".format(daily.active_users_yesterday) }}</strong></span>
+      <span class="px-2 py-0.5 rounded-lg text-[0.7rem] font-bold {% if 'صعودی' in user_trend[1] %}bg-emerald-500/20 text-emerald-300{% elif 'کاهشی' in user_trend[1] %}bg-rose-500/20 text-rose-300{% else %}bg-slate-800 text-slate-300{% endif %}">
+        {{ user_trend[0] }} {{ user_trend[1] }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Card 2: Khatms -->
+  <div class="glass-panel p-5 rounded-3xl border border-white/5 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-bold text-slate-400">ختم‌های جدید امروز</span>
+      <div class="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center font-bold">📿</div>
+    </div>
+    <div class="flex items-baseline gap-2 mb-2">
+      <span class="text-3xl font-black text-white font-mono">{{ "{:,}".format(daily.khatms_today) }}</span>
+      <span class="text-xs text-slate-400">ختم تازه</span>
+    </div>
+    <div class="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+      <span class="text-slate-400">فعال جاری: <strong class="text-emerald-400 font-mono">{{ "{:,}".format(daily.active_khatms) }}</strong></span>
+      <span class="px-2 py-0.5 rounded-lg text-[0.7rem] font-bold {% if 'صعودی' in khatm_trend[1] %}bg-emerald-500/20 text-emerald-300{% elif 'کاهشی' in khatm_trend[1] %}bg-rose-500/20 text-rose-300{% else %}bg-slate-800 text-slate-300{% endif %}">
+        {{ khatm_trend[0] }} {{ khatm_trend[1] }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Card 3: Readings & Portions -->
+  <div class="glass-panel p-5 rounded-3xl border border-white/5 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-bold text-slate-400">سهم‌های قرائت‌شده امروز</span>
+      <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center font-bold">📖</div>
+    </div>
+    <div class="flex items-baseline gap-2 mb-2">
+      <span class="text-3xl font-black text-white font-mono">{{ "{:,}".format(daily.readings_today) }}</span>
+      <span class="text-xs text-slate-400">قرائت</span>
+    </div>
+    <div class="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+      <span class="text-slate-400">دیروز: <strong class="text-slate-200 font-mono">{{ "{:,}".format(daily.readings_yesterday) }}</strong></span>
+      <span class="px-2 py-0.5 rounded-lg text-[0.7rem] font-bold {% if 'صعودی' in reading_trend[1] %}bg-emerald-500/20 text-emerald-300{% elif 'کاهشی' in reading_trend[1] %}bg-rose-500/20 text-rose-300{% else %}bg-slate-800 text-slate-300{% endif %}">
+        {{ reading_trend[0] }} {{ reading_trend[1] }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Card 4: Financial Turnover -->
+  <div class="glass-panel p-5 rounded-3xl border border-white/5 relative overflow-hidden">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-xs font-bold text-slate-400">گردش درآمد سامانه</span>
+      <div class="w-8 h-8 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center font-bold">💳</div>
+    </div>
+    <div class="flex items-baseline gap-2 mb-2">
+      <span class="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{{ "{:,}".format(finance_stats.total_paid_toman) }}</span>
+      <span class="text-xs text-slate-400">تومان</span>
+    </div>
+    <div class="flex items-center justify-between text-xs pt-2 border-t border-white/5">
+      <span class="text-slate-400">فاکتور موفق: <strong class="text-emerald-400 font-mono">{{ "{:,}".format(finance_stats.paid_invoices_count) }}</strong></span>
+      <span class="text-slate-400">موجودی کیف‌ها: <strong class="text-slate-200 font-mono">{{ "{:,}".format(finance_stats.total_wallet_balance_toman) }}</strong></span>
+    </div>
+  </div>
+</section>
+
+<!-- EXCEL EXPORT CARDS (FAST DOWNLOADS) -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-white/5">
+    <div>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <span>📊 خروجی‌های استاندارد اکسل (Excel Exports)</span>
+        <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-emerald-500/20 text-emerald-300 font-bold">RTL فارسی</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">دانلود آنی داده‌های تفکیک‌شده کل سامانه با سرفصل‌های معتبر جهت حسابداری و بایگانی.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <!-- Export Khatms -->
+    <div class="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold text-emerald-400">اطلاعات ختم‌ها</span>
+          <span class="text-xl">📿</span>
+        </div>
+        <h3 class="text-sm font-bold text-white mb-1">فهرست جامع کلیه ختم‌ها</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-4">
+          شامل عنوان، نیت، خانواده، نوع تعهد (تعهدی/آزاد)، نام و تلفن سازنده، وضعیت، اعضا و تاریخ ایجاد.
+        </p>
+      </div>
+      <a href="/reports/export/khatms.xlsx" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        <span>دریافت اکسل ختم‌ها (.xlsx)</span>
+      </a>
+    </div>
+
+    <!-- Export Users -->
+    <div class="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold text-sky-400">بانک کاربران</span>
+          <span class="text-xl">👥</span>
+        </div>
+        <h3 class="text-sm font-bold text-white mb-1">فهرست کل کاربران سامانه</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-4">
+          شامل نام نمایشی، شماره احرازشده، شهر و استان، جنسیت، پلن، نقش‌ها، موجودی کیف پول و مشارکت‌ها.
+        </p>
+      </div>
+      <a href="/reports/export/users.xlsx" class="w-full py-2.5 px-4 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        <span>دریافت اکسل کاربران (.xlsx)</span>
+      </a>
+    </div>
+
+    <!-- Export Finances -->
+    <div class="bg-slate-900/50 p-5 rounded-2xl border border-slate-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-bold text-amber-400">تراکنش‌های مالی</span>
+          <span class="text-xl">💳</span>
+        </div>
+        <h3 class="text-sm font-bold text-white mb-1">دفتر کل فاکتورها و تراکنش‌ها</h3>
+        <p class="text-xs text-slate-400 leading-relaxed mb-4">
+          شامل شناسه فاکتور، نام کاربر، شماره تماس، مبلغ، عنوان خرید (پلن/پیامک/پیام)، وضعیت و کد رهگیری.
+        </p>
+      </div>
+      <a href="/reports/export/finances.xlsx" class="w-full py-2.5 px-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all text-center flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        <span>دریافت اکسل مالی (.xlsx)</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- 5 DEVOTIONAL FAMILIES RECEPTION MATRIX -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 pb-4 border-b border-white/5">
+    <div>
+      <h2 class="text-lg font-bold text-white flex items-center gap-2">
+        <span>🕌 ماتریس استقبال ۵ خانواده معنوی (Devotional Categories)</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">تفکیک کاربران علاقه‌مند، قاریان فعال و سهم محبوبیت هر خانواده از کل ظرفیت سامانه.</p>
+    </div>
+    {% if user_analytics.top_category %}
+    <div class="flex items-center gap-2 bg-amber-500/10 text-amber-300 px-3 py-1.5 rounded-xl border border-amber-500/20 text-xs font-bold">
+      <span>🏆 بیشترین استقبال:</span>
+      <strong class="text-amber-200">{{ user_analytics.top_category.icon }} {{ user_analytics.top_category.title }}</strong>
+      <span>({{ user_analytics.top_category.popularity_percent }}%)</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-right text-xs">
+      <thead>
+        <tr class="text-slate-400 border-b border-slate-800">
+          <th class="py-3 px-3">رتبه</th>
+          <th class="py-3 px-3">خانواده معنوی</th>
+          <th class="py-3 px-3 text-center">کاربران درگیر</th>
+          <th class="py-3 px-3 text-center">قاریان فعال</th>
+          <th class="py-3 px-3 text-center">کل ختم‌ها</th>
+          <th class="py-3 px-3 text-center">ختم‌های فعال</th>
+          <th class="py-3 px-3 text-center">کل مشارکت‌ها</th>
+          <th class="py-3 px-3">سهم محبوبیت</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800/60">
+        {% for cat in user_analytics.categories %}
+        <tr class="hover:bg-slate-900/40 transition-colors">
+          <td class="py-3 px-3 font-mono font-bold">
+            {% if cat.rank == 1 %}
+            <span class="px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300">۱ 🏆</span>
+            {% else %}
+            <span class="text-slate-400">#{{ cat.rank }}</span>
+            {% endif %}
+          </td>
+          <td class="py-3 px-3 font-bold text-white">
+            <span class="text-base ml-1.5">{{ cat.icon }}</span>
+            <span>{{ cat.title }}</span>
+          </td>
+          <td class="py-3 px-3 text-center font-mono font-bold text-sky-400">
+            {{ "{:,}".format(cat.engaged_users) }}
+          </td>
+          <td class="py-3 px-3 text-center font-mono text-emerald-400">
+            {{ "{:,}".format(cat.active_readers) }}
+          </td>
+          <td class="py-3 px-3 text-center font-mono text-slate-300">
+            {{ "{:,}".format(cat.total_khatms) }}
+          </td>
+          <td class="py-3 px-3 text-center font-mono text-emerald-400 font-bold">
+            {{ "{:,}".format(cat.active_khatms) }}
+          </td>
+          <td class="py-3 px-3 text-center font-mono text-slate-300">
+            {{ "{:,}".format(cat.total_participations) }}
+          </td>
+          <td class="py-3 px-3 min-w-[140px]">
+            <div class="flex items-center gap-2">
+              <div class="flex-1 bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
+                <div class="h-full rounded-full {% if cat.rank == 1 %}bg-amber-400{% else %}bg-emerald-500{% endif %}" style="width: {{ cat.popularity_percent }}%"></div>
+              </div>
+              <span class="font-mono text-[0.7rem] text-slate-300 w-10 text-left font-bold">{{ cat.popularity_percent }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- PLATFORM & DEMOGRAPHIC BREAKDOWN -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+  <!-- Platform Distribution -->
+  <div class="glass-panel p-6 rounded-3xl border border-white/5">
+    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+      <span>📱 توزیع پلتفرم و پیام‌رسان‌ها</span>
+    </h3>
+    <div class="space-y-4">
+      <!-- Telegram -->
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">✈️</span>
+          <div>
+            <b class="text-xs text-white block">کاربران تلگرام</b>
+            <span class="text-[0.65rem] text-slate-400">دارای شناسه تلگرام فعال</span>
+          </div>
+        </div>
+        <span class="text-sm font-mono font-bold text-sky-400">{{ "{:,}".format(user_analytics.platform.telegram_users) }}</span>
+      </div>
+
+      <!-- Bale -->
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🌿</span>
+          <div>
+            <b class="text-xs text-white block">کاربران پیام‌رسان بله</b>
+            <span class="text-[0.65rem] text-slate-400">دارای شناسه بله فعال</span>
+          </div>
+        </div>
+        <span class="text-sm font-mono font-bold text-emerald-400">{{ "{:,}".format(user_analytics.platform.bale_users) }}</span>
+      </div>
+
+      <!-- Dual Platform -->
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">🔄</span>
+          <div>
+            <b class="text-xs text-white block">کاربران چندپلتفرمی (همگام‌سازی‌شده)</b>
+            <span class="text-[0.65rem] text-slate-400">متصل همزمان در تلگرام و بله</span>
+          </div>
+        </div>
+        <span class="text-sm font-mono font-bold text-violet-400">{{ "{:,}".format(user_analytics.platform.dual_platform_users) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role & Phone Verification Breakdown -->
+  <div class="glass-panel p-6 rounded-3xl border border-white/5">
+    <h3 class="text-sm font-bold text-white mb-4 flex items-center gap-2">
+      <span>🛡 نقش‌ها و احراز هویت</span>
+    </h3>
+    <div class="space-y-4">
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div>
+          <b class="text-xs text-white block">سازندگان ختم (Creators)</b>
+          <span class="text-[0.65rem] text-slate-400">دارای شماره احرازشده و سازنده حداقل ۱ ختم</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-amber-400">{{ "{:,}".format(user_analytics.platform.creators_count) }}</span>
+      </div>
+
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div>
+          <b class="text-xs text-white block">شرکت‌کنندگان عادی</b>
+          <span class="text-[0.65rem] text-slate-400">اعضای فعال در ختم‌های جمعی</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-slate-200">{{ "{:,}".format(user_analytics.platform.regular_users_count) }}</span>
+      </div>
+
+      <div class="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+        <div>
+          <b class="text-xs text-white block">مدیران سیستم (Admins)</b>
+          <span class="text-[0.65rem] text-slate-400">دارای نقش‌های مدیریتی در پنل ادمین</span>
+        </div>
+        <span class="text-sm font-mono font-bold text-rose-400">{{ "{:,}".format(user_analytics.platform.super_admins_count) }}</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOP KHATMS HIGHLIGHTS -->
+<section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+  <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+    <span>🏆 ختم‌های پیشتاز و پرمخاطب سامانه</span>
+  </h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <!-- Top Khatm Today -->
+    <div class="p-5 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+      <span class="text-[0.7rem] font-bold text-amber-400 uppercase tracking-wider block mb-1">پرطرفدارترین ختم ۲۴ ساعت گذشته</span>
+      {% if daily.top_khatm_today %}
+      <h3 class="text-base font-bold text-white mt-1">{{ daily.top_khatm_today[0] }}</h3>
+      <p class="text-xs text-slate-400 mt-2">
+        تعداد فعالیت و قرائت ثبت‌شده امروز: <strong class="text-amber-300 font-mono">{{ "{:,}".format(daily.top_khatm_today[1]) }}</strong>
+      </p>
+      {% else %}
+      <p class="text-xs text-slate-400 mt-2">امروز هنوز قرائتی ثبت نشده است.</p>
+      {% endif %}
+    </div>
+
+    <!-- Top Khatms Overall -->
+    <div class="p-5 rounded-2xl bg-slate-900/60 border border-slate-800">
+      <span class="text-[0.7rem] font-bold text-emerald-400 uppercase tracking-wider block mb-2">برترین ختم‌های کل سامانه (از نظر اعضا)</span>
+      <ul class="space-y-2 text-xs">
+        {% for khatm_title, members_count in daily.top_khatms_overall %}
+        <li class="flex items-center justify-between pb-1.5 border-b border-slate-800/80 last:border-0">
+          <span class="text-slate-200 truncate max-w-[70%]">{{ khatm_title }}</span>
+          <span class="font-mono text-emerald-400 font-bold">{{ "{:,}".format(members_count) }} عضو</span>
+        </li>
+        {% else %}
+        <li class="text-slate-400">داده‌ای یافت نشد.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</section>
+{% endblock %}

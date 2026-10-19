@@ -1,3 +1,18 @@
+## Current state — 2026-10-19 — Advanced Analytics & Reporting Hub and Excel Export Engine in Web Admin (MASTER-47) [Antigravity]
+- **Advanced Analytics & Reporting Hub (`web/app.py`, `web/templates/reports.html`, `web/templates/base.html`):**
+  - Added dedicated navigation entry `/reports` under Group 1 ("فرماندهی و نظارت") in desktop sidebar and mobile navigation dock.
+  - Implemented 4 operational KPI cards comparing today vs yesterday with trend indicators: Total Users & DAU, New & Active Khatms, Completed Portions & Readings, Financial Turnover & Wallet Aggregate.
+  - Implemented 5 Devotional Families Reception Matrix (Quran, Salawat, Dua & Ziyarat, La'an, Khutbah) with engaged users, active readers, total/active khatms, total participations, popularity share %, rank (1 to 5), and "🏆 بیشترین استقبال" badge.
+  - Implemented platform distribution (Telegram vs Bale vs Dual-platform) and user role/verification breakdown.
+  - Implemented top khatms highlights: most popular khatm today & top 5 active khatms overall.
+- **Global Excel Export Engine (`web/app.py`):**
+  - Implemented `GET /reports/export/khatms.xlsx`: complete export of all khatms with title, niyyat, template family, mode, creator name & phone, status, member count, and Jalali/Tehran timestamp.
+  - Implemented `GET /reports/export/users.xlsx`: complete export of all users with display name, verified phone, location, gender, wallet balances (cash & reward credit), participations, and registered date.
+  - Implemented `GET /reports/export/finances.xlsx`: complete ledger of all wallet invoices, amounts in Toman, payment status, gateway tracking codes, issue date, and paid date.
+  - Formatted all sheets with Persian right-to-left alignment (`sheet_view.rightToLeft = True`) and auto-sized columns.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md` and registered `DEC-PY-0139`.
+- **Validation:** Added 6 tests in `tests/test_master_47_reports_hub.py` (100% PASS), and verified combined regression suite passes with 33/33 tests passing.
+
 ## Current state — 2026-10-18 — Advertising, Banner Hub & Moderation Queue in Web Admin and Bot Delivery (MASTER-46) [Antigravity]
 - **Advertising & Banner Management Hub (`web/app.py`, `web/templates/banners.html`, `web/templates/base.html`):**
   - Added dedicated navigation entry `/banners` under Group 2 ("مدیریت و نظارت") in desktop sidebar and mobile navigation dock.

@@ -1,3 +1,8 @@
+## 2026-10-19 — Advanced Analytics & Reporting Hub and Excel Export Engine (MASTER-47) [Antigravity]
+- Master Document: [MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md](masters/MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md) (Centralized analytics and reporting hub `/reports` in web admin, 4 KPI cards with today vs yesterday trends, 5-family devotional reception matrix, platform distribution, top khatms highlights, and 3 global Excel export endpoints for khatms, users, and finances).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/reports.html`, `src/khatmsaz/web/templates/base.html`, `src/khatmsaz/modules/reporting/`.
+- Tests: `tests/test_master_47_reports_hub.py`.
+
 ## 2026-10-18 — Advertising, Banner Hub & Moderation Queue in Web Admin and Bot Delivery (MASTER-46) [Antigravity]
 - Master Document: [MASTER_46_ADVERTISING_AND_BANNER_HUB.md](masters/MASTER_46_ADVERTISING_AND_BANNER_HUB.md) (Centralized advertising and banner management hub `/banners` in web admin, 4 KPI cards, banner creation with SYSTEM_CULTURAL and COMMERCIAL_AD types, zero-data-loss active/inactive toggle, Queue 5 `/moderation?tab=banners` for creator-submitted banners with auto-refund on rejection, and bot occurrence delivery with ethical khatm advertising controls).
 - Key files: `src/khatmsaz/modules/advertising/`, `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/banners.html`, `src/khatmsaz/web/templates/moderation.html`, `src/khatmsaz/bot/occurrence_adapter.py`.

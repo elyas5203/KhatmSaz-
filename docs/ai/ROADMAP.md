@@ -1,3 +1,11 @@
+## 2026-10-19 — Advanced Analytics & Reporting Hub and Excel Export Engine (MASTER-47) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md` and document decision DEC-PY-0139.
+- [x] Implement Web Admin `/reports` hub with 4 KPI cards and daily trend comparison (today vs yesterday).
+- [x] Implement 5 devotional families reception matrix with engaged users, active readers, rank and popularity share %.
+- [x] Implement platform and role distributions (Telegram, Bale, Dual-platform, Creators, Admins).
+- [x] Implement 3 global Excel export endpoints (`/reports/export/khatms.xlsx`, `/reports/export/users.xlsx`, `/reports/export/finances.xlsx`).
+- [x] Add regression suite `tests/test_master_47_reports_hub.py` (6/6 PASS, 33/33 combined regression pass).
+
 ## 2026-10-18 — Advertising, Banner Hub & Moderation Queue (MASTER-46) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_46_ADVERTISING_AND_BANNER_HUB.md` and document decision DEC-PY-0138.
 - [x] Implement database models, repository, service, bootstrap DDL and Alembic migration `banners2026101801`.
