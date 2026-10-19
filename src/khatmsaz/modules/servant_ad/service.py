@@ -22,6 +22,7 @@ _TEXT = "servant_ad_text"
 _MEDIA_TYPE = "servant_ad_media_type"
 _MEDIA_TG = "servant_ad_media_telegram"
 _MEDIA_BALE = "servant_ad_media_bale"
+_MEDIA_LOCAL = "servant_ad_media_local"
 _ENABLED = "servant_ad_enabled"
 
 # (platform_value, subject, text, media_type|None, media_file_id|None) -> bool
@@ -34,6 +35,7 @@ async def get_ad(session: AsyncSession) -> dict:
         "media_type": (await kv.get(session, _MEDIA_TYPE)) or "",
         "media_telegram": (await kv.get(session, _MEDIA_TG)) or "",
         "media_bale": (await kv.get(session, _MEDIA_BALE)) or "",
+        "media_local": (await kv.get(session, _MEDIA_LOCAL)) or "",
         "enabled": (await kv.get(session, _ENABLED)) == "1",
     }
 
@@ -41,6 +43,7 @@ async def get_ad(session: AsyncSession) -> dict:
 async def set_ad(
     session: AsyncSession, *, text: str, enabled: bool,
     media_type: str = "", media_telegram: str = "", media_bale: str = "",
+    media_local: str | None = None,
 ) -> None:
     text = (text or "").strip()
     if len(text) > 1500:
@@ -49,6 +52,8 @@ async def set_ad(
     await kv.set(session, _MEDIA_TYPE, (media_type or "").strip())
     await kv.set(session, _MEDIA_TG, (media_telegram or "").strip())
     await kv.set(session, _MEDIA_BALE, (media_bale or "").strip())
+    if media_local is not None:
+        await kv.set(session, _MEDIA_LOCAL, media_local.strip())
     await kv.set(session, _ENABLED, "1" if enabled else "0")
 
 

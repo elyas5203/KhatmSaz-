@@ -1,3 +1,8 @@
+## 2026-10-19 — Broadcasts, Creator Messages & Outbound Campaigns Hub (MASTER-54) [Antigravity]
+- Master Document: [MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md](masters/MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md) (Centralized broadcasts and campaigns command center `/broadcasts` in web admin, 4 messaging KPI cards, 4-tab architecture: Pending Review Queue, Broadcasts History & Archive, Servant Ad Campaign, and Tariffs & Package Policies, seamless 303 redirect from `/servant-ad`, direct multipart file upload to `/static/uploads/campaigns/`, rejection note support, and dedicated tariff management).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/broadcasts.html`, `src/khatmsaz/modules/broadcast/service.py`, `src/khatmsaz/modules/servant_ad/service.py`.
+- Tests: `tests/test_master_54_broadcasts_hub.py`, `tests/test_admin_template_render.py`.
+
 ## 2026-10-19 — Bot Fleet Management & Intro Images Hub (MASTER-53) [Antigravity]
 - Master Document: [MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md](masters/MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md) (Centralized 18-bot fleet command center `/bots` in web admin, 4 fleet KPI cards, 4-tab architecture: Telegram Fleet, Bale Fleet, 5 Family Intro Images, and BotFather/Bale Guides, direct multipart file upload to `/static/uploads/intro/`, Creator bot token protection guard, and member bot active/inactive toggle with audit trail).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/bot_tokens.html`, `src/khatmsaz/modules/bot_registry/service.py`, `src/khatmsaz/core/bot_registry.py`.

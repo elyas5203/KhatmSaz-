@@ -1,3 +1,11 @@
+## 2026-10-19 — Broadcasts, Creator Messages & Outbound Campaigns Hub (MASTER-54) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md` and document decision DEC-PY-0146.
+- [x] Upgrade Web Admin `/broadcasts` hub with 4 messaging KPI cards and 4-tab architecture (Pending Moderation, Broadcasts History, Servant Ad Campaign, Tariffs & Policies).
+- [x] Implement seamless HTTP 303 redirect from legacy `/servant-ad` to `/broadcasts?tab=servant_ad`.
+- [x] Implement direct file upload (`UploadFile`) for servant ad media to `/static/uploads/campaigns/` alongside Telegram/Bale `file_id`.
+- [x] Implement rejection note support in `POST /broadcasts/{id}/decide` and dedicated tariff update route `POST /broadcasts/tariffs`.
+- [x] Add regression suite `tests/test_master_54_broadcasts_hub.py` and run full regression test suite (113/113 PASS).
+
 ## 2026-10-19 — Bot Fleet Management & Intro Images Hub (MASTER-53) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_53_BOT_FLEET_MANAGEMENT_AND_INTRO_IMAGES_HUB.md` and document decision DEC-PY-0145.
 - [x] Upgrade Web Admin `/bots` hub with 4 fleet KPI cards and 4-tab architecture (Telegram Fleet, Bale Fleet, Intro Images, BotFather Guide).

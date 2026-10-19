@@ -1,113 +1,662 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}پیام‌های گروهی | ختم‌ساز{% endblock %}
+{% block title %}مرکز جامع پیام‌های گروهی و کمپین‌ها | ختم‌ساز{% endblock %}
 {% block content %}
-<section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-  <div>
-    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">صف نظارت بر ارتباط با اعضا</p>
-    <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">تأیید پیام‌های گروهی سازنده‌ها</h1>
-      {{ help_button(
-        "راهنمای تأیید پیام‌های گروهی",
-        "سازندگان ختم‌ها می‌توانند برای اطلاع‌رسانی به اعضای ختم خود پیام متنی، عکس، ویدیو یا صوت ارسال کنند. برای جلوگیری از اسپم، پیام‌ها در این صف منتظر تأیید شما می‌مانند.",
-        [
-          "متن پیام، فایل ضمیمه (عکس/ویدیو/صوت) و نام ختم هدف را بررسی فرمایید.",
-          "اگر پیام تایید شد، دکمه «تأیید و ارسال» را بزنید تا در پس‌زمینه برای تمام اعضا فرستاده شود.",
-          "اگر نامناسب بود، با زدن دکمه «رد درخواست»، پیام متوقف شده و به سازنده اطلاع داده می‌شود."
-        ],
-        "نکته: ارسال پیام‌ها در پس‌زمینه پردازش می‌شود تا سرور دچار تایم‌اوت نشود."
-      ) }}
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">اتاق فرماندهی پیام‌رسانی و ارسال انبوه</p>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-white">پیام‌های گروهی و کمپین‌های سراسری</h1>
+        {{ help_button(
+          "راهنمای مرکز جامع پیام‌های گروهی و کمپین‌ها",
+          "این مرکز امکان مدیریت و نظارت بر پیام‌های ارسالی سازندگان به اعضای ختم و همچنین اجرای کمپین‌های تبلیغاتی سراسری برای کاربران پلن پایه را فراهم می‌سازد.",
+          [
+            "تب صف در انتظار: پیام‌های متنی، عکس و رسانه‌ای سازندگان را بازبینی و با یک کلیک تایید یا رد کنید.",
+            "تب تاریخچه: سوابق ارسالی‌ها، مبالغ پرداختی، وضعیت تحویل و دلایل رد پیام‌ها را جستجو و بررسی کنید.",
+            "تب تبلیغ خدمتگزاران: متن و تصویر کمپین فرهنگی/تبلیغاتی را تنظیم و مستقیماً برای مخاطبان سازندگان پلن پایه ارسال کنید.",
+            "تب تعرفه‌ها: نرخ هر ۱۰۰۰ پیام و سهمیه رایگان تلگرام، بله و پیامک را پیکربندی نمایید."
+          ],
+          "نکته: در صورت رد پیام سازنده، کل مبلغ کسرشده به کیف پول او عودت داده می‌شود."
+        ) }}
+      </div>
     </div>
   </div>
-</section>
 
-<form method="get" action="/broadcasts" class="glass-card p-4 rounded-2xl mb-6 flex flex-col sm:flex-row gap-3">
-  <input name="q" value="{{ query }}" dir="ltr" placeholder="کد درخواست پیام گروهی را وارد کنید"
-         class="flex-1 bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-white font-mono">
-  <button class="bg-emerald-500 text-slate-950 px-6 py-3 rounded-xl font-bold">پیدا کردن درخواست</button>
-</form>
-
-{% if saved == 'approved' %}
-<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-  پیام تأیید و برای اعضای فعال ارسال شد.
-</div>
-{% elif saved == 'rejected' %}
-<div class="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-  پیام رد شد.
-</div>
-{% endif %}
-
-<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-  {% for row in rows %}
-  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
-    <div class="mb-6">
-      <div class="flex justify-between items-start mb-4">
-        <div>
-          <h2 class="text-lg font-bold text-white group-hover:text-emerald-400 transition-colors mb-1">{% if row.item.target_scope == 'ALL' %}همهٔ ختم‌های سازنده{% else %}{{ row.khatm.title if row.khatm else 'ختم حذف‌شده' }}{% endif %}</h2>
-          <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400 font-mono bg-slate-800/50 px-2 py-1 rounded" dir="ltr">{{ row.time }}</span>
-            <span class="text-[0.65rem] font-bold bg-amber-500/10 text-amber-500 px-2 py-1 rounded">در انتظار</span>
-          </div>
-          <p class="text-[0.65rem] text-slate-500 font-mono mt-2" dir="ltr">{{ row.item.id }}</p>
-        </div>
+  <!-- 4 KPIs Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <!-- KPI 1: Pending Queue -->
+    <div class="glass-card p-4 rounded-2xl border border-amber-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">در انتظار بررسی</span>
+        <span class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center text-sm">⏳</span>
       </div>
-      
-      <div class="bg-slate-900/40 rounded-xl p-4 mb-4">
-        <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">سازنده</dt>
-        <dd class="text-sm font-bold text-sky-400 mb-3">{{ row.creator.display_name if row.creator else 'نامشخص' }}</dd>
-        <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">کانال و هزینه</dt>
-        <dd class="text-sm text-slate-300 mb-3">{{ row.item.channel }} · {{ row.item.audience_count }} مخاطب · {{ '{:,}'.format(row.item.cost_toman) }} تومان</dd>
-        {% if row.item.target_province or row.item.target_gender %}<dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">فیلتر مخاطب</dt>
-        <dd class="text-sm text-slate-300 mb-3">{% if row.item.target_province %}استان: {{ row.item.target_province }}{% endif %}{% if row.item.target_province and row.item.target_gender %} · {% endif %}{% if row.item.target_gender == 'FEMALE' %}فقط خانم‌ها{% elif row.item.target_gender == 'MALE' %}فقط آقایان{% endif %}</dd>{% endif %}
-        
-        <dt class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1">متن پیام</dt>
-        <dd class="text-sm text-slate-300 whitespace-pre-wrap">{{ row.item.body }}</dd>
-        {% if row.item.media_type == 'photo' %}
-        <div class="mt-3 p-3 bg-slate-800/80 rounded-xl border border-slate-700/60">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <span class="text-amber-400">🖼</span>
-              تصویر پیوست:
+      <div class="text-2xl sm:text-3xl font-black text-amber-400 font-mono">{{ kpis.pending_count }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">پیام‌های سازندگان نیازمند تایید</p>
+    </div>
+
+    <!-- KPI 2: Sent Count -->
+    <div class="glass-card p-4 rounded-2xl border border-emerald-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">پیام‌های ارسال‌شده</span>
+        <span class="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-sm">🚀</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">{{ kpis.sent_count }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">کل ارسال‌های تایید و دیسپچ‌شده</p>
+    </div>
+
+    <!-- KPI 3: Total Audience Reached -->
+    <div class="glass-card p-4 rounded-2xl border border-sky-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">مخاطبان پوشش‌یافته</span>
+        <span class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/30 text-sky-400 flex items-center justify-center text-sm">👥</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-sky-400 font-mono">{{ '{:,}'.format(kpis.total_audience_reached) }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">نفر-پیام تحویل‌شده در ربات‌ها</p>
+    </div>
+
+    <!-- KPI 4: Basic Tier Audience -->
+    <div class="glass-card p-4 rounded-2xl border border-purple-500/20 relative overflow-hidden group">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400">مخاطبان پلن پایه</span>
+        <span class="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center text-sm">🎯</span>
+      </div>
+      <div class="text-2xl sm:text-3xl font-black text-purple-400 font-mono">{{ '{:,}'.format(kpis.basic_audience_count) }}</div>
+      <p class="text-[0.7rem] text-slate-500 mt-1">مخاطبان فعال دریافت‌کننده تبلیغ</p>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  {% if saved == 'approved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>پیام گروهی سازنده با موفقیت تأیید شد و فرایند ارسال برای اعضا در پس‌زمینه آغاز گردید.</span>
+  </div>
+  {% elif saved == 'rejected' %}
+  <div class="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm font-bold flex items-center gap-2">
+    <span>⚠️</span>
+    <span>پیام گروهی رد شد، مبلغ پرداختی به کیف پول سازنده بازگردانده شد و اطلاع‌رسانی انجام شد.</span>
+  </div>
+  {% elif saved == '1' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>تنظیمات کمپین تبلیغ خدمتگزاران با موفقیت ذخیره و به‌روزرسانی شد.</span>
+  </div>
+  {% elif saved == 'sent' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>🚀</span>
+    <span>کمپین خدمتگزاران با موفقیت برای {{ request.query_params.get('n', '0') }} مخاطب پلن پایه ارسال شد.</span>
+  </div>
+  {% elif saved == 'empty' %}
+  <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm font-bold flex items-center gap-2">
+    <span>⚠️</span>
+    <span>متن کمپین خالی است یا دکمه فعال‌بودن روشن نشده است؛ لطفاً ابتدا فرم را ذخیره فرمایید.</span>
+  </div>
+  {% elif saved == 'tariffs_saved' %}
+  <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-bold flex items-center gap-2">
+    <span>✅</span>
+    <span>تعرفه‌ها و سهمیه‌های ارسال پیام گروهی با موفقیت در سیستم اعمال گردید.</span>
+  </div>
+  {% endif %}
+
+  <!-- 4 Tabs Bar -->
+  <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-slate-900/60 border border-slate-800 overflow-x-auto scrollbar-none">
+    <a href="/broadcasts?tab=pending{% if q %}&q={{ q }}{% endif %}"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if tab == 'pending' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>⏳ صف در انتظار بررسی</span>
+      {% if kpis.pending_count > 0 %}
+      <span class="px-2 py-0.5 rounded-full text-xs font-mono font-bold {% if tab == 'pending' %}bg-slate-950/20 text-slate-950{% else %}bg-amber-500/20 text-amber-400 border border-amber-500/30{% endif %}">{{ kpis.pending_count }}</span>
+      {% endif %}
+    </a>
+
+    <a href="/broadcasts?tab=history{% if q %}&q={{ q }}{% endif %}"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if tab == 'history' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>📜 تاریخچه و آرشیو ارسالی‌ها</span>
+    </a>
+
+    <a href="/broadcasts?tab=servant_ad"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if tab == 'servant_ad' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>📢 کمپین تبلیغ خدمتگزاران</span>
+      {% if ad.enabled %}
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+      {% endif %}
+    </a>
+
+    <a href="/broadcasts?tab=tariffs"
+       class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 whitespace-nowrap {% if tab == 'tariffs' %}bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20{% else %}text-slate-400 hover:text-white{% endif %}">
+      <span>💰 تعرفه‌ها و بسته‌های ارسال</span>
+    </a>
+  </div>
+
+  <!-- TAB 1: PENDING QUEUE -->
+  {% if tab == 'pending' %}
+  <div class="space-y-4">
+    <!-- Search Form -->
+    <form method="get" action="/broadcasts" class="glass-card p-4 rounded-2xl flex flex-col sm:flex-row gap-3">
+      <input type="hidden" name="tab" value="pending">
+      <input name="q" value="{{ q }}" dir="auto" placeholder="جستجو بر اساس متن پیام یا شناسه درخواست…"
+             class="flex-1 bg-slate-900/60 border border-slate-700/80 rounded-xl px-4 py-2.5 text-white text-sm focus:border-emerald-500 focus:outline-none">
+      <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-xl text-sm font-bold transition-colors">
+        🔍 جستجو
+      </button>
+      {% if q %}
+      <a href="/broadcasts?tab=pending" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 text-center transition-colors">پاکسازی</a>
+      {% endif %}
+    </form>
+
+    <!-- Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for row in pending_rows %}
+      <article class="glass-card p-5 rounded-2xl border border-slate-800 flex flex-col justify-between group hover:border-emerald-500/30 transition-all">
+        <div>
+          <!-- Card Header -->
+          <div class="flex justify-between items-start mb-3 pb-3 border-b border-slate-800/80">
+            <div>
+              <h2 class="text-base font-extrabold text-white group-hover:text-emerald-400 transition-colors mb-1 line-clamp-1">
+                {% if row.item.target_scope == 'ALL' %}
+                🌟 همهٔ ختم‌های سازنده
+                {% else %}
+                <a href="/khatms/{{ row.khatm.id }}" class="hover:underline">
+                  {{ row.khatm.title if row.khatm else 'ختم نامشخص' }}
+                </a>
+                {% endif %}
+              </h2>
+              <div class="flex items-center gap-2">
+                <span class="text-[0.65rem] text-slate-400 font-mono bg-slate-900 px-2 py-0.5 rounded border border-slate-800" dir="ltr">{{ row.time }}</span>
+                <span class="text-[0.65rem] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded">در انتظار بررسی</span>
+              </div>
+            </div>
+            <!-- Channel Badge -->
+            <span class="px-2.5 py-1 rounded-lg text-xs font-bold font-mono {% if row.item.channel == 'TELEGRAM' %}bg-sky-500/15 text-sky-400 border border-sky-500/30{% elif row.item.channel == 'BALE' %}bg-emerald-500/15 text-emerald-400 border border-emerald-500/30{% else %}bg-amber-500/15 text-amber-400 border border-amber-500/30{% endif %}">
+              {{ row.item.channel }}
             </span>
-            <span class="text-[0.65rem] font-mono text-slate-400">
+          </div>
+
+          <!-- Metadata List -->
+          <div class="space-y-2.5 text-xs bg-slate-900/50 p-3.5 rounded-xl border border-slate-800/60 mb-3">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400 font-medium">سازنده ختم:</span>
+              <a href="/users/{{ row.creator.id if row.creator else '' }}" class="text-emerald-400 hover:underline font-bold">
+                {{ row.creator.display_name if row.creator else 'ناشناس' }}
+              </a>
+            </div>
+
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400 font-medium">مخاطبان هدف:</span>
+              <span class="text-white font-mono font-bold">{{ '{:,}'.format(row.item.audience_count) }} نفر</span>
+            </div>
+
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400 font-medium">هزینه ارسال:</span>
+              <span class="text-amber-400 font-mono font-bold">{{ '{:,}'.format(row.item.cost_toman) }} تومان</span>
+            </div>
+
+            {% if row.item.target_province or row.item.target_gender %}
+            <div class="flex justify-between items-center">
+              <span class="text-slate-400 font-medium">فیلتر جامعه:</span>
+              <span class="text-slate-300">
+                {% if row.item.target_province %}استان {{ row.item.target_province }}{% endif %}
+                {% if row.item.target_province and row.item.target_gender %} · {% endif %}
+                {% if row.item.target_gender == 'FEMALE' %}بانوان{% elif row.item.target_gender == 'MALE' %}آقایان{% endif %}
+              </span>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Message Body -->
+          <div class="space-y-1 mb-3">
+            <label class="text-[0.7rem] font-bold text-slate-400">متن ارسالی سازنده:</label>
+            <div class="p-3 bg-slate-950/60 rounded-xl border border-slate-800 text-slate-200 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap max-h-40 overflow-y-auto">
+              {{ row.item.body }}
+            </div>
+          </div>
+
+          <!-- Media Attachment Preview -->
+          {% if row.item.media_type == 'photo' %}
+          <div class="mb-3 p-2.5 bg-slate-900/60 rounded-xl border border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <span>🖼</span>
+                <span>تصویر پیوست پیام:</span>
+              </span>
+              <span class="text-[0.65rem] text-slate-400 font-mono">
+                {% if row.item.media_file_id_telegram %}تلگرام دارد{% endif %}
+                {% if row.item.media_file_id_bale %} · بله دارد{% endif %}
+              </span>
+            </div>
+            <div class="rounded-lg overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center p-2">
+              <img src="/broadcasts/{{ row.item.id }}/media" alt="پیش‌نمایش تصویر پیام" class="max-h-56 w-auto max-w-full rounded object-contain" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'text-xs text-slate-500 p-2\'>پیش‌نمایش در تلگرام در دسترس نیست</span>';" />
+            </div>
+          </div>
+          {% elif row.item.media_type %}
+          <div class="mb-3 p-2.5 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-300 flex items-center gap-1.5">
+              <span>📎</span>
+              <span>فایل پیوست: {{ row.item.media_type }}</span>
+            </span>
+            <span class="text-[0.65rem] text-slate-400 font-mono">
               {% if row.item.media_file_id_telegram %}تلگرام دارد{% endif %}
               {% if row.item.media_file_id_bale %} · بله دارد{% endif %}
             </span>
           </div>
-          <div class="overflow-hidden rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center p-2">
-            <img src="/broadcasts/{{ row.item.id }}/media" alt="تصویر پیوست پیام گروهی" class="max-h-64 w-auto max-w-full rounded object-contain" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\'text-xs text-slate-400 p-2\'>تصویر در دسترس نیست یا تلگرام در این لحظه پاسخگو نمی‌باشد.</span>';" />
-          </div>
+          {% endif %}
         </div>
-        {% elif row.item.media_type %}
-        <div class="mt-3 p-2.5 bg-slate-800/80 rounded-lg border border-slate-700/60 flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-amber-400">📎</span>
-            <span class="text-xs font-bold text-slate-200">فایل پیوست: {{ row.item.media_type }}</span>
-          </div>
-          <div class="text-[0.65rem] font-mono text-slate-400">
-            {% if row.item.media_file_id_telegram %}تلگرام دارد{% endif %}
-            {% if row.item.media_file_id_bale %} · بله دارد{% endif %}
-          </div>
+
+        <!-- Action Drawer & Decision Buttons -->
+        <div class="border-t border-slate-800/80 pt-3 mt-2">
+          <form method="post" action="/broadcasts/{{ row.item.id }}/decide" class="space-y-2">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+
+            <!-- Optional Rejection Reason -->
+            <details class="text-xs group/rej">
+              <summary class="text-slate-400 hover:text-slate-200 cursor-pointer font-medium select-none mb-1 flex items-center justify-between">
+                <span>✏️ درج دلیل/یادداشت در صورت رد پیام</span>
+                <span class="text-[0.65rem] text-slate-500">اختیاری</span>
+              </summary>
+              <input name="admin_note" placeholder="مثال: به دلیل مغایرت با موازین اخلاقی یا وجود لینک ناشناس…"
+                     class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 mt-1 focus:border-rose-500 focus:outline-none">
+            </details>
+
+            <div class="flex gap-2">
+              <button type="submit" name="decision" value="approve" onclick="return confirm('آیا از تایید و ارسال این پیام به مخاطبان اطمینان دارید؟');"
+                      class="flex-1 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-extrabold transition-all text-center cursor-pointer shadow-lg shadow-emerald-500/20">
+                ✅ تأیید و ارسال
+              </button>
+              <button type="submit" name="decision" value="reject" onclick="return confirm('آیا از رد این پیام و استرداد وجه به سازنده اطمینان دارید؟');"
+                      class="py-2.5 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white border border-rose-500/30 text-xs sm:text-sm font-extrabold transition-all text-center cursor-pointer">
+                ❌ رد پیام
+              </button>
+            </div>
+          </form>
         </div>
-        {% endif %}
+      </article>
+      {% else %}
+      <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-800">
+        <span class="text-4xl block mb-3">🎉</span>
+        <h3 class="text-lg font-bold text-white mb-1">صف پیام‌های در انتظار خالی است</h3>
+        <p class="text-sm text-slate-400">تمام پیام‌های گروهی سازندگان بررسی و تعیین تکلیف شده‌اند.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- TAB 2: BROADCASTS HISTORY -->
+  {% if tab == 'history' %}
+  <div class="space-y-4">
+    <!-- Filters & Search -->
+    <form method="get" action="/broadcasts" class="glass-card p-4 rounded-2xl flex flex-wrap items-center gap-3">
+      <input type="hidden" name="tab" value="history">
+
+      <!-- Query input -->
+      <div class="flex-1 min-w-[200px]">
+        <input name="q" value="{{ q }}" dir="auto" placeholder="جستجو بر اساس متن، شناسه، نام سازنده…"
+               class="w-full bg-slate-900/60 border border-slate-700/80 rounded-xl px-4 py-2 text-white text-xs sm:text-sm focus:border-emerald-500 focus:outline-none">
+      </div>
+
+      <!-- Channel Filter -->
+      <div class="flex items-center gap-1.5">
+        <label class="text-xs text-slate-400 font-bold">کانال:</label>
+        <select name="channel" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">
+          <option value="all" {% if channel == 'all' %}selected{% endif %}>همه کانال‌ها</option>
+          <option value="TELEGRAM" {% if channel == 'TELEGRAM' %}selected{% endif %}>تلگرام (Telegram)</option>
+          <option value="BALE" {% if channel == 'BALE' %}selected{% endif %}>بله (Bale)</option>
+          <option value="SMS" {% if channel == 'SMS' %}selected{% endif %}>پیامک (SMS)</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div class="flex items-center gap-1.5">
+        <label class="text-xs text-slate-400 font-bold">وضعیت:</label>
+        <select name="status" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-200">
+          <option value="all" {% if status == 'all' %}selected{% endif %}>همه وضعیت‌ها</option>
+          <option value="SENT" {% if status == 'SENT' %}selected{% endif %}>ارسال‌شده (Sent)</option>
+          <option value="APPROVED" {% if status == 'APPROVED' %}selected{% endif %}>تایید‌شده (Approved)</option>
+          <option value="REJECTED" {% if status == 'REJECTED' %}selected{% endif %}>ردشده (Rejected)</option>
+        </select>
+      </div>
+
+      <button type="submit" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-colors">
+        اعمال فیلتر
+      </button>
+
+      {% if q or channel != 'all' or status != 'all' %}
+      <a href="/broadcasts?tab=history" class="px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white transition-colors">بازنشانی</a>
+      {% endif %}
+    </form>
+
+    <!-- Table of Past Broadcasts -->
+    <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+      <div class="overflow-x-auto">
+        <table class="w-full text-right text-xs">
+          <thead class="bg-slate-900/80 text-slate-400 font-bold border-b border-slate-800">
+            <tr>
+              <th class="p-3.5">ختم / سازنده</th>
+              <th class="p-3.5">کانال</th>
+              <th class="p-3.5">مخاطبان</th>
+              <th class="p-3.5">هزینه</th>
+              <th class="p-3.5">متن پیام</th>
+              <th class="p-3.5">وضعیت</th>
+              <th class="p-3.5">تاریخ ثبت / اقدام</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 text-slate-300">
+            {% for row in history_rows %}
+            <tr class="hover:bg-slate-800/30 transition-colors">
+              <td class="p-3.5">
+                <div class="font-bold text-white line-clamp-1">
+                  {% if row.item.target_scope == 'ALL' %}همه ختم‌ها{% else %}{{ row.khatm.title if row.khatm else 'ختم نامشخص' }}{% endif %}
+                </div>
+                <div class="text-[0.65rem] text-slate-400 mt-0.5">
+                  سازنده: <span class="text-emerald-400">{{ row.creator.display_name if row.creator else 'ناشناس' }}</span>
+                </div>
+              </td>
+              <td class="p-3.5 font-mono">
+                <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold {% if row.item.channel == 'TELEGRAM' %}bg-sky-500/15 text-sky-400{% elif row.item.channel == 'BALE' %}bg-emerald-500/15 text-emerald-400{% else %}bg-amber-500/15 text-amber-400{% endif %}">
+                  {{ row.item.channel }}
+                </span>
+              </td>
+              <td class="p-3.5 font-mono font-bold">{{ '{:,}'.format(row.item.audience_count) }}</td>
+              <td class="p-3.5 font-mono text-amber-400">{{ '{:,}'.format(row.item.cost_toman) }} تومان</td>
+              <td class="p-3.5 max-w-xs">
+                <p class="line-clamp-2 text-slate-300">{{ row.item.body }}</p>
+                {% if row.item.admin_note %}
+                <p class="text-[0.65rem] text-rose-400 mt-1 line-clamp-1">یادداشت: {{ row.item.admin_note }}</p>
+                {% endif %}
+              </td>
+              <td class="p-3.5">
+                {% if row.item.status.value == 'SENT' %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">ارسال‌شده</span>
+                {% elif row.item.status.value == 'APPROVED' %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">تأییدشده</span>
+                {% elif row.item.status.value == 'REJECTED' %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">ردشده</span>
+                {% else %}
+                <span class="px-2 py-0.5 rounded-full text-[0.65rem] font-bold bg-slate-700 text-slate-300">{{ row.item.status.value }}</span>
+                {% endif %}
+              </td>
+              <td class="p-3.5 font-mono text-[0.65rem] text-slate-400">
+                <div>ثبت: {{ row.time }}</div>
+                {% if row.sent_time %}<div>ارسال: {{ row.sent_time }}</div>{% elif row.reviewed_time %}<div>بررسی: {{ row.reviewed_time }}</div>{% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="p-8 text-center text-slate-400 font-medium">سابقه‌ای با معیارهای فیلتر انتخاب‌شده یافت نشد.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
-    
-    <div class="border-t border-slate-700/50 pt-4 mt-auto">
-      <form method="post" action="/broadcasts/{{ row.item.id }}/decide" class="flex flex-col sm:flex-row gap-2">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <button name="decision" value="approve" onclick="return confirm('این پیام برای مخاطبان انتخاب‌شده ارسال شود؟')" class="flex-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">تأیید و ارسال</button>
-        <button name="decision" value="reject" onclick="return confirm('این پیام رد شود؟')" class="flex-1 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white px-3 py-2 rounded-xl text-sm font-bold transition-colors text-center">رد پیام</button>
-      </form>
-    </div>
-  </article>
-  {% else %}
-  <div class="col-span-full glass-panel p-12 text-center rounded-3xl border border-dashed border-slate-700">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-emerald-500/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-    <p class="text-slate-400 font-medium">پیام در انتظار بررسی وجود ندارد.</p>
   </div>
-  {% endfor %}
-</section>
+  {% endif %}
+
+  <!-- TAB 3: SERVANT AD CAMPAIGN -->
+  {% if tab == 'servant_ad' %}
+  <div class="space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Left Column: Form -->
+      <div class="lg:col-span-2 glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="text-base font-bold text-white">پیکربندی کمپین تبلیغ خدمتگزاران</h3>
+            <p class="text-xs text-slate-400 mt-0.5">این پیام فقط به مخاطبان سازندگانی که در پلن پایه هستند ارسال می‌شود.</p>
+          </div>
+          <div class="text-left">
+            <span class="text-xs text-slate-400 block">جامعه هدف فعلی:</span>
+            <span class="text-lg font-black text-purple-400 font-mono">{{ '{:,}'.format(audience) }} نفر</span>
+          </div>
+        </div>
+
+        <form method="post" action="/servant-ad/save" enctype="multipart/form-data" class="space-y-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+
+          <!-- Ad Text -->
+          <div>
+            <label class="block text-xs font-bold text-slate-300 mb-1.5">
+              متن پیام تبلیغاتی:
+              {{ tooltip("متن معرفی یا اطلاع‌رسانی سراسری که می‌خواهید برای تمام اعضای پلن پایه ارسال شود.") }}
+            </label>
+            <textarea name="text" rows="5" maxlength="1500" dir="auto"
+                      class="w-full p-3.5 rounded-2xl bg-slate-950/60 border border-slate-700 text-slate-200 text-sm leading-relaxed focus:border-emerald-500 focus:outline-none"
+                      placeholder="متن پیام تبلیغاتی یا فرهنگی خود را اینجا بنویسید…">{{ ad.text }}</textarea>
+          </div>
+
+          <!-- Media Type & Upload Options -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">نوع رسانه پیوست:</label>
+              <select name="media_type" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:border-emerald-500 focus:outline-none">
+                <option value="" {% if not ad.media_type %}selected{% endif %}>بدون رسانه (فقط متن)</option>
+                <option value="photo" {% if ad.media_type == 'photo' %}selected{% endif %}>تصویر (Photo)</option>
+                <option value="video" {% if ad.media_type == 'video' %}selected{% endif %}>ویدیو (Video)</option>
+                <option value="voice" {% if ad.media_type == 'voice' %}selected{% endif %}>صوت / وویس (Voice)</option>
+                <option value="document" {% if ad.media_type == 'document' %}selected{% endif %}>سند / فایل (Document)</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">
+                آپلود مستقیم فایل رسانه (کامپیوتر شما):
+              </label>
+              <input type="file" name="file_media"
+                     class="w-full text-xs text-slate-400 file:mr-2 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-500/20 file:text-emerald-300 hover:file:bg-emerald-500/30 cursor-pointer">
+              <input type="hidden" name="media_local" value="{{ ad.media_local or '' }}">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">file_id در تلگرام (اختیاری):</label>
+              <input name="media_telegram" value="{{ ad.media_telegram }}" dir="ltr" placeholder="AgAC…"
+                     class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 font-mono">
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-400 mb-1">file_id در بله (اختیاری):</label>
+              <input name="media_bale" value="{{ ad.media_bale }}" dir="ltr" placeholder="…"
+                     class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 font-mono">
+            </div>
+          </div>
+
+          <!-- Active Toggle -->
+          <div class="flex items-center gap-3 p-3 bg-slate-900/40 rounded-xl border border-slate-800">
+            <input type="checkbox" id="ad_enabled" name="enabled" {% if ad.enabled %}checked{% endif %}
+                   class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 border-slate-700 bg-slate-950">
+            <label for="ad_enabled" class="text-xs sm:text-sm font-bold text-slate-200 cursor-pointer">
+              کمپین تبلیغ خدمتگزاران فعال باشد (اجازه ارسال دستی یا خودکار)
+            </label>
+          </div>
+
+          <!-- Save Button -->
+          <div class="pt-2">
+            <button type="submit" class="w-full py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer">
+              💾 ذخیره تغییرات کمپین خدمتگزاران
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right Column: Live Preview & Dispatch -->
+      <div class="space-y-6">
+        <!-- Live Preview Card -->
+        <div class="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">پیش‌نمایش پیام در چت مخاطب</h4>
+          <div class="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3">
+            {% if ad.media_local %}
+            <div class="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 max-h-48 flex items-center justify-center">
+              {% if ad.media_type == 'voice' %}
+              <audio controls class="w-full p-2"><source src="{{ ad.media_local }}"></audio>
+              {% elif ad.media_type == 'video' %}
+              <video controls class="max-h-48 w-full"><source src="{{ ad.media_local }}"></video>
+              {% else %}
+              <img src="{{ ad.media_local }}" alt="رسانه کمپین" class="max-h-48 w-auto object-contain">
+              {% endif %}
+            </div>
+            {% endif %}
+            <p class="text-xs sm:text-sm text-slate-200 leading-relaxed whitespace-pre-wrap">
+              {{ ad.text if ad.text else 'متن پیام تبلیغ هنوز تنظیم نشده است…' }}
+            </p>
+            <div class="flex items-center justify-between text-[0.65rem] text-slate-500 border-t border-slate-900 pt-2">
+              <span>ارسال از طریق ربات عضو کاربر</span>
+              <span>هم‌اکنون</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Immediate Dispatch Box -->
+        <div class="glass-panel p-5 rounded-3xl border border-purple-500/30 bg-purple-500/5 space-y-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🚀</span>
+            <h4 class="text-sm font-extrabold text-white">اجرای فوری کمپین</h4>
+          </div>
+          <p class="text-xs text-slate-300 leading-relaxed">
+            با زدن دکمه زیر، پیام فوق در پس‌زمینه برای تمام <strong class="text-purple-400 font-mono">{{ '{:,}'.format(audience) }}</strong> نفر مخاطب پلن پایه ارسال خواهد شد.
+          </p>
+          <form method="post" action="/servant-ad/send" onsubmit="return confirm('آیا از ارسال این پیام برای تمام مخاطبان پلن پایه اطمینان دارید؟ این عملیات قابل بازگشت نیست.');">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" {% if not ad.enabled or not ad.text %}disabled{% endif %}
+                    class="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-extrabold text-xs sm:text-sm transition-all shadow-lg shadow-purple-600/30 cursor-pointer">
+              ارسال الان برای تمام مخاطبان
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- TAB 4: TARIFFS & POLICIES -->
+  {% if tab == 'tariffs' %}
+  <div class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+      <!-- Telegram Tariffs -->
+      <div class="glass-panel p-5 rounded-3xl border border-sky-500/30 bg-sky-500/5 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">✈️</span>
+            <div>
+              <h3 class="text-base font-bold text-white">تعرفه تلگرام (Telegram)</h3>
+              <p class="text-[0.65rem] text-slate-400">پیام‌های گروهی ربات‌های تلگرام</p>
+            </div>
+          </div>
+        </div>
+
+        <form method="post" action="/broadcasts/tariffs" class="space-y-3 text-xs">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="channel" value="TELEGRAM">
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">قیمت به ازای هر بسته (تومان):</label>
+            <input type="number" name="price_toman" value="{{ tariffs.telegram.price_toman }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">اندازه بسته (تعداد مخاطب):</label>
+            <input type="number" name="package_size" value="{{ tariffs.telegram.package_size }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">سهمیه پیام رایگان ماهانه:</label>
+            <input type="number" name="free_count" value="{{ tariffs.telegram.free_count }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-xs transition-all shadow-md">
+            ذخیره تعرفه تلگرام
+          </button>
+        </form>
+      </div>
+
+      <!-- Bale Tariffs -->
+      <div class="glass-panel p-5 rounded-3xl border border-emerald-500/30 bg-emerald-500/5 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">🌴</span>
+            <div>
+              <h3 class="text-base font-bold text-white">تعرفه بله (Bale)</h3>
+              <p class="text-[0.65rem] text-slate-400">پیام‌های گروهی پیام‌رسان بله</p>
+            </div>
+          </div>
+        </div>
+
+        <form method="post" action="/broadcasts/tariffs" class="space-y-3 text-xs">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="channel" value="BALE">
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">قیمت به ازای هر بسته (تومان):</label>
+            <input type="number" name="price_toman" value="{{ tariffs.bale.price_toman }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">اندازه بسته (تعداد مخاطب):</label>
+            <input type="number" name="package_size" value="{{ tariffs.bale.package_size }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">سهمیه پیام رایگان ماهانه:</label>
+            <input type="number" name="free_count" value="{{ tariffs.bale.free_count }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs transition-all shadow-md">
+            ذخیره تعرفه بله
+          </button>
+        </form>
+      </div>
+
+      <!-- SMS Tariffs -->
+      <div class="glass-panel p-5 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl">📱</span>
+            <div>
+              <h3 class="text-base font-bold text-white">تعرفه پیامک (SMS)</h3>
+              <p class="text-[0.65rem] text-slate-400">پیام‌های گروهی از درگاه مخابراتی</p>
+            </div>
+          </div>
+        </div>
+
+        <form method="post" action="/broadcasts/tariffs" class="space-y-3 text-xs">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="channel" value="SMS">
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">قیمت به ازای هر پیامک (تومان):</label>
+            <input type="number" name="price_toman" value="{{ tariffs.sms.price_toman }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">اندازه بسته پیامک:</label>
+            <input type="number" name="package_size" value="{{ tariffs.sms.package_size }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <div>
+            <label class="block font-bold text-slate-300 mb-1">سهمیه پیامک رایگان ماهانه:</label>
+            <input type="number" name="free_count" value="{{ tariffs.sms.free_count }}"
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2.5 text-white font-mono font-bold">
+          </div>
+
+          <button type="submit" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs transition-all shadow-md">
+            ذخیره تعرفه پیامک
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+  {% endif %}
+
+</div>
 {% endblock %}

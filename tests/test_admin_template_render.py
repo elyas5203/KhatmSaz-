@@ -278,3 +278,43 @@ def test_bots_page_renders_fleet_kpis_and_tabs():
     assert "ناوگان ربات‌های تلگرام" in html
 
 
+def test_broadcasts_page_renders_kpis_and_tabs():
+    """MASTER-54: broadcasts.html renders 4 KPIs, 4 tabs, and campaign preview without DB."""
+    html = _render(
+        "broadcasts.html", "/broadcasts",
+        tab="pending",
+        kpis={
+            "pending_count": 3,
+            "sent_count": 42,
+            "total_audience_reached": 15000,
+            "basic_audience_count": 1250,
+        },
+        pending_rows=[],
+        rows=[],
+        history_rows=[],
+        ad={"text": "تست تبلیغ", "enabled": True, "media_type": "photo", "media_local": ""},
+        audience=1250,
+        tariffs={
+            "telegram": {"free_count": 0, "price_toman": 150000, "package_size": 1000},
+            "bale": {"free_count": 0, "price_toman": 150000, "package_size": 1000},
+            "sms": {"free_count": 0, "price_toman": 150000, "package_size": 1000},
+        },
+        q="",
+        query="",
+        channel="all",
+        status="all",
+        saved="",
+    )
+
+    assert "پیام‌های گروهی و کمپین‌های سراسری" in html
+    assert "در انتظار بررسی" in html
+    assert "پیام‌های ارسال‌شده" in html
+    assert "مخاطبان پوشش‌یافته" in html
+    assert "مخاطبان پلن پایه" in html
+    assert "صف در انتظار بررسی" in html
+    assert "تاریخچه و آرشیو ارسالی‌ها" in html
+    assert "کمپین تبلیغ خدمتگزاران" in html
+    assert "تعرفه‌ها و بسته‌های ارسال" in html
+
+
+

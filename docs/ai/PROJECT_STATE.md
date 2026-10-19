@@ -1,3 +1,16 @@
+## Current state — 2026-10-19 — Broadcasts, Creator Messages & Outbound Campaigns Hub in Web Admin (MASTER-54) [Antigravity]
+- **Unified Broadcasts, Creator Messages & Outbound Campaigns Hub (`web/app.py` & `web/templates/broadcasts.html`):**
+  - Upgraded `/broadcasts` with 4 messaging KPI cards: Pending Review Queue (`pending_count`), Sent Broadcasts (`sent_count`), Total Audience Reached (`total_audience_reached`), and Base Plan Audience (`basic_audience_count`).
+  - Implemented 4 unified tabs: Tab 1 (Pending Review Queue), Tab 2 (Broadcasts History & Archive), Tab 3 (Servant Ad Campaign), and Tab 4 (Tariffs & Package Policies).
+  - Configured seamless HTTP 303 redirect from legacy route `/servant-ad` to `/broadcasts?tab=servant_ad` while preserving all query parameters.
+- **Direct File Upload & Media Preview in Servant Ad Campaign (`web/app.py` & `web/templates/broadcasts.html`):**
+  - Implemented direct multipart file upload (`UploadFile`) for servant ad campaign media to `/static/uploads/campaigns/` with timestamp prefixes and safe sanitization, coexisting with Telegram and Bale `file_id`s, with live preview in the admin dashboard.
+- **Rejection Note & Dedicated Tariff Management (`web/app.py` & `web/templates/broadcasts.html`):**
+  - Added support for admin rejection reason note (`admin_note`) in `POST /broadcasts/{id}/decide`, returning funds to creator's wallet on rejection and recording audit trail (`KHATM_BROADCAST_REJECT`).
+  - Implemented dedicated tariff management endpoint `POST /broadcasts/tariffs` allowing real-time adjustment of free quota, package size, and price in Toman for Telegram, Bale, and SMS channels with audit logging (`BROADCAST_TARIFFS_UPDATE`).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_54_BROADCASTS_AND_OUTBOUND_CAMPAIGNS_HUB.md` and registered `DEC-PY-0146`.
+- **Validation:** Added 10 tests in `tests/test_master_54_broadcasts_hub.py` (100% PASS), and verified combined regression suite passes with 113/113 tests passing across masters 42 to 54.
+
 ## Current state — 2026-10-19 — Bot Fleet Management & Intro Images Hub in Web Admin (MASTER-53) [Antigravity]
 - **Unified Bot Fleet Hub (`web/app.py` & `web/templates/bot_tokens.html`):**
   - Upgraded `/bots` with 4 fleet KPI cards: Total Fleet Slots (`total_slots`), Configured Bots with Token (`configured_bots`), Active Bots in Service (`active_bots`), and Service Restart Status (`needs_restart`).

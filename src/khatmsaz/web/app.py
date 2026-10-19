@@ -3808,23 +3808,64 @@ async def decide_phone_verification(
 
 
 @app.get("/broadcasts", response_class=HTMLResponse)
-async def broadcasts_page(request: Request):
-    """Group-message moderation queue, reachable from the admin panel
-    (owner request, 2026-09-18): a creator's `/khatm_message` submission
-    lands here for one-click approve/reject instead of typed bot commands."""
+async def broadcasts_page(
+    request: Request,
+    tab: str = "pending",
+    q: str = "",
+    channel: str = "all",
+    status: str = "all",
+    saved: str = "",
+):
+    """Centralized Broadcasts, Creator Messages & Outbound Campaigns Hub (MASTER-54).
+    4 Tabs: 1) Pending Queue, 2) Broadcasts History, 3) Servant Ad Campaign, 4) Tariffs & Policies."""
     admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
     if admin is None:
+        admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
         return _login_redirect()
+
+    query = q.strip()
+    from khatmsaz.modules.servant_ad import service as servant_ad_service
+
     async with session_scope() as session:
-        pending = await broadcast_service.list_pending(session)
-        query = request.query_params.get("q", "").strip().lower()
+        # 4 Fleet / Messaging KPIs
+        pending_count = int(await session.scalar(
+            select(func.count(KhatmBroadcast.id)).where(KhatmBroadcast.status == BroadcastStatus.PENDING)
+        ) or 0)
+        sent_count = int(await session.scalar(
+            select(func.count(KhatmBroadcast.id)).where(KhatmBroadcast.status == BroadcastStatus.SENT)
+        ) or 0)
+        total_audience_reached = int(await session.scalar(
+            select(func.coalesce(func.sum(KhatmBroadcast.audience_count), 0)).where(KhatmBroadcast.status == BroadcastStatus.SENT)
+        ) or 0)
+        basic_audience_count = await servant_ad_service.audience_size(session)
+
+        kpis = {
+            "pending_count": pending_count,
+            "sent_count": sent_count,
+            "total_audience_reached": total_audience_reached,
+            "basic_audience_count": basic_audience_count,
+        }
+
+        # Tab 1: Pending Queue
+        pending_stmt = (
+            select(KhatmBroadcast)
+            .where(KhatmBroadcast.status == BroadcastStatus.PENDING)
+            .order_by(KhatmBroadcast.created_at.desc())
+        )
         if query:
-            pending = [item for item in pending if query in str(item.id).lower()]
-        rows = []
-        for item in pending:
+            pending_stmt = pending_stmt.where(
+                or_(
+                    func.cast(KhatmBroadcast.id, String).ilike(f"%{query}%"),
+                    KhatmBroadcast.body.ilike(f"%{query}%"),
+                )
+            )
+        pending_items = list((await session.execute(pending_stmt)).scalars())
+        pending_rows = []
+        for item in pending_items:
             khatm = await session.get(Khatm, item.khatm_id) if item.khatm_id else None
             creator = await identity_service.find_by_id(session, item.creator_user_id) if item.creator_user_id else None
-            rows.append(
+            pending_rows.append(
                 {
                     "item": item,
                     "khatm": khatm,
@@ -3832,12 +3873,81 @@ async def broadcasts_page(request: Request):
                     "time": _tehran_time(item.created_at),
                 }
             )
+
+        # Tab 2: Broadcasts History
+        history_stmt = (
+            select(KhatmBroadcast)
+            .where(KhatmBroadcast.status != BroadcastStatus.PENDING)
+            .order_by(KhatmBroadcast.created_at.desc())
+            .limit(150)
+        )
+        if channel and channel.upper() != "ALL":
+            history_stmt = history_stmt.where(KhatmBroadcast.channel == channel.upper())
+        if status and status.upper() != "ALL":
+            history_stmt = history_stmt.where(KhatmBroadcast.status == status.upper())
+        if query:
+            history_stmt = history_stmt.where(
+                or_(
+                    func.cast(KhatmBroadcast.id, String).ilike(f"%{query}%"),
+                    KhatmBroadcast.body.ilike(f"%{query}%"),
+                )
+            )
+        history_items = list((await session.execute(history_stmt)).scalars())
+        history_rows = []
+        for item in history_items:
+            khatm = await session.get(Khatm, item.khatm_id) if item.khatm_id else None
+            creator = await identity_service.find_by_id(session, item.creator_user_id) if item.creator_user_id else None
+            history_rows.append(
+                {
+                    "item": item,
+                    "khatm": khatm,
+                    "creator": creator,
+                    "time": _tehran_time(item.created_at),
+                    "reviewed_time": _tehran_time(item.reviewed_at) if item.reviewed_at else None,
+                    "sent_time": _tehran_time(item.sent_at) if item.sent_at else None,
+                }
+            )
+
+        # Tab 3: Servant Ad
+        ad = await servant_ad_service.get_ad(session)
+
+        # Tab 4: Tariffs & Policies
+        tariffs = {
+            "telegram": {
+                "free_count": await system_settings_service.get_int(session, "broadcast_telegram_free_count"),
+                "price_toman": await system_settings_service.get_int(session, "broadcast_telegram_price_toman"),
+                "package_size": await system_settings_service.get_int(session, "broadcast_telegram_package_size"),
+            },
+            "bale": {
+                "free_count": await system_settings_service.get_int(session, "broadcast_bale_free_count"),
+                "price_toman": await system_settings_service.get_int(session, "broadcast_bale_price_toman"),
+                "package_size": await system_settings_service.get_int(session, "broadcast_bale_package_size"),
+            },
+            "sms": {
+                "free_count": await system_settings_service.get_int(session, "broadcast_sms_free_count"),
+                "price_toman": await system_settings_service.get_int(session, "broadcast_sms_price_toman"),
+                "package_size": await system_settings_service.get_int(session, "broadcast_sms_package_size"),
+            },
+        }
+
     return templates.TemplateResponse(
         request=request,
         name="broadcasts.html",
         context=_ctx(
-            request, admin, raw, rows=rows,
-            saved=request.query_params.get("saved", ""), query=query,
+            request, admin, raw,
+            tab=tab,
+            kpis=kpis,
+            pending_rows=pending_rows,
+            rows=pending_rows,
+            history_rows=history_rows,
+            ad=ad,
+            audience=basic_audience_count,
+            tariffs=tariffs,
+            q=query,
+            query=query,
+            channel=channel,
+            status=status,
+            saved=saved,
         ),
     )
 
@@ -3930,6 +4040,7 @@ async def decide_broadcast(
     broadcast_id: UUID,
     decision: str = Form(...),
     csrf: str = Form(...),
+    admin_note: str = Form(""),
     background_tasks: BackgroundTasks = None,
 ):
     admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
@@ -3940,9 +4051,11 @@ async def decide_broadcast(
     if decision not in {"approve", "reject"}:
         return HTMLResponse("تصمیم نامعتبر است.", status_code=400)
     async with session_scope() as session:
+        default_note = "تأیید از پنل ادمین" if decision == "approve" else "رد از پنل ادمین"
+        note_to_use = admin_note.strip() if admin_note and admin_note.strip() else default_note
         try:
             item = await (broadcast_service.approve if decision == "approve" else broadcast_service.reject)(
-                session, broadcast_id, "تأیید از پنل ادمین" if decision == "approve" else "رد از پنل ادمین"
+                session, broadcast_id, note_to_use
             )
         except ValueError:
             return HTMLResponse("این پیام پیدا نشد یا دیگر در انتظار بررسی نیست.", status_code=409)
@@ -3952,7 +4065,7 @@ async def decide_broadcast(
             actor_user_id=actor.id,
             target_khatm_id=item.khatm_id,
             action="KHATM_BROADCAST_APPROVE" if decision == "approve" else "KHATM_BROADCAST_REJECT",
-            details={"broadcast_id": str(item.id)},
+            details={"broadcast_id": str(item.id), "note": note_to_use},
         )
         if decision == "approve":
             if item.cost_toman > 0 and item.paid_at is None:
@@ -3993,32 +4106,29 @@ async def decide_broadcast(
                 )
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(
-        f"/broadcasts?saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303
+        f"/broadcasts?tab=pending&saved={'approved' if decision == 'approve' else 'rejected'}", status_code=303
     )
 
 
 @app.get("/servant-ad", response_class=HTMLResponse)
 async def servant_ad_page(request: Request):
-    """Owner §A4: خدمتگزاران system ad → BASIC creators' audiences (admin-initiated)."""
-    admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
-    if admin is None:
-        return _login_redirect()
-    from khatmsaz.modules.servant_ad import service as servant_ad_service
-    async with session_scope() as session:
-        ad = await servant_ad_service.get_ad(session)
-        audience = await servant_ad_service.audience_size(session)
-    return templates.TemplateResponse(
-        request=request, name="servant_ad.html",
-        context=_ctx(request, admin, raw, ad=ad, audience=audience,
-                     saved=request.query_params.get("saved", "")),
-    )
+    """Seamless redirect to unified /broadcasts?tab=servant_ad (MASTER-54)."""
+    query_str = str(request.query_params)
+    target = f"/broadcasts?tab=servant_ad{'&' + query_str if query_str else ''}"
+    return RedirectResponse(target, status_code=303)
 
 
 @app.post("/servant-ad/save")
 async def servant_ad_save(
-    request: Request, csrf: str = Form(...), text: str = Form(""),
-    media_type: str = Form(""), media_telegram: str = Form(""),
-    media_bale: str = Form(""), enabled: str = Form(""),
+    request: Request,
+    csrf: str = Form(...),
+    text: str = Form(""),
+    media_type: str = Form(""),
+    media_telegram: str = Form(""),
+    media_bale: str = Form(""),
+    media_local: str = Form(""),
+    enabled: str = Form(""),
+    file_media: UploadFile | None = File(None),
 ):
     admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
     if admin is None:
@@ -4026,16 +4136,27 @@ async def servant_ad_save(
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
     from khatmsaz.modules.servant_ad import service as servant_ad_service
+
+    # Handle direct multipart media upload
+    if file_media and file_media.filename:
+        upload_dir = ROOT / "static" / "uploads" / "campaigns"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = f"{int(time.time())}_{Path(file_media.filename).name.replace(' ', '_')}"
+        dest = upload_dir / safe_name
+        dest.write_bytes(await file_media.read())
+        media_local = f"/static/uploads/campaigns/{safe_name}"
+
     try:
         async with session_scope() as session:
             await servant_ad_service.set_ad(
                 session, text=text, enabled=enabled == "on",
                 media_type=media_type, media_telegram=media_telegram, media_bale=media_bale,
+                media_local=media_local,
             )
             await audit_service.record(session, actor_user_id=admin.id, action="SERVANT_AD_SAVE", details={"enabled": enabled == "on"})
     except ValueError:
         return HTMLResponse("محتوای تبلیغ معتبر نیست.", status_code=400)
-    return RedirectResponse("/servant-ad?saved=1", status_code=303)
+    return RedirectResponse("/broadcasts?tab=servant_ad&saved=1", status_code=303)
 
 
 @app.post("/servant-ad/send")
@@ -4065,8 +4186,41 @@ async def servant_ad_send(request: Request, csrf: str = Form(...)):
             delivered = await servant_ad_service.send_now(session, _send)
             await audit_service.record(session, actor_user_id=admin.id, action="SERVANT_AD_SEND", details={"delivered": delivered})
     except ValueError:
-        return RedirectResponse("/servant-ad?saved=empty", status_code=303)
-    return RedirectResponse(f"/servant-ad?saved=sent&n={delivered}", status_code=303)
+        return RedirectResponse("/broadcasts?tab=servant_ad&saved=empty", status_code=303)
+    return RedirectResponse(f"/broadcasts?tab=servant_ad&saved=sent&n={delivered}", status_code=303)
+
+
+@app.post("/broadcasts/tariffs")
+async def update_broadcast_tariffs(
+    request: Request,
+    csrf: str = Form(...),
+    channel: str = Form(...),
+    price_toman: int = Form(...),
+    package_size: int = Form(1000),
+    free_count: int = Form(0),
+):
+    admin, raw = await _admin(request, AdminPermission.FINANCE_MANAGE)
+    if admin is None:
+        admin, raw = await _admin(request, AdminPermission.MODERATION_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    channel = channel.upper()
+    if channel not in broadcast_service.CHANNELS:
+        return HTMLResponse("کانال نامعتبر است.", status_code=400)
+    if package_size <= 0:
+        package_size = 1000
+    async with session_scope() as session:
+        prefix = channel.lower()
+        await system_settings_service.set_int(session, f"broadcast_{prefix}_free_count", free_count)
+        await system_settings_service.set_int(session, f"broadcast_{prefix}_price_toman", price_toman)
+        await system_settings_service.set_int(session, f"broadcast_{prefix}_package_size", package_size)
+        await audit_service.record(
+            session, actor_user_id=admin.id, action="BROADCAST_TARIFFS_UPDATE",
+            details={"channel": channel, "free_count": free_count, "price_toman": price_toman, "package_size": package_size},
+        )
+    return RedirectResponse("/broadcasts?tab=tariffs&saved=tariffs_saved", status_code=303)
 
 
 @app.get("/admins", response_class=HTMLResponse)
