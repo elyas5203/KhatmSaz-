@@ -1,3 +1,17 @@
+## 2026-10-19 — Antigravity — Admins, Roles, Permissions (RBAC) & Security Audit Hub (MASTER-50)
+- **Unified Admins, RBAC & Audit Hub (`web/app.py` & `web/templates/admins.html`):**
+  - Upgraded `/admins` with 4 security KPI cards: Active Admins Count, Super Admins Count, Total Audit Events, and Security Events in last 24h.
+  - Implemented 3 unified tabs: Tab 1 (Active Admins & Delegated Role Grants), Tab 2 (Grant Role & Search Users), and Tab 3 (Security Audit Ledger).
+- **Anti Self-Lockout & Last Super Admin Safety Guardrails (`web/app.py` & `web/templates/admins.html`):**
+  - Enforced Anti Self-Lockout guard preventing an admin from accidentally revoking their own roles.
+  - Enforced Last Super Admin guard blocking any attempt to demote or revoke the system's final active Super Admin.
+  - Implemented `POST /admins/{user_id}/promote-super` and `POST /admins/{user_id}/demote-super` with audit trail and bot notifications.
+- **Audit Trail & Route Harmonization (`web/app.py`, `web/templates/admins.html`, `web/templates/audit.html`):**
+  - Added time-range filtering (`all`, `today`, `7d`, `30d`) and action code filtering (`action_query`) to audit log query.
+  - Updated `/audit` to seamlessly redirect to `/admins?tab=audit` with parameter forwarding.
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md` and registered `DEC-PY-0142`.
+- **Validation:** 10/10 tests passed in `tests/test_master_50_admins_hub.py`, combined regression suite 59/59 passed.
+
 ## 2026-10-19 — Antigravity — Finance, Subscription Plans, Member Caps & Tariffs Hub (MASTER-49)
 - **Unified Finance, Plans & Gateway Hub (`web/app.py` & `web/templates/finance.html`):**
   - Upgraded `/finance` with 4 financial KPI cards: Paid Total, Refunded Total, Total Invoices Count, and PayPing Gateway Connection Status.

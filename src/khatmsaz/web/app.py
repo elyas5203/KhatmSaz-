@@ -4068,11 +4068,22 @@ async def servant_ad_send(request: Request, csrf: str = Form(...)):
 
 
 @app.get("/admins", response_class=HTMLResponse)
-async def admins(request: Request, q: str = ""):
+async def admins(
+    request: Request,
+    q: str = "",
+    tab: str = "active",
+    time_range: str = "all",
+    action_query: str = "",
+):
     admin, raw = await _admin(request, AdminPermission.ADMIN_ROLES_MANAGE)
     if admin is None:
         return _login_redirect()
+
+    from datetime import timedelta
+    from khatmsaz.modules.audit_log.models import AuditLog
+
     async with session_scope() as session:
+        # Active grants
         active_grants = list(
             (
                 await session.execute(
@@ -4083,11 +4094,91 @@ async def admins(request: Request, q: str = ""):
                 )
             ).all()
         )
+
+        # Super Admins
+        super_admins = list(
+            (
+                await session.execute(
+                    select(User)
+                    .where(User.role == UserRole.SUPER_ADMIN, User.deleted_at.is_(None))
+                    .order_by(User.display_name.asc())
+                )
+            ).scalars()
+        )
+
+        # KPIs
+        grant_uids = {grant.user_id for grant, _ in active_grants}
+        super_uids = {u.id for u in super_admins}
+        all_admin_uids = grant_uids.union(super_uids)
+        active_admins_count = len(all_admin_uids)
+        super_admins_count = len(super_admins)
+
+        total_audit_events = await session.scalar(select(func.count(AuditLog.id)))
+        start_today = datetime.now(ZoneInfo("Asia/Tehran")).replace(hour=0, minute=0, second=0, microsecond=0)
+        audit_events_today = await session.scalar(
+            select(func.count(AuditLog.id)).where(AuditLog.created_at >= start_today)
+        )
+
+        # Search users for Tab 2
         found = (
             await identity_service.search_users(session, q.strip(), limit=30)
             if q.strip()
             else []
         )
+
+        # Audit logs for Tab 3
+        audit_stmt = select(AuditLog)
+        if time_range == "today":
+            audit_stmt = audit_stmt.where(AuditLog.created_at >= start_today)
+        elif time_range == "7d":
+            start_7d = datetime.now(timezone.utc) - timedelta(days=7)
+            audit_stmt = audit_stmt.where(AuditLog.created_at >= start_7d)
+        elif time_range == "30d":
+            start_30d = datetime.now(timezone.utc) - timedelta(days=30)
+            audit_stmt = audit_stmt.where(AuditLog.created_at >= start_30d)
+
+        if action_query.strip():
+            audit_stmt = audit_stmt.where(AuditLog.action.ilike(f"%{action_query.strip()}%"))
+
+        audit_stmt = audit_stmt.order_by(AuditLog.created_at.desc()).limit(100)
+        audit_entries = list((await session.execute(audit_stmt)).scalars())
+
+        user_ids = {
+            uid
+            for entry in audit_entries
+            for uid in (entry.actor_user_id, entry.target_user_id)
+            if uid is not None
+        }
+        khatm_ids = {entry.target_khatm_id for entry in audit_entries if entry.target_khatm_id is not None}
+        users_by_id = {
+            u.id: u
+            for u in (
+                list((await session.execute(select(User).where(User.id.in_(user_ids)))).scalars())
+                if user_ids
+                else []
+            )
+        }
+        khatms_by_id = {
+            k.id: k
+            for k in (
+                list((await session.execute(select(Khatm).where(Khatm.id.in_(khatm_ids)))).scalars())
+                if khatm_ids
+                else []
+            )
+        }
+        audit_rows = [
+            {
+                "entry": entry,
+                "label": _audit_label(entry.action),
+                "time": _tehran_time(entry.created_at),
+                "actor": users_by_id.get(entry.actor_user_id),
+                "target_user": users_by_id.get(entry.target_user_id),
+                "target_khatm": khatms_by_id.get(entry.target_khatm_id),
+                "details": _audit_details(entry.details),
+            }
+            for entry in audit_entries
+        ]
+
     return templates.TemplateResponse(
         request=request,
         name="admins.html",
@@ -4096,9 +4187,18 @@ async def admins(request: Request, q: str = ""):
             admin,
             raw,
             active_grants=active_grants,
+            super_admins=super_admins,
             users=found,
             query=q,
+            tab=tab,
+            time_range=time_range,
+            action_query=action_query,
             roles=list(AdminRole),
+            active_admins_count=active_admins_count,
+            super_admins_count=super_admins_count,
+            total_audit_events=int(total_audit_events or 0),
+            audit_events_today=int(audit_events_today or 0),
+            audit_rows=audit_rows,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -4189,52 +4289,11 @@ async def decide_creator_request(
 
 
 @app.get("/audit", response_class=HTMLResponse)
-async def audit_timeline(request: Request, q: str = ""):
+async def audit_timeline(request: Request, q: str = "", time_range: str = "all"):
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
-    async with session_scope() as session:
-        entries = await audit_service.list_recent(session, action_query=q, limit=100)
-        user_ids = {
-            user_id
-            for entry in entries
-            for user_id in (entry.actor_user_id, entry.target_user_id)
-            if user_id is not None
-        }
-        khatm_ids = {entry.target_khatm_id for entry in entries if entry.target_khatm_id is not None}
-        users_by_id = {
-            user.id: user
-            for user in (
-                list((await session.execute(select(User).where(User.id.in_(user_ids)))).scalars())
-                if user_ids
-                else []
-            )
-        }
-        khatms_by_id = {
-            khatm.id: khatm
-            for khatm in (
-                list((await session.execute(select(Khatm).where(Khatm.id.in_(khatm_ids)))).scalars())
-                if khatm_ids
-                else []
-            )
-        }
-        rows = [
-            {
-                "entry": entry,
-                "label": _audit_label(entry.action),
-                "time": _tehran_time(entry.created_at),
-                "actor": users_by_id.get(entry.actor_user_id),
-                "target_user": users_by_id.get(entry.target_user_id),
-                "target_khatm": khatms_by_id.get(entry.target_khatm_id),
-                "details": _audit_details(entry.details),
-            }
-            for entry in entries
-        ]
-    return templates.TemplateResponse(
-        request=request,
-        name="audit.html",
-        context=_ctx(request, admin, raw, rows=rows, query=q),
-    )
+    return RedirectResponse(f"/admins?tab=audit&action_query={q}&time_range={time_range}", status_code=303)
 
 
 @app.post("/admins/{user_id}/roles")
@@ -4256,11 +4315,17 @@ async def change_admin_role(
         return HTMLResponse("نقش انتخاب‌شده معتبر نیست.", status_code=400)
     if action not in {"grant", "revoke"}:
         return HTMLResponse("عملیات نقش معتبر نیست.", status_code=400)
+
+    # Anti Self-Lockout Guard
+    if action == "revoke" and admin.id == user_id:
+        return HTMLResponse("لغو دسترسی‌های حساب کاربری خودتان مجاز نیست (Anti Self-Lockout).", status_code=400)
+
     async with session_scope() as session:
         actor = await identity_service.find_by_id(session, admin.id)
         target = await identity_service.find_by_id(session, user_id)
         if target is None:
             return HTMLResponse("کاربر پیدا نشد.", status_code=404)
+
         if action == "grant":
             await authorization_service.grant_role(
                 session, actor=actor, target=target, role=role_value
@@ -4299,7 +4364,107 @@ async def change_admin_role(
                         )
                 except Exception:
                     pass
-    return RedirectResponse("/admins?saved=1", status_code=303)
+    return RedirectResponse(f"/admins?tab={'active' if action == 'revoke' else 'grant'}&saved=1", status_code=303)
+
+
+@app.post("/admins/{user_id}/promote-super")
+async def promote_super_admin(
+    request: Request,
+    user_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.ADMIN_ROLES_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if admin.role != UserRole.SUPER_ADMIN:
+        return HTMLResponse("تنها مدیر ارشد می‌تواند کاربر دیگری را به مدیر ارشد ارتقا دهد.", status_code=403)
+
+    async with session_scope() as session:
+        target = await identity_service.find_by_id(session, user_id)
+        if target is None:
+            return HTMLResponse("کاربر پیدا نشد.", status_code=404)
+        if target.role == UserRole.SUPER_ADMIN:
+            return RedirectResponse("/admins?tab=active&saved=already_super", status_code=303)
+
+        target.role = UserRole.SUPER_ADMIN
+        await session.flush()
+
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=target.id,
+            action="SUPER_ADMIN_PROMOTED",
+            details={"previous_role": target.role.value if hasattr(target.role, "value") else str(target.role)},
+        )
+
+        try:
+            from khatmsaz.bot.notify_adapter import get_notify_fn
+            from khatmsaz.modules.identity.models import PlatformIdentity
+            pis = list(
+                (
+                    await session.scalars(
+                        select(PlatformIdentity).where(PlatformIdentity.user_id == target.id)
+                    )
+                ).all()
+            )
+            notify = get_notify_fn()
+            for pi in pis:
+                await notify(
+                    pi.platform.value,
+                    str(pi.subject),
+                    "👑 **ارتقا به مدیر ارشد (Super Admin)**\n\nشما دسترسی کامل مدیریتی در سامانه ختم‌ساز را دریافت کردید.",
+                )
+        except Exception:
+            pass
+
+    return RedirectResponse("/admins?tab=active&saved=super_promoted", status_code=303)
+
+
+@app.post("/admins/{user_id}/demote-super")
+async def demote_super_admin(
+    request: Request,
+    user_id: UUID,
+    csrf: str = Form(...),
+):
+    admin, raw = await _admin(request, AdminPermission.ADMIN_ROLES_MANAGE)
+    if admin is None:
+        return _login_redirect()
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+    if admin.role != UserRole.SUPER_ADMIN:
+        return HTMLResponse("تنها مدیر ارشد می‌تواند این عملیات را انجام دهد.", status_code=403)
+
+    # Anti Self-Lockout
+    if admin.id == user_id:
+        return HTMLResponse("تنزل نقش یا لغو دسترسی‌های حساب کاربری خودتان مجاز نیست (Anti Self-Lockout).", status_code=400)
+
+    async with session_scope() as session:
+        # Last Super Admin Guard
+        super_count = await session.scalar(
+            select(func.count(User.id)).where(User.role == UserRole.SUPER_ADMIN, User.deleted_at.is_(None))
+        )
+        if (super_count or 0) <= 1:
+            return HTMLResponse("لغو دسترسی یا تنزل آخرین مدیر ارشد سامانه امکان‌پذیر نیست.", status_code=400)
+
+        target = await identity_service.find_by_id(session, user_id)
+        if target is None:
+            return HTMLResponse("کاربر پیدا نشد.", status_code=404)
+
+        target.role = UserRole.ADMIN
+        await session.flush()
+
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            target_user_id=target.id,
+            action="SUPER_ADMIN_DEMOTED",
+            details={},
+        )
+
+    return RedirectResponse("/admins?tab=active&saved=super_demoted", status_code=303)
+
 
 
 @app.post("/users/{user_id}/moderate")

@@ -1,3 +1,8 @@
+## 2026-10-19 — Admins, Roles, Permissions (RBAC) & Security Audit Hub (MASTER-50) [Antigravity]
+- Master Document: [MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md](masters/MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md) (Unified admins command center, role-based access control with standard presets and granular permissions, Anti Self-Lockout and Last Super Admin protection guardrails, super admin promotion/demotion, and unified security audit trail ledger in `/admins` and `/audit`).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/admins.html`, `src/khatmsaz/modules/authorization/`, `src/khatmsaz/modules/audit_log/`.
+- Tests: `tests/test_master_50_admins_hub.py`.
+
 ## 2026-10-19 — Finance, Subscription Plans, Member Caps & Tariffs Hub (MASTER-49) [Antigravity]
 - Master Document: [MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md](masters/MASTER_49_FINANCE_PLANS_AND_TARIFFS_HUB.md) (Centralized finance, subscription plans, member caps and tariffs hub `/finance` in web admin, 4 KPI cards, PayPing gateway connectivity and direct Shaparak payment link `https://ppng.ir/d/VFBD`, advanced invoice filtering and two-step refunds, 3-tier creator subscription plans with devotional member caps (100) and Quran member caps (302), broadcast tariffs (150,000 Toman / 1,000 members), and links to User 360 and Coupons hub).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/finance.html`, `src/khatmsaz/modules/plan/`, `src/khatmsaz/modules/wallet/`, `src/khatmsaz/modules/broadcast/`.

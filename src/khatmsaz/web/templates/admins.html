@@ -1,109 +1,415 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}مدیران | ختم‌ساز{% endblock %}
+{% block title %}مرکز مدیریت مدیران، سطوح دسترسی و ممیزی امنیتی | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
   <div>
-    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">دسترسی و نقش‌های امنیتی</p>
+    <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">امنیت، سطوح دسترسی (RBAC) و ممیزی</p>
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیران و نقش‌های سیستم</h1>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مدیران، نقش‌ها و ردپای امنیتی</h1>
       {{ help_button(
-        "راهنمای مدیران و نقش‌های سیستم",
-        "در این بخش می‌توانید دسترسی‌های مختلف پنل مدیریت (نظارت، مالی، محتوا، پشتیبانی و عملیات) را به همکاران اعطا یا لغو کنید. هر ادمین فقط منوهایی را می‌بیند که به آن دسترسی دارد.",
+        "راهنمای مدیران، نقش‌ها و ردپای امنیتی",
+        "در این مرکز، نقش‌های امنیتی مدیران سیستم (مدیر کل، مدیر مالی، ناظر محتوا، پشتیبان، تبلیغات و عملیات) مدیریت شده و تمام رویدادهای حساس در دفتر کل ممیزی امنیتی ثبت و رصد می‌شوند.",
         [
-          "ابتدا کاربر را با نام یا شناسه در کادر جستجو پیدا کنید.",
-          "نقش مورد نظر (مدیر محتوا، مدیر مالی، مدیر نظارت، پشتیبان، یا عملیات) را انتخاب کنید.",
-          "با زدن دکمه «اعطای نقش»، دسترسی اعمال شده و رویداد در لاگ ممیزی ثبت می‌شود."
+          "در تب مدیران فعال، لیست تمام سوپرادمین‌ها و ادمین‌های تفویض‌شده را مشاهده کرده و در صورت نیاز دسترسی آن‌ها را لغو نمایید.",
+          "در تب اعطای نقش، کاربر را با نام یا شماره پیدا کرده و نقش دلخواه یا دسترسی سوپرادمین را به او واگذار کنید.",
+          "در تب ممیزی امنیتی، کلیه تغییرات حساس سامانه را با فیلتر زمانی و نوع اقدام بررسی فرمایید.",
+          "سپر امنیتی Anti Self-Lockout مانع از لغو دسترسی تصادفی حساب خودتان یا حذف آخرین مدیر ارشد می‌شود."
         ],
-        "نکته: مدیر کل (Super Admin) همیشه تمام دسترسی‌ها را دارد."
+        "نکته: رویدادهای ممیزی سیستم غیرقابل‌حذف هستند و به صورت دائمی در دیتابیس نگهداری می‌شوند."
       ) }}
     </div>
   </div>
 </section>
 
 {% if saved %}
-<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center gap-3">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-  تغییر نقش ذخیره و در گزارش حسابرسی ثبت شد.
+<div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+  <span>
+    {% if saved == '1' %}تغییرات نقش مدیریتی با موفقیت اعمال و در لاگ ممیزی ثبت شد ✅
+    {% elif saved == 'super_promoted' %}کاربر با موفقیت به سطح «مدیر ارشد (Super Admin)» ارتقا یافت 👑
+    {% elif saved == 'super_demoted' %}نقش مدیر ارشد با موفقیت به مدیر عادی تغییر یافت ✅
+    {% elif saved == 'already_super' %}این کاربر از قبل مدیر ارشد است.
+    {% else %}عملیات امنیتی با موفقیت ثبت شد ✅{% endif %}
+  </span>
 </div>
 {% endif %}
 
-<form class="flex gap-2 w-full max-w-2xl relative mb-8" method="get" action="/admins">
-  <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-400">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-  </div>
-  <input name="q" value="{{ query }}" placeholder="نام، شماره، شناسه تلگرام یا شناسه داخلی کاربر" autocomplete="off" class="input-field pl-4 pr-10 py-3 text-lg">
-  <button type="submit" class="btn px-6 whitespace-nowrap shadow-lg shadow-emerald-900/20">پیدا کردن</button>
-</form>
-
-{% if users %}
-<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-  {% for user in users %}
-  <article class="glass-card p-5 rounded-2xl flex flex-col justify-between group">
-    <div class="mb-4">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">{{ user.display_name or 'کاربر بدون نام' }}</h2>
-        <a href="/users?q={{ user.id }}" title="مشاهده در کاربران ۳۶۰ درجه" class="text-xs text-purple-400 hover:text-purple-300 font-medium">۳۶۰° &larr;</a>
-      </div>
-      <p class="text-xs text-slate-400 font-mono bg-slate-800/50 inline-block px-2 py-1 rounded select-all">{{ user.id }}</p>
+<!-- Security KPI Cards -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-amber-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-amber-400 font-mono">{{ active_admins_count }}</strong>
+      <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 text-sm">🛡</span>
     </div>
-    
-    <div class="border-t border-slate-700/50 pt-4 mt-auto">
-      <form method="post" action="/admins/{{ user.id }}/roles" class="flex flex-col gap-2">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <div class="flex flex-col sm:flex-row gap-2">
-          <select name="role" class="input-field py-2 text-sm flex-1">
-            {% for role in roles %}
-            <option value="{{ role.value }}" {% if role.value == 'ADMIN' %}selected{% endif %}>{{ fa_label(role) }}</option>
-            {% endfor %}
-          </select>
-          <button name="action" value="grant" type="submit" class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors whitespace-nowrap">اعطای نقش</button>
-        </div>
-      </form>
-      <form method="post" action="/admins/{{ user.id }}/roles" class="mt-2">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <input type="hidden" name="role" value="ADMIN">
-        <button name="action" value="grant" type="submit" class="w-full bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-sky-500/20 hover:from-amber-500 hover:to-emerald-500 text-amber-300 hover:text-white border border-amber-500/30 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 shadow-sm">
-          ⚡️ اعطای همه دسترسی‌ها (مدیر جامع)
-        </button>
-      </form>
-    </div>
+    <span class="text-xs text-slate-400 font-bold">کل مدیران فعال سیستم</span>
   </article>
-  {% endfor %}
-</section>
-{% elif query %}
-<div class="glass-panel p-8 text-center text-slate-500 rounded-3xl border border-dashed border-slate-700 mb-8">
-  <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-slate-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-  <p>کاربری با این عبارت پیدا نشد.</p>
-</div>
-{% endif %}
 
-<section class="glass-panel p-6 rounded-3xl">
-  <div class="mb-6 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">نقش‌های فعال</h2>
-  </div>
-  
-  <div class="flex flex-col gap-4">
-    {% for grant, user in active_grants %}
-    <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/60 transition-colors">
-      <div>
-        <h3 class="font-bold text-white mb-1">{{ user.display_name or user.id }}</h3>
-        <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/10 text-sky-400">{{ fa_label(grant.role) }}</span>
-      </div>
-      
-      <form method="post" action="/admins/{{ user.id }}/roles">
-        <input type="hidden" name="csrf" value="{{ csrf }}">
-        <input type="hidden" name="role" value="{{ grant.role }}">
-        <button name="action" value="revoke" type="submit" class="bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white p-2 rounded-xl transition-colors" title="لغو نقش">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-        </button>
-      </form>
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-emerald-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-emerald-400 font-mono">{{ super_admins_count }}</strong>
+      <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm">👑</span>
     </div>
-    {% else %}
-    <div class="p-8 text-center text-slate-500">
-      <p>هنوز نقش واگذارشده‌ای وجود ندارد.</p>
+    <span class="text-xs text-slate-400 font-bold">مدیران ارشد (Super Admin)</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-sky-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-sky-400 font-mono">{{ "{:,}".format(total_audit_events) }}</strong>
+      <span class="p-2 rounded-xl bg-sky-500/10 text-sky-400 text-sm">📜</span>
     </div>
-    {% endfor %}
-  </div>
+    <span class="text-xs text-slate-400 font-bold">کل رویدادهای ممیزی ثبت‌شده</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-rose-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-rose-400 font-mono">{{ "{:,}".format(audit_events_today) }}</strong>
+      <span class="p-2 rounded-xl bg-rose-500/10 text-rose-400 text-sm">⚡️</span>
+    </div>
+    <span class="text-xs text-slate-400 font-bold">رویدادهای امنیتی ۲۴ ساعت اخیر</span>
+  </article>
 </section>
+
+<!-- Tabs Navigation -->
+<div class="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none" id="adminsTabs">
+  <button type="button" onclick="switchAdminsTab('active')" id="tabBtn_active" class="admins-tab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-amber-500 text-slate-950 shadow-md">
+    🛡 مدیران فعال و سطوح دسترسی
+  </button>
+  <button type="button" onclick="switchAdminsTab('grant')" id="tabBtn_grant" class="admins-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-slate-800/60 text-slate-300 hover:bg-slate-800">
+    ➕ اعطای نقش و افزودن مدیر جدید
+  </button>
+  <button type="button" onclick="switchAdminsTab('audit')" id="tabBtn_audit" class="admins-tab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap bg-slate-800/60 text-slate-300 hover:bg-slate-800">
+    📜 دفتر کل ممیزی و لاگ‌های امنیتی
+  </button>
+</div>
+
+<!-- TAB 1: ACTIVE ADMINS -->
+<div id="adminsTab_active" class="space-y-6">
+  <!-- Super Admins Section -->
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">👑</span>
+        <div>
+          <h2 class="text-lg font-extrabold text-white">مدیران ارشد سامانه (Super Admins)</h2>
+          <p class="text-xs text-slate-400">دارای دسترسی نامحدود به تمام ماژول‌ها، مالی، کدها، تنظیمات و مدیریت نقش‌ها</p>
+        </div>
+      </div>
+      {{ tooltip("مدیران ارشد از طریق ربات ادمین و پنل به همه اختیارات دسترسی دارند. حداقل یک مدیر ارشد باید همواره در سیستم فعال باشد.") }}
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for sa in super_admins %}
+      <div class="p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-800/50 to-slate-900/60 border border-amber-500/30 flex flex-col justify-between gap-4">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <a href="/users/{{ sa.id }}" class="group">
+              <strong class="text-white font-extrabold text-base group-hover:text-amber-400 transition-colors">{{ sa.display_name or 'مدیر ارشد بدون نام' }} ↗</strong>
+            </a>
+            <span class="px-2 py-0.5 rounded text-[0.65rem] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">دسترسی تام</span>
+          </div>
+          <p class="text-[0.68rem] text-slate-400 font-mono select-all" dir="ltr">{{ sa.id }}</p>
+        </div>
+
+        <div class="pt-3 border-t border-slate-700/50 flex items-center justify-between gap-2">
+          <span class="text-[0.68rem] text-slate-400 font-mono">وضعیت: فعال</span>
+          {% if sa.id != admin.id %}
+          <form method="post" action="/admins/{{ sa.id }}/demote-super" onsubmit="return confirm('آیا از تنزل نقش مدیر ارشد به مدیر عادی مطمئن هستید؟')">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="px-3 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all cursor-pointer">
+              تنزل به مدیر عادی
+            </button>
+          </form>
+          {% else %}
+          <span class="text-[0.65rem] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">حساب خودتان</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Delegated Role Grants Section -->
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-5 border-b border-white/5 pb-3 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🛡</span>
+        <div>
+          <h2 class="text-lg font-extrabold text-white">مدیران تفویض‌شده و سطوح دسترسی (Delegated Admins)</h2>
+          <p class="text-xs text-slate-400">کاربرانی که نقش‌های تخصصی مانند مالی، محتوا، نظارت یا پشتیبانی به آن‌ها اعطا شده است</p>
+        </div>
+      </div>
+      <span class="text-xs font-bold text-slate-400 font-mono">{{ active_grants|length }} انتصاب</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for grant, user in active_grants %}
+      <div class="p-5 rounded-2xl bg-slate-800/40 border border-slate-700/60 flex flex-col justify-between gap-3 hover:bg-slate-800/60 transition-colors">
+        <div class="flex items-start justify-between">
+          <div>
+            <a href="/users/{{ user.id }}" class="group">
+              <strong class="text-white font-bold text-sm group-hover:text-amber-400 transition-colors">{{ user.display_name or 'کاربر بدون نام' }} ↗</strong>
+            </a>
+            <p class="text-[0.65rem] text-slate-500 font-mono select-all mt-0.5" dir="ltr">{{ user.id }}</p>
+          </div>
+
+          <span class="px-2.5 py-1 rounded-lg text-xs font-bold 
+            {% if grant.role == 'ADMIN' %}bg-amber-500/15 text-amber-300 border border-amber-500/30
+            {% elif grant.role == 'FINANCE_ADMIN' %}bg-emerald-500/15 text-emerald-300 border border-emerald-500/30
+            {% elif grant.role == 'CONTENT_ADMIN' %}bg-sky-500/15 text-sky-300 border border-sky-500/30
+            {% elif grant.role == 'MODERATION_ADMIN' %}bg-purple-500/15 text-purple-300 border border-purple-500/30
+            {% elif grant.role == 'SUPPORT_ADMIN' %}bg-blue-500/15 text-blue-300 border border-blue-500/30
+            {% else %}bg-slate-700/50 text-slate-300 border border-slate-600/50{% endif %}">
+            {{ fa_label(grant.role) }}
+          </span>
+        </div>
+
+        <div class="pt-3 border-t border-slate-700/50 flex items-center justify-between gap-2">
+          <!-- Promote to Super Admin -->
+          {% if user.role != 'SUPER_ADMIN' %}
+          <form method="post" action="/admins/{{ user.id }}/promote-super" onsubmit="return confirm('آیا از ارتقای این کاربر به مدیر ارشد (Super Admin) اطمینان دارید؟')">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="px-2.5 py-1 rounded-lg text-[0.68rem] font-bold bg-amber-500/10 text-amber-300 hover:bg-amber-500 hover:text-slate-950 transition-all cursor-pointer">
+              👑 ارتقا به مدیر ارشد
+            </button>
+          </form>
+          {% else %}
+          <span class="text-[0.65rem] text-amber-400 font-bold">سوپرادمین است</span>
+          {% endif %}
+
+          <!-- Revoke Role Form with Two-Step Dialog -->
+          <form method="post" action="/admins/{{ user.id }}/roles" onsubmit="return confirm('آیا از لغو نقش «{{ fa_label(grant.role) }}» این کاربر اطمینان دارید؟')">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="role" value="{{ grant.role }}">
+            <input type="hidden" name="action" value="revoke">
+            <button type="submit" class="px-3 py-1 rounded-lg text-xs font-bold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-all cursor-pointer flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              لغو این نقش
+            </button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <div class="col-span-2 p-8 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+        نقش تفویض‌شده‌ای ثبت نشده است. از تب «اعطای نقش» می‌توانید به کاربران نقش اختصاص دهید.
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<!-- TAB 2: GRANT ROLE & ADD ADMIN -->
+<div id="adminsTab_grant" class="hidden space-y-6">
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-6 border-b border-white/5 pb-4">
+      <h2 class="text-xl font-extrabold text-white">جستجوی کاربر و اعطای نقش مدیریتی</h2>
+      <p class="text-xs text-slate-400 mt-1">نام، شماره موبایل یا شناسه کاربر را جستجو کرده و نقش مورد نظر را به او واگذار نمایید.</p>
+    </div>
+
+    <!-- Search Form -->
+    <form class="flex gap-2 w-full max-w-2xl mb-8" method="get" action="/admins">
+      <input type="hidden" name="tab" value="grant">
+      <input name="q" value="{{ query }}" placeholder="نام، شماره موبایل، شناسه تلگرام/بله یا شناسه کاربر..." autocomplete="off" class="input-field text-sm py-2.5">
+      <button type="submit" class="btn px-6 text-xs whitespace-nowrap cursor-pointer">جستجو</button>
+    </form>
+
+    {% if users %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for u in users %}
+      <article class="glass-card p-5 rounded-2xl flex flex-col justify-between gap-4 border border-slate-700/60">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-bold text-white">{{ u.display_name or 'کاربر بدون نام' }}</h3>
+            <a href="/users/{{ u.id }}" class="text-xs text-purple-400 hover:text-purple-300 font-bold">پروفایل ۳۶۰° ↗</a>
+          </div>
+          <p class="text-xs text-slate-400 font-mono bg-slate-800/60 px-2 py-1 rounded select-all" dir="ltr">{{ u.id }}</p>
+        </div>
+
+        <div class="border-t border-slate-700/50 pt-3 space-y-3">
+          <!-- Preset Role Selection Form -->
+          <form method="post" action="/admins/{{ u.id }}/roles" class="space-y-2">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="action" value="grant">
+            
+            <label class="block text-[0.7rem] font-bold text-slate-300">انتخاب نقش استاندارد:</label>
+            <div class="flex gap-2">
+              <select name="role" class="input-field text-xs py-1.5 flex-1">
+                {% for role in roles %}
+                <option value="{{ role.value }}" {% if role.value == 'ADMIN' %}selected{% endif %}>{{ fa_label(role) }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn text-xs py-1.5 px-4 whitespace-nowrap cursor-pointer">اعطای نقش</button>
+            </div>
+          </form>
+
+          <!-- Quick Promote to Super Admin -->
+          <form method="post" action="/admins/{{ u.id }}/promote-super" onsubmit="return confirm('آیا از ارتقای این کاربر به مدیر ارشد (Super Admin) اطمینان دارید؟')">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button type="submit" class="w-full py-2 bg-gradient-to-r from-amber-500/20 via-emerald-500/20 to-sky-500/20 hover:from-amber-500 hover:to-emerald-500 text-amber-300 hover:text-slate-950 border border-amber-500/30 rounded-xl text-[0.7rem] font-extrabold transition-all cursor-pointer">
+              👑 ارتقا به مدیر ارشد (دسترسی تام)
+            </button>
+          </form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% elif query %}
+    <div class="p-8 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+      کاربری با عبارت «{{ query }}» پیدا نشد.
+    </div>
+    {% endif %}
+  </section>
+</div>
+
+<!-- TAB 3: AUDIT TRAIL & SECURITY LEDGER -->
+<div id="adminsTab_audit" class="hidden space-y-6">
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-6 border-b border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-extrabold text-white">دفتر کل ممیزی و رویدادهای امنیتی (Security Audit Ledger)</h2>
+        <p class="text-xs text-slate-400 mt-1">لاگ‌های غیرقابل‌حذف تمام عملیات‌های ادمین‌ها، تراکنش‌ها، تغییر پلن‌ها و تاییدات</p>
+      </div>
+      {{ tooltip("تمام رکوردهای ممیزی با شناسه ادمین، زمان دقیق تهران و جزئیات فنی ذخیره شده‌اند و هیچ فردی امکان دستکاری یا حذف آن‌ها را ندارد.") }}
+    </div>
+
+    <!-- Filters Toolbar -->
+    <form method="get" action="/admins" class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+      <input type="hidden" name="tab" value="audit">
+
+      <!-- Time Range Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <span class="text-xs text-slate-400 font-bold ml-1">بازه:</span>
+        <button type="submit" name="time_range" value="all" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if time_range == 'all' %}bg-amber-500 text-slate-950{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">
+          همه
+        </button>
+        <button type="submit" name="time_range" value="today" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if time_range == 'today' %}bg-amber-500 text-slate-950{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">
+          امروز
+        </button>
+        <button type="submit" name="time_range" value="7d" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if time_range == '7d' %}bg-amber-500 text-slate-950{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">
+          ۷ روز اخیر
+        </button>
+        <button type="submit" name="time_range" value="30d" class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all {% if time_range == '30d' %}bg-amber-500 text-slate-950{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">
+          ۳۰ روز اخیر
+        </button>
+      </div>
+
+      <!-- Action Code Filter -->
+      <div class="flex items-center gap-2 flex-1 md:max-w-md">
+        <div class="relative flex-1">
+          <input name="action_query" value="{{ action_query }}" placeholder="فیلتر با کد رویداد؛ مثلاً ADMIN, WALLET, KHATM..." class="input-field text-xs py-2 pl-8 font-mono">
+          {% if action_query %}
+          <a href="/admins?tab=audit" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs">✕</a>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn text-xs py-2 px-4 flex-none cursor-pointer">فیلتر</button>
+      </div>
+    </form>
+
+    <!-- Timeline Audit Cards -->
+    <div class="relative border-r-2 border-slate-700/50 pr-6 space-y-6">
+      {% for row in audit_rows %}
+      <article class="relative bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 hover:bg-slate-800/60 transition-colors">
+        <!-- Timeline Dot -->
+        <div class="absolute -right-[1.95rem] top-6 w-4 h-4 rounded-full bg-slate-900 border-2 border-amber-500"></div>
+
+        <header class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b border-slate-700/50 pb-3 gap-2">
+          <div>
+            <h3 class="text-base font-bold text-white">{{ row.label }}</h3>
+            <span class="text-[0.68rem] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded inline-block mt-1 select-all">{{ row.entry.action }}</span>
+          </div>
+          <time class="text-xs text-slate-400 font-mono bg-slate-900/60 px-3 py-1 rounded-lg" dir="ltr">
+            {{ row.time }}
+          </time>
+        </header>
+
+        <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+          <div class="bg-slate-900/40 rounded-xl p-3">
+            <dt class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">انجام‌دهنده (Actor)</dt>
+            <dd class="font-bold text-slate-300">
+              {% if row.actor %}
+              <a href="/users/{{ row.actor.id }}" class="hover:text-amber-400 transition-colors">{{ row.actor.display_name or row.entry.actor_user_id }} ↗</a>
+              {% else %}
+              <span class="font-mono text-slate-400">{{ row.entry.actor_user_id }}</span>
+              {% endif %}
+            </dd>
+          </div>
+
+          {% if row.entry.target_user_id %}
+          <div class="bg-slate-900/40 rounded-xl p-3">
+            <dt class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">کاربر هدف (Target User)</dt>
+            <dd class="font-bold text-sky-400">
+              {% if row.target_user %}
+              <a href="/users/{{ row.target_user.id }}" class="hover:underline">{{ row.target_user.display_name or row.entry.target_user_id }} ↗</a>
+              {% else %}
+              <span class="font-mono">{{ row.entry.target_user_id }}</span>
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
+
+          {% if row.entry.target_khatm_id %}
+          <div class="bg-slate-900/40 rounded-xl p-3">
+            <dt class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">ختم هدف (Target Khatm)</dt>
+            <dd class="font-bold text-emerald-400">
+              {% if row.target_khatm %}
+              <a href="/khatms/{{ row.target_khatm.id }}" class="hover:underline">{{ row.target_khatm.title }} ↗</a>
+              {% else %}
+              <span class="font-mono">{{ row.entry.target_khatm_id }}</span>
+              {% endif %}
+            </dd>
+          </div>
+          {% endif %}
+
+          {% for label, val in row.details %}
+          <div class="bg-slate-900/40 rounded-xl p-3">
+            <dt class="text-[0.65rem] font-bold text-slate-500 uppercase mb-1">{{ label }}</dt>
+            <dd class="font-mono text-amber-300 break-all">{{ val }}</dd>
+          </div>
+          {% endfor %}
+        </dl>
+      </article>
+      {% else %}
+      <div class="p-8 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-dashed border-slate-800">
+        رویداد ممیزی با فیلترهای انتخابی یافت نشد.
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<script>
+function switchAdminsTab(tabKey) {
+  var tabs = ['active', 'grant', 'audit'];
+  tabs.forEach(function(t) {
+    var el = document.getElementById('adminsTab_' + t);
+    var btn = document.getElementById('tabBtn_' + t);
+    if (el) {
+      if (t === tabKey) {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+    if (btn) {
+      if (t === tabKey) {
+        btn.classList.add('bg-amber-500', 'text-slate-950', 'shadow-md');
+        btn.classList.remove('bg-slate-800/60', 'text-slate-300');
+      } else {
+        btn.classList.remove('bg-amber-500', 'text-slate-950', 'shadow-md');
+        btn.classList.add('bg-slate-800/60', 'text-slate-300');
+      }
+    }
+  });
+}
+
+// Auto-switch tab based on URL search query
+var params = new URLSearchParams(window.location.search);
+if (params.has('tab')) {
+  switchAdminsTab(params.get('tab'));
+} else if (params.has('q')) {
+  switchAdminsTab('grant');
+} else if (params.has('action_query') || params.has('time_range')) {
+  switchAdminsTab('audit');
+}
+</script>
 {% endblock %}
