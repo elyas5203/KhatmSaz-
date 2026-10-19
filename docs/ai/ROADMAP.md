@@ -1,3 +1,10 @@
+## 2026-10-19 — Devotionals, Categories & Message Templates Studio (MASTER-51) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md` and document decision DEC-PY-0143.
+- [x] Upgrade Web Admin `/devotionals` studio with 4 KPI cards and 4-tab architecture (Devotionals, Categories, Message Templates, Salawat).
+- [x] Implement seamless redirects from `/categories` and `/templates` to `/devotionals?tab=categories` and `/devotionals?tab=templates`.
+- [x] Enhance media upload supporting direct file upload to `/static/uploads/devotionals/` and Salawat image upload.
+- [x] Add regression suite `tests/test_master_51_devotionals_hub.py` and run full regression suite (80/80 PASS).
+
 ## 2026-10-19 — Admins, Roles, Permissions & Security Audit Hub (MASTER-50) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md` and document decision DEC-PY-0142.
 - [x] Upgrade Web Admin `/admins` with 4 security KPI cards and 3-tab architecture (Active Admins, Grant Role & Search, Audit Trail).

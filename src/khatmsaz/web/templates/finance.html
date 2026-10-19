@@ -2,6 +2,12 @@
 {% from "components.html" import tooltip, help_button %}
 {% block title %}امور مالی، پلن‌ها و درگاه پرداخت | ختم‌ساز{% endblock %}
 {% block content %}
+{% set gateway_status = gateway_status or {'payping_ready': False, 'direct_url': 'https://ppng.ir/d/VFBD'} %}
+{% set paid_total = paid_total or 0 %}
+{% set refunded_total = refunded_total or 0 %}
+{% set total_invoices_count = total_invoices_count or 0 %}
+{% set coupons = coupons or [] %}
+{% set invoice_rows = invoice_rows or [] %}
 <section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
   <div>
     <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">اقتصاد، درگاه‌ها و اشتراک‌ها</p>
@@ -48,7 +54,7 @@
 
   <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-amber-500">
     <div class="flex items-center justify-between mb-1">
-      <strong class="text-2xl font-extrabold text-amber-400 font-mono">{{ "{:,}".format(refunded_total) }} <span class="text-xs font-normal text-slate-400">تومان</span></strong>
+      <strong class="text-2xl font-extrabold text-amber-400 font-mono">{{ "{:,}".format(refunded_total or 0) }} <span class="text-xs font-normal text-slate-400">تومان</span></strong>
       <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 text-sm">↩️</span>
     </div>
     <span class="text-xs text-slate-400 font-bold">مسترد شده به کیف پول</span>
@@ -56,18 +62,18 @@
 
   <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-sky-500">
     <div class="flex items-center justify-between mb-1">
-      <strong class="text-2xl font-extrabold text-sky-400 font-mono">{{ "{:,}".format(total_invoices_count) }}</strong>
+      <strong class="text-2xl font-extrabold text-sky-400 font-mono">{{ "{:,}".format(total_invoices_count or 0) }}</strong>
       <span class="p-2 rounded-xl bg-sky-500/10 text-sky-400 text-sm">🧾</span>
     </div>
     <span class="text-xs text-slate-400 font-bold">کل فاکتورهای ثبت‌شده</span>
   </article>
 
-  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 {% if gateway_status.payping_ready %}border-b-emerald-500{% else %}border-b-rose-500{% endif %}">
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 {% if gateway_status and gateway_status.payping_ready %}border-b-emerald-500{% else %}border-b-rose-500{% endif %}">
     <div class="flex items-center justify-between mb-1">
       <div class="flex items-center gap-2">
-        <span class="w-2.5 h-2.5 rounded-full {% if gateway_status.payping_ready %}bg-emerald-400 animate-pulse{% else %}bg-rose-400{% endif %}"></span>
-        <strong class="text-sm font-extrabold {% if gateway_status.payping_ready %}text-emerald-300{% else %}text-rose-300{% endif %}">
-          {% if gateway_status.payping_ready %}آماده دریافت تراکنش{% else %}توکن درگاه تنظیم نشده{% endif %}
+        <span class="w-2.5 h-2.5 rounded-full {% if gateway_status and gateway_status.payping_ready %}bg-emerald-400 animate-pulse{% else %}bg-rose-400{% endif %}"></span>
+        <strong class="text-sm font-extrabold {% if gateway_status and gateway_status.payping_ready %}text-emerald-300{% else %}text-rose-300{% endif %}">
+          {% if gateway_status and gateway_status.payping_ready %}آماده دریافت تراکنش{% else %}توکن درگاه تنظیم نشده{% endif %}
         </strong>
       </div>
       <span class="p-2 rounded-xl bg-slate-800 text-slate-300 text-sm">🌐</span>
@@ -131,6 +137,18 @@
         <p class="text-xs text-slate-400 mt-1">سقف اعضا، وضعیت تبلیغات و مبالغ برای هر سطح سازنده</p>
       </div>
       {{ tooltip("پلن رایگان: سقف ۱۰۰ نفر برای ادعیه و ۳۰۲ نفر برای قرآن. با پر شدن سقف، ساخت ختم جدید متوقف و نیازمند ارتقا است. پلن پرو بدون تبلیغ و بدون سقف است.") }}
+    </div>
+
+    <!-- Plain Language Guide Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+        <h2 class="font-bold text-white mb-2">کاربر عادی کیست؟</h2>
+        <p class="text-xs text-slate-300 leading-6">کاربری که برای شرکت در ختم‌های دیگران، خواندن دعا یا دریافت سهم در ربات عضو می‌شود و تا زمانی که خودش ختمی نسازد نیازی به خرید پلن ندارد.</p>
+      </div>
+      <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+        <h2 class="font-bold text-white mb-2">سازنده کیست؟</h2>
+        <p class="text-xs text-slate-300 leading-6">کاربری که خودش آغازگر یک ختم جدید است و مخاطبان را برای قرائت دعوت می‌کند. سقف اعضا و ظرفیت‌های او بر اساس پلن انتخابی تعیین می‌شود.</p>
+      </div>
     </div>
 
     <!-- Educational Plan Cards -->

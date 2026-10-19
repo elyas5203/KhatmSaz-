@@ -1,3 +1,15 @@
+## Current state — 2026-10-19 — Devotionals, Categories & Message Templates Studio in Web Admin (MASTER-51) [Antigravity]
+- **Unified Devotionals, Categories & Templates Studio (`web/app.py` & `web/templates/devotionals.html`):**
+  - Upgraded `/devotionals` (alias `/content`) with 4 content studio KPI cards: Total Devotionals & Khutbahs (`total_devotionals`), Attached Media Files (`total_media_files`), Active Wizard Categories (`active_categories`), and System Message Templates (`total_templates`).
+  - Implemented 4 unified tabs: Tab 1 (Devotionals, Ziyarats & Khutbahs), Tab 2 (Khatm Wizard Categories & Prayer Requests), Tab 3 (System Message Templates), and Tab 4 (Sacred Salawat Calligraphy & Posters).
+  - Configured seamless HTTP 303 redirects from legacy routes `/categories` and `/templates` to `/devotionals?tab=categories` and `/devotionals?tab=templates`.
+- **Direct File Upload & Media Asset Management (`web/app.py` & `web/templates/devotionals.html`):**
+  - Implemented direct multipart file upload (`UploadFile`) for devotionals and Salawat posters to `/static/uploads/devotionals/` with timestamp prefixes and safe sanitization, coexisting with URL input and Telegram forward fallback.
+- **Khatm Wizard Category & Message Template Governance (`web/app.py` & `web/templates/devotionals.html`):**
+  - Integrated prayer requests queue with Fulfill and Decline workflows, category creation, active/hidden toggling, and multi-language message templates (`fa`, `ar`, `en`) with automatic version incrementing.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md` and registered `DEC-PY-0143`.
+- **Validation:** Added 12 tests in `tests/test_master_51_devotionals_hub.py` (100% PASS), and verified combined regression suite passes with 80/80 tests passing across masters 42 to 51.
+
 ## Current state — 2026-10-19 — Admins, Roles, Permissions (RBAC) & Security Audit Hub in Web Admin (MASTER-50) [Antigravity]
 - **Unified Admins, RBAC & Audit Hub (`web/app.py` & `web/templates/admins.html`):**
   - Upgraded `/admins` with 4 security KPI cards: Active Admins Count, Super Admins Count, Total Audit Events, and Security Events in last 24h.

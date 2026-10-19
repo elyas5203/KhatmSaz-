@@ -1,22 +1,33 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}استودیو محتوا و ادعیه | ختم‌ساز{% endblock %}
+{% block title %}استودیو جامع محتوا، ادعیه و قالب‌ها | ختم‌ساز{% endblock %}
 {% block content %}
+{% set total_devotionals = total_devotionals or (items|length if items else 0) %}
+{% set total_media_files = total_media_files or 0 %}
+{% set active_categories = active_categories or 0 %}
+{% set total_templates = total_templates or 0 %}
+{% set active_tab = active_tab or 'devotionals' %}
+{% set categories = categories or [] %}
+{% set requests = requests or category_requests or [] %}
+{% set grouped_categories = grouped_categories or {} %}
+{% set templates_list = templates_list or [] %}
+{% set filtered_templates = filtered_templates or templates_list %}
+
 <section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
   <div>
-    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">کتابخانه جامع چندرسانه‌ای</p>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">کتابخانه جامع و استودیوی رسانه</p>
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">استودیو محتوا، ادعیه و خطبه‌ها</h1>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">استودیو جامع ادعیه، ویزارد و قالب‌ها</h1>
       {{ help_button(
-        "راهنمای استودیو محتوا، ادعیه و خطبه‌ها",
-        "اینجا استودیوی تمام متون و فایل‌های چندرسانه‌ای ربات است (دعاها، زیارات، خطبه فدکیه، لعن و صلوات). می‌توانید دعا یا خطبه جدید ثبت کنید، متن آن را ویرایش کنید، یا مستقیم از کامپیوتر/موبایل ویدیوهای بخش‌بندی‌شده (شامل ۵ بخش خطبه با کپشن اختصاصی)، صوت‌های مداحان مختلف، تصاویر یا PDF را آپلود و متصل کنید.",
+        "راهنمای استودیو جامع محتوا و ادعیه",
+        "این استودیو مرکز جامع مدیریت تمام متون، فایل‌های چندرسانه‌ای (صوتی، ویدیویی، تصویری، PDF)، دسته‌بندی‌های ویزارد ختم در ربات‌ها، قالب‌های پیام سیستم و ذکر مقدس صلوات است.",
         [
-          "در بالای صفحه، گروه مورد نظر خود را انتخاب کنید: دعاها، زیارت‌ها، خطبه‌ها، یا لعن‌ها.",
-          "برای افزودن محتوای تازه، از فرم «افزودن محتوای جدید» با عنوان فارسی و شناسه انگلیسی استفاده کنید.",
-          "برای آپلود فایل صوتی، ویدیویی یا PDF، در کارت هر دعا/خطبه از بخش «فایل‌های چندرسانه‌ای ضمیمه» استفاده فرمایید.",
-          "نوع رسانه (ویدیو، صوت، تصویر، PDF)، شماره بخش/صفحه، نام مداح یا کپشن کامل ویدیو را وارد کرده و فایل را ذخیره کنید."
+          "تب ۱ (ادعیه، زیارات و خطبه‌ها): ثبت دعا یا خطبه جدید، ویرایش متون و آپلود مستقیم فایل‌های چندرسانه‌ای (شامل ۵ بخش خطبه فدکیه با کپشن اختصاصی و صوت مداحان).",
+          "تب ۲ (دسته‌بندی‌های ویزارد): بررسی صف درخواست‌های مردمی، ثبت دسته‌های جدید برای منوی ساخت ختم و اتصال به متون آماده.",
+          "تب ۳ (قالب‌های پیام سیستم): ویرایشگر ۳ زبانه (فارسی، عربی، انگلیسی) پیام‌های ربات با تاریخچه نسخه‌بندی خودکار.",
+          "تب ۴ (ذکر صلوات و پوسترها): مشاهده متن ثابت صلوات و آپلود مستقیم پوستر یا ثبت لینک تصویر."
         ],
-        "نکته: در ویدیوهای خطبه فدکیه، ۵ بخش به همراه کپشن‌های اختصاصی ذخیره می‌شوند و عیناً زیر ویدیو در تلگرام و بله ارسال می‌گردند."
+        "نکته: با آپلود هر فایل صوتی یا ویدیویی، فایل در سرور ذخیره شده و بلافاصله در تلگرام و بله قابل ارسال به کاربران است."
       ) }}
     </div>
   </div>
@@ -26,318 +37,863 @@
 <div class="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 rounded-2xl flex items-center gap-3">
   <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
   <span>
-    {% if saved == 'toggled' %}وضعیت فعال/غیرفعال بودن محتوا تغییر کرد ✅
-    {% elif saved == 'salawat' %}تصویر صلوات با موفقیت ذخیره شد ✅
-    {% elif saved == 'media_saved' %}فایل رسانه ضمیمه با موفقیت ذخیره و متصل شد ✅
-    {% elif saved == 'media_deleted' %}فایل رسانه حذف شد ✅
-    {% else %}محتوا با موفقیت ذخیره شد ✅{% endif %}
+    {% if saved == 'toggled' %}وضعیت فعال/غیرفعال بودن محتوا با موفقیت تغییر کرد ✅
+    {% elif saved == 'salawat' %}تصویر و تنظیمات صلوات با موفقیت ذخیره شد ✅
+    {% elif saved == 'media_saved' %}فایل چندرسانه‌ای ضمیمه با موفقیت آپلود و متصل گردید ✅
+    {% elif saved == 'media_deleted' %}فایل رسانه با موفقیت حذف شد ✅
+    {% elif saved == 'created' %}دسته‌بندی جدید با موفقیت به ویزارد اضافه شد ✅
+    {% elif saved == 'updated' %}دسته‌بندی با موفقیت به‌روزرسانی شد ✅
+    {% elif saved == 'declined' %}درخواست دعای کاربر با موفقیت رد شد ✅
+    {% elif saved == 'fulfilled' %}درخواست کاربر تایید و دسته‌بندی جدید در ویزارد ایجاد شد ✅
+    {% elif saved == 'template_saved' %}نسخه جدید قالب پیام با موفقیت ذخیره و در ربات‌ها فعال شد ✅
+    {% elif saved == 'template_toggled' %}وضعیت قالب پیام تغییر کرد ✅
+    {% else %}تغییرات با موفقیت ذخیره شد ✅{% endif %}
   </span>
 </div>
 {% endif %}
 
-<!-- Salawat Fixed Section -->
-<section class="glass-panel p-6 rounded-3xl mb-8 border border-emerald-500/20">
-  <div class="mb-5 border-b border-white/5 pb-4 flex items-center justify-between">
-    <div>
-      <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ثابت</p>
-      <h2 class="text-xl font-bold text-white">🕊 ذکر مقدس صلوات</h2>
+<!-- Top 4 Studio KPIs -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-emerald-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-emerald-400 font-mono">{{ total_devotionals }}</strong>
+      <span class="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 text-sm">🤲</span>
     </div>
-    {{ tooltip("متن صلوات ثابت است. می‌توانید تصویر معرفی صلوات را در اینجا ثبت یا ویرایش کنید.") }}
-  </div>
-  <div class="rounded-2xl bg-slate-900/60 border border-slate-700/40 p-4 text-right leading-9 text-slate-100 mb-5 text-base font-medium" dir="rtl">{{ salawat_text }}</div>
-  <form method="post" action="/devotionals/salawat/image" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 items-end">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-300">نام فایل یا لینک تصویر صلوات</label>
-      <input name="image_url" value="{{ salawat_image_url }}" placeholder="https://example.com/salawat.jpg یا salawat.jpg" class="input-field" dir="ltr">
+    <span class="text-xs text-slate-400 font-bold">مجموع ادعیه و خطبه‌ها</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-sky-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-sky-400 font-mono">{{ total_media_files }}</strong>
+      <span class="p-2 rounded-xl bg-sky-500/10 text-sky-400 text-sm">🎬</span>
     </div>
-    <button type="submit" class="btn px-8">ذخیره تصویر صلوات</button>
-  </form>
+    <span class="text-xs text-slate-400 font-bold">فایل‌های چندرسانه‌ای ضمیمه</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-amber-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-amber-400 font-mono">{{ active_categories }}</strong>
+      <span class="p-2 rounded-xl bg-amber-500/10 text-amber-400 text-sm">🗂</span>
+    </div>
+    <span class="text-xs text-slate-400 font-bold">دسته‌بندی‌های فعال ویزارد</span>
+  </article>
+
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-purple-500">
+    <div class="flex items-center justify-between mb-1">
+      <strong class="text-2xl font-extrabold text-purple-400 font-mono">{{ total_templates }}</strong>
+      <span class="p-2 rounded-xl bg-purple-500/10 text-purple-400 text-sm">📝</span>
+    </div>
+    <span class="text-xs text-slate-400 font-bold">قالب‌های پیام سیستم</span>
+  </article>
 </section>
 
-<!-- Add New Content Form with Progressive Disclosure -->
-<details class="glass-panel p-6 sm:p-8 rounded-3xl mb-8 border border-white/5 group/add">
-  <summary class="cursor-pointer list-none flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">➕</div>
-      <div>
-        <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-0.5">استودیو ثبت محتوا</p>
-        <h2 class="text-base sm:text-lg font-extrabold text-white">افزودن دعا، زیارت، خطبه یا لعن جدید</h2>
-      </div>
-    </div>
-    <div class="flex items-center gap-2">
-      <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 group-open/add:hidden">
-        + فرم ثبت جدید
-      </span>
-      <span class="text-emerald-400 text-xl transition-transform group-open/add:rotate-180 hidden group-open/add:inline-block">⌄</span>
-    </div>
-  </summary>
+<!-- Studio Tab Navigation -->
+<nav class="flex items-center gap-2 border-b border-white/10 pb-4 mb-8 overflow-x-auto scrollbar-none" aria-label="تب‌های استودیو محتوا">
+  <button type="button" onclick="switchDevotionalTab('devotionals')" id="tabBtn_devotionals"
+    class="devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20">
+    <span>🤲 ادعیه، زیارات و خطبه‌ها</span>
+    <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-slate-900/40 text-slate-950 font-mono">{{ total_devotionals }}</span>
+  </button>
 
-  <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6 pt-6 border-t border-white/5">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
+  <button type="button" onclick="switchDevotionalTab('categories')" id="tabBtn_categories"
+    class="devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-slate-800 text-slate-400 hover:text-white">
+    <span>🗂 دسته‌بندی‌های ویزارد</span>
+    <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-slate-900 text-slate-400 font-mono">{{ active_categories }}</span>
+    {% if requests|length > 0 %}
+    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" title="درخواست جدید"></span>
+    {% endif %}
+  </button>
 
-    <div class="space-y-1">
-      <label class="text-xs font-bold text-slate-300">گروه محتوا</label>
-      <select name="content_type" class="input-field">
-        <option value="DUA">🤲 دعا</option>
-        <option value="ZIYARAT">🕌 زیارت</option>
-        <option value="KHUTBAH">🎤 خطبه (مثل خطبه فدکیه)</option>
-        <option value="LAAN">🔥 لعن</option>
-      </select>
-    </div>
+  <button type="button" onclick="switchDevotionalTab('templates')" id="tabBtn_templates"
+    class="devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-slate-800 text-slate-400 hover:text-white">
+    <span>📝 قالب‌های پیام سیستم</span>
+    <span class="px-2 py-0.5 rounded-full text-[0.65rem] bg-slate-900 text-slate-400 font-mono">{{ total_templates }}</span>
+  </button>
 
-    <div class="space-y-1 md:col-span-2">
-      <label class="text-xs font-bold text-slate-300">عنوان فارسی</label>
-      <input name="title" required maxlength="200" placeholder="مثلاً: خطبه فدکیه یا دعای عهد" class="input-field">
-    </div>
+  <button type="button" onclick="switchDevotionalTab('salawat')" id="tabBtn_salawat"
+    class="devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-slate-800 text-slate-400 hover:text-white">
+    <span>🕊 ذکر صلوات و پوسترها</span>
+  </button>
+</nav>
 
-    <div class="space-y-1 md:col-span-3">
-      <label class="text-xs font-bold text-slate-300">شناسهٔ داخلی (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی مثل dua-ahd. این شناسه فقط برای آدرس‌دهی داخلی است.") }}</label>
-      <input name="slug" required maxlength="100" placeholder="dua-ahd" class="input-field" dir="ltr" pattern="[a-z0-9\-]+">
-    </div>
-
-    <div class="space-y-1 md:col-span-3">
-      <label class="text-xs font-bold text-slate-300">متن کامل (عربی و ترجمه) {{ tooltip("متن کامل را اینجا وارد کنید. سیستم خودکار پیام‌ها را بخش‌بندی می‌کند.") }}</label>
-      <textarea name="text_body" rows="6" required placeholder="متن کامل محتوا را اینجا وارد فرمایید..." class="input-field font-mono text-sm leading-loose"></textarea>
-    </div>
-
-    <div class="space-y-1 md:col-span-3 sm:col-span-1">
-      <label class="text-xs font-bold text-slate-300">🖼 لینک/شناسه تصویر اصلی (اختیاری)</label>
-      <input name="image_ref" placeholder="https://... یا file_id" class="input-field font-mono text-left" dir="ltr">
-    </div>
-    <div class="space-y-1 md:col-span-3 sm:col-span-1">
-      <label class="text-xs font-bold text-slate-300">🎧 لینک/شناسه صوت اصلی (اختیاری)</label>
-      <input name="audio_ref" placeholder="https://... یا file_id" class="input-field font-mono text-left" dir="ltr">
-    </div>
-
-    <div class="md:col-span-3 flex justify-end">
-      <button type="submit" class="btn px-8 shadow-lg shadow-emerald-900/20">ثبت محتوای جدید</button>
-    </div>
-  </form>
-</details>
-
-<!-- Content Groups Accordions -->
-<section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
-  <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
-    <h2 class="text-xl font-extrabold text-white">محتواها و فایل‌های چندرسانه‌ای ثبت‌شده</h2>
-    <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300">{{ items|length }} مورد</span>
-  </div>
-
-  <div class="flex flex-col gap-6">
-    {% for type_key, type_items in grouped_items.items() %}
-    {% set group_name = {'DUA': '🤲 دعاها', 'ZIYARAT': '🕌 زیارت‌ها', 'KHUTBAH': '🎤 خطبه‌ها (فدکیه و...)', 'LAAN': '🔥 لعن‌ها'}[type_key] %}
-    <details class="group/cat rounded-2xl border border-slate-700/50 bg-slate-900/40" {% if loop.first or type_key == 'KHUTBAH' %}open{% endif %}>
-      <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none rounded-2xl hover:bg-slate-800/40 transition-colors">
+<!-- ======================================================================= -->
+<!-- TAB 1: DEVOTIONALS & KHUTBAHS -->
+<!-- ======================================================================= -->
+<div id="devotionalTab_devotionals" class="space-y-8">
+  <!-- Add New Content Form with Progressive Disclosure -->
+  <details class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 group/add">
+    <summary class="cursor-pointer list-none flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">➕</div>
         <div>
+          <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-0.5">استودیو ثبت محتوا</p>
+          <h2 class="text-base sm:text-lg font-extrabold text-white">افزودن دعا، زیارت، خطبه یا لعن جدید</h2>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 group-open/add:hidden">
+          + فرم ثبت جدید
+        </span>
+        <span class="text-emerald-400 text-xl transition-transform group-open/add:rotate-180 hidden group-open/add:inline-block">⌄</span>
+      </div>
+    </summary>
+
+    <form method="post" action="/devotionals/save" class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6 pt-6 border-t border-white/5">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">گروه محتوا</label>
+        <select name="content_type" class="input-field">
+          <option value="DUA">🤲 دعا</option>
+          <option value="ZIYARAT">🕌 زیارت</option>
+          <option value="KHUTBAH">🎤 خطبه (مثل خطبه فدکیه)</option>
+          <option value="LAAN">🔥 لعن</option>
+        </select>
+      </div>
+
+      <div class="space-y-1 md:col-span-2">
+        <label class="text-xs font-bold text-slate-300">عنوان فارسی</label>
+        <input name="title" required maxlength="200" placeholder="مثلاً: خطبه فدکیه یا دعای عهد" class="input-field">
+      </div>
+
+      <div class="space-y-1 md:col-span-3">
+        <label class="text-xs font-bold text-slate-300">شناسهٔ داخلی (انگلیسی) {{ tooltip("یک نام کوتاه انگلیسی مثل dua-ahd. نیازی به کپی‌کردن شناسه نیست، این شناسه فقط برای آدرس‌دهی داخلی است.") }}</label>
+        <input name="slug" required maxlength="100" placeholder="dua-ahd" class="input-field font-mono" dir="ltr" pattern="[a-z0-9\-]+">
+      </div>
+
+      <div class="space-y-1 md:col-span-3">
+        <label class="text-xs font-bold text-slate-300">متن کامل (عربی و ترجمه) {{ tooltip("متن کامل را اینجا وارد کنید. سیستم خودکار پیام‌ها را بخش‌بندی می‌کند.") }}</label>
+        <textarea name="text_body" rows="6" required placeholder="متن کامل محتوا را اینجا وارد فرمایید..." class="input-field font-mono text-sm leading-loose"></textarea>
+      </div>
+
+      <div class="space-y-1 md:col-span-3 sm:col-span-1">
+        <label class="text-xs font-bold text-slate-300">🖼 لینک/شناسه تصویر اصلی (اختیاری)</label>
+        <input name="image_ref" placeholder="https://... یا file_id" class="input-field font-mono text-left" dir="ltr">
+      </div>
+      <div class="space-y-1 md:col-span-3 sm:col-span-1">
+        <label class="text-xs font-bold text-slate-300">🎧 لینک/شناسه صوت اصلی (اختیاری)</label>
+        <input name="audio_ref" placeholder="https://... یا file_id" class="input-field font-mono text-left" dir="ltr">
+      </div>
+
+      <div class="md:col-span-3 flex justify-end">
+        <button type="submit" class="btn px-8 shadow-lg shadow-emerald-900/20 cursor-pointer">ثبت محتوای جدید</button>
+      </div>
+    </form>
+  </details>
+
+  <!-- Content Groups Accordions -->
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-6 border-b border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-extrabold text-white">محتواها و فایل‌های چندرسانه‌ای ثبت‌شده</h2>
+        <p class="text-xs text-slate-400 mt-1">فرم هر مورد فقط هنگام نیاز باز می‌شود — برای ویرایش روی هر عنوان کلیک فرمایید</p>
+      </div>
+      <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300">{{ items|length }} مورد ثبت‌شده</span>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      {% for type_key, type_items in grouped_items.items() %}
+      {% set group_name = {'DUA': '🤲 دعاها', 'ZIYARAT': '🕌 زیارت‌ها', 'KHUTBAH': '🎤 خطبه‌ها (فدکیه و...)', 'LAAN': '🔥 لعن‌ها'}[type_key] %}
+      <details class="group/cat rounded-2xl border border-slate-700/50 bg-slate-900/40" {% if loop.first or type_key == 'KHUTBAH' %}open{% endif %}>
+        <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none rounded-2xl hover:bg-slate-800/40 transition-colors">
+          <div>
+            <div class="flex items-center gap-3">
+              <h3 class="text-lg font-extrabold text-white">{{ group_name }}</h3>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{{ type_items|length }} عنوان</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">{{ type_items|length }} فرزند — فرم هر مورد فقط هنگام نیاز باز می‌شود</p>
+          </div>
+          <span class="text-emerald-400 text-xl transition-transform group-open/cat:rotate-180">⌄</span>
+        </summary>
+
+        <div class="px-5 pb-5 flex flex-col gap-5 border-t border-slate-800 pt-4">
+          {% for item in type_items %}
+          <details class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden group/item">
+            <summary class="cursor-pointer list-none p-4 flex justify-between items-start gap-3 hover:bg-slate-800/70 transition-colors">
+              <div class="min-w-0">
+                <h4 class="text-base sm:text-lg font-bold text-white">{{ item.title }}</h4>
+                <div class="flex flex-wrap items-center gap-2 mt-2">
+                  <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-slate-400" dir="ltr">{{ item.slug }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-500">{{ item.char_count }} نویسه</span>
+                  {% if item.media_items %}
+                  <span class="text-xs font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">🎥 {{ item.media_items|length }} فایل ضمیمه</span>
+                  {% endif %}
+                  {% if item.enabled %}
+                  <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">✅ فعال (به کاربران نمایش داده می‌شود)</span>
+                  {% else %}
+                  <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300">⛔ غیرفعال (پنهان)</span>
+                  {% endif %}
+                </div>
+              </div>
+              <span class="text-slate-400 group-open/item:rotate-180 transition-transform">⌄</span>
+            </summary>
+
+            <div class="p-5 border-t border-slate-700/50 space-y-6">
+              <!-- Toggle Active Status -->
+              <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+                <span class="text-xs text-slate-300 font-bold">نمایش به کاربران در ربات:</span>
+                <form method="post" action="/devotionals/{{ item.slug }}/toggle">
+                  <input type="hidden" name="csrf" value="{{ csrf }}">
+                  {% if item.enabled %}
+                  <button class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer" type="submit">غیرفعال کردن</button>
+                  {% else %}
+                  <button class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer" type="submit">فعال کردن</button>
+                  {% endif %}
+                </form>
+              </div>
+
+              <!-- Attached Media Section (DevotionalMedia) -->
+              <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
+                <h5 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                  <span>📁 فایل‌های چندرسانه‌ای ضمیمه (`DevotionalMedia`)</span>
+                  {{ tooltip("فایل‌های صوتی، تصویری، ویدیویی و اسناد ضمیمه برای «" ~ item.title ~ "» را در این بخش مدیریت کنید.") }}
+                </h5>
+
+                {% if item.media_items %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {% for media in item.media_items %}
+                  <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col justify-between gap-3 text-xs">
+                    <div>
+                      <div class="flex items-center justify-between mb-1.5">
+                        <span class="px-2 py-0.5 rounded font-bold {% if media.kind.value == 'VIDEO' %}bg-sky-500/20 text-sky-300{% elif media.kind.value == 'AUDIO' %}bg-emerald-500/20 text-emerald-300{% else %}bg-amber-500/20 text-amber-300{% endif %}">
+                          {{ media.kind.value }}
+                        </span>
+                        <span class="text-slate-400 font-mono">{{ media.asset_platform }}</span>
+                      </div>
+
+                      {% if media.page_number %}
+                      <p class="text-slate-300 font-bold">بخش / صفحه: {{ media.page_number }}</p>
+                      {% endif %}
+
+                      {% if media.reciter_label %}
+                      <p class="text-slate-400 line-clamp-2 mt-1" title="{{ media.reciter_label }}">
+                        {% if media.kind.value == 'VIDEO' %}📝 کپشن: {{ media.reciter_label }}{% else %}🎤 مداح: {{ media.reciter_label }}{% endif %}
+                      </p>
+                      {% endif %}
+
+                      <p class="text-[0.65rem] text-slate-500 font-mono truncate mt-1" dir="ltr" title="{{ media.asset_ref }}">{{ media.asset_ref }}</p>
+                    </div>
+
+                    <form method="post" action="/devotionals/media/{{ media.id }}/delete" onsubmit="return confirm('آیا از حذف این فایل مطمئن هستید؟')">
+                      <input type="hidden" name="csrf" value="{{ csrf }}">
+                      <button type="submit" class="w-full py-1 text-center bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg font-bold transition-all cursor-pointer">
+                        حذف این فایل
+                      </button>
+                    </form>
+                  </div>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-500 mb-4">هیچ فایل چندرسانه‌ای به این محتوا متصل نشده است.</p>
+                {% endif %}
+
+                <!-- Form to Upload / Register New Media -->
+                <details class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                  <summary class="cursor-pointer text-xs font-bold text-emerald-400 hover:text-emerald-300">
+                    ➕ آپلود مستقیم فایل یا ثبت لینک برای «{{ item.title }}»
+                  </summary>
+
+                  <form method="post" action="/devotionals/media/save" enctype="multipart/form-data" class="mt-4 space-y-3">
+                    <input type="hidden" name="csrf" value="{{ csrf }}">
+                    <input type="hidden" name="slug" value="{{ item.slug }}">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">نوع رسانه</label>
+                        <select name="kind" class="input-field py-1.5 px-2 text-xs">
+                          <option value="VIDEO">🎥 ویدیو (بخش خطبه)</option>
+                          <option value="AUDIO">🎧 صوت مداح</option>
+                          <option value="IMAGE">🖼 تصویر صفحه</option>
+                          <option value="PDF">📄 فایل PDF</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">پلتفرم هدف</label>
+                        <select name="platform" class="input-field py-1.5 px-2 text-xs">
+                          <option value="TELEGRAM">تلگرام</option>
+                          <option value="BALE">بله</option>
+                          <option value="BOTH">هر دو پلتفرم</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">شماره بخش / صفحه (اختیاری)</label>
+                        <input name="page_number" type="number" min="0" placeholder="مثلاً 1 تا 5" class="input-field py-1.5 px-2 text-xs font-mono">
+                      </div>
+                    </div>
+
+                    <div>
+                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">
+                        کپشن ویدیو یا نام مداح {{ tooltip("برای ویدیوهای خطبه، متن کامل کپشن را اینجا بنویسید. برای صوت، نام مداح مثل فرهمند را بنویسید.") }}
+                      </label>
+                      <textarea name="reciter_label" rows="2" placeholder="کپشن کامل ویدیو یا نام مداح..." class="input-field py-1.5 px-2 text-xs"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">آپلود مستقیم فایل از کامپیوتر/موبایل</label>
+                        <input type="file" name="file" class="input-field py-1 px-2 text-xs">
+                      </div>
+
+                      <div>
+                        <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">یا ثبت لینک/file_id/پست کانال</label>
+                        <input name="asset_ref" placeholder="https://... یا t.me/... یا file_id" class="input-field py-1.5 px-2 text-xs font-mono" dir="ltr">
+                      </div>
+                    </div>
+
+                    <div class="flex justify-end pt-2">
+                      <button type="submit" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer">
+                        آپلود و ذخیره رسانه
+                      </button>
+                    </div>
+                  </form>
+                </details>
+              </div>
+
+              <!-- Edit Text Form -->
+              <form method="post" action="/devotionals/save" class="space-y-4">
+                <input type="hidden" name="csrf" value="{{ csrf }}">
+                <input type="hidden" name="slug" value="{{ item.slug }}">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">گروه محتوا</label>
+                    <select name="content_type" class="input-field">
+                      <option value="DUA" {% if item.content_type == 'DUA' %}selected{% endif %}>دعا</option>
+                      <option value="ZIYARAT" {% if item.content_type == 'ZIYARAT' %}selected{% endif %}>زیارت</option>
+                      <option value="KHUTBAH" {% if item.content_type == 'KHUTBAH' %}selected{% endif %}>خطبه</option>
+                      <option value="LAAN" {% if item.content_type == 'LAAN' %}selected{% endif %}>لعن</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">عنوان فارسی</label>
+                    <input name="title" value="{{ item.title }}" required class="input-field">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-300 mb-1">متن کامل</label>
+                  <textarea name="text_body" rows="6" required class="input-field font-mono text-sm leading-loose">{{ item.text }}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">تصویر اصلی</label>
+                    <input name="image_ref" value="{{ item.image_ref or '' }}" class="input-field font-mono text-xs" dir="ltr">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">صوت اصلی</label>
+                    <input name="audio_ref" value="{{ item.audio_ref or '' }}" class="input-field font-mono text-xs" dir="ltr">
+                  </div>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                  <button type="submit" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 font-bold text-xs transition-all cursor-pointer">
+                    ذخیره ویرایش متن
+                  </button>
+                </div>
+              </form>
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="p-4 bg-sky-500/5 border border-sky-500/15 rounded-2xl text-sm text-slate-400 leading-relaxed">
+    <span class="font-bold text-sky-300">راهنما:</span>
+    برای اینکه یک ختم این متن را بفرستد، به بخش «دسته‌ها» بروید و نام دعا را از فهرست «متن آماده از کتابخانه» انتخاب کنید؛ نیازی به کپی‌کردن شناسه نیست.
+  </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- TAB 2: WIZARD CATEGORIES -->
+<!-- ======================================================================= -->
+<div id="devotionalTab_categories" class="hidden space-y-8">
+  <!-- Pending Category Requests -->
+  {% if requests %}
+  <section class="glass-panel p-6 rounded-3xl border border-amber-500/20">
+    <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+        <h2 class="text-xl font-bold text-amber-400">درخواست‌های دعای جدید ارسالی کاربران</h2>
+      </div>
+      <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">{{ requests|length }} درخواست</span>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      {% for row in requests %}
+      <div class="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
+        <div class="flex justify-between items-start mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-white">{{ row.item.requested_title }}</h3>
+            <small class="text-xs text-slate-400">درخواست‌دهنده: {{ row.requester.display_name if row.requester else 'نامشخص' }}</small>
+          </div>
+          <form method="post" action="/categories/requests/{{ row.item.id }}/decline" onsubmit="return confirm('آیا از رد این درخواست اطمینان دارید؟');">
+            <input type="hidden" name="csrf" value="{{ csrf }}">
+            <button class="text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-500 p-2 rounded-xl transition-colors cursor-pointer" type="submit" title="رد درخواست">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </form>
+        </div>
+
+        <form method="post" action="/categories/requests/{{ row.item.id }}/fulfill" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">گروه</label>
+            <select name="group" class="input-field">
+              <option value="DUA">دعا / زیارت</option>
+              <option value="KHUTBAH">خطبه</option>
+              <option value="LAAN">لعن</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">جایگاه نمایش در ویزارد</label>
+            <input type="number" name="display_position" value="0" min="0" class="input-field font-mono" dir="ltr">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">عنوان نهایی</label>
+            <input name="title" value="{{ row.item.requested_title }}" required maxlength="200" class="input-field">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">متن آماده از کتابخانه</label>
+            <select name="devotional_slug" class="input-field">
+              <option value="">-- متن کوتاه مستقل (بدون پیوند) --</option>
+              {% for a in devotional_assets_for_cat %}
+              <option value="{{ a.slug }}">{{ a.title }} ({{ a.slug }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="space-y-1 md:col-span-2">
+            <label class="text-xs font-bold text-slate-400">متن کوتاه مستقیم (اختیاری) {{ tooltip("فقط برای محتوای کوتاهی که در کتابخانهٔ دعاها نیست.") }}</label>
+            <textarea name="body_text" rows="3" class="input-field"></textarea>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">توضیح منبع / سند</label>
+            <input name="source_note" maxlength="300" class="input-field" placeholder="مثلاً: مفاتیح‌الجنان">
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-xs font-bold text-slate-400">نام فایل یا لینک تصویر</label>
+            <input name="image_url" class="input-field font-mono" dir="ltr" placeholder="laan-omar.jpg">
+          </div>
+
+          <div class="md:col-span-2 flex justify-end">
+            <button class="btn px-6 py-2 cursor-pointer" type="submit">تأیید درخواست و ایجاد دسته</button>
+          </div>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Add New Category Form with Progressive Disclosure -->
+  <details class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 group/addCat">
+    <summary class="cursor-pointer list-none flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-lg">➕</div>
+        <div>
+          <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-0.5">ویزارد ساخت ختم</p>
+          <h2 class="text-base sm:text-lg font-extrabold text-white">افزودن دسته‌بندی جدید به ویزارد ختم ربات</h2>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-3.5 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 text-xs font-bold border border-emerald-500/20 group-open/addCat:hidden">
+          + فرم دسته جدید
+        </span>
+        <span class="text-emerald-400 text-xl transition-transform group-open/addCat:rotate-180 hidden group-open/addCat:inline-block">⌄</span>
+      </div>
+    </summary>
+
+    <form method="post" action="/categories/create" class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6 pt-6 border-t border-white/5">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">گروه</label>
+        <select name="group" class="input-field">
+          <option value="DUA">🤲 دعا / زیارت</option>
+          <option value="KHUTBAH">🎤 خطبه</option>
+          <option value="LAAN">🔥 لعن</option>
+        </select>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">جایگاه نمایش در ویزارد {{ tooltip("عدد کوچک‌تر بالاتر نمایش داده می‌شود.") }}</label>
+        <input type="number" name="display_position" value="0" min="0" class="input-field font-mono" dir="ltr">
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">عنوان نمایش در ربات</label>
+        <input name="title" required maxlength="200" placeholder="مثلاً: دعای سمات یا زیارت آل‌یاسین" class="input-field">
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">متن آماده از کتابخانه</label>
+        <select name="devotional_slug" class="input-field">
+          <option value="">-- بدون پیوند به متن آماده --</option>
+          {% for a in devotional_assets_for_cat %}
+          <option value="{{ a.slug }}">{{ a.title }} ({{ a.slug }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="space-y-1 md:col-span-2">
+        <label class="text-xs font-bold text-slate-300">متن کوتاه مستقیم (اختیاری)</label>
+        <textarea name="body_text" rows="3" placeholder="اگر از متن آماده استفاده نمی‌کنید، متن کوتاه را اینجا بنویسید..." class="input-field"></textarea>
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">توضیح منبع / سند</label>
+        <input name="source_note" maxlength="300" class="input-field" placeholder="مثلاً: بحارالانوار، جلد ۹۸">
+      </div>
+
+      <div class="space-y-1">
+        <label class="text-xs font-bold text-slate-300">نام فایل یا لینک تصویر</label>
+        <input name="image_url" class="input-field font-mono" dir="ltr" placeholder="laan-omar.jpg">
+      </div>
+
+      <div class="md:col-span-2 flex justify-end">
+        <button type="submit" class="btn px-8 cursor-pointer">ایجاد دسته در ویزارد</button>
+      </div>
+    </form>
+  </details>
+
+  <!-- Categories List Accordions -->
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+      <h2 class="text-xl font-extrabold text-white">دسته‌بندی‌های موجود در ویزارد</h2>
+      <span class="text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-300">{{ categories|length }} دسته</span>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      {% for group_key, cat_items in grouped_categories.items() %}
+      {% set group_name = {'DUA': 'دعاها و زیارت‌ها', 'KHUTBAH': 'خطبه‌ها', 'LAAN': 'لعن‌ها'}[group_key] %}
+      <details class="group/gcat rounded-2xl border border-slate-700/50 bg-slate-900/40" open>
+        <summary class="cursor-pointer list-none p-5 flex items-center justify-between gap-4 focus:outline-none rounded-2xl hover:bg-slate-800/40 transition-colors">
           <div class="flex items-center gap-3">
             <h3 class="text-lg font-extrabold text-white">{{ group_name }}</h3>
-            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{{ type_items|length }} عنوان</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{{ cat_items|length }} دسته</span>
           </div>
-          <p class="text-xs text-slate-400 mt-1">{{ type_items|length }} فرزند — فرم هر مورد فقط هنگام نیاز باز می‌شود</p>
-        </div>
-        <span class="text-emerald-400 text-xl transition-transform group-open/cat:rotate-180">⌄</span>
-      </summary>
+          <span class="text-emerald-400 text-xl transition-transform group-open/gcat:rotate-180">⌄</span>
+        </summary>
 
-      <div class="px-5 pb-5 flex flex-col gap-5 border-t border-slate-800 pt-4">
-        {% for item in type_items %}
-        <details class="bg-slate-800/40 border border-slate-700/50 rounded-2xl overflow-hidden group/item">
-          <summary class="cursor-pointer list-none p-4 flex justify-between items-start gap-3 hover:bg-slate-800/70 transition-colors">
-            <div class="min-w-0">
-              <h4 class="text-base sm:text-lg font-bold text-white">{{ item.title }}</h4>
-              <div class="flex flex-wrap items-center gap-2 mt-2">
-                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-slate-400" dir="ltr">{{ item.slug }}</span>
-                <span class="text-xs px-2 py-0.5 rounded bg-slate-900 text-slate-500">{{ item.char_count }} نویسه</span>
-                {% if item.media_items %}
-                <span class="text-xs font-bold px-2 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">🎥 {{ item.media_items|length }} فایل ضمیمه</span>
-                {% endif %}
-                {% if item.enabled %}
-                <span class="text-xs font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300">✅ فعال (به کاربران نمایش داده می‌شود)</span>
+        <div class="px-5 pb-5 flex flex-col gap-4 border-t border-slate-800 pt-4">
+          {% for item in cat_items %}
+          <div class="p-4 rounded-xl bg-slate-800/50 border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="min-w-0 space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-slate-900 text-slate-400 text-xs font-mono flex items-center justify-center font-bold">{{ item.display_position or loop.index }}</span>
+                <strong class="text-base font-bold text-white">{{ item.title }}</strong>
+                {% if item.is_active or item.enabled %}
+                <span class="text-[0.68rem] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">✅ فعال (در ویزارد دیده می‌شود)</span>
                 {% else %}
-                <span class="text-xs font-bold px-2 py-0.5 rounded bg-rose-500/15 text-rose-300">⛔ غیرفعال (پنهان)</span>
+                <span class="text-[0.68rem] px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold">⛔ غیرفعال (پنهان)</span>
+                {% endif %}
+              </div>
+              <div class="text-xs text-slate-400 flex flex-wrap items-center gap-3 pt-1">
+                {% if item.devotional_slug %}
+                <span class="text-sky-300">متصل به: <code class="font-mono text-slate-300">{{ item.devotional_slug }}</code></span>
+                {% elif item.body_text %}
+                <span class="text-slate-400">متن کوتاه مستقیم ({{ item.body_text|length }} نویسه)</span>
+                {% endif %}
+                {% if item.source_note %}
+                <span class="text-slate-500">منبع: {{ item.source_note }}</span>
                 {% endif %}
               </div>
             </div>
-            <span class="text-slate-400 group-open/item:rotate-180 transition-transform">⌄</span>
-          </summary>
 
-          <div class="p-5 border-t border-slate-700/50 space-y-6">
-            <!-- Toggle Active Status -->
-            <div class="flex justify-between items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              <span class="text-xs text-slate-300 font-bold">نمایش به کاربران در ربات:</span>
-              <form method="post" action="/devotionals/{{ item.slug }}/toggle">
+            <div class="flex items-center gap-2 flex-none">
+              <!-- Edit details toggle -->
+              <details class="relative">
+                <summary class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold cursor-pointer list-none">
+                  ویرایش دسته
+                </summary>
+                <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                  <div class="glass-panel p-6 rounded-3xl border border-white/10 max-w-lg w-full space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-white/10">
+                      <h4 class="text-base font-bold text-white">ویرایش «{{ item.title }}»</h4>
+                      <button type="button" onclick="this.closest('details').removeAttribute('open')" class="text-slate-400 hover:text-white text-lg">✕</button>
+                    </div>
+
+                    <form method="post" action="/categories/{{ item.id }}/update" class="space-y-3">
+                      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+                      <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1">عنوان نمایش</label>
+                        <input name="title" value="{{ item.title }}" required class="input-field text-xs py-2">
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-300 mb-1">جایگاه نمایش در ویزارد</label>
+                          <input type="number" name="display_position" value="{{ item.display_position or loop.index }}" class="input-field text-xs py-2 font-mono" dir="ltr">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-300 mb-1">متن آماده از کتابخانه</label>
+                          <select name="devotional_slug" class="input-field text-xs py-2">
+                            <option value="">-- بدون پیوند --</option>
+                            {% for a in devotional_assets_for_cat %}
+                            <option value="{{ a.slug }}" {% if item.devotional_slug == a.slug %}selected{% endif %}>{{ a.title }}</option>
+                            {% endfor %}
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label class="block text-xs font-bold text-slate-300 mb-1">متن کوتاه مستقیم</label>
+                        <textarea name="body_text" rows="2" class="input-field text-xs">{{ item.body_text or '' }}</textarea>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-3">
+                        <div>
+                          <label class="block text-xs font-bold text-slate-300 mb-1">توضیح منبع</label>
+                          <input name="source_note" value="{{ item.source_note or '' }}" class="input-field text-xs py-2">
+                        </div>
+                        <div>
+                          <label class="block text-xs font-bold text-slate-300 mb-1">نام فایل یا لینک تصویر</label>
+                          <input name="image_url" value="{{ item.image_url or '' }}" class="input-field text-xs py-2 font-mono" dir="ltr" placeholder="laan-omar.jpg">
+                        </div>
+                      </div>
+
+                      <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="this.closest('details').removeAttribute('open')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold">انصراف</button>
+                        <button type="submit" class="btn px-6 text-xs font-bold cursor-pointer">ذخیره تغییرات</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </details>
+
+              <!-- Toggle Active Button -->
+              <form method="post" action="/categories/{{ item.id }}/toggle">
                 <input type="hidden" name="csrf" value="{{ csrf }}">
-                {% if item.enabled %}
-                <button class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer" type="submit">غیرفعال کردن</button>
+                {% if item.is_active or item.enabled %}
+                <button type="submit" class="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500 text-rose-300 hover:text-white text-xs font-bold transition-all cursor-pointer">
+                  غیرفعال‌سازی
+                </button>
                 {% else %}
-                <button class="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer" type="submit">فعال کردن</button>
+                <button type="submit" class="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 text-xs font-bold transition-all cursor-pointer">
+                  فعال‌سازی
+                </button>
                 {% endif %}
               </form>
             </div>
+          </div>
+          {% endfor %}
+        </div>
+      </details>
+      {% endfor %}
+    </div>
+  </section>
+</div>
 
-            <!-- Attached Media Section (DevotionalMedia) -->
-            <div class="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-              <h5 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                <span>📁 فایل‌های چندرسانه‌ای ضمیمه (`DevotionalMedia`)</span>
-                {{ tooltip("فایل‌های صوتی، تصویری، ویدیویی و اسناد ضمیمه برای «" ~ item.title ~ "» را در این بخش مدیریت کنید.") }}
-              </h5>
+<!-- ======================================================================= -->
+<!-- TAB 3: MESSAGE TEMPLATES -->
+<!-- ======================================================================= -->
+<div id="devotionalTab_templates" class="hidden space-y-8">
+  <!-- Add New Message Template Form with Progressive Disclosure -->
+  <details class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 group/addTpl" id="templateFormDetails">
+    <summary class="cursor-pointer list-none flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 text-lg">➕</div>
+        <div>
+          <p class="text-[0.65rem] font-bold text-purple-400 tracking-wider uppercase mb-0.5">شخصی‌سازی متون ربات</p>
+          <h2 class="text-base sm:text-lg font-extrabold text-white">ثبت نسخه جدید قالب پیام</h2>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="px-3.5 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 text-xs font-bold border border-purple-500/20 group-open/addTpl:hidden">
+          + ویرایشگر پیام
+        </span>
+        <span class="text-purple-400 text-xl transition-transform group-open/addTpl:rotate-180 hidden group-open/addTpl:inline-block">⌄</span>
+      </div>
+    </summary>
 
-              {% if item.media_items %}
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                {% for media in item.media_items %}
-                <div class="p-3.5 rounded-xl bg-slate-800/60 border border-slate-700 flex flex-col justify-between gap-3 text-xs">
-                  <div>
-                    <div class="flex items-center justify-between mb-1.5">
-                      <span class="px-2 py-0.5 rounded font-bold {% if media.kind.value == 'VIDEO' %}bg-sky-500/20 text-sky-300{% elif media.kind.value == 'AUDIO' %}bg-emerald-500/20 text-emerald-300{% else %}bg-amber-500/20 text-amber-300{% endif %}">
-                        {{ media.kind.value }}
-                      </span>
-                      <span class="text-slate-400 font-mono">{{ media.asset_platform }}</span>
-                    </div>
+    <form method="post" action="/templates/save" class="space-y-4 mt-6 pt-6 border-t border-white/5">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
 
-                    {% if media.page_number %}
-                    <p class="text-slate-300 font-bold">بخش / صفحه: {{ media.page_number }}</p>
-                    {% endif %}
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="sm:col-span-2">
+          <label class="block text-xs font-bold text-slate-300 mb-1">کلید قالب (Key)</label>
+          <input name="key" id="templateKeyInput" required placeholder="مثلاً: share_reminder یا welcome یا daily_digest" class="input-field font-mono text-sm" dir="ltr">
+        </div>
 
-                    {% if media.reciter_label %}
-                    <p class="text-slate-400 line-clamp-2 mt-1" title="{{ media.reciter_label }}">
-                      {% if media.kind.value == 'VIDEO' %}📝 کپشن: {{ media.reciter_label }}{% else %}🎤 مداح: {{ media.reciter_label }}{% endif %}
-                    </p>
-                    {% endif %}
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1">زبان پیام (Locale)</label>
+          <select name="locale" id="templateLocaleSelect" class="input-field text-sm">
+            <option value="fa" selected>فارسی (fa)</option>
+            <option value="ar">عربی (ar)</option>
+            <option value="en">انگلیسی (en)</option>
+          </select>
+        </div>
+      </div>
 
-                    <p class="text-[0.65rem] text-slate-500 font-mono truncate mt-1" dir="ltr" title="{{ media.asset_ref }}">{{ media.asset_ref }}</p>
-                  </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1">متن کامل پیام {{ tooltip("می‌توانید از تگ‌های مجاز HTML تلگرام/بله مانند <b>، <i> و متغیرهای پویا مثل {name} استفاده کنید.") }}</label>
+        <textarea name="body" id="templateBodyTextarea" rows="5" required placeholder="متن پیام را وارد کنید..." class="input-field text-sm leading-relaxed"></textarea>
+      </div>
 
-                  <form method="post" action="/devotionals/media/{{ media.id }}/delete" onsubmit="return confirm('آیا از حذف این فایل مطمئن هستید؟')">
-                    <input type="hidden" name="csrf" value="{{ csrf }}">
-                    <button type="submit" class="w-full py-1 text-center bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-lg font-bold transition-all">
-                      حذف این فایل
-                    </button>
-                  </form>
-                </div>
-                {% endfor %}
-              </div>
-              {% else %}
-              <p class="text-xs text-slate-500 mb-4">هیچ فایل چندرسانه‌ای به این محتوا متصل نشده است.</p>
-              {% endif %}
+      <div class="flex justify-end pt-2">
+        <button type="submit" class="btn px-8 text-xs font-bold shadow-lg shadow-purple-500/20 cursor-pointer">
+          ذخیره و انتشار نسخه جدید
+        </button>
+      </div>
+    </form>
+  </details>
 
-              <!-- Form to Upload / Register New Media -->
-              <details class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
-                <summary class="cursor-pointer text-xs font-bold text-emerald-400 hover:text-emerald-300">
-                  ➕ آپلود فایل جدید یا ثبت لینک/شناسه برای «{{ item.title }}»
-                </summary>
+  <!-- Filter & Templates Table Panel -->
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5">
+    <div class="mb-6 border-b border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h2 class="text-xl font-extrabold text-white">قالب‌های ثبت‌شده سیستم</h2>
+        <p class="text-xs text-slate-400 mt-1">نسخه‌های فعال پیام‌های ارسالی ربات‌های تلگرام و بله</p>
+      </div>
 
-                <form method="post" action="/devotionals/media/save" enctype="multipart/form-data" class="mt-4 space-y-3">
-                  <input type="hidden" name="csrf" value="{{ csrf }}">
-                  <input type="hidden" name="slug" value="{{ item.slug }}">
+      <!-- Locale filter -->
+      <div class="flex items-center gap-1.5">
+        <a href="/devotionals?tab=templates&locale=all" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if locale_filter == 'all' or not locale_filter %}bg-purple-500 text-white{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">همه</a>
+        <a href="/devotionals?tab=templates&locale=fa" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if locale_filter == 'fa' %}bg-purple-500 text-white{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">فارسی (fa)</a>
+        <a href="/devotionals?tab=templates&locale=ar" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if locale_filter == 'ar' %}bg-purple-500 text-white{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">عربی (ar)</a>
+        <a href="/devotionals?tab=templates&locale=en" class="px-3 py-1.5 rounded-xl text-xs font-bold {% if locale_filter == 'en' %}bg-purple-500 text-white{% else %}bg-slate-800 text-slate-400 hover:text-white{% endif %}">انگلیسی (en)</a>
+      </div>
+    </div>
 
-                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">نوع رسانه</label>
-                      <select name="kind" class="input-field py-1.5 px-2 text-xs">
-                        <option value="VIDEO">🎥 ویدیو (بخش خطبه)</option>
-                        <option value="AUDIO">🎧 صوت مداح</option>
-                        <option value="IMAGE">🖼 تصویر صفحه</option>
-                        <option value="PDF">📄 فایل PDF</option>
-                      </select>
-                    </div>
+    <div class="space-y-4">
+      {% for tpl in filtered_templates %}
+      <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <code class="px-2.5 py-1 rounded-lg bg-slate-900 text-purple-300 font-mono text-xs font-bold" dir="ltr">{{ tpl.key }}</code>
+            <span class="px-2 py-0.5 rounded text-[0.68rem] font-bold bg-slate-700 text-slate-300">{{ tpl.locale }}</span>
+            <span class="px-2 py-0.5 rounded text-[0.68rem] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">v{{ tpl.version }}</span>
+            {% if tpl.enabled %}
+            <span class="text-[0.65rem] text-emerald-400 font-bold">● فعال</span>
+            {% else %}
+            <span class="text-[0.65rem] text-rose-400 font-bold">○ غیرفعال</span>
+            {% endif %}
+          </div>
 
-                    <div>
-                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">پلتفرم هدف</label>
-                      <select name="platform" class="input-field py-1.5 px-2 text-xs">
-                        <option value="TELEGRAM">تلگرام</option>
-                        <option value="BALE">بله</option>
-                        <option value="BOTH">هر دو پلتفرم</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">شماره بخش / صفحه (اختیاری)</label>
-                      <input name="page_number" type="number" min="0" placeholder="مثلاً 1 تا 5" class="input-field py-1.5 px-2 text-xs font-mono">
-                    </div>
-                  </div>
-
-                  <div>
-                    <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">
-                      کپشن ویدیو یا نام مداح {{ tooltip("برای ویدیوهای خطبه، متن کامل کپشن (هشتگ‌ها و توضیحات) را اینجا بنویسید. برای صوت، نام مداح مثل فرهمند را بنویسید.") }}
-                    </label>
-                    <textarea name="reciter_label" rows="2" placeholder="کپشن کامل ویدیو یا نام مداح..." class="input-field py-1.5 px-2 text-xs"></textarea>
-                  </div>
-
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">آپلود مستقیم فایل از کامپیوتر/موبایل</label>
-                      <input type="file" name="file" class="input-field py-1 px-2 text-xs">
-                    </div>
-
-                    <div>
-                      <label class="block text-[0.7rem] font-bold text-slate-300 mb-1">یا ثبت لینک/file_id/پست کانال</label>
-                      <input name="asset_ref" placeholder="https://... یا t.me/... یا file_id" class="input-field py-1.5 px-2 text-xs font-mono" dir="ltr">
-                    </div>
-                  </div>
-
-                  <div class="flex justify-end pt-2">
-                    <button type="submit" class="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs transition-all cursor-pointer">
-                      آپلود و ذخیره رسانه
-                    </button>
-                  </div>
-                </form>
-              </details>
-            </div>
-
-            <!-- Edit Text Form -->
-            <form method="post" action="/devotionals/save" class="space-y-4">
+          <div class="flex items-center gap-2">
+            <button type="button"
+              onclick="document.getElementById('templateKeyInput').value='{{ tpl.key }}'; document.getElementById('templateLocaleSelect').value='{{ tpl.locale }}'; document.getElementById('templateBodyTextarea').value='{{ tpl.body|replace('\n', '\\n')|replace('\'', '\\\'') }}'; document.getElementById('templateFormDetails').open=true; window.scrollTo({top: 0, behavior: 'smooth'});"
+              class="px-3 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold transition-all cursor-pointer">
+              ویرایش متن
+            </button>
+            <form method="post" action="/templates/{{ tpl.id }}/toggle">
               <input type="hidden" name="csrf" value="{{ csrf }}">
-              <input type="hidden" name="slug" value="{{ item.slug }}">
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-300 mb-1">گروه محتوا</label>
-                  <select name="content_type" class="input-field">
-                    <option value="DUA" {% if item.content_type == 'DUA' %}selected{% endif %}>دعا</option>
-                    <option value="ZIYARAT" {% if item.content_type == 'ZIYARAT' %}selected{% endif %}>زیارت</option>
-                    <option value="KHUTBAH" {% if item.content_type == 'KHUTBAH' %}selected{% endif %}>خطبه</option>
-                    <option value="LAAN" {% if item.content_type == 'LAAN' %}selected{% endif %}>لعن</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-slate-300 mb-1">عنوان فارسی</label>
-                  <input name="title" value="{{ item.title }}" required class="input-field">
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-300 mb-1">متن کامل</label>
-                <textarea name="text_body" rows="6" required class="input-field font-mono text-sm leading-loose">{{ item.text }}</textarea>
-              </div>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-slate-300 mb-1">تصویر اصلی</label>
-                  <input name="image_ref" value="{{ item.image_ref or '' }}" class="input-field font-mono text-xs" dir="ltr">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-slate-300 mb-1">صوت اصلی</label>
-                  <input name="audio_ref" value="{{ item.audio_ref or '' }}" class="input-field font-mono text-xs" dir="ltr">
-                </div>
-              </div>
-
-              <div class="flex justify-end pt-2">
-                <button type="submit" class="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 font-bold text-xs transition-all">
-                  ذخیره ویرایش متن
-                </button>
-              </div>
+              {% if tpl.enabled %}
+              <button type="submit" class="px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-300 hover:text-white text-xs font-bold transition-all cursor-pointer">غیرفعال</button>
+              {% else %}
+              <button type="submit" class="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 text-xs font-bold transition-all cursor-pointer">فعال</button>
+              {% endif %}
             </form>
           </div>
-        </details>
-        {% endfor %}
-      </div>
-    </details>
-    {% endfor %}
-  </div>
-</section>
+        </div>
 
-<div class="mt-6 p-4 bg-sky-500/5 border border-sky-500/15 rounded-2xl text-sm text-slate-400 leading-relaxed">
-  <span class="font-bold text-sky-300">راهنما:</span>
-  برای اینکه یک ختم این متن را بفرستد، به بخش «دسته‌ها» بروید و نام دعا را از فهرست «متن آماده از کتابخانه» انتخاب کنید؛ نیازی به کپی‌کردن شناسه نیست.
+        <div class="p-3 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-200 leading-relaxed font-sans whitespace-pre-wrap">
+          {{ tpl.body }}
+        </div>
+      </div>
+      {% else %}
+      <div class="p-8 text-center text-slate-500 text-sm">هیچ قالبی در این فیلتر یافت نشد.</div>
+      {% endfor %}
+    </div>
+  </section>
 </div>
+
+<!-- ======================================================================= -->
+<!-- TAB 4: SACRED SALAWAT -->
+<!-- ======================================================================= -->
+<div id="devotionalTab_salawat" class="hidden space-y-8">
+  <section class="glass-panel p-6 sm:p-8 rounded-3xl border border-emerald-500/20">
+    <div class="mb-5 border-b border-white/5 pb-4 flex items-center justify-between">
+      <div>
+        <p class="text-[0.65rem] font-bold text-emerald-500 tracking-wider uppercase mb-1">محتوای ثابت</p>
+        <h2 class="text-xl font-bold text-white">🕊 ذکر مقدس صلوات</h2>
+      </div>
+      {{ tooltip("متن صلوات ثابت است. می‌توانید تصویر معرفی صلوات را در اینجا ثبت یا ویرایش کنید.") }}
+    </div>
+
+    <!-- Ornate Calligraphy Box -->
+    <div class="rounded-3xl bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-500/30 p-6 text-center leading-10 text-emerald-100 mb-8 text-xl sm:text-2xl font-serif font-extrabold shadow-inner" dir="rtl">
+      {{ salawat_text }}
+    </div>
+
+    <form method="post" action="/devotionals/salawat/image" enctype="multipart/form-data" class="space-y-4">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-300">نام فایل یا لینک تصویر صلوات</label>
+          <input name="image_url" value="{{ salawat_image_url }}" placeholder="https://example.com/salawat.jpg یا salawat.jpg" class="input-field font-mono" dir="ltr">
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-bold text-slate-300">یا آپلود مستقیم فایل تصویر از دستگاه</label>
+          <input type="file" name="file" accept="image/*" class="input-field py-1 px-2 text-xs">
+        </div>
+      </div>
+
+      {% if salawat_image_url %}
+      <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col sm:flex-row items-center gap-4">
+        <img src="{{ salawat_image_url }}" alt="پوستر صلوات" class="w-32 h-32 object-cover rounded-xl border border-emerald-500/30 shadow-md">
+        <div class="space-y-1 text-center sm:text-right">
+          <span class="text-xs font-bold text-emerald-400">پیش‌نمایش تصویر فعلی صلوات</span>
+          <p class="text-xs text-slate-400 font-mono break-all" dir="ltr">{{ salawat_image_url }}</p>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="flex justify-end pt-2">
+        <button type="submit" class="btn px-8 cursor-pointer">ذخیره تصویر صلوات</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- Tab Switcher Script -->
+<script>
+function switchDevotionalTab(tabKey) {
+  var tabs = ['devotionals', 'categories', 'templates', 'salawat'];
+  tabs.forEach(function(t) {
+    var el = document.getElementById('devotionalTab_' + t);
+    var btn = document.getElementById('tabBtn_' + t);
+    if (!el || !btn) return;
+    if (t === tabKey) {
+      el.classList.remove('hidden');
+      btn.className = 'devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20';
+    } else {
+      el.classList.add('hidden');
+      btn.className = 'devotional-tab-btn px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer bg-slate-800 text-slate-400 hover:text-white';
+    }
+  });
+
+  // Keep URL updated without full page reload
+  try {
+    var url = new URL(window.location);
+    url.searchParams.set('tab', tabKey);
+    window.history.replaceState({}, '', url);
+  } catch(e) {}
+}
+
+// Auto-switch based on URL query param on page load
+(function() {
+  var urlParams = new URLSearchParams(window.location.search);
+  var requestedTab = urlParams.get('tab') || '{{ active_tab }}';
+  if (requestedTab && ['devotionals', 'categories', 'templates', 'salawat'].indexOf(requestedTab) !== -1) {
+    switchDevotionalTab(requestedTab);
+  }
+})();
+</script>
 {% endblock %}

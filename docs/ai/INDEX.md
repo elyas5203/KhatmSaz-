@@ -1,3 +1,8 @@
+## 2026-10-19 — Devotionals, Categories & Message Templates Studio (MASTER-51) [Antigravity]
+- Master Document: [MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md](masters/MASTER_51_DEVOTIONALS_CATEGORIES_AND_TEMPLATES_HUB.md) (Centralized devotionals, categories and templates studio `/devotionals` and `/content` in web admin, 4 KPI cards, 4-tab architecture, seamless redirects from `/categories` and `/templates`, direct file uploads, prayer requests fulfillment queue, category creation/toggle, and multilingual message templates with versioning).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/devotionals.html`, `src/khatmsaz/modules/devotional/`, `src/khatmsaz/modules/category/`, `src/khatmsaz/modules/template/`.
+- Tests: `tests/test_master_51_devotionals_hub.py`.
+
 ## 2026-10-19 — Admins, Roles, Permissions (RBAC) & Security Audit Hub (MASTER-50) [Antigravity]
 - Master Document: [MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md](masters/MASTER_50_ADMINS_ROLES_PERMISSIONS_AND_AUDIT_HUB.md) (Unified admins command center, role-based access control with standard presets and granular permissions, Anti Self-Lockout and Last Super Admin protection guardrails, super admin promotion/demotion, and unified security audit trail ledger in `/admins` and `/audit`).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/admins.html`, `src/khatmsaz/modules/authorization/`, `src/khatmsaz/modules/audit_log/`.

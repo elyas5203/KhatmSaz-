@@ -2,6 +2,11 @@
 {% from "components.html" import tooltip, help_button %}
 {% block title %}مرکز عملیات، پایش ناوگان و سلامت زیرساخت | ختم‌ساز{% endblock %}
 {% block content %}
+{% set bot_stats = bot_stats or {'active': 0, 'configured': 0, 'total': 18} %}
+{% set error_log_stats = error_log_stats or {'lines_count': 0, 'filename': 'errors.log', 'size_kb': 0} %}
+{% set services = services or [] %}
+{% set system_int_settings = system_int_settings or {'default_reminder_hour': 20, 'inactivity_reminder_days': 3, 'inactivity_archive_days': 7} %}
+{% set support_phone = support_phone or '' %}
 <section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
   <div>
     <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">فرماندهی و نظارت سیستم</p>
@@ -58,15 +63,15 @@
 <!-- Section 1: 4 Core Health KPIs -->
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
   <!-- DB KPI -->
-  <article class="glass-card p-5 rounded-2xl flex flex-col {% if services[0].ready %}border-b-2 border-b-emerald-500{% else %}border-b-2 border-b-rose-500{% endif %}">
+  <article class="glass-card p-5 rounded-2xl flex flex-col {% if services and services[0].ready %}border-b-2 border-b-emerald-500{% else %}border-b-2 border-b-rose-500{% endif %}">
     <div class="flex items-center justify-between mb-2">
       <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">پایگاه داده (PostgreSQL)</span>
       <span class="p-1.5 rounded-lg bg-slate-800/60 text-slate-400">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zM4 12c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3" /></svg>
       </span>
     </div>
-    <strong class="text-xl font-bold {% if services[0].ready %}text-emerald-400{% else %}text-rose-400{% endif %} mb-1 flex items-center gap-2">
-      {% if services[0].ready %}آماده و متصل{% else %}خطا در اتصال{% endif %}
+    <strong class="text-xl font-bold {% if services and services[0].ready %}text-emerald-400{% else %}text-rose-400{% endif %} mb-1 flex items-center gap-2">
+      {% if services and services[0].ready %}آماده و متصل{% else %}خطا در اتصال{% endif %}
     </strong>
     <small class="text-xs text-slate-400">اتصال PostgreSQL و وضعیت مایگریشن‌ها</small>
   </article>
@@ -292,11 +297,11 @@
       </a>
       <a href="/moderation?tab=laan" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
         <span class="text-sm font-bold text-slate-300">ختم‌های لعن در انتظار تایید</span>
-        <b class="text-base font-mono {% if queues.laan > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.laan }}</b>
+        <b class="text-base font-mono {% if (queues.laan|default(0)) > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.laan|default(0) }}</b>
       </a>
       <a href="/moderation?tab=banners" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
         <span class="text-sm font-bold text-slate-300">بنرهای تبلیغاتی و اطلاعیه‌ها</span>
-        <b class="text-base font-mono {% if queues.banners > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.banners }}</b>
+        <b class="text-base font-mono {% if (queues.banners|default(0)) > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.banners|default(0) }}</b>
       </a>
     </div>
   </section>

@@ -189,6 +189,8 @@ templates.env.globals["lang"] = "fa"
 
 
 def _validate_panel_devotional_image(value: str) -> str:
+    if not isinstance(value, str):
+        value = str(getattr(value, "default", "") or "")
     ref = validate_devotional_image_ref(
         value, local_dir=ROOT / "static" / DEVOTIONAL_IMAGE_DIRNAME,
     )
@@ -4540,44 +4542,14 @@ async def moderate_user(
 
 @app.get("/categories", response_class=HTMLResponse)
 async def categories_page(request: Request):
-    """Admin CRUD for لعن/ادعیه content items (owner request,
-    2026-09-18): new khatm categories must be addable without a code
-    deploy — see `khatm_category` module."""
+    """Admin CRUD for لعن/ادعیه content items — redirected to unified
+    Devotionals & Content Studio (/devotionals?tab=categories) per MASTER-51."""
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
-    async with session_scope() as session:
-        items = [
-            item for item in await category_service.list_all(session)
-            if item.group != KhatmCategoryGroup.SALAWAT
-        ]
-        devotional_assets = [
-            item for item in await content_service.list_all_devotional_assets(session)
-            if item.slug != content_service.SALAWAT_SLUG
-        ]
-        requests = await category_service.list_pending_requests(session)
-        request_rows = []
-        for item in requests:
-            requester = await identity_service.find_by_id(session, item.requested_by_user_id)
-            request_rows.append({"item": item, "requester": requester})
-    grouped_items = {
-        "DUA": [item for item in items if item.group == KhatmCategoryGroup.DUA],
-        "LAAN": [item for item in items if item.group == KhatmCategoryGroup.LAAN],
-        "KHUTBAH": [item for item in items if item.group == KhatmCategoryGroup.KHUTBAH],
-    }
-    for group_items in grouped_items.values():
-        for position, item in enumerate(group_items, start=1):
-            item.display_position = position
-    return templates.TemplateResponse(
-        request=request,
-        name="categories.html",
-        context=_ctx(
-            request, admin, raw, items=items, requests=request_rows,
-            devotional_assets=devotional_assets, grouped_items=grouped_items,
-            group_labels=CATEGORY_GROUP_LABELS,
-            saved=request.query_params.get("saved", ""),
-        ),
-    )
+    q = request.url.query
+    dest = f"/devotionals?tab=categories{('&' + q) if q else ''}"
+    return RedirectResponse(dest, status_code=303)
 
 
 @app.post("/categories/create")
@@ -4610,7 +4582,7 @@ async def create_category(
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_CREATE",
             details={"category_id": str(category.id), "group": category.group.value, "title": category.title, "sort_order": category.sort_order},
         )
-    return RedirectResponse("/categories?saved=created", status_code=303)
+    return RedirectResponse("/devotionals?tab=categories&saved=created", status_code=303)
 
 
 @app.post("/categories/{category_id}/update")
@@ -4643,7 +4615,7 @@ async def update_category(
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_UPDATE",
             details={"category_id": str(category.id), "title": category.title, "sort_order": category.sort_order},
         )
-    return RedirectResponse("/categories?saved=updated", status_code=303)
+    return RedirectResponse("/devotionals?tab=categories&saved=updated", status_code=303)
 
 
 @app.post("/categories/{category_id}/toggle")
@@ -4662,7 +4634,7 @@ async def toggle_category(request: Request, category_id: UUID, csrf: str = Form(
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_TOGGLE",
             details={"category_id": str(category.id), "enabled": category.is_active},
         )
-    return RedirectResponse("/categories?saved=toggled", status_code=303)
+    return RedirectResponse("/devotionals?tab=categories&saved=toggled", status_code=303)
 
 
 @app.post("/categories/requests/{request_id}/decline")
@@ -4681,7 +4653,7 @@ async def decline_category_request(request: Request, request_id: UUID, csrf: str
             session, actor_user_id=admin.id, action="KHATM_CATEGORY_REQUEST_DECLINE",
             target_user_id=item.requested_by_user_id, details={"request_id": str(item.id)},
         )
-    return RedirectResponse("/categories?saved=declined", status_code=303)
+    return RedirectResponse("/devotionals?tab=categories&saved=declined", status_code=303)
 
 
 @app.post("/categories/requests/{request_id}/fulfill")
@@ -4727,7 +4699,7 @@ async def fulfill_category_request(
                 identity.platform.value, identity.subject,
                 f"درخواست شما «{category.title}» به لیست دعاها اضافه شد ✅\nحالا می‌تونید ختمش رو بسازید.",
             )
-    return RedirectResponse("/categories?saved=fulfilled", status_code=303)
+    return RedirectResponse("/devotionals?tab=categories&saved=fulfilled", status_code=303)
 
 
 # --- Devotional texts (dua / ziyarat) library ---------------------------------
@@ -4763,10 +4735,49 @@ async def devotionals_page(request: Request):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
+
+    active_tab = request.query_params.get("tab", "devotionals").strip().lower()
+    if active_tab not in {"devotionals", "categories", "templates", "salawat"}:
+        active_tab = "devotionals"
+
+    search_q = request.query_params.get("q", "").strip()
+    content_type_filter = request.query_params.get("type", "ALL").strip().upper()
+    locale_filter = request.query_params.get("locale", "ALL").strip().lower()
+
     async with session_scope() as session:
+        # 1. Devotional assets & attached media
         assets = await content_service.list_all_devotional_assets(session)
         salawat_asset = next((item for item in assets if item.slug == content_service.SALAWAT_SLUG), None)
         media_by_asset = await content_service.list_all_devotional_media_by_asset(session)
+
+        # 2. Categories & Pending requests
+        raw_categories = await category_service.list_all(session)
+        categories = [
+            item for item in raw_categories
+            if item.group != KhatmCategoryGroup.SALAWAT
+        ]
+        devotional_assets_for_cat = [
+            item for item in assets
+            if item.slug != content_service.SALAWAT_SLUG
+        ]
+        category_requests = await category_service.list_pending_requests(session)
+        request_rows = []
+        for item in category_requests:
+            requester = await identity_service.find_by_id(session, item.requested_by_user_id)
+            request_rows.append({"item": item, "requester": requester})
+
+        # 3. Message templates
+        templates_res = await session.execute(
+            select(MessageTemplate)
+            .order_by(
+                MessageTemplate.key.asc(),
+                MessageTemplate.locale.asc(),
+                MessageTemplate.version.desc(),
+            )
+            .limit(300)
+        )
+        all_templates = list(templates_res.scalars())
+
     rows = []
     for a in assets:
         if a.slug == content_service.SALAWAT_SLUG:
@@ -4798,20 +4809,78 @@ async def devotionals_page(request: Request):
             "pdf_item": pdf_item,
             "media_items": media_list,
         })
+
     grouped_rows = {
         "DUA": [item for item in rows if item["content_type"] == "DUA"],
         "ZIYARAT": [item for item in rows if item["content_type"] == "ZIYARAT"],
         "KHUTBAH": [item for item in rows if item["content_type"] == "KHUTBAH"],
         "LAAN": [item for item in rows if item["content_type"] == "LAAN"],
     }
+
+    grouped_categories = {
+        "DUA": [item for item in categories if item.group == KhatmCategoryGroup.DUA],
+        "LAAN": [item for item in categories if item.group == KhatmCategoryGroup.LAAN],
+        "KHUTBAH": [item for item in categories if item.group == KhatmCategoryGroup.KHUTBAH],
+    }
+    for group_items in grouped_categories.values():
+        for position, item in enumerate(group_items, start=1):
+            item.display_position = position
+
+    # 4 Studio KPIs
+    total_devotionals = len(rows)
+    total_media_files = sum(len(media_list) for media_list in media_by_asset.values())
+    active_categories = sum(1 for c in categories if c.enabled)
+    total_templates = len(all_templates)
+
+    filtered_templates = all_templates
+    if locale_filter and locale_filter != "all":
+        filtered_templates = [t for t in filtered_templates if t.locale == locale_filter]
+    if search_q:
+        q_lower = search_q.lower()
+        filtered_templates = [
+            t for t in filtered_templates
+            if q_lower in t.key.lower() or (t.body and q_lower in t.body.lower())
+        ]
+
+    filtered_devotionals = rows
+    if content_type_filter and content_type_filter != "ALL":
+        filtered_devotionals = [r for r in filtered_devotionals if r["content_type"] == content_type_filter]
+    if search_q:
+        q_lower = search_q.lower()
+        filtered_devotionals = [
+            r for r in filtered_devotionals
+            if q_lower in r["title"].lower() or q_lower in r["slug"].lower() or q_lower in r["text"].lower()
+        ]
+
     return templates.TemplateResponse(
         request=request,
         name="devotionals.html",
         context=_ctx(
-            request, admin, raw, items=rows, grouped_items=grouped_rows,
+            request, admin, raw,
+            active_tab=active_tab,
+            total_devotionals=total_devotionals,
+            total_media_files=total_media_files,
+            active_categories=active_categories,
+            total_templates=total_templates,
+            items=rows,
+            filtered_items=filtered_devotionals,
+            grouped_items=grouped_rows,
+            categories=categories,
+            category_requests=request_rows,
+            requests=request_rows,
+            grouped_categories=grouped_categories,
+            category_group_labels=CATEGORY_GROUP_LABELS,
+            group_labels=CATEGORY_GROUP_LABELS,
+            devotional_assets=devotional_assets_for_cat,
+            devotional_assets_for_cat=devotional_assets_for_cat,
+            templates_list=all_templates,
+            filtered_templates=filtered_templates,
             salawat_text=content_service.SALAWAT_TEXT,
             salawat_image_url=(salawat_asset.image_ref if salawat_asset else ""),
             type_labels=_DEVOTIONAL_TYPE_LABELS,
+            q=search_q,
+            type_filter=content_type_filter,
+            locale_filter=locale_filter,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -4821,6 +4890,7 @@ async def devotionals_page(request: Request):
 async def save_salawat_image(
     request: Request,
     image_url: str = Form(""),
+    file: UploadFile | None = File(None),
     csrf: str = Form(...),
 ):
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
@@ -4828,18 +4898,29 @@ async def save_salawat_image(
         return _login_redirect()
     if not _valid_csrf(raw, csrf):
         return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    final_url = image_url.strip() if isinstance(image_url, str) else ""
+    if file and hasattr(file, "filename") and file.filename:
+        upload_dir = ROOT / "static" / "uploads" / "devotionals"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        safe_name = f"salawat_{int(time.time())}_{file.filename}"
+        dest_path = upload_dir / safe_name
+        contents = await file.read()
+        dest_path.write_bytes(contents)
+        final_url = f"/static/uploads/devotionals/{safe_name}"
+
     async with session_scope() as session:
         try:
             asset = await content_service.set_salawat_image_url(
-                session, _validate_panel_devotional_image(image_url),
+                session, _validate_panel_devotional_image(final_url) if final_url else "",
             )
         except ValueError as exc:
             return HTMLResponse(f"تصویر نامعتبر است: {exc}", status_code=400)
         await audit_service.record(
             session, actor_user_id=admin.id, action="SALAWAT_IMAGE_SAVE",
-            details={"has_image": bool(asset.image_ref)},
+            details={"has_image": bool(asset.image_ref), "image_ref": final_url},
         )
-    return RedirectResponse("/devotionals?saved=salawat", status_code=303)
+    return RedirectResponse("/devotionals?tab=salawat&saved=salawat", status_code=303)
 
 
 @app.post("/devotionals/save")
@@ -4875,7 +4956,7 @@ async def save_devotional(
             session, actor_user_id=admin.id, action="DEVOTIONAL_TEXT_SAVE",
             details={"slug": asset.slug, "title": asset.title, "content_type": asset.content_type},
         )
-    return RedirectResponse("/devotionals?saved=saved", status_code=303)
+    return RedirectResponse("/devotionals?tab=devotionals&saved=saved", status_code=303)
 
 
 @app.post("/devotionals/{slug}/toggle")
@@ -4898,7 +4979,7 @@ async def toggle_devotional(request: Request, slug: str, csrf: str = Form(...)):
             session, actor_user_id=admin.id, action="DEVOTIONAL_TEXT_TOGGLE",
             details={"slug": asset.slug, "enabled": asset.enabled},
         )
-    return RedirectResponse("/devotionals?saved=toggled", status_code=303)
+    return RedirectResponse("/devotionals?tab=devotionals&saved=toggled", status_code=303)
 
 
 @app.post("/devotionals/media/save")
@@ -4924,7 +5005,7 @@ async def save_devotional_media(
     platform = platform.strip().upper()
     final_ref = asset_ref.strip()
 
-    if file and file.filename:
+    if file and hasattr(file, "filename") and file.filename:
         upload_dir = ROOT / "static" / "uploads" / "devotionals"
         upload_dir.mkdir(parents=True, exist_ok=True)
         safe_name = f"{int(time.time())}_{file.filename}"
@@ -4989,7 +5070,7 @@ async def save_devotional_media(
             )
         except ValueError as exc:
             return HTMLResponse(f"خطا در ثبت فایل: {exc}", status_code=400)
-    return RedirectResponse("/devotionals?saved=media_saved", status_code=303)
+    return RedirectResponse("/devotionals?tab=devotionals&saved=media_saved", status_code=303)
 
 
 @app.post("/devotionals/media/{media_id}/delete")
@@ -5012,7 +5093,7 @@ async def delete_devotional_media(
                 action="DEVOTIONAL_MEDIA_DELETE",
                 details={"media_id": str(media_id)},
             )
-    return RedirectResponse("/devotionals?saved=media_deleted", status_code=303)
+    return RedirectResponse("/devotionals?tab=devotionals&saved=media_deleted", status_code=303)
 
 
 # --- Quran 604 pages management ----------------------------------------------
@@ -5123,30 +5204,14 @@ async def save_quran_asset(
 
 @app.get("/templates", response_class=HTMLResponse)
 async def message_templates(request: Request):
+    """Message templates editor — redirected to unified Devotionals & Content Studio
+    (/devotionals?tab=templates) per MASTER-51."""
     admin, raw = await _admin(request, AdminPermission.CONTENT_MANAGE)
     if admin is None:
         return _login_redirect()
-    async with session_scope() as session:
-        items = list(
-            (
-                await session.execute(
-                    select(MessageTemplate)
-                    .order_by(
-                        MessageTemplate.key.asc(),
-                        MessageTemplate.locale.asc(),
-                        MessageTemplate.version.desc(),
-                    )
-                    .limit(250)
-                )
-            ).scalars()
-        )
-    return templates.TemplateResponse(
-        request=request,
-        name="templates.html",
-        context=_ctx(
-            request, admin, raw, items=items, saved=request.query_params.get("saved", "")
-        ),
-    )
+    q = request.url.query
+    dest = f"/devotionals?tab=templates{('&' + q) if q else ''}"
+    return RedirectResponse(dest, status_code=303)
 
 
 @app.post("/templates/save")
@@ -5183,7 +5248,7 @@ async def save_template_content(
             action="MESSAGE_TEMPLATE_UPDATE",
             details={"key": tpl.key, "locale": tpl.locale, "version": tpl.version},
         )
-    return RedirectResponse("/templates?saved=template_saved", status_code=303)
+    return RedirectResponse("/devotionals?tab=templates&saved=template_saved", status_code=303)
 
 
 @app.get("/finance", response_class=HTMLResponse)
@@ -5901,7 +5966,7 @@ async def toggle_template(
                 "enabled": item.enabled,
             },
         )
-    return RedirectResponse("/templates", status_code=303)
+    return RedirectResponse("/devotionals?tab=templates&saved=template_toggled", status_code=303)
 
 
 # ---------------------------------------------------------------------------
