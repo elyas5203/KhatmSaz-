@@ -15,7 +15,14 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -454,31 +461,51 @@ async def health():
     return {"status": "ok", "database": "ok"}
 
 
+def _read_recent_errors(limit: int = 150) -> list[str]:
+    """Read the last N lines from the errors log (or main log as fallback)."""
+    limit = min(max(1, limit), 500)
+    for log_path in (Path("logs/errors.log"), Path("logs/khatmsaz.log")):
+        if log_path.exists():
+            try:
+                with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+                    lines = f.readlines()
+                    if lines:
+                        return [line.rstrip("\r\n") for line in lines[-limit:]]
+            except Exception:
+                pass
+    return []
+
+
 @app.get("/operations", response_class=HTMLResponse)
 async def operations_page(request: Request):
-    """Service readiness, queue depth, and safe panel presentation settings."""
+    """Service readiness, bot fleet health, scheduler diagnostics, and safe panel settings."""
     admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
     if admin is None:
         return _login_redirect()
     settings = get_settings()
     database_ok = True
-    queue_counts = {"broadcasts": 0, "covers": 0, "phones": 0, "categories": 0, "laan": 0}
+    queue_counts = {"broadcasts": 0, "covers": 0, "phones": 0, "categories": 0, "laan": 0, "banners": 0}
     custom_khatm_admin_phone = ""
     system_int_settings: dict[str, int] = {"default_reminder_hour": 20, "inactivity_days": 3}
+    bots = []
     try:
         async with session_scope() as session:
             await session.execute(text("SELECT 1"))
+            from khatmsaz.modules.advertising.models import AdvertisingBanner
+            banners_pending = int(await session.scalar(select(func.count()).select_from(AdvertisingBanner).where(AdvertisingBanner.is_active.is_(False))) or 0)
             queue_counts = {
                 "broadcasts": int(await session.scalar(select(func.count()).select_from(KhatmBroadcast).where(KhatmBroadcast.status == BroadcastStatus.PENDING)) or 0),
                 "covers": int(await session.scalar(select(func.count()).select_from(Khatm).where(Khatm.cover_status == "PENDING")) or 0),
                 "phones": int(await session.scalar(select(func.count()).select_from(ManualPhoneVerification).where(ManualPhoneVerification.status == "PENDING")) or 0),
                 "categories": int(await session.scalar(select(func.count()).select_from(KhatmCategoryRequest).where(KhatmCategoryRequest.status == KhatmCategoryRequestStatus.PENDING)) or 0),
                 "laan": int(await session.scalar(select(func.count()).select_from(Khatm).where(Khatm.pending_lan_approval.is_(True))) or 0),
+                "banners": banners_pending,
             }
             custom_khatm_admin_phone = await system_settings_service.get_str(
                 session, "custom_khatm_admin_phone"
             )
             system_int_settings = await system_settings_service.list_current(session)
+            bots = await bot_registry_service.list_all_instances(session)
     except Exception:
         database_ok = False
 
@@ -495,6 +522,23 @@ async def operations_page(request: Request):
         {"name": "پرداخت پی‌پینگ", "ready": bool(settings.payping_api_token) and callback_ready, "detail": "API Token و Callback امن"},
         {"name": "پیامک کاوه‌نگار", "ready": settings.sms_provider.lower() == "kavenegar" and bool(settings.sms_api_key), "detail": "Provider و API Key"},
     ]
+
+    bot_stats = {
+        "total": len(bots),
+        "configured": sum(1 for b in bots if b.token_encrypted),
+        "active": sum(1 for b in bots if b.token_encrypted and b.is_active),
+    }
+
+    recent_errors = _read_recent_errors(150)
+    error_log_exists = Path("logs/errors.log").exists()
+    error_log_size_kb = round(Path("logs/errors.log").stat().st_size / 1024, 1) if error_log_exists else 0.0
+    error_log_stats = {
+        "exists": error_log_exists,
+        "size_kb": error_log_size_kb,
+        "lines_count": len(recent_errors),
+        "filename": "errors.log" if error_log_exists else ("khatmsaz.log" if Path("logs/khatmsaz.log").exists() else "None"),
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="operations.html",
@@ -503,6 +547,8 @@ async def operations_page(request: Request):
             worker=runtime_status.snapshot(), scan_interval=settings.reminder_scan_interval_minutes,
             custom_khatm_admin_phone=custom_khatm_admin_phone,
             system_int_settings=system_int_settings,
+            bots=bots, bot_stats=bot_stats,
+            recent_errors=recent_errors, error_log_stats=error_log_stats,
             saved=request.query_params.get("saved", ""),
         ),
     )
@@ -595,6 +641,119 @@ async def update_custom_khatm_phone(
             details={"configured": bool(custom_khatm_admin_phone.strip())},
         )
     return RedirectResponse("/operations?saved=custom_khatm_phone", status_code=303)
+
+
+@app.post("/operations/bots/{instance_id}/ping")
+async def ping_bot(request: Request, instance_id: UUID):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return JSONResponse({"ok": False, "error": "دسترسی غیرمجاز است."}, status_code=401)
+
+    csrf = request.headers.get("x-csrf-token") or ""
+    if not csrf:
+        try:
+            form = await request.form()
+            csrf = str(form.get("csrf", ""))
+        except Exception:
+            csrf = ""
+    if csrf and not _valid_csrf(raw, csrf):
+        return JSONResponse({"ok": False, "error": "توکن امنیتی نامعتبر است."}, status_code=403)
+
+    async with session_scope() as session:
+        instance = await bot_registry_service.get_instance(session, instance_id)
+        if not instance:
+            return JSONResponse({"ok": False, "error": "اسلات بات یافت نشد."}, status_code=404)
+        res = await bot_registry_service.ping_bot_instance(instance)
+        return JSONResponse(res)
+
+
+@app.post("/operations/bots/ping-all")
+async def ping_all_bots(request: Request):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return JSONResponse({"ok": False, "error": "دسترسی غیرمجاز است."}, status_code=401)
+
+    csrf = request.headers.get("x-csrf-token") or ""
+    if not csrf:
+        try:
+            form = await request.form()
+            csrf = str(form.get("csrf", ""))
+        except Exception:
+            csrf = ""
+    if csrf and not _valid_csrf(raw, csrf):
+        return JSONResponse({"ok": False, "error": "توکن امنیتی نامعتبر است."}, status_code=403)
+
+    async with session_scope() as session:
+        results = await bot_registry_service.ping_all_instances(session)
+        return JSONResponse({"ok": True, "results": results})
+
+
+@app.post("/operations/trigger-scan")
+async def trigger_manual_scan(request: Request):
+    admin, raw = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+
+    csrf = request.headers.get("x-csrf-token") or ""
+    if not csrf:
+        try:
+            form = await request.form()
+            csrf = str(form.get("csrf", ""))
+        except Exception:
+            csrf = ""
+    if not _valid_csrf(raw, csrf):
+        return HTMLResponse("درخواست امنیتی نامعتبر است.", status_code=403)
+
+    from khatmsaz.modules.reminder_engine import service as reminder_engine
+    try:
+        await reminder_engine.run_once()
+        scan_ok = True
+        err_msg = ""
+    except Exception as exc:
+        scan_ok = False
+        err_msg = str(exc)
+
+    async with session_scope() as session:
+        await audit_service.record(
+            session,
+            actor_user_id=admin.id,
+            action="MANUAL_REMINDER_SCAN_TRIGGERED",
+            details={
+                "triggered_by": admin.display_name or str(admin.id),
+                "success": scan_ok,
+                "error": err_msg,
+            },
+        )
+
+    if request.headers.get("accept", "").startswith("application/json") or request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JSONResponse({"ok": scan_ok, "message": "اسکن یادآوری‌ها با موفقیت اجرا شد." if scan_ok else f"خطا در اجرای اسکن: {err_msg}"})
+    return RedirectResponse("/operations?saved=scan_triggered" if scan_ok else f"/operations?error={err_msg[:60]}", status_code=303)
+
+
+@app.get("/operations/logs/tail")
+async def get_logs_tail(request: Request, limit: int = 150):
+    admin, _ = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return JSONResponse({"ok": False, "error": "دسترسی غیرمجاز است."}, status_code=401)
+    lines = _read_recent_errors(limit)
+    return JSONResponse({"ok": True, "lines": lines, "count": len(lines)})
+
+
+@app.get("/operations/logs/download")
+async def download_error_logs(request: Request):
+    admin, _ = await _admin(request, AdminPermission.OPERATIONS_VIEW)
+    if admin is None:
+        return _login_redirect()
+
+    for log_path in (Path("logs/errors.log"), Path("logs/khatmsaz.log")):
+        if log_path.exists():
+            today_str = datetime.now(ZoneInfo("Asia/Tehran")).strftime("%Y%m%d_%H%M%S")
+            return FileResponse(
+                path=str(log_path),
+                filename=f"{log_path.stem}_{today_str}.log",
+                media_type="text/plain; charset=utf-8",
+            )
+    return HTMLResponse("هنوز فایل لاگی در مسیر logs ثبت نشده است.", status_code=404)
 
 
 @app.get("/join/{token}", response_class=HTMLResponse)

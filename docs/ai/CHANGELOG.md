@@ -1,3 +1,12 @@
+## 2026-10-19 — Antigravity — Bot Fleet Diagnostics & Real-Time System Health Hub (MASTER-48)
+- **Unified Operations & Health Command Center (`web/app.py` & `web/templates/operations.html`):**
+  - Upgraded `/operations` with 4 core health KPI cards: PostgreSQL Database, Reminder APScheduler, 18-slot Bot Fleet, and Error Log Status.
+  - Added real-time ping and latency measurement endpoints (`POST /operations/bots/{instance_id}/ping` and `POST /operations/bots/ping-all`) against Telegram & Bale API (`getMe`) with 4.0s timeout.
+  - Implemented manual reminder scan execution (`POST /operations/trigger-scan`) with immediate runner and audit trail.
+  - Added live error log streaming (`GET /operations/logs/tail`) and direct download (`GET /operations/logs/download`).
+- **Master Documentation:** Authored `docs/ai/masters/MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md` and registered `DEC-PY-0140`.
+- **Validation:** 8/8 tests passed in `tests/test_master_48_diagnostics_hub.py`, combined regression suite 41/41 passed.
+
 ## 2026-10-19 — Antigravity — Advanced Analytics & Reporting Hub and Excel Export Engine (MASTER-47)
 - **Advanced Analytics & Reporting Hub (`web/app.py`, `web/templates/reports.html`, `web/templates/base.html`):**
   - Added dedicated navigation entry `/reports` under Group 1 ("فرماندهی و نظارت") in desktop sidebar and mobile navigation dock.

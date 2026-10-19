@@ -167,3 +167,102 @@ async def get_decrypted_token(instance: BotInstance) -> str | None:
     except Exception:
         logger.exception("Failed to decrypt token for bot %s", instance.id)
         return None
+
+
+async def ping_bot_instance(instance: BotInstance, timeout_seconds: float = 4.0) -> dict:
+    """Test live connectivity for a BotInstance using getMe() against Telegram or Bale API."""
+    import asyncio
+    import time
+    from khatmsaz.bot.telegram.client import build_telegram_bot
+    from khatmsaz.bot.bale.client import build_bale_bot
+
+    if not instance.token_encrypted:
+        return {
+            "ok": False,
+            "error": "توکن در سیستم ثبت نشده است.",
+            "latency_ms": None,
+            "username": instance.username,
+        }
+
+    token = await get_decrypted_token(instance)
+    if not token:
+        return {
+            "ok": False,
+            "error": "خطا در رمزگشایی توکن ربات.",
+            "latency_ms": None,
+            "username": instance.username,
+        }
+
+    start = time.perf_counter()
+    bot = None
+    try:
+        if instance.platform == "BALE":
+            bot = build_bale_bot(token)
+        else:
+            bot = build_telegram_bot(token)
+
+        me = await asyncio.wait_for(bot.get_me(), timeout=timeout_seconds)
+        latency_ms = round((time.perf_counter() - start) * 1000)
+        return {
+            "ok": True,
+            "latency_ms": latency_ms,
+            "username": me.username or instance.username,
+            "display_name": me.first_name or instance.display_name,
+            "bot_id": me.id,
+            "error": None,
+        }
+    except asyncio.TimeoutError:
+        return {
+            "ok": False,
+            "error": f"مهلت زمان پاسخ‌دهی (Timeout {int(timeout_seconds)} ثانیه) به پایان رسید.",
+            "latency_ms": None,
+            "username": instance.username,
+        }
+    except Exception as exc:
+        err_msg = str(exc)
+        if "Unauthorized" in err_msg:
+            clean_err = "توکن ربات نامعتبر است (Unauthorized)."
+        else:
+            clean_err = f"خطای اتصال: {err_msg[:120]}"
+        return {
+            "ok": False,
+            "error": clean_err,
+            "latency_ms": None,
+            "username": instance.username,
+        }
+    finally:
+        if bot and hasattr(bot, "session") and hasattr(bot.session, "close"):
+            try:
+                await bot.session.close()
+            except Exception:
+                pass
+
+
+async def ping_all_instances(session: AsyncSession, timeout_seconds: float = 4.0) -> list[dict]:
+    """Test live connectivity for all configured bots concurrently."""
+    instances = await repository.list_all(session)
+    configured = [inst for inst in instances if inst.token_encrypted]
+    if not configured:
+        return []
+
+    import asyncio
+
+    async def _ping_one(inst: BotInstance) -> dict:
+        res = await ping_bot_instance(inst, timeout_seconds=timeout_seconds)
+        res["id"] = str(inst.id)
+        res["name"] = inst.display_name
+        res["platform"] = inst.platform
+        res["bot_role"] = inst.bot_role
+        res["category"] = inst.category
+        res["language"] = inst.language
+        return res
+
+    results = await asyncio.gather(*[_ping_one(inst) for inst in configured], return_exceptions=True)
+    out = []
+    for r in results:
+        if isinstance(r, dict):
+            out.append(r)
+        else:
+            out.append({"ok": False, "error": str(r)})
+    return out
+

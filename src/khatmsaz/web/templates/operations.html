@@ -1,139 +1,578 @@
 {% extends "base.html" %}
 {% from "components.html" import tooltip, help_button %}
-{% block title %}سلامت سرویس‌ها | ختم‌ساز{% endblock %}
+{% block title %}مرکز عملیات، پایش ناوگان و سلامت زیرساخت | ختم‌ساز{% endblock %}
 {% block content %}
 <section class="mb-8 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
   <div>
-    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">عملیات و زیرساخت</p>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase mb-1">فرماندهی و نظارت سیستم</p>
     <div class="flex items-center gap-3">
-      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">سلامت سرویس‌ها و تنظیمات</h1>
+      <h1 class="text-3xl sm:text-4xl font-extrabold text-white">مرکز عملیات، پایش ناوگان و سلامت زیرساخت</h1>
       {{ help_button(
-        "راهنمای سلامت سرویس‌ها و تنظیمات سراسری",
-        "در این صفحه وضعیت اتصال دیتابیس، ردیس، بات تلگرام و بله، درگاه پرداخت پی‌پینگ و پیامک کاوه‌نگار نمایش داده می‌شود و می‌توانید لوگو و شماره پشتیبانی سیستم را تنظیم کنید.",
+        "راهنمای مرکز عملیات و عیب‌یابی",
+        "این بخش به عنوان مرکز فرماندهی و مانیتورینگ زنده سامانه طراحی شده است. می‌توانید وضعیت اتصال دیتابیس، سلامت زمان‌بند یادآوری‌ها، اتصال برخط ۱۸ ربات (تلگرام و بله)، صف‌های در انتظار و لاگ‌های زندهٔ خطای سیستم را رصد و مدیریت فرمایید.",
         [
-          "چراغ‌های بالای صفحه را برای بررسی سلامت هر سرویس مشاهده فرمایید.",
-          "برای تغییر لوگوی پنل یا شماره پشتیبانی، فرم‌های بالای صفحه را پر کرده و ذخیره نمایید.",
-          "در بخش صف‌های در انتظار و پردازشگر، آخرین وضعیت اسکنر خودکار سیستم را بررسی کنید."
+          "در بخش ناوگان ربات‌ها، با دکمهٔ «تست اتصال (Ping)» می‌توانید وضعیت زنده و تاخیر (Latency) هر بات را ارزیابی کنید یا با دکمهٔ «تست دسته‌جمعی» تمام ناوگان را پایش فرمایید.",
+          "برای اجرای فوری فرآیند تحویل سهم‌ها و اسکن یادآوری‌ها بدون نیاز به ری‌استارت سرویس، از دکمهٔ «اجرای دستی اسکن» استفاده فرمایید.",
+          "کنسول لاگ‌های خطا امکان مشاهده آخرین رخدادها، فیلتر آنی کلمات کلیدی (مانند ERROR یا Traceback) و دانلود مستقیم فایل لاگ را فراهم می‌کند."
         ],
-        "نکته: اگر چراغ سرویسی نیازمند تنظیم بود، اطلاعات مربوط به آن در متغیرهای سیستم یا بخش توکن‌ها نیاز به بازبینی دارد."
+        "نکته: تست برخط بات‌ها از متد getMe رسمی تلگرام و بله استفاده می‌کند و هیچ توکنی در مرورگر افشا نمی‌شود."
       ) }}
     </div>
   </div>
+  <div class="flex items-center gap-3">
+    <button onclick="pingAllBots()" id="pingAllBtn" class="btn bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 flex items-center gap-2 text-sm">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+      <span>⚡️ تست دسته‌جمعی ناوگان ربات‌ها</span>
+    </button>
+  </div>
 </section>
 
+<!-- Flash Messages -->
 {% if saved == 'logo' %}
-<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">لوگوی پنل ذخیره شد.</div>
+<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300 flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  لوگوی پنل با موفقیت ذخیره شد.
+</div>
 {% elif saved == 'custom_khatm_phone' %}
-<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300">شمارهٔ ساخت ختم اختصاصی ذخیره شد.</div>
+<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300 flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  شمارهٔ ساخت ختم اختصاصی با موفقیت ذخیره شد.
+</div>
+{% elif saved == 'system_settings' %}
+<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300 flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  تنظیمات سراسری زمان‌بندی با موفقیت ذخیره شد.
+</div>
+{% elif saved == 'scan_triggered' %}
+<div class="mb-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-300 flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+  اسکن یادآوری‌ها و تحویل سهم‌ها با موفقیت به صورت دستی اجرا شد و در گزارشات ممیزی ثبت گردید.
+</div>
+{% elif request.query_params.get('error') %}
+<div class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-300 flex items-center gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+  {{ request.query_params.get('error') }}
+</div>
 {% endif %}
 
-<section class="glass-panel p-6 rounded-3xl mb-8">
-  <div class="mb-5 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">لوگوی ختم‌ساز</h2>
-    <p class="mt-2 text-sm text-slate-400">لینک مستقیم تصویر را وارد کنید. با خالی گذاشتن آن، نشان پیش‌فرض «خ» نمایش داده می‌شود.</p>
-  </div>
-  <form action="/operations/panel-logo" method="post" class="flex flex-col sm:flex-row gap-3 items-end">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label class="flex-1 w-full text-sm text-slate-300">
-      آدرس تصویر
-      <input class="input-field mt-2" dir="ltr" type="url" name="panel_logo_url" maxlength="500" placeholder="https://example.com/logo.png" value="{{ panel_logo_url }}">
-      <p class="mt-2 text-xs text-slate-400">این لوگو در پنل مدیریت و پنل سازنده نمایش داده می‌شود.</p>
-    </label>
-    <button class="btn whitespace-nowrap" type="submit">ذخیره لوگو</button>
-  </form>
-</section>
-
-<section class="glass-panel p-6 rounded-3xl mb-8">
-  <div class="mb-5 border-b border-white/5 pb-4">
-    <h2 class="text-xl font-bold text-white">ساخت ختم اختصاصی</h2>
-    <p class="mt-2 text-sm text-slate-400">این شماره با زدن دکمهٔ «ساخت ختم اختصاصی» در بات‌های ممبر نمایش داده می‌شود.</p>
-  </div>
-  <form action="/operations/custom-khatm-phone" method="post" class="flex flex-col sm:flex-row gap-3 items-end">
-    <input type="hidden" name="csrf" value="{{ csrf }}">
-    <label class="flex-1 w-full text-sm text-slate-300">شماره مدیریت
-      <input class="input-field mt-2" dir="ltr" type="tel" name="custom_khatm_admin_phone" maxlength="20" placeholder="+989121234567" value="{{ custom_khatm_admin_phone }}">
-    </label>
-    <button class="btn whitespace-nowrap" type="submit">ذخیره شماره</button>
-  </form>
-</section>
-
+<!-- Section 1: 4 Core Health KPIs -->
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-  {% for service in services %}
-  <article class="glass-card p-5 rounded-2xl flex flex-col {% if service.ready %}border-b-2 border-b-emerald-500{% else %}border-b-2 border-b-amber-500{% endif %}">
-    <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider mb-2">{{ service.name }}</span>
-    <strong class="text-xl font-bold {% if service.ready %}text-emerald-400{% else %}text-amber-400{% endif %} mb-1">
-      {% if service.ready %}
-      <span class="flex items-center gap-2">آماده <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg></span>
-      {% else %}
-      <span class="flex items-center gap-2">نیازمند تنظیم <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></span>
-      {% endif %}
+  <!-- DB KPI -->
+  <article class="glass-card p-5 rounded-2xl flex flex-col {% if services[0].ready %}border-b-2 border-b-emerald-500{% else %}border-b-2 border-b-rose-500{% endif %}">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">پایگاه داده (PostgreSQL)</span>
+      <span class="p-1.5 rounded-lg bg-slate-800/60 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3V7c0-2-1.5-3-3.5-3h-9C5.5 4 4 5 4 7zM4 12c0 2 1.5 3 3.5 3h9c2 0 3.5-1 3.5-3" /></svg>
+      </span>
+    </div>
+    <strong class="text-xl font-bold {% if services[0].ready %}text-emerald-400{% else %}text-rose-400{% endif %} mb-1 flex items-center gap-2">
+      {% if services[0].ready %}آماده و متصل{% else %}خطا در اتصال{% endif %}
     </strong>
-    <small class="text-xs text-slate-500 font-mono" dir="ltr">{{ service.detail }}</small>
+    <small class="text-xs text-slate-400">اتصال PostgreSQL و وضعیت مایگریشن‌ها</small>
   </article>
-  {% endfor %}
+
+  <!-- Scheduler KPI -->
+  <article class="glass-card p-5 rounded-2xl flex flex-col {% if worker.scheduler_started_at %}border-b-2 border-b-emerald-500{% else %}border-b-2 border-b-amber-500{% endif %}">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">زمان‌بند یادآوری‌ها (APScheduler)</span>
+      <span class="p-1.5 rounded-lg bg-slate-800/60 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      </span>
+    </div>
+    <strong class="text-xl font-bold {% if worker.scheduler_started_at %}text-emerald-400{% else %}text-amber-400{% endif %} mb-1 flex items-center gap-2">
+      {% if worker.scheduler_started_at %}فعال و در حال اسکن{% else %}در انتظار ثبت پردازش{% endif %}
+    </strong>
+    <small class="text-xs text-slate-400">اسکن هر <span class="font-mono text-emerald-400 font-bold">{{ scan_interval }}</span> دقیقه</small>
+  </article>
+
+  <!-- Bot Fleet KPI -->
+  <article class="glass-card p-5 rounded-2xl flex flex-col border-b-2 border-b-indigo-500">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">ناوگان ربات‌ها (Bot Fleet)</span>
+      <span class="p-1.5 rounded-lg bg-slate-800/60 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+      </span>
+    </div>
+    <strong class="text-xl font-bold text-white mb-1 flex items-center gap-1 font-mono" dir="ltr">
+      <span class="text-emerald-400">{{ bot_stats.active }}</span> / <span class="text-sky-400">{{ bot_stats.configured }}</span> <span class="text-xs font-sans text-slate-400">از {{ bot_stats.total }} اسلات</span>
+    </strong>
+    <small class="text-xs text-slate-400">ربات‌های فعال و دارای توکن در تلگرام و بله</small>
+  </article>
+
+  <!-- Error Log KPI -->
+  <article class="glass-card p-5 rounded-2xl flex flex-col {% if error_log_stats.lines_count > 0 %}border-b-2 border-b-amber-500{% else %}border-b-2 border-b-emerald-500{% endif %}">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-[0.65rem] font-bold text-slate-400 uppercase tracking-wider">لاگ خطای سیستم (Error Logs)</span>
+      <span class="p-1.5 rounded-lg bg-slate-800/60 text-slate-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+      </span>
+    </div>
+    <strong class="text-xl font-bold {% if error_log_stats.lines_count > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mb-1 flex items-center gap-2 font-mono">
+      {{ error_log_stats.lines_count }} <span class="text-xs font-sans text-slate-400">خط خطا</span>
+    </strong>
+    <small class="text-xs text-slate-400">{{ error_log_stats.filename }} ({{ error_log_stats.size_kb }} KB)</small>
+  </article>
 </section>
 
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-  <section class="glass-panel p-6 rounded-3xl">
-    <div class="mb-6 border-b border-white/5 pb-4">
-      <h2 class="text-xl font-bold text-white">صف‌های در انتظار</h2>
+<!-- Section 2: Interactive Bot Fleet Grid -->
+<section class="glass-panel p-6 rounded-3xl mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-white/5 pb-4">
+    <div>
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">
+        <span>ناوگان ۱۸ ربات تلگرام و بله (Bot Fleet Diagnostics)</span>
+        <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">{{ bot_stats.total }} اسلات</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">تست برخط اتصال، بررسی توکن‌ها و سنجش تاخیر ارتباطی (Latency) به میلی‌ثانیه</p>
     </div>
     
-    <div class="flex flex-col gap-3">
-      <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/20 border border-slate-700/30">
-        <span class="text-sm font-bold text-slate-300">پیام گروهی</span>
-        <b class="text-lg font-mono {% if queues.broadcasts > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} bg-slate-900/50 px-3 py-1 rounded-lg">{{ queues.broadcasts }}</b>
-      </div>
-      <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/20 border border-slate-700/30">
-        <span class="text-sm font-bold text-slate-300">کاور ختم</span>
-        <b class="text-lg font-mono {% if queues.covers > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} bg-slate-900/50 px-3 py-1 rounded-lg">{{ queues.covers }}</b>
-      </div>
-      <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/20 border border-slate-700/30">
-        <span class="text-sm font-bold text-slate-300">احراز شماره خارجی</span>
-        <b class="text-lg font-mono {% if queues.phones > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} bg-slate-900/50 px-3 py-1 rounded-lg">{{ queues.phones }}</b>
-      </div>
-      <div class="flex justify-between items-center p-4 rounded-xl bg-slate-800/20 border border-slate-700/30">
-        <span class="text-sm font-bold text-slate-300">درخواست دسته محتوا</span>
-        <b class="text-lg font-mono {% if queues.categories > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} bg-slate-900/50 px-3 py-1 rounded-lg">{{ queues.categories }}</b>
-      </div>
+    <!-- Platform Filter Controls -->
+    <div class="flex items-center gap-2">
+      <button onclick="filterFleet('ALL')" id="filter-ALL" class="fleet-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">همه ({{ bot_stats.total }})</button>
+      <button onclick="filterFleet('TELEGRAM')" id="filter-TELEGRAM" class="fleet-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white">تلگرام</button>
+      <button onclick="filterFleet('BALE')" id="filter-BALE" class="fleet-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white">بله</button>
     </div>
-  </section>
+  </div>
 
-  <section class="glass-panel p-6 rounded-3xl">
-    <div class="mb-6 border-b border-white/5 pb-4">
-      <h2 class="text-xl font-bold text-white">پردازشگر یادآوری</h2>
-    </div>
-    
-    <div class="flex flex-col gap-4">
-      <div class="p-4 rounded-xl {% if worker.scheduler_started_at %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-amber-500/10 border border-amber-500/20 text-amber-400{% endif %} flex items-center gap-3">
-        {% if worker.scheduler_started_at %}
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        <span class="font-bold">زمان‌بند فعال است</span>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="fleetGrid">
+    {% for bot in bots %}
+    <article class="glass-card p-5 rounded-2xl flex flex-col group relative transition-all duration-200 border border-slate-800 hover:border-slate-700 bot-card" data-platform="{{ bot.platform }}" id="bot-card-{{ bot.id }}">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          {% if bot.platform == 'TELEGRAM' %}
+          <span class="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs" title="پیام‌رسان تلگرام">تل</span>
+          {% else %}
+          <span class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs" title="پیام‌رسان بله">بله</span>
+          {% endif %}
+          <div>
+            <h3 class="font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">{{ bot.display_name }}</h3>
+            <div class="flex gap-1.5 mt-1">
+              {% if bot.bot_role == 'CREATOR' %}
+              <span class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400">سازنده</span>
+              {% elif bot.bot_role == 'ADMIN' %}
+              <span class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-400">ادمین</span>
+              {% else %}
+              <span class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400">{{ bot.category }}</span>
+              {% if bot.language %}
+              <span class="text-[0.6rem] font-bold px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400">{{ bot.language }}</span>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          {% if bot.token_encrypted and bot.is_active %}
+          <span class="status active text-[0.65rem] py-0.5 px-2">فعال</span>
+          {% elif bot.token_encrypted and not bot.is_active %}
+          <span class="status cancelled text-[0.65rem] py-0.5 px-2">غیرفعال</span>
+          {% else %}
+          <span class="status draft text-[0.65rem] py-0.5 px-2">بدون توکن</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-400 mb-4 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800">
+        <span class="text-slate-500">یوزرنیم:</span>
+        <span class="font-mono text-slate-300" dir="ltr">{% if bot.username %}@{{ bot.username }}{% else %}<span class="text-slate-600">ثبت‌نشده</span>{% endif %}</span>
+      </div>
+
+      <!-- Real-time Ping Diagnostic Status Box -->
+      <div id="ping-box-{{ bot.id }}" class="mt-auto p-3 rounded-xl bg-slate-800/30 border border-slate-700/40 text-xs flex flex-col gap-1.5 mb-3">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 font-bold">وضعیت اتصال:</span>
+          <span id="ping-status-{{ bot.id }}" class="font-medium text-slate-500">آماده برای تست</span>
+        </div>
+        <div id="ping-latency-{{ bot.id }}" class="text-[0.7rem] font-mono text-slate-500 hidden"></div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex gap-2">
+        {% if bot.token_encrypted %}
+        <button type="button" onclick="pingSingleBot('{{ bot.id }}')" id="ping-btn-{{ bot.id }}" class="btn py-1.5 px-3 text-xs flex-1 justify-center bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+          <span>تست اتصال (Ping)</span>
+        </button>
         {% else %}
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-        <span class="font-bold">زمان‌بند در این پردازش ثبت نشده است</span>
+        <span class="py-1.5 px-3 text-xs flex-1 text-center text-slate-600 bg-slate-900/30 rounded-xl border border-slate-800/50">فاقد توکن</span>
+        {% endif %}
+        <a href="/bots?platform={{ bot.platform }}#bot-{{ bot.id }}" class="px-2.5 py-1.5 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 border border-slate-700/50 text-xs font-bold transition-colors" title="مدیریت توکن در تنظیمات بات‌ها">
+          ⚙️
+        </a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- Section 3: Scheduler Diagnostics & Queues -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+  <!-- Scheduler Panel with Manual Trigger -->
+  <section class="glass-panel p-6 rounded-3xl flex flex-col justify-between">
+    <div>
+      <div class="flex items-center justify-between mb-6 border-b border-white/5 pb-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">زمان‌بند یادآوری و تحویل سهم</h2>
+          <p class="text-xs text-slate-400 mt-1">موتور پایش زمان‌بندی و ارسال خودکار به اعضا</p>
+        </div>
+        <span class="w-3 h-3 rounded-full {% if worker.scheduler_started_at %}bg-emerald-400 animate-pulse shadow-lg shadow-emerald-500/50{% else %}bg-amber-400{% endif %}"></span>
+      </div>
+
+      <div class="flex flex-col gap-4 mb-6">
+        <div class="p-4 rounded-xl {% if worker.scheduler_started_at %}bg-emerald-500/10 border border-emerald-500/20 text-emerald-400{% else %}bg-amber-500/10 border border-amber-500/20 text-amber-400{% endif %} flex items-center gap-3">
+          {% if worker.scheduler_started_at %}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <div>
+            <span class="font-bold block">زمان‌بند فعال و آماده است</span>
+            <span class="text-xs text-emerald-500/80 font-mono" dir="ltr">Started: {{ worker.scheduler_started_at }}</span>
+          </div>
+          {% else %}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+          <span class="font-bold">زمان‌بند در این پروسه مستقیماً ثبت نشده است (در حال اجرا روی ورکر مستقل)</span>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+            <span class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1 block">فاصله اجرای اسکن</span>
+            <span class="text-sm font-bold text-white flex items-center gap-1">هر <span class="font-mono text-emerald-400 font-bold">{{ scan_interval }}</span> دقیقه</span>
+          </div>
+
+          <div class="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
+            <span class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1 block">آخرین اجرای موفق</span>
+            <span class="text-sm font-mono text-white" dir="ltr">{{ worker.last_scan_succeeded_at or 'هنوز ثبت نشده' }}</span>
+          </div>
+        </div>
+
+        {% if worker.last_scan_error %}
+        <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+          <span class="text-[0.65rem] font-bold text-rose-500 uppercase tracking-wider mb-1 block">آخرین خطای اسکنر</span>
+          <code class="text-xs text-rose-400 font-mono break-all" dir="ltr">{{ worker.last_scan_error }}</code>
+        </div>
         {% endif %}
       </div>
-      
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div class="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
-          <span class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1 block">فاصله اجرای اسکن</span>
-          <span class="text-sm font-bold text-white flex items-center gap-1">هر <span class="font-mono text-emerald-400">{{ scan_interval }}</span> دقیقه</span>
-        </div>
-        
-        <div class="bg-slate-800/40 rounded-xl p-4 border border-slate-700/50">
-          <span class="text-[0.65rem] font-bold text-slate-500 uppercase tracking-wider mb-1 block">آخرین اجرای موفق</span>
-          <span class="text-sm font-mono text-white" dir="ltr">{{ worker.last_scan_succeeded_at or 'هنوز اجرا نشده' }}</span>
-        </div>
+    </div>
+
+    <!-- Manual Scan Trigger Action Button -->
+    <form action="/operations/trigger-scan" method="post" onsubmit="return confirm('آیا از اجرای فوری یک نوبت اسکن کامل زمان‌بند یادآوری‌ها و تحویل سهم‌ها اطمینان دارید؟');" class="pt-4 border-t border-white/5">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button type="submit" class="btn w-full justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 text-sm flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>⚡️ اجرای دستی اسکن یادآوری‌ها (هم‌اکنون)</span>
+      </button>
+      <p class="text-xs text-slate-500 mt-2 text-center">این عملیات فرآیند یادآوری را بلافاصله بدون ایجاد تداخل با کرون‌جاب سیستم فعال می‌کند.</p>
+    </form>
+  </section>
+
+  <!-- System Queues Panel -->
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-6 border-b border-white/5 pb-4 flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-white">صف‌های در انتظار بررسی و نظارت</h2>
+        <p class="text-xs text-slate-400 mt-1">تعداد درخواست‌های در انتظار تصمیم در بخش‌های گوناگون</p>
       </div>
-      
-      {% if worker.last_scan_error %}
-      <div class="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-        <span class="text-[0.65rem] font-bold text-rose-500 uppercase tracking-wider mb-1 block">آخرین خطا</span>
-        <code class="text-xs text-rose-400 font-mono break-all" dir="ltr">{{ worker.last_scan_error }}</code>
-      </div>
-      {% endif %}
+      <a href="/moderation" class="text-xs text-emerald-400 hover:underline">مشاهده همه صف‌ها ←</a>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      <a href="/moderation?tab=broadcasts" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">پیام‌های گروهی سازندگان</span>
+        <b class="text-base font-mono {% if queues.broadcasts > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.broadcasts }}</b>
+      </a>
+      <a href="/moderation?tab=covers" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">کاورهای ارسالی ختم‌ها</span>
+        <b class="text-base font-mono {% if queues.covers > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.covers }}</b>
+      </a>
+      <a href="/moderation?tab=phones" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">احراز شماره‌های خارجی</span>
+        <b class="text-base font-mono {% if queues.phones > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.phones }}</b>
+      </a>
+      <a href="/moderation?tab=categories" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">درخواست‌های دسته محتوای جدید</span>
+        <b class="text-base font-mono {% if queues.categories > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.categories }}</b>
+      </a>
+      <a href="/moderation?tab=laan" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">ختم‌های لعن در انتظار تایید</span>
+        <b class="text-base font-mono {% if queues.laan > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.laan }}</b>
+      </a>
+      <a href="/moderation?tab=banners" class="flex justify-between items-center p-3.5 rounded-xl bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/40 transition-colors">
+        <span class="text-sm font-bold text-slate-300">بنرهای تبلیغاتی و اطلاعیه‌ها</span>
+        <b class="text-base font-mono {% if queues.banners > 0 %}text-amber-400 bg-amber-500/10 border border-amber-500/20{% else %}text-emerald-400 bg-slate-900/50{% endif %} px-3 py-0.5 rounded-lg">{{ queues.banners }}</b>
+      </a>
     </div>
   </section>
 </div>
+
+<!-- Section 4: Live Error Log Console -->
+<section class="glass-panel p-6 rounded-3xl mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-white/5 pb-4">
+    <div>
+      <h2 class="text-xl font-bold text-white flex items-center gap-2">
+        <span>کنسول خطایابی و لاگ‌های زندهٔ سیستم</span>
+        <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400">{{ recent_errors|length }} خط</span>
+      </h2>
+      <p class="text-xs text-slate-400 mt-1">مشاهده آنی رخدادها و خطاهای ثبت‌شده در <code class="text-slate-300 font-mono">{{ error_log_stats.filename }}</code></p>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <!-- Search/Filter Input -->
+      <div class="relative">
+        <input type="search" id="logFilter" oninput="filterLogs()" placeholder="فیلتر در لاگ‌ها (ERROR, Traceback...)" class="input-field text-xs py-1.5 px-3 w-56 font-mono" dir="ltr">
+      </div>
+      <!-- Refresh Button -->
+      <button onclick="refreshLogs()" id="refreshLogsBtn" class="btn py-1.5 px-3 text-xs flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+        <span>تازه‌سازی</span>
+      </button>
+      <!-- Download Log Button -->
+      <a href="/operations/logs/download" class="btn py-1.5 px-3 text-xs flex items-center gap-1.5 bg-sky-600/20 hover:bg-sky-600/40 text-sky-300 border border-sky-500/30">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        <span>دانلود فایل لاگ</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Terminal Style Log Box -->
+  <div id="logConsole" class="bg-slate-950/90 border border-slate-800/80 rounded-2xl p-4 font-mono text-xs text-slate-300 max-h-96 overflow-y-auto leading-relaxed shadow-inner" dir="ltr">
+    {% if recent_errors %}
+      {% for line in recent_errors %}
+      <div class="log-line py-0.5 px-1 hover:bg-slate-900/60 rounded transition-colors whitespace-pre-wrap break-all {% if 'ERROR' in line or 'CRITICAL' in line %}text-rose-400 font-semibold{% elif 'WARNING' in line %}text-amber-400{% elif 'INFO' in line %}text-slate-300{% else %}text-slate-400{% endif %}">
+        {{ line }}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-emerald-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <span>هیچ خطایی در فایل‌های لاگ ثبت نشده است. کلیه سرویس‌ها پایدار هستند.</span>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Section 5: Global System Settings -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <!-- System Int Settings (Reminder Hour & Inactivity Days) -->
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-4 border-b border-white/5 pb-3">
+      <h2 class="text-base font-bold text-white">تنظیمات سراسری زمان‌بندی</h2>
+      <p class="mt-1 text-xs text-slate-400">ساعت پیش‌فرض یادآوری و مهلت روزهای عدم فعالیت</p>
+    </div>
+    <form action="/operations/system-settings" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="text-xs text-slate-300">
+        ساعت پیش‌فرض یادآوری (۰ الی ۲۳)
+        <input class="input-field mt-1" type="number" min="0" max="23" name="default_reminder_hour" value="{{ system_int_settings.default_reminder_hour }}">
+      </label>
+      <label class="text-xs text-slate-300">
+        روزهای مجاز عدم فعالیت
+        <input class="input-field mt-1" type="number" min="1" max="30" name="inactivity_days" value="{{ system_int_settings.inactivity_days }}">
+      </label>
+      <button class="btn justify-center mt-1" type="submit">ذخیره تنظیمات</button>
+    </form>
+  </section>
+
+  <!-- Panel Logo Setting -->
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-4 border-b border-white/5 pb-3">
+      <h2 class="text-base font-bold text-white">لوگوی پنل مدیریت و سازنده</h2>
+      <p class="mt-1 text-xs text-slate-400">آدرس تصویر لوگوی سفارشی پنل</p>
+    </div>
+    <form action="/operations/panel-logo" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="text-xs text-slate-300">
+        آدرس اینترنتی لوگو (URL)
+        <input class="input-field mt-1" dir="ltr" type="url" name="panel_logo_url" maxlength="500" placeholder="https://example.com/logo.png" value="{{ panel_logo_url }}">
+      </label>
+      <p class="text-[0.65rem] text-slate-500">خالی گذاشتن فیلد موجب نمایش نشان پیش‌فرض «خ» می‌گردد.</p>
+      <button class="btn justify-center mt-auto" type="submit">ذخیره لوگو</button>
+    </form>
+  </section>
+
+  <!-- Custom Khatm Phone Setting -->
+  <section class="glass-panel p-6 rounded-3xl">
+    <div class="mb-4 border-b border-white/5 pb-3">
+      <h2 class="text-base font-bold text-white">شمارهٔ ساخت ختم اختصاصی</h2>
+      <p class="mt-1 text-xs text-slate-400">شماره پشتیبان نمایش‌داده‌شده در دکمه ربات‌ها</p>
+    </div>
+    <form action="/operations/custom-khatm-phone" method="post" class="flex flex-col gap-3">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="text-xs text-slate-300">
+        شماره موبایل پشتیبانی
+        <input class="input-field mt-1" dir="ltr" type="tel" name="custom_khatm_admin_phone" maxlength="20" placeholder="+989121234567" value="{{ custom_khatm_admin_phone }}">
+      </label>
+      <p class="text-[0.65rem] text-slate-500">شماره با کد کشور (مانند +98) ذخیره می‌شود.</p>
+      <button class="btn justify-center mt-auto" type="submit">ذخیره شماره</button>
+    </form>
+  </section>
+</div>
+
+<!-- JavaScript for Interactive Fleet Pings, Log Filtering and Refresh -->
+<script>
+const CSRF_TOKEN = "{{ csrf }}";
+
+// Single Bot Ping
+async function pingSingleBot(botId) {
+  const statusEl = document.getElementById(`ping-status-${botId}`);
+  const latencyEl = document.getElementById(`ping-latency-${botId}`);
+  const btnEl = document.getElementById(`ping-btn-${botId}`);
+  
+  if (!statusEl) return;
+  statusEl.innerHTML = '<span class="text-amber-400 animate-pulse">در حال تست اتصال...</span>';
+  if (latencyEl) latencyEl.classList.add('hidden');
+  if (btnEl) btnEl.disabled = true;
+
+  try {
+    const res = await fetch(`/operations/bots/${botId}/ping`, {
+      method: 'POST',
+      headers: {
+        'x-csrf-token': CSRF_TOKEN,
+        'Content-Type': 'application/json',
+      }
+    });
+    const data = await res.json();
+    if (data.ok) {
+      statusEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ برخط (@${data.username || ''})</span>`;
+      if (latencyEl) {
+        latencyEl.textContent = `تاخیر پاسخ‌دهی: ${data.latency_ms} ms`;
+        latencyEl.classList.remove('hidden');
+        latencyEl.className = 'text-[0.7rem] font-mono text-emerald-400';
+      }
+    } else {
+      statusEl.innerHTML = `<span class="text-rose-400 font-bold">❌ خطا</span>`;
+      if (latencyEl) {
+        latencyEl.textContent = data.error || 'ارتباط برقرار نشد';
+        latencyEl.classList.remove('hidden');
+        latencyEl.className = 'text-[0.7rem] font-mono text-rose-400';
+      }
+    }
+  } catch (err) {
+    statusEl.innerHTML = `<span class="text-rose-400 font-bold">❌ خطای کلاینت</span>`;
+    if (latencyEl) {
+      latencyEl.textContent = err.message;
+      latencyEl.classList.remove('hidden');
+    }
+  } finally {
+    if (btnEl) btnEl.disabled = false;
+  }
+}
+
+// Ping All Bots
+async function pingAllBots() {
+  const pingAllBtn = document.getElementById('pingAllBtn');
+  if (pingAllBtn) {
+    pingAllBtn.disabled = true;
+    pingAllBtn.innerHTML = '<span class="animate-spin">⏳</span> در حال ارزیابی تمام ناوگان...';
+  }
+
+  try {
+    const res = await fetch('/operations/bots/ping-all', {
+      method: 'POST',
+      headers: {
+        'x-csrf-token': CSRF_TOKEN,
+        'Content-Type': 'application/json',
+      }
+    });
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.results)) {
+      for (const item of data.results) {
+        const botId = item.id;
+        const statusEl = document.getElementById(`ping-status-${botId}`);
+        const latencyEl = document.getElementById(`ping-latency-${botId}`);
+        if (!statusEl) continue;
+        if (item.ok) {
+          statusEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ برخط (@${item.username || ''})</span>`;
+          if (latencyEl) {
+            latencyEl.textContent = `تاخیر پاسخ‌دهی: ${item.latency_ms} ms`;
+            latencyEl.classList.remove('hidden');
+            latencyEl.className = 'text-[0.7rem] font-mono text-emerald-400';
+          }
+        } else {
+          statusEl.innerHTML = `<span class="text-rose-400 font-bold">❌ خطا</span>`;
+          if (latencyEl) {
+            latencyEl.textContent = item.error || 'ارتباط برقرار نشد';
+            latencyEl.classList.remove('hidden');
+            latencyEl.className = 'text-[0.7rem] font-mono text-rose-400';
+          }
+        }
+      }
+    }
+  } catch (err) {
+    alert('خطا در تست دسته‌جمعی بات‌ها: ' + err.message);
+  } finally {
+    if (pingAllBtn) {
+      pingAllBtn.disabled = false;
+      pingAllBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg><span>⚡️ تست دسته‌جمعی ناوگان ربات‌ها</span>';
+    }
+  }
+}
+
+// Fleet Platform Filter
+function filterFleet(platform) {
+  const cards = document.querySelectorAll('.bot-card');
+  const buttons = document.querySelectorAll('.fleet-filter-btn');
+  buttons.forEach(btn => {
+    btn.className = 'fleet-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800/40 text-slate-400 border border-slate-700/50 hover:text-white';
+  });
+  const activeBtn = document.getElementById(`filter-${platform}`);
+  if (activeBtn) {
+    activeBtn.className = 'fleet-filter-btn px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+  }
+
+  cards.forEach(card => {
+    if (platform === 'ALL' || card.dataset.platform === platform) {
+      card.style.display = 'flex';
+    } else {
+      card.style.display = 'none';
+    }
+  });
+}
+
+// Client-side Log Filtering
+function filterLogs() {
+  const query = (document.getElementById('logFilter')?.value || '').toLowerCase();
+  const lines = document.querySelectorAll('#logConsole .log-line');
+  lines.forEach(line => {
+    const text = line.textContent.toLowerCase();
+    if (!query || text.includes(query)) {
+      line.style.display = 'block';
+    } else {
+      line.style.display = 'none';
+    }
+  });
+}
+
+// Asynchronous Log Refresh
+async function refreshLogs() {
+  const btn = document.getElementById('refreshLogsBtn');
+  const consoleEl = document.getElementById('logConsole');
+  if (btn) btn.innerHTML = '<span>⏳...</span>';
+
+  try {
+    const res = await fetch('/operations/logs/tail?limit=150');
+    const data = await res.json();
+    if (data.ok && Array.isArray(data.lines)) {
+      if (data.lines.length === 0) {
+        consoleEl.innerHTML = '<div class="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-emerald-500/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg><span>هیچ خطایی در فایل‌های لاگ ثبت نشده است. کلیه سرویس‌ها پایدار هستند.</span></div>';
+      } else {
+        consoleEl.innerHTML = data.lines.map(line => {
+          let colorClass = 'text-slate-400';
+          if (line.includes('ERROR') || line.includes('CRITICAL')) colorClass = 'text-rose-400 font-semibold';
+          else if (line.includes('WARNING')) colorClass = 'text-amber-400';
+          else if (line.includes('INFO')) colorClass = 'text-slate-300';
+          return `<div class="log-line py-0.5 px-1 hover:bg-slate-900/60 rounded transition-colors whitespace-pre-wrap break-all ${colorClass}">${escapeHtml(line)}</div>`;
+        }).join('');
+      }
+      filterLogs();
+    }
+  } catch (err) {
+    console.error('Failed to refresh logs:', err);
+  } finally {
+    if (btn) btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg><span>تازه‌سازی</span>';
+  }
+}
+
+function escapeHtml(text) {
+  const map = {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'};
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+</script>
 {% endblock %}

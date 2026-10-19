@@ -1,3 +1,20 @@
+## Current state — 2026-10-19 — Bot Fleet Diagnostics & Real-Time System Health Hub in Web Admin (MASTER-48) [Antigravity]
+- **Unified Operations & Health Command Center (`web/app.py` & `web/templates/operations.html`):**
+  - Upgraded `/operations` into a unified infrastructure and diagnostics command center combining service readiness, bot fleet health, scheduler diagnostics, system queues, and real-time error log viewer.
+  - Implemented 4 core health KPI cards: PostgreSQL Database, Reminder APScheduler, 18-slot Bot Fleet, and Error Log Status with file size and line counts.
+- **Bot Fleet Ping & Latency Diagnostics (`modules/bot_registry/service.py`, `web/app.py`, `web/templates/operations.html`):**
+  - Implemented `POST /operations/bots/{instance_id}/ping` performing real-time `getMe()` calls against Telegram API and Bale API with strict 4.0s timeout and millisecond latency measurement.
+  - Implemented `POST /operations/bots/ping-all` for concurrent, asynchronous health evaluation across all active bot slots with visual status badges and live latency badges.
+  - Added platform quick-filter buttons (All, Telegram, Bale) with instant client-side toggling.
+- **Scheduler Diagnostics & Manual Scan Trigger (`web/app.py` & `web/templates/operations.html`):**
+  - Implemented `POST /operations/trigger-scan` allowing Super Admins to manually execute an immediate reminder and share delivery scan (`reminder_engine.run_once()`) without restarting services or waiting for background cron timers.
+  - Recorded every manual scan trigger in the audit trail (`audit_service.record` with action `MANUAL_REMINDER_SCAN_TRIGGERED`).
+- **Live Error Log Viewer (`web/app.py` & `web/templates/operations.html`):**
+  - Integrated terminal-styled log viewer streaming the last 150 lines from `logs/errors.log` (or `logs/khatmsaz.log`) with syntax highlighting for ERROR, CRITICAL, and WARNING.
+  - Implemented client-side instant search/filter, asynchronous log refresh (`GET /operations/logs/tail`), and direct log download (`GET /operations/logs/download`).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md` and registered `DEC-PY-0140`.
+- **Validation:** Added 8 tests in `tests/test_master_48_diagnostics_hub.py` (100% PASS), and verified combined regression suite passes with 41/41 tests passing across masters 42 to 48.
+
 ## Current state — 2026-10-19 — Advanced Analytics & Reporting Hub and Excel Export Engine in Web Admin (MASTER-47) [Antigravity]
 - **Advanced Analytics & Reporting Hub (`web/app.py`, `web/templates/reports.html`, `web/templates/base.html`):**
   - Added dedicated navigation entry `/reports` under Group 1 ("فرماندهی و نظارت") in desktop sidebar and mobile navigation dock.

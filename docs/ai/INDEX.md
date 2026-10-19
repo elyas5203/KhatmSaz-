@@ -1,3 +1,8 @@
+## 2026-10-19 — Bot Fleet Diagnostics & Real-Time System Health Hub (MASTER-48) [Antigravity]
+- Master Document: [MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md](masters/MASTER_48_BOT_FLEET_DIAGNOSTICS_AND_HEALTH_HUB.md) (Unified operations and diagnostics command center `/operations` in web admin, real-time ping and latency testing across 18 Telegram and Bale bots, manual scheduler scan trigger with audit trail, and live error log console).
+- Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/operations.html`, `src/khatmsaz/modules/bot_registry/service.py`, `src/khatmsaz/core/bot_registry.py`.
+- Tests: `tests/test_master_48_diagnostics_hub.py`.
+
 ## 2026-10-19 — Advanced Analytics & Reporting Hub and Excel Export Engine (MASTER-47) [Antigravity]
 - Master Document: [MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md](masters/MASTER_47_ADVANCED_ANALYTICS_AND_REPORTING_HUB.md) (Centralized analytics and reporting hub `/reports` in web admin, 4 KPI cards with today vs yesterday trends, 5-family devotional reception matrix, platform distribution, top khatms highlights, and 3 global Excel export endpoints for khatms, users, and finances).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/reports.html`, `src/khatmsaz/web/templates/base.html`, `src/khatmsaz/modules/reporting/`.
