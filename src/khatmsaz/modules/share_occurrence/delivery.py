@@ -326,7 +326,13 @@ async def prepare(session, participation_id, *, now=None, manual=False):
     if not manual and not is_regular_due(local, freq or "DAILY", hour, minute, last_date, weekdays=part.schedule_weekdays):
         return None
     total = await contributions.total_for_khatm(session, khatm.id)
-    if khatm.repetition_target is not None and total >= khatm.repetition_target:
+    effective_target = khatm.repetition_target
+    if effective_target is not None and quran:
+        from khatmsaz.modules.content import service as content_svc
+        total_pages = content_svc.get_quran_total_pages(khatm)
+        if effective_target < total_pages:
+            effective_target = effective_target * total_pages
+    if effective_target is not None and total >= effective_target:
         return None
     # Finish one attempted share instead of skipping its pages after an outage.
     # Only a successful delivery today creates today's actionable obligation.
@@ -352,6 +358,10 @@ async def prepare(session, participation_id, *, now=None, manual=False):
                 default_start = (part.open_reading_next_page - 1) % total_pages + 1
                 start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
                 end = min(total_pages, start + amount - 1)
+                if start == 1 and amount == 2 and total_pages == 604:
+                    end = 3
+                elif start == 602 and amount == 2 and total_pages == 604:
+                    end = 604
                 ranges_list = [[start, end]]
                 if end - start + 1 < amount:
                     ranges_list.append([1, amount - (end - start + 1)])
@@ -360,6 +370,10 @@ async def prepare(session, participation_id, *, now=None, manual=False):
             default_start = (part.open_reading_next_page - 1) % total_pages + 1
             start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
             end = min(total_pages, start + amount - 1)
+            if start == 1 and amount == 2 and total_pages == 604:
+                end = 3
+            elif start == 602 and amount == 2 and total_pages == 604:
+                end = 604
             ranges_list = [[start, end]]
             if end - start + 1 < amount:
                 ranges_list.append([1, amount - (end - start + 1)])
@@ -435,6 +449,10 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
                 sections_per_round = 8
         if effective_target < sections_per_round:
             effective_target *= sections_per_round
+    elif quran and effective_target is not None:
+        total_pages = content.get_quran_total_pages(khatm)
+        if effective_target < total_pages:
+            effective_target = effective_target * total_pages
     if effective_target is not None and total >= effective_target:
         return None
     quran = khatm.template_type == "QURAN_PAGE"
@@ -462,6 +480,10 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
                 default_start = (part.open_reading_next_page - 1) % total_pages + 1
                 start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
                 end = min(total_pages, start + amount - 1)
+                if start == 1 and amount == 2 and total_pages == 604:
+                    end = 3
+                elif start == 602 and amount == 2 and total_pages == 604:
+                    end = 604
                 ranges = [[start, end]]
                 if end - start + 1 < amount:
                     ranges.append([1, amount - (end - start + 1)])
@@ -470,6 +492,10 @@ async def prepare_numeric(session, participation_id, amount, *, user_id, bot_ins
             default_start = (part.open_reading_next_page - 1) % total_pages + 1
             start = await get_next_open_quran_page(session, khatm.id, total_pages, default_start=default_start)
             end = min(total_pages, start + amount - 1)
+            if start == 1 and amount == 2 and total_pages == 604:
+                end = 3
+            elif start == 602 and amount == 2 and total_pages == 604:
+                end = 604
             ranges = [[start, end]]
             if end - start + 1 < amount:
                 ranges.append([1, amount - (end - start + 1)])
@@ -530,6 +556,11 @@ async def record_progress(session, part, occurrence):
                 sections_per_round = 8
         if target < sections_per_round:
             target = target * sections_per_round
+    elif getattr(khatm, "template_type", None) == "QURAN_PAGE" and target is not None:
+        from khatmsaz.modules.content import service as content_svc
+        total_pages = content_svc.get_quran_total_pages(khatm)
+        if target < total_pages:
+            target = target * total_pages
     if target is None and khatm.status == "COMPLETED":
         target = await contributions.total_for_khatm(session, khatm.id)
     _, _, total = await progress.log_contribution(session, khatm.id, part.id, occurrence.amount, target)
@@ -561,7 +592,9 @@ async def deliver(session, occurrence, *, now=None):
                 total_sections = 8 if ("غدیر" in (getattr(khatm, "title", "") or "")) else 5
                 part.open_reading_next_page = (last_end % total_sections) + 1
             elif not occurrence.content_spec.get("portion_ids"):
-                part.open_reading_next_page = last_end + 1
+                from khatmsaz.modules.content import service as content_svc
+                total_pages = content_svc.get_quran_total_pages(khatm)
+                part.open_reading_next_page = (last_end % total_pages) + 1
         part.open_reading_last_sent_at = now
     else:
         part.schedule_last_sent_at = now

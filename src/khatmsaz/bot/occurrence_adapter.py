@@ -56,6 +56,27 @@ async def route(session, part, occurrence):
     return None, None
 
 
+
+
+def format_unread_reminder(unread_occurrences: list) -> str:
+    """Format the Persian unread portion reminder text confirmed by owner (MASTER-59):
+
+    ⚠️ یادآوری سهم گذشته: شما هنوز صفحات {pages} از نوبت قبل را تأیید نکرده‌اید؛ لطفاً آن را هم قرائت فرمایید. 🌱
+    """
+    unread_pages = []
+    has_pages = False
+    for occ in unread_occurrences:
+        if getattr(occ, "unit", None) == "PAGE" and getattr(occ, "content_spec", None) and occ.content_spec.get("ranges"):
+            has_pages = True
+            unread_pages.append("، ".join(f"{a} تا {b}" if a != b else str(a) for a, b in occ.content_spec["ranges"]))
+        elif getattr(occ, "amount", None) is not None:
+            unread_pages.append(str(occ.amount))
+    joined = " و ".join(unread_pages)
+    if has_pages:
+        return f"⚠️ یادآوری سهم گذشته: شما هنوز صفحات {joined} از نوبت قبل را تأیید نکرده‌اید؛ لطفاً آن را هم قرائت فرمایید. 🌱"
+    else:
+        return f"⚠️ یادآوری سهم گذشته: شما هنوز {joined} از نوبت قبل را تأیید نکرده‌اید؛ لطفاً آن را هم قرائت فرمایید. 🌱"
+
 def label(khatm, occurrence):
     from khatmsaz.bot.member_copy import share_label
     lang = occurrence.content_spec.get("language", "fa")
@@ -79,7 +100,11 @@ async def send_control(session, part, khatm, occurrence, purpose, *, now):
     if bot is None:
         return False
     text = label(khatm, occurrence)
-    if purpose == "FOLLOWUP":
+    if purpose == "ACTION":
+        unread = await service.list_uncompleted_previous_occurrences(session, part.id, current_occurrence_id=occurrence.id)
+        if unread:
+            text += "\n\n" + format_unread_reminder(unread)
+    elif purpose == "FOLLOWUP":
         text += "\n" + t("share.followup", occurrence.content_spec.get("language", "fa"))
     elif purpose == "DEADLINE":
         text += "\n" + t("share.deadline", occurrence.content_spec.get("language", "fa"))
@@ -188,6 +213,8 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
     if collecting:
         occurrence.content_spec = {**occurrence.content_spec, "delivery_components": components}
         await session.flush()
+    unread = await service.list_uncompleted_previous_occurrences(session, part.id, current_occurrence_id=occurrence.id)
+    unread_reminder = format_unread_reminder(unread) if unread else None
     for index, component in enumerate(components):
         key = f"content:{index}"
         if key in records:
@@ -211,6 +238,13 @@ async def deliver_occurrence(session, part, khatm, occurrence, *, now):
         is_last = (index == len(components) - 1)
         if is_last and method in ("send_video", "send_photo", "send_audio", "send_document", "send_message", "copy_message"):
             kwargs["reply_markup"] = keyboard(occurrence, khatm, banner=banner)
+            if unread_reminder:
+                if kwargs.get("caption"):
+                    kwargs["caption"] += "\n\n" + unread_reminder
+                elif method in ("send_video", "send_photo", "send_audio", "send_document"):
+                    kwargs["caption"] = unread_reminder
+                elif method in ("send_message",):
+                    kwargs["text"] = (kwargs.get("text") or "") + "\n\n" + unread_reminder
         elif kwargs.get("reply_markup"):
             kwargs["reply_markup"] = InlineKeyboardMarkup.model_validate(kwargs["reply_markup"])
 

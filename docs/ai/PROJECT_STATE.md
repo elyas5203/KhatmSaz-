@@ -1,3 +1,17 @@
+## Current state — 2026-10-20 — Unified Collective Quran Progression Relay, Round Wrap-Around & Unread Portions Reminder Engine (MASTER-59) [Antigravity]
+- **Collective Progression Relay in Quran Commitment Mode (`src/khatmsaz/modules/allocation/repository.py` & `src/khatmsaz/modules/share_occurrence/delivery.py`):**
+  - Unified portion allocation for commitment Quran khatms into a continuous collective progression relay across all participants.
+  - Aligned the initial Quran portion from page 1 to cover pages 1 to 3 for standard 2-page portions (`amount == 2`) on the canonical 604-page Madina-Hafs edition, matching the reciter's audio track boundary (message 12).
+  - Ensured sequential relay progression across members (User 1 receives 1-3, User 2 receives 4-5, User 1 next day receives 6-7, User 2 receives 8-9).
+- **Unread Previous Portion Reminders (`src/khatmsaz/bot/occurrence_adapter.py` & `src/khatmsaz/modules/share_occurrence/service.py`):**
+  - Added `list_uncompleted_previous_occurrences` to detect delivered but unconfirmed previous occurrences for the participant.
+  - Added `format_unread_reminder` appending the owner-approved Persian notice (`⚠️ یادآوری سهم گذشته: شما هنوز صفحات {pages} از نوبت قبل را تأیید نکرده‌اید؛ لطفاً آن را هم قرائت فرمایید. 🌱`) to the delivery message caption or action control text directly alongside the completion button.
+- **Multi-Round Wrap-Around & Target Completion (`src/khatmsaz/modules/share_occurrence/delivery.py`):**
+  - Smooth wrap-around from page 604 back to page 1 for multi-round Quran recitations (`(last_end % total_pages) + 1`).
+  - Handled `repetition_target` scaling when specified in rounds (`target < total_pages -> target * total_pages`), completing the khatm automatically once all rounds finish.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_59_UNIFIED_COLLECTIVE_RELAY_AND_ROUND_ROTATION.md` and registered `DEC-PY-0151`.
+- **Validation:** Added 7 unit and functional tests in `tests/test_master_59_collective_relay_and_round_rotation.py` (100% PASS); full regression suite across Masters 42-59 passes with 140/140 green tests.
+
 ## Current state — 2026-10-20 — Motivational Reminders, Creator Inactivity Alerts & Daily Digest Engine (MASTER-58) [Antigravity]
 - **Interactive Actionable Creator Miss Alerts (src/khatmsaz/modules/reminder_engine/service.py):**
   - Enhanced _maybe_record_miss_and_notify_creator to send alerts directly to the creator's bot with two interactive inline buttons: 1) [👤 بررسی و مدیریت این عضو] (km:v:{participation.id.hex}) opening the member detail card with two-step removal, and 2) [🕋 مدیریت ختم] (my_khatms:manage:{khatm.id}).

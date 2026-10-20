@@ -147,6 +147,17 @@ async def list_outstanding(session, participation_id):
     return await repository.list_outstanding(session, participation_id)
 
 
+async def list_uncompleted_previous_occurrences(session, participation_id, *, current_occurrence_id=None):
+    """Return delivered occurrences for this participant that remain uncompleted prior to current_occurrence_id."""
+    occurrences = await repository.list_outstanding(session, participation_id)
+    return [
+        occ for occ in occurrences
+        if (current_occurrence_id is None or occ.id != current_occurrence_id)
+        and occ.delivered_at is not None
+        and occ.completed_at is None
+    ]
+
+
 async def complete_legacy_portion(session, portion_id, *, user_id, bot_instance_id):
     """Keep historical debt actionable without inventing delivery receipts."""
     from khatmsaz.modules.khatm import service as khatms
