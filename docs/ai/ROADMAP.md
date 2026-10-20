@@ -1,3 +1,10 @@
+## 2026-10-20 — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md` and document decision DEC-PY-0149.
+- [x] Configure direct URL button to Shaparak gateway (`https://ppng.ir/d/VFBD`) in main and packages top-up keyboards.
+- [x] Implement `_send_direct_shaparak_topup` with dual action buttons (direct link + receipt upload with amount).
+- [x] Implement prefilled amount receipt upload flow skipping manual amount reentry.
+- [x] Add regression suite `tests/test_master_57_direct_shaparak_and_receipt_topup.py` (8/8 PASS).
+
 ## 2026-10-19 — Executive Commander Dashboard & Overview Hub (MASTER-56) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_56_EXECUTIVE_COMMANDER_DASHBOARD_AND_OVERVIEW_HUB.md` and document decision DEC-PY-0148.
 - [x] Upgrade backend `dashboard` in `web/app.py` to query support tickets and advertising banners queues alongside laan, covers, and requests.

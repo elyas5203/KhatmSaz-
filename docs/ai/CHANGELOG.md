@@ -1,3 +1,11 @@
+## 2026-10-20 — Antigravity — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57)
+- **Direct Shaparak Link & Receipt Flow in Bot Wallet (`src/khatmsaz/bot/handlers/wallet.py` & `keyboards.py`):**
+  - Updated wallet recharge keyboards with direct Shaparak payment gateway button (`url=https://ppng.ir/d/VFBD`), bypassing network restrictions and external callback failures.
+  - Implemented `_send_direct_shaparak_topup` presenting two unified action buttons for predefined packages (50,000, 100,000, 200,000, 500,000 Toman) and custom amounts: 1) Direct payment in Shaparak, and 2) Receipt upload with prefilled amount (`wallet:receipt_upload:{amount}`).
+  - Streamlined FSM state flow to skip manual amount reentry when users click amount-specific receipt buttons, transitioning directly to `WalletReceiptUpload.uploading_photo`.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md` and registered `DEC-PY-0149`.
+- **Validation:** 8/8 tests passed in `tests/test_master_57_direct_shaparak_and_receipt_topup.py`.
+
 ## 2026-10-20 — Antigravity — Executive Commander Dashboard & Overview Hub (MASTER-56)
 - **Unified Executive Commander Dashboard (`web/app.py` & `web/templates/dashboard.html`):**
   - Upgraded root dashboard (`/`) with 5 live operational KPI metrics: Active Khatms (`active_khatms`), Active Reciters (`active_members`), Total Users (`users`) with Telegram & Bale breakdown, Successful Revenue in Toman (`paid_total`), and Actionable Pending Items (`pending`).

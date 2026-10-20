@@ -1065,6 +1065,9 @@ def wallet_recharge_packages_keyboard(
     back_callback: str | None = None,
     recheck_callback: str | None = None,
 ) -> InlineKeyboardMarkup:
+    from khatmsaz.config import get_settings
+    settings = get_settings()
+    direct_link = getattr(settings, "payping_direct_url", None) or "https://ppng.ir/d/VFBD"
     rows = [
         [
             InlineKeyboardButton(text="💳 ۵۰,۰۰۰ تومان", callback_data="wallet_topup:50000"),
@@ -1076,7 +1079,7 @@ def wallet_recharge_packages_keyboard(
         ],
         [
             InlineKeyboardButton(text="📸 ارسال تصویر فیش واریز", callback_data="wallet:receipt_upload"),
-            InlineKeyboardButton(text="🔗 درگاه مستقیم شاپرک", callback_data="wallet:topup_info"),
+            InlineKeyboardButton(text="🔗 درگاه مستقیم شاپرک", url=direct_link),
         ],
     ]
     if recheck_callback:

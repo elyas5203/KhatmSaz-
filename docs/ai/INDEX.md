@@ -1,3 +1,8 @@
+## 2026-10-20 — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57) [Antigravity]
+- Master Document: [MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md](masters/MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md) (Direct Shaparak gateway URL `https://ppng.ir/d/VFBD` in top-up keyboards, dual-action prefilled amount flow, seamless photo receipt upload, and backward-compatible wallet handlers).
+- Key files: `src/khatmsaz/bot/handlers/wallet.py`, `src/khatmsaz/bot/keyboards.py`.
+- Tests: `tests/test_master_57_direct_shaparak_and_receipt_topup.py`.
+
 ## 2026-10-20 — Executive Commander Dashboard & Overview Hub (MASTER-56) [Antigravity]
 - Master Document: [MASTER_56_EXECUTIVE_COMMANDER_DASHBOARD_AND_OVERVIEW_HUB.md](masters/MASTER_56_EXECUTIVE_COMMANDER_DASHBOARD_AND_OVERVIEW_HUB.md) (Centralized executive dashboard `/` in web admin, 5 live operational KPI metrics, 6-queue action cards: Custom La'n, Khatm Covers, Khatm Type Proposals, Support Tickets, Banners, and Broadcasts, 10 modern command hubs quick access grid, and devotional ranking analytics).
 - Key files: `src/khatmsaz/web/app.py`, `src/khatmsaz/web/templates/dashboard.html`.

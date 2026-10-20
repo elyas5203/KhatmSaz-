@@ -59,6 +59,8 @@ async def _lang_for(chat_id, bot) -> str:
 
 
 def _topup_keyboard(lang: str, *, pro_price: int | None = None, is_pro: bool = False) -> InlineKeyboardMarkup:
+    settings = get_settings()
+    direct_link = getattr(settings, "payping_direct_url", None) or "https://ppng.ir/d/VFBD"
     rows = []
     if pro_price is not None and pro_price > 0:
         btn_text = (
@@ -86,7 +88,7 @@ def _topup_keyboard(lang: str, *, pro_price: int | None = None, is_pro: bool = F
         [
             InlineKeyboardButton(
                 text="🔗 درگاه مستقیم شاپرک",
-                callback_data="wallet:topup_info",
+                url=direct_link,
             ),
             InlineKeyboardButton(
                 text="📸 ارسال تصویر فیش واریز",
@@ -131,6 +133,46 @@ async def _create_topup_payment(message: Message, bot, amount: int, lang: str) -
         ]
     )
     await message.answer(t("wallet.final_topup_step", lang, amount=f"{amount:,}"), reply_markup=keyboard)
+
+
+async def _send_direct_shaparak_topup(target: Message | CallbackQuery, amount: int, lang: str = "fa") -> None:
+    settings = get_settings()
+    direct_link = getattr(settings, "payping_direct_url", None) or "https://ppng.ir/d/VFBD"
+    localized_amt = _localized_amount(amount, lang)
+
+    text = (
+        f"💳 <b>شارژ کیف پول — مبلغ: {localized_amt} تومان</b>\n\n"
+        "۱) برای پرداخت، روی دکمهٔ «🔗 ورود به درگاه مستقیم شاپرک» زیر بزنید و مبلغ <b>"
+        f"{localized_amt} تومان</b> را در درگاه شاپرک پرداخت فرمایید.\n\n"
+        "۲) پس از تکمیل واریز، روی دکمهٔ «📸 ارسال تصویر فیش واریز» بزنید و عکس رسید یا اسکرین‌شات فیش را ارسال فرمایید تا کیف پولتان شارژ گردد 🌱"
+    )
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🔗 ورود به درگاه مستقیم شاپرک",
+                    url=direct_link,
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"📸 ارسال تصویر فیش واریز ({localized_amt} تومان)",
+                    callback_data=f"wallet:receipt_upload:{amount}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🔙 بازگشت به کیف پول",
+                    callback_data="wallet:open",
+                ),
+            ],
+        ]
+    )
+    if isinstance(target, CallbackQuery):
+        await target.message.answer(text, reply_markup=keyboard)
+        await safe_answer_callback(target)
+    else:
+        await target.answer(text, reply_markup=keyboard)
 
 
 async def _show_wallet(message: Message) -> None:
@@ -259,42 +301,7 @@ async def create_topup(callback: CallbackQuery) -> None:
         await callback.answer(t("wallet.amount_not_selectable", lang), show_alert=True)
         return
 
-    settings = get_settings()
-    if not settings.payping_api_token or not settings.payping_callback_url.startswith("https://"):
-        await callback.message.answer(t("wallet.gateway_not_configured", lang))
-        await callback.answer()
-        return
-
-    platform: Platform = getattr(callback.bot, "khatmsaz_platform", Platform.TELEGRAM)
-    try:
-        async with session_scope() as session:
-            user = await identity_service.resolve_or_provision_user(
-                session, platform, callback.message.chat.id
-            )
-            pending, request = await wallet_service.create_payment_intent(
-                session,
-                PayPingGateway(settings.payping_api_token),
-                user.id,
-                amount_toman=amount,
-                description=t("wallet.topup_description", lang, amount=f"{amount:,}"),
-                callback_url=settings.payping_callback_url,
-            )
-    except GatewayError:
-        await callback.message.answer(t("wallet.gateway_unreachable", lang))
-        await callback.answer()
-        return
-
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=t("wallet.pay_button", lang, amount=f"{amount:,}"), url=request.payment_url)],
-            [InlineKeyboardButton(text=t("wallet.check_button", lang), callback_data=f"wallet_check:{pending.id}")],
-        ]
-    )
-    await callback.message.answer(
-        t("wallet.final_topup_step", lang, amount=f"{amount:,}"),
-        reply_markup=keyboard,
-    )
-    await callback.answer(t("wallet.link_created", lang))
+    await _send_direct_shaparak_topup(callback, amount, lang)
 
 
 @router.callback_query(F.data == "wallet_topup_custom")
@@ -327,7 +334,7 @@ async def receive_custom_topup(message: Message, state: FSMContext) -> None:
         await message.answer(t("wallet.topup_custom_invalid", lang, min=_localized_amount(_TOPUP_MIN, lang), max=_localized_amount(_TOPUP_MAX, lang)))
         return
     await state.clear()
-    await _create_topup_payment(message, message.bot, amount, lang)
+    await _send_direct_shaparak_topup(message, amount, lang)
 
 
 @router.callback_query(F.data.startswith("wallet_check:"))
@@ -440,6 +447,7 @@ async def show_topup_info(callback: CallbackQuery) -> None:
     )
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
+            [InlineKeyboardButton(text="🔗 ورود به درگاه مستقیم شاپرک", url=direct_link)],
             [InlineKeyboardButton(text="📸 ارسال تصویر فیش واریز", callback_data="wallet:receipt_upload")],
             [InlineKeyboardButton(text="🔙 بازگشت به کیف پول", callback_data="wallet:open")],
         ]
@@ -448,20 +456,36 @@ async def show_topup_info(callback: CallbackQuery) -> None:
     await callback.answer()
 
 
-@router.callback_query(F.data == "wallet:receipt_upload")
+@router.callback_query(F.data.startswith("wallet:receipt_upload"))
 async def start_receipt_upload(callback: CallbackQuery, state: FSMContext) -> None:
     lang = await _lang_for(callback.message.chat.id, callback.bot)
-    await state.set_state(WalletReceiptUpload.entering_amount)
-    await state.update_data(lang=lang)
+    parts = callback.data.split(":")
+    amount = None
+    if len(parts) >= 3 and parts[2].isdigit():
+        amount = int(parts[2])
+
     cancel_kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="❌ انصراف", callback_data="wallet:cancel_receipt")]]
     )
-    await callback.message.answer(
-        "لطفاً مبلغ واریزشده را به تومان وارد فرمایید (مثلاً ۵۰,۰۰۰):\n\n"
-        "(برای انصراف دکمه زیر یا /cancel بزنید)",
-        reply_markup=cancel_kb,
-    )
-    await callback.answer()
+
+    if amount and amount >= 5_000:
+        await state.set_state(WalletReceiptUpload.uploading_photo)
+        await state.update_data(lang=lang, amount_toman=amount)
+        await callback.message.answer(
+            f"مبلغ اعلام‌شده: <b>{_localized_amount(amount, lang)} تومان</b>\n\n"
+            "لطفاً تصویر یا عکس رسید پرداخت (فیش واریزی) را ارسال فرمایید:\n"
+            "(برای انصراف دکمه زیر یا /cancel بزنید)",
+            reply_markup=cancel_kb,
+        )
+    else:
+        await state.set_state(WalletReceiptUpload.entering_amount)
+        await state.update_data(lang=lang)
+        await callback.message.answer(
+            "لطفاً مبلغ واریزشده را به تومان وارد فرمایید (مثلاً ۵۰,۰۰۰):\n\n"
+            "(برای انصراف دکمه زیر یا /cancel بزنید)",
+            reply_markup=cancel_kb,
+        )
+    await safe_answer_callback(callback)
 
 
 @router.callback_query(F.data == "wallet:cancel_receipt")
