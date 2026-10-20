@@ -363,3 +363,60 @@ def test_moderation_page_renders_kpis_and_tabs():
 
 
 
+
+
+def test_dashboard_page_renders_kpis_and_queues():
+    """MASTER-56: dashboard.html renders 5 live KPIs, 6 action queues, and 10 modern command hubs without DB."""
+    html = _render(
+        "dashboard.html", "/",
+        counts={
+            "users": 1500,
+            "active_khatms": 42,
+            "active_members": 350,
+            "pending": 7,
+            "paid_total": 4500000,
+        },
+        pending={
+            "laan": 2,
+            "covers": 1,
+            "requests": 1,
+            "tickets": 2,
+            "banners": 1,
+            "broadcasts": 0,
+            "phones": 0,
+            "creators": 0,
+            "categories": 0,
+        },
+        recent=[],
+        user_analytics=None,
+    )
+
+    # Header and KPI counts
+    assert "مرکز کنترل و مانیتورینگ ربات‌های ختم‌ساز" in html
+    assert "ختم‌های فعال" in html
+    assert "مشارکت فعال" in html
+    assert "کل کاربران" in html
+    assert "کل درآمد موفق" in html
+    assert "در انتظار بررسی" in html
+
+    # 6 Action Queues
+    assert "صف‌های اقدام فوری و نظارت" in html
+    assert "لعن سفارشی" in html
+    assert "کاور ختم" in html
+    assert "پیشنهاد ختم" in html
+    assert "تیکت‌های پشتیبانی" in html
+    assert "بنرها و تبلیغات" in html
+    assert "پیام‌های گروهی" in html
+
+    # 10 Modern Command Hubs
+    assert "مراکز ۱۰‌گانه فرماندهی سامانه" in html
+    assert "مرکز جامع نظارت" in html
+    assert "مدیریت ختم‌ها" in html
+    assert "استودیو محتوا و ادعیه" in html
+    assert "بانک قرآن کریم" in html
+    assert "امور مالی و پلن‌ها" in html
+    assert "کاربران ۳۶۰°" in html
+    assert "پیام‌های گروهی و کمپین" in html
+    assert "ناوگان ۱۸ ربات" in html
+    assert "تحلیل و خروجی اکسل" in html
+    assert "مدیران و ممیزی" in html

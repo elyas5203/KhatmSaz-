@@ -2040,6 +2040,8 @@ async def dashboard(request: Request):
     if admin is None:
         return _login_redirect()
     from khatmsaz.modules.creator_request.models import CreatorRequest, CreatorRequestStatus
+    from khatmsaz.modules.support_ticket.models import SupportTicket, SupportTicketStatus
+    from khatmsaz.modules.advertising.models import AdvertisingBanner, BannerStatus
     async with session_scope() as session:
         users = await session.scalar(select(func.count()).select_from(User))
         active_khatms = await session.scalar(
@@ -2081,6 +2083,16 @@ async def dashboard(request: Request):
                 KhatmRequest.status == KhatmRequestStatus.PENDING
             )
         )
+        pending_tickets = await session.scalar(
+            select(func.count()).select_from(SupportTicket).where(
+                SupportTicket.status == SupportTicketStatus.PENDING
+            )
+        )
+        pending_banners = await session.scalar(
+            select(func.count()).select_from(AdvertisingBanner).where(
+                AdvertisingBanner.status == BannerStatus.PENDING
+            )
+        )
         paid_total = await session.scalar(
             select(func.coalesce(func.sum(WalletInvoice.net_amount_toman), 0)).where(
                 WalletInvoice.status == "PAID"
@@ -2093,11 +2105,13 @@ async def dashboard(request: Request):
     pending_map = {
         "laan": int(pending_laan or 0),
         "covers": int(pending_covers or 0),
+        "requests": int(pending_requests or 0),
+        "tickets": int(pending_tickets or 0),
+        "banners": int(pending_banners or 0),
         "broadcasts": int(pending_broadcasts or 0),
         "phones": int(pending_phones or 0),
         "creators": int(pending_creators or 0),
         "categories": int(pending_categories or 0),
-        "requests": int(pending_requests or 0),
     }
     return templates.TemplateResponse(
         request=request,

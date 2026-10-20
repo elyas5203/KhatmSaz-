@@ -198,125 +198,121 @@
 </section>
 {% endif %}
 
-<!-- Moderation Quick Queue -->
-<section class="glass-panel rounded-3xl p-6 mb-8">
+<!-- Moderation Quick Queue (MASTER-56) -->
+<section class="glass-panel rounded-3xl p-6 mb-8 border border-white/10 shadow-xl">
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
     <div>
-      <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">صف‌های نظارت فوری</p>
-      <h2 class="text-lg sm:text-xl font-bold text-white">درخواست‌های نیازمند اقدام مدیر (۷ صف نظارتی)</h2>
+      <p class="text-xs font-bold text-amber-400 tracking-wider uppercase mb-1">صف‌های اقدام فوری و نظارت</p>
+      <h2 class="text-lg sm:text-xl font-bold text-white">درخواست‌های نیازمند اقدام مدیر (۵ صف نظارت + ۱ صف ارسال)</h2>
     </div>
     <a href="/moderation" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold transition-all">
       <span>ورود به مرکز نظارت کامل</span>
       <span>←</span>
     </a>
   </div>
-  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
-    <a href="/moderation?tab=laan" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">🔥 لعن سفارشی</span>
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <a href="/moderation?tab=laan" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">🔥 لعن سفارشی</span>
       <b class="text-xl font-mono {% if pending.laan %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.laan }}</b>
     </a>
-    <a href="/moderation?tab=covers" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">🖼 کاور ختم</span>
+    <a href="/moderation?tab=covers" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">🖼 کاور ختم</span>
       <b class="text-xl font-mono {% if pending.covers %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.covers }}</b>
     </a>
-    <a href="/broadcasts" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">📢 پیام گروهی</span>
-      <b class="text-xl font-mono {% if pending.broadcasts %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.broadcasts }}</b>
-    </a>
-    <a href="/phone-verifications" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">📱 شماره خارج</span>
-      <b class="text-xl font-mono {% if pending.phones %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.phones }}</b>
-    </a>
-    <a href="/creator-requests" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">👑 درخواست سازنده</span>
-      <b class="text-xl font-mono {% if pending.creators %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.creators }}</b>
-    </a>
-    <a href="/categories" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">🤲 دعای درخواستی</span>
-      <b class="text-xl font-mono {% if pending.categories %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.categories }}</b>
-    </a>
-    <a href="/moderation?tab=requests" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all">
-      <span class="text-xs text-slate-300 mb-2">💡 پیشنهاد ختم</span>
+    <a href="/moderation?tab=requests" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">💡 پیشنهاد ختم</span>
       <b class="text-xl font-mono {% if pending.requests %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.requests }}</b>
+    </a>
+    <a href="/moderation?tab=tickets" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">💬 تیکت‌های پشتیبانی</span>
+      <b class="text-xl font-mono {% if pending.tickets %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.tickets }}</b>
+    </a>
+    <a href="/moderation?tab=banners" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">📢 بنرها و تبلیغات</span>
+      <b class="text-xl font-mono {% if pending.banners %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.banners }}</b>
+    </a>
+    <a href="/broadcasts" class="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 hover:border-amber-500/50 flex flex-col justify-between transition-all group">
+      <span class="text-xs text-slate-300 mb-2 group-hover:text-amber-300 transition-colors">🚀 پیام‌های گروهی</span>
+      <b class="text-xl font-mono {% if pending.broadcasts %}text-amber-400 font-black{% else %}text-slate-500{% endif %}">{{ pending.broadcasts }}</b>
     </a>
   </div>
 </section>
 
-<!-- Quick Navigation Hub -->
+<!-- Quick Navigation Hub (MASTER-56) -->
 {% set perms = admin._admin_permissions if admin else [] %}
 <section class="mb-8">
   <div class="flex items-center justify-between mb-3">
-    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase">بخش‌های مدیریتی سامانه</p>
+    <p class="text-xs font-bold text-emerald-400 tracking-wider uppercase">مراکز ۱۰‌گانه فرماندهی سامانه</p>
   </div>
   <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-    <a href="/moderation" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-amber-500/40">
+    <a href="/moderation" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-amber-500/40 transition-all group">
       <span class="text-2xl">⚖️</span>
       <div>
-        <b class="text-sm text-slate-200 block">مرکز نظارت</b>
-        <small class="text-[0.7rem] text-slate-400">تأیید لعن، کاور و پیام‌ها</small>
+        <b class="text-sm text-slate-200 block group-hover:text-amber-400 transition-colors">مرکز جامع نظارت</b>
+        <small class="text-[0.7rem] text-slate-400">تأیید لعن، کاور، تیکت و بنر</small>
       </div>
     </a>
-    <a href="/khatms" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/khatms" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">📖</span>
       <div>
-        <b class="text-sm text-slate-200 block">مدیریت ختم‌ها</b>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">مدیریت ختم‌ها</b>
         <small class="text-[0.7rem] text-slate-400">ساخت، ویرایش و اعضا</small>
       </div>
     </a>
-    <a href="/devotionals" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/devotionals" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">📚</span>
       <div>
-        <b class="text-sm text-slate-200 block">استودیو محتوا</b>
-        <small class="text-[0.7rem] text-slate-400">ادعیه، خطبه و ویدیوها</small>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">استودیو محتوا و ادعیه</b>
+        <small class="text-[0.7rem] text-slate-400">ادعیه، زیارات و دسته‌ها</small>
       </div>
     </a>
-    <a href="/quran" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/quran" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">🕌</span>
       <div>
-        <b class="text-sm text-slate-200 block">بانک قرآن</b>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">بانک قرآن کریم</b>
         <small class="text-[0.7rem] text-slate-400">۶۰۴ صفحه و قاریان</small>
       </div>
     </a>
-    <a href="/finance" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/finance" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">💳</span>
       <div>
-        <b class="text-sm text-slate-200 block">امور مالی و پلن‌ها</b>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">امور مالی و پلن‌ها</b>
         <small class="text-[0.7rem] text-slate-400">کیف پول و فاکتورها</small>
       </div>
     </a>
-    <a href="/users" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/users" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">👥</span>
       <div>
-        <b class="text-sm text-slate-200 block">کاربران ۳۶۰°</b>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">کاربران ۳۶۰°</b>
         <small class="text-[0.7rem] text-slate-400">پروفایل، پیام مستقیم و پلن</small>
       </div>
     </a>
-    <a href="/servant-ad" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
-      <span class="text-2xl">📣</span>
+    <a href="/broadcasts" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
+      <span class="text-2xl">📢</span>
       <div>
-        <b class="text-sm text-slate-200 block">تبلیغ خدمتگزاران</b>
-        <small class="text-[0.7rem] text-slate-400">کمپین همگانی اعضا</small>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">پیام‌های گروهی و کمپین</b>
+        <small class="text-[0.7rem] text-slate-400">پیام گروهی و تبلیغ خدمتگزاران</small>
       </div>
     </a>
-    <a href="/bots" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
+    <a href="/bots" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
       <span class="text-2xl">🤖</span>
       <div>
-        <b class="text-sm text-slate-200 block">ربات‌ها و توکن‌ها</b>
-        <small class="text-[0.7rem] text-slate-400">۱۴ ربات تلگرام و بله</small>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">ناوگان ۱۸ ربات</b>
+        <small class="text-[0.7rem] text-slate-400">۹ ربات تلگرام و ۹ ربات بله</small>
       </div>
     </a>
-    <a href="/templates" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
-      <span class="text-2xl">💬</span>
+    <a href="/reports" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
+      <span class="text-2xl">📊</span>
       <div>
-        <b class="text-sm text-slate-200 block">قالب‌های پیام</b>
-        <small class="text-[0.7rem] text-slate-400">متون سیستم و ترجمه‌ها</small>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">تحلیل و خروجی اکسل</b>
+        <small class="text-[0.7rem] text-slate-400">آمار جامع و فایل‌های اکسل</small>
       </div>
     </a>
-    <a href="/operations" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40">
-      <span class="text-2xl">🩺</span>
+    <a href="/admins" class="glass-card rounded-2xl p-4 flex items-center gap-3 hover:border-emerald-500/40 transition-all group">
+      <span class="text-2xl">🛡</span>
       <div>
-        <b class="text-sm text-slate-200 block">سلامت سیستم</b>
-        <small class="text-[0.7rem] text-slate-400">تنظیمات سراسری و وب‌سرور</small>
+        <b class="text-sm text-slate-200 block group-hover:text-emerald-400 transition-colors">مدیران و ممیزی</b>
+        <small class="text-[0.7rem] text-slate-400">نقش‌ها، دسترسی‌ها و لاگ امنیتی</small>
       </div>
     </a>
   </div>

@@ -1,3 +1,13 @@
+## Current state — 2026-10-20 — Executive Commander Dashboard & Overview Hub in Web Admin (MASTER-56) [Antigravity]
+- **Unified Executive Commander Dashboard (`web/app.py` & `web/templates/dashboard.html`):**
+  - Upgraded root dashboard (`/`) with 5 live operational KPI metrics: Active Khatms (`active_khatms`), Active Reciters (`active_members`), Total Users (`users`) with Telegram & Bale breakdown, Successful Revenue in Toman (`paid_total`), and Actionable Pending Items (`pending`).
+  - Redesigned "صف‌های اقدام فوری و نظارت" into a 6-queue live grid: Tab 1 (Custom La'n), Tab 2 (Khatm Covers), Tab 3 (Khatm Type Requests), Tab 4 (Open Support Tickets), Tab 5 (Advertising & Cultural Banners), and Tab 6 (Outbound Group Broadcasts).
+  - Cleaned up deprecated phone verifications and creator request queues from the main dashboard in strict adherence to owner's Foreign Auto-Verified and Auto-Creator directives.
+- **Modern 10 Command Hubs Quick Navigation Grid (`web/templates/dashboard.html`):**
+  - Updated all 10 quick navigation tiles to point to the modern unified centers: 1) Moderation Hub (`/moderation`), 2) Khatms Management (`/khatms`), 3) Devotionals Studio (`/devotionals`), 4) Quran Bank (`/quran`), 5) Finance & Plans (`/finance`), 6) Users 360° (`/users`), 7) Broadcasts & Campaigns (`/broadcasts`), 8) 18-Bot Fleet (`/bots`), 9) Analytics & Excel Export (`/reports`), 10) Admins & RBAC Audit (`/admins`).
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_56_EXECUTIVE_COMMANDER_DASHBOARD_AND_OVERVIEW_HUB.md` and registered `DEC-PY-0148`.
+- **Validation:** Added 2 integration tests in `tests/test_master_56_dashboard_hub.py` and 1 template test in `tests/test_admin_template_render.py` (100% PASS); full regression suite passes with 133/133 green tests across masters 42 to 56.
+
 ## Current state — 2026-10-19 — Content & User Moderation Hub in Web Admin (MASTER-55) [Antigravity]
 - **Unified Content & Moderation Hub (`web/app.py` & `web/templates/moderation.html`):**
   - Upgraded `/moderation` with 4 operational KPI cards: Total Pending (`total_pending`), Pending Content (`pending_content`), Open Support Tickets (`open_tickets`), and Pending Banners & Requests (`pending_banners_requests`).
