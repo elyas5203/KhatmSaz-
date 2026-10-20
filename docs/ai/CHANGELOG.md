@@ -1,3 +1,14 @@
+## 2026-10-20 — Antigravity — Motivational Reminders, Creator Inactivity Alerts & Daily Digest Engine (MASTER-58)
+- **Interactive Actionable Creator Miss Alerts (src/khatmsaz/modules/reminder_engine/service.py):**
+  - Enhanced _maybe_record_miss_and_notify_creator to send alerts directly to the creator's bot with two interactive inline buttons: 1) [👤 بررسی و مدیریت این عضو] (km:v:{participation.id.hex}) opening the member detail card with two-step removal, and 2) [🕋 مدیریت ختم] (my_khatms:manage:{khatm.id}).
+  - Uses _notify_user_with_keyboard to deliver inline keyboards cleanly in both Telegram and Bale, with graceful fallback to plain text.
+  - Optimized check_share_occurrence_misses with participation deduplication in each scheduler scan loop.
+- **Action-Triggered Progress Reporting & Creator 12:00 PM Summary:**
+  - Preserved owner mandate (MASTER-07) on action-triggered member motivational snippets immediately upon portion completion, eliminating unwanted 14:00 broadcasts.
+  - Verified and stabilized the creator 12:00 PM daily progress report (creator_daily_report.py) with comprehensive metrics and khatm management buttons.
+- **Master Documentation & Decisions:** Authored docs/ai/masters/MASTER_58_MOTIVATIONAL_REMINDERS_CREATOR_ALERTS_AND_DAILY_DIGEST.md and registered DEC-PY-0150.
+- **Validation:** 6/6 tests passed in 	ests/test_master_58_creator_alerts_and_daily_digest.py; full regression test suite passed (147/147 green).
+
 ## 2026-10-20 — Antigravity — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57)
 - **Direct Shaparak Link & Receipt Flow in Bot Wallet (`src/khatmsaz/bot/handlers/wallet.py` & `keyboards.py`):**
   - Updated wallet recharge keyboards with direct Shaparak payment gateway button (`url=https://ppng.ir/d/VFBD`), bypassing network restrictions and external callback failures.

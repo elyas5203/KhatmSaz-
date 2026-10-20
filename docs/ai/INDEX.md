@@ -1,3 +1,8 @@
+## 2026-10-20 — Motivational Reminders, Creator Inactivity Alerts & Daily Digest Engine (MASTER-58) [Antigravity]
+- Master Document: [MASTER_58_MOTIVATIONAL_REMINDERS_CREATOR_ALERTS_AND_DAILY_DIGEST.md](masters/MASTER_58_MOTIVATIONAL_REMINDERS_CREATOR_ALERTS_AND_DAILY_DIGEST.md) (Interactive actionable creator miss alerts with direct buttons km:v:{part_hex} and my_khatms:manage:{khatm_id}, inline keyboard delivery via _notify_user_with_keyboard on Telegram/Bale, scheduler overdue scan deduplication, action-triggered member motivational snippets, and 12:00 PM creator daily reports).
+- Key files: src/khatmsaz/modules/reminder_engine/service.py, src/khatmsaz/modules/reporting/creator_daily_report.py, src/khatmsaz/bot/member_copy.py.
+- Tests: 	ests/test_master_58_creator_alerts_and_daily_digest.py.
+
 ## 2026-10-20 — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57) [Antigravity]
 - Master Document: [MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md](masters/MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md) (Direct Shaparak gateway URL `https://ppng.ir/d/VFBD` in top-up keyboards, dual-action prefilled amount flow, seamless photo receipt upload, and backward-compatible wallet handlers).
 - Key files: `src/khatmsaz/bot/handlers/wallet.py`, `src/khatmsaz/bot/keyboards.py`.

@@ -1,3 +1,10 @@
+## 2026-10-20 — Motivational Reminders, Creator Inactivity Alerts & Daily Digest Engine (MASTER-58) [Antigravity]
+- [x] Author docs/ai/masters/MASTER_58_MOTIVATIONAL_REMINDERS_CREATOR_ALERTS_AND_DAILY_DIGEST.md and document decision DEC-PY-0150.
+- [x] Implement interactive creator miss alerts in _maybe_record_miss_and_notify_creator with buttons for member inspection (km:v:{part_hex}) and khatm management (my_khatms:manage:{khatm_id}).
+- [x] Deliver creator alerts with inline keyboard via _notify_user_with_keyboard on Telegram and Bale with fallback.
+- [x] Optimize check_share_occurrence_misses with participation deduplication in scheduler scan loops.
+- [x] Add regression suite 	ests/test_master_58_creator_alerts_and_daily_digest.py (6/6 PASS).
+
 ## 2026-10-20 — Direct Shaparak Gateway & Integrated Receipt Top-up Flow (MASTER-57) [Antigravity]
 - [x] Author `docs/ai/masters/MASTER_57_DIRECT_SHAPARAK_GATEWAY_AND_RECEIPT_TOPUP.md` and document decision DEC-PY-0149.
 - [x] Configure direct URL button to Shaparak gateway (`https://ppng.ir/d/VFBD`) in main and packages top-up keyboards.

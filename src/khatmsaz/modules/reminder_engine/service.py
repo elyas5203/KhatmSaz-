@@ -180,7 +180,11 @@ async def check_share_occurrence_misses(session: AsyncSession, notify: NotifyFn)
     )
     result = await session.execute(stmt)
     overdue_occurrences = list(result.scalars())
+    seen_participations = set()
     for occ in overdue_occurrences:
+        if occ.participation_id in seen_participations:
+            continue
+        seen_participations.add(occ.participation_id)
         try:
             part = await participation_repository.get_by_id(session, occ.participation_id)
             if part is None or part.status != ParticipationStatus.ACTIVE:
@@ -726,11 +730,31 @@ async def _maybe_record_miss_and_notify_creator(session, notify, participation, 
     # Phone and action prompt are always appended — they're operational details,
     # not part of the customisable template text.
     creator_text += (
-        f"\n\n📞 شماره تماس: {phone}\n\n"
-        "راهنما: می‌توانید با ایشان تماس گرفته یا پیام دهید و در صورت تمایل، از "
-        "بخش «👥 اعضا» در مدیریت ختم وضعیت عضویت را بررسی فرمایید."
+        f"\n\n📞 <b>شماره تماس:</b> {phone}\n\n"
+        "💡 <i>راهنما: می‌توانید با ایشان تماس حاصل فرمایید یا با استفاده از دکمه‌های زیر، کارنامه عضویت ایشان را بررسی نموده یا در صورت صلاحدید، عضویت ایشان را لغو کنید تا سهم ایشان به جریان بیفتد.</i>"
     )
-    await _notify_user(session, notify, khatm.creator_user_id, creator_text)
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="👤 بررسی و مدیریت این عضو",
+                    callback_data=f"km:v:{participation.id.hex}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🕋 مدیریت ختم",
+                    callback_data=f"my_khatms:manage:{khatm.id}",
+                )
+            ],
+        ]
+    )
+    delivered = await _notify_user_with_keyboard(
+        session, khatm.creator_user_id, creator_text, keyboard
+    )
+    if not delivered:
+        await _notify_user(session, notify, khatm.creator_user_id, creator_text)
 
 
 async def _notify_user(session, notify, user_id, text: str, *, bot_instance_id=None) -> None:
