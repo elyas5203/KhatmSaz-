@@ -358,7 +358,14 @@
                   {{ row.item.channel }}
                 </span>
               </td>
-              <td class="p-3.5 font-mono font-bold">{{ '{:,}'.format(row.item.audience_count) }}</td>
+              <td class="p-3.5 font-mono font-bold">
+                <div>{{ '{:,}'.format(row.item.audience_count) }}</div>
+                {% if row.item.status.value == 'SENT' and row.seen_count is defined %}
+                <div class="text-[0.65rem] text-emerald-400 font-normal mt-0.5" title="مشاهده شده (سین)">
+                  👁 {{ '{:,}'.format(row.seen_count) }} ({{ row.seen_pct }}٪)
+                </div>
+                {% endif %}
+              </td>
               <td class="p-3.5 font-mono text-amber-400">{{ '{:,}'.format(row.item.cost_toman) }} تومان</td>
               <td class="p-3.5 max-w-xs">
                 <p class="line-clamp-2 text-slate-300">{{ row.item.body }}</p>

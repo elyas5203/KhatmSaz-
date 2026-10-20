@@ -2,6 +2,7 @@ from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime, timezone, timedelta
 
 from khatmsaz.bot.keyboards import (
     bail_if_menu_button,
@@ -476,4 +477,225 @@ async def cancel_broadcast(callback: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
     await safe_clear_inline_keyboard(callback.message)
     await callback.message.answer("ارسال پیام گروهی لغو شد.", reply_markup=main_menu_keyboard("fa"))
+    await safe_answer_callback(callback)
+
+
+# -----------------------------------------------------------------------------
+# MASTER-60: Live Seen / Engagement Analytics & In-Place Reporting Card
+# -----------------------------------------------------------------------------
+
+def _format_broadcast_stats_card(stats: dict) -> str:
+    media_type = stats.get("media_type") or "text"
+    media_names = {
+        "text": "متن ساده",
+        "photo": "تصویر / عکس",
+        "voice": "پیام صوتی (ویس)",
+        "audio": "فایل صوتی",
+        "video": "ویدیو / فیلم",
+        "document": "فایل / سند",
+    }
+    media_title = media_names.get(media_type, media_type)
+    total = stats.get("total", 0)
+    delivered = stats.get("delivered", total)
+    seen = stats.get("seen", 0)
+    unseen = stats.get("unseen", max(0, total - seen))
+    seen_pct = stats.get("seen_percentage", 0.0)
+    delivered_pct = 100 if total > 0 else 0
+
+    media_note = ""
+    if media_type in {"voice", "audio"}:
+        media_note = f"\n🎧 وضعیت شنیدن صوت: {seen:,} نفر فایل صوتی را دریافت و گوش داده‌اند.\n"
+    elif media_type in {"photo", "video", "document"}:
+        media_note = f"\n🖼 وضعیت رسانه: {seen:,} نفر رسانه را دریافت و مشاهده نموده‌اند.\n"
+
+    try:
+        now_str = datetime.now(timezone(timedelta(hours=3, minutes=30))).strftime("%H:%M")
+    except Exception:
+        now_str = "هم‌اکنون"
+
+    sent_time_str = "به‌تازگی"
+    sent_at = stats.get("sent_at")
+    if sent_at and hasattr(sent_at, "strftime"):
+        try:
+            sent_time_str = sent_at.astimezone(timezone(timedelta(hours=3, minutes=30))).strftime("%Y/%m/%d — %H:%M")
+        except Exception:
+            sent_time_str = str(sent_at)[:16]
+
+    card = (
+        "📊 گزارش لحظه‌ای بازخورد و سین پیام\n\n"
+        f"🕋 ختم: «{stats.get('khatm_title', 'این ختم')}»\n"
+        f"📝 نوع پیام: {media_title}\n"
+        f"📅 زمان ارسال: {sent_time_str}\n\n"
+        f"👥 کل مخاطبان: {total:,} نفر\n"
+        f"📥 تحویل داده شده: {delivered:,} نفر ({delivered_pct}٪)\n"
+        f"👁 مشاهده شده (سین خورده): {seen:,} نفر ({seen_pct}٪)\n"
+        f"⏳ در انتظار مشاهده: {unseen:,} نفر ({round(max(0, 100 - seen_pct), 1)}٪)\n"
+        f"{media_note}\n"
+        f"🔄 آخرین به‌روزرسانی: {now_str}"
+    )
+    return card
+
+
+def _build_stats_keyboard(broadcast_id: uuid.UUID, khatm_id: uuid.UUID | None = None) -> InlineKeyboardMarkup:
+    khatm_back = f"my_khatms:manage:{khatm_id}" if khatm_id else "creator:broadcast"
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔄 بروزرسانی آمار", callback_data=f"cbroadcast:refresh:{broadcast_id}"),
+                InlineKeyboardButton(text="👥 اسامی مخاطبان", callback_data=f"cbroadcast:recipients:{broadcast_id}:0"),
+            ],
+            [
+                InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=khatm_back),
+            ],
+        ]
+    )
+
+
+@router.callback_query(F.data.startswith("cbroadcast:stats:"))
+async def view_broadcast_stats(callback: CallbackQuery) -> None:
+    raw_id = callback.data.split(":", 2)[2]
+    try:
+        bc_id = uuid.UUID(raw_id)
+    except (ValueError, TypeError):
+        await safe_answer_callback(callback, "شناسه پیام نامعتبر است.", show_alert=True)
+        return
+
+    async with session_scope() as session:
+        stats = await broadcast_service.get_analytics(session, bc_id)
+
+    if not stats:
+        await safe_answer_callback(callback, "اطلاعات آماری این پیام یافت نشد.", show_alert=True)
+        return
+
+    card_text = _format_broadcast_stats_card(stats)
+    kb = _build_stats_keyboard(bc_id, stats.get("khatm_id"))
+
+    if callback.message:
+        try:
+            await callback.message.edit_text(card_text, reply_markup=kb)
+        except Exception:
+            await callback.message.answer(card_text, reply_markup=kb)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cbroadcast:refresh:"))
+async def refresh_broadcast_stats(callback: CallbackQuery) -> None:
+    raw_id = callback.data.split(":", 2)[2]
+    try:
+        bc_id = uuid.UUID(raw_id)
+    except (ValueError, TypeError):
+        await safe_answer_callback(callback, "شناسه نامعتبر است.", show_alert=True)
+        return
+
+    async with session_scope() as session:
+        stats = await broadcast_service.get_analytics(session, bc_id)
+
+    if not stats:
+        await safe_answer_callback(callback, "اطلاعات آماری یافت نشد.", show_alert=True)
+        return
+
+    card_text = _format_broadcast_stats_card(stats)
+    kb = _build_stats_keyboard(bc_id, stats.get("khatm_id"))
+
+    if callback.message:
+        try:
+            await callback.message.edit_text(card_text, reply_markup=kb)
+        except Exception:
+            pass
+    await safe_answer_callback(callback, "آمار با موفقیت بروز شد 🔄")
+
+
+@router.callback_query(F.data.startswith("cbroadcast:recipients:"))
+async def view_broadcast_recipients(callback: CallbackQuery) -> None:
+    parts = callback.data.split(":")
+    raw_id = parts[2]
+    page = int(parts[3]) if len(parts) > 3 and parts[3].isdigit() else 0
+    try:
+        bc_id = uuid.UUID(raw_id)
+    except (ValueError, TypeError):
+        await safe_answer_callback(callback, "شناسه نامعتبر است.", show_alert=True)
+        return
+
+    page_size = 10
+    async with session_scope() as session:
+        recipients, total = await broadcast_service.list_recipients_page(
+            session, bc_id, page=page, page_size=page_size,
+        )
+
+    if not recipients:
+        await safe_answer_callback(callback, "فهرست مخاطبان هنوز ثبت نشده است.", show_alert=True)
+        return
+
+    total_pages = max(1, math.ceil(total / page_size))
+    lines = ["👥 وضعیت مشاهده پیام توسط مخاطبان:\n"]
+    for idx, r in enumerate(recipients, start=page * page_size + 1):
+        if r["seen"]:
+            seen_time = r["seen_at"].strftime("%H:%M") if r.get("seen_at") and hasattr(r["seen_at"], "strftime") else "مشاهده شده"
+            lines.append(f"✅ {r['name']} — دیده شد ({seen_time})")
+        else:
+            lines.append(f"⏳ {r['name']} — در انتظار مشاهده")
+
+    lines.append(f"\n📄 صفحه {page + 1} از {total_pages} (مجموعاً {total} مخاطب)")
+    text = "\n".join(lines)
+
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton(text="⬅️ قبلی", callback_data=f"cbroadcast:recipients:{bc_id}:{page - 1}"))
+    if page + 1 < total_pages:
+        nav_row.append(InlineKeyboardButton(text="بعدی ➡️", callback_data=f"cbroadcast:recipients:{bc_id}:{page + 1}"))
+
+    kb_rows = []
+    if nav_row:
+        kb_rows.append(nav_row)
+    kb_rows.append([InlineKeyboardButton(text="🔙 بازگشت به آمار پیام", callback_data=f"cbroadcast:stats:{bc_id}")])
+    kb = InlineKeyboardMarkup(inline_keyboard=kb_rows)
+
+    if callback.message:
+        try:
+            await callback.message.edit_text(text, reply_markup=kb)
+        except Exception:
+            await callback.message.answer(text, reply_markup=kb)
+    await safe_answer_callback(callback)
+
+
+@router.callback_query(F.data.startswith("cbroadcast_history:"))
+async def view_khatm_broadcast_history(callback: CallbackQuery) -> None:
+    raw_id = callback.data.split(":", 1)[1]
+    try:
+        khatm_uuid = uuid.UUID(raw_id)
+    except (ValueError, TypeError):
+        await safe_answer_callback(callback, "شناسه ختم نامعتبر است.", show_alert=True)
+        return
+
+    bot = callback.bot
+    platform: Platform = getattr(bot, "khatmsaz_platform", Platform.TELEGRAM)
+
+    async with session_scope() as session:
+        user = await identity_service.resolve_or_provision_user(
+            session, platform, callback.message.chat.id,
+        )
+        broadcasts = await broadcast_service.repository.list_recent_broadcasts_for_creator(
+            session, user.id, limit=5,
+        )
+
+    khatm_bcs = [b for b in broadcasts if b.khatm_id == khatm_uuid] if broadcasts else []
+    if not khatm_bcs:
+        await safe_answer_callback(callback, "هنوز پیام گروهی ارسالی برای این ختم ثبت نشده است.", show_alert=True)
+        return
+
+    rows = []
+    for b in khatm_bcs:
+        date_str = b.sent_at.strftime("%m/%d %H:%M") if b.sent_at else "ارسال‌شده"
+        rows.append([
+            InlineKeyboardButton(
+                text=f"📊 پیام {date_str} ({b.audience_count} مخاطب)",
+                callback_data=f"cbroadcast:stats:{b.id}",
+            )
+        ])
+    rows.append([InlineKeyboardButton(text="🔙 بازگشت به مدیریت ختم", callback_data=f"my_khatms:manage:{khatm_uuid}")])
+    kb = InlineKeyboardMarkup(inline_keyboard=rows)
+
+    text = "📋 سوابق پیام‌های گروهی ارسال‌شده برای این ختم:\nلطفاً پیام مورد نظر را جهت مشاهده آمار سین انتخاب نمایید:"
+    if callback.message:
+        await callback.message.edit_text(text, reply_markup=kb)
     await safe_answer_callback(callback)

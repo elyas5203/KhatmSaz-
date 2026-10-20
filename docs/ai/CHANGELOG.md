@@ -1,3 +1,21 @@
+## 2026-10-20 — Antigravity — Creator Broadcast Engagement, Delivery Receipts & Live Seen/Activity Tracking System (MASTER-60)
+- **Per-Recipient Delivery Receipts & Pristine Audience Messaging (`src/khatmsaz/modules/broadcast/models.py` & `src/khatmsaz/modules/broadcast/delivery.py`):**
+  - Added `khatm_broadcast_receipts` table logging `broadcast_id`, `recipient_user_id`, `channel`, `status`, `delivered_at`, `seen_at`, and `seen_source`.
+  - Added migration `bcreceipt2026102001_broadcast_engagement_and_receipts.py`.
+  - Enforced owner requirement: messages sent to recipients remain completely clean without any extra confirmation buttons or text.
+- **Natural Seen/Activity Tracking via Bot Interactions (`src/khatmsaz/bot/middlewares.py` & `src/khatmsaz/modules/broadcast/service.py`):**
+  - Hooked `broadcast_service.record_user_seen(session, user.id)` into `ModerationMiddleware`, automatically marking unread receipts as `SEEN` whenever an audience member sends any message, callback, or portion confirmation after delivery.
+- **Creator Delivery Notification with Live Stats Entry (`src/khatmsaz/modules/broadcast/service.py` & `src/khatmsaz/bot/handlers/creator_broadcast.py`):**
+  - Sends immediate notification to creator on broadcast send with inline button `[📊 مشاهده آمار بازخورد و سین]` (`cbroadcast:stats:{broadcast_id}`).
+  - Added live report card handler rendering delivered counts, seen counts (سین خورده), unseen counts, seen percentage, audio/media notes, and timestamp.
+  - Implemented in-place live refresh via `[🔄 بروزرسانی آمار]` (`cbroadcast:refresh:{broadcast_id}`) with toast alert `آمار با موفقیت بروز شد 🔄`.
+  - Added paginated recipient list view via `[👥 اسامی مخاطبان]` (`cbroadcast:recipients:{broadcast_id}:{page}`) displaying seen status (✅ دیده شد vs ⏳ در انتظار مشاهده).
+  - Added `[📊 آمار پیام‌های ارسالی]` in khatm management keyboard (`cbroadcast_history:{khatm_id}`).
+- **Web Admin Past Broadcasts Engagement Metrics (`src/khatmsaz/web/app.py` & `src/khatmsaz/web/templates/broadcasts.html`):**
+  - Enriched `/broadcasts?tab=history` table with live seen badge `👁 {{ row.seen_count }} ({{ row.seen_pct }}٪)`.
+- **Master Documentation & Decisions:** Authored `docs/ai/masters/MASTER_60_CREATOR_BROADCAST_ENGAGEMENT_AND_READ_ANALYTICS.md` and registered `DEC-PY-0152`.
+- **Validation:** 10/10 tests passed in `tests/test_master_60_broadcast_analytics.py`; full regression test suite passed (150/150 green across Masters 42-60).
+
 ## 2026-10-20 — Antigravity — Unified Collective Quran Progression Relay, Round Wrap-Around & Unread Portions Reminder Engine (MASTER-59)
 - **Collective Progression Relay in Quran Commitment Mode (`src/khatmsaz/modules/allocation/repository.py` & `src/khatmsaz/modules/share_occurrence/delivery.py`):**
   - Unified portion allocation for commitment Quran khatms into a continuous collective progression relay across all participants.

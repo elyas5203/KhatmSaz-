@@ -41,6 +41,11 @@ class ModerationMiddleware(BaseMiddleware):
                 return None
             if user is not None:
                 user.last_activity_at = datetime.now(timezone.utc)
+                try:
+                    from khatmsaz.modules.broadcast import service as broadcast_service
+                    await broadcast_service.record_user_seen(session, user.id, source="BOT_ACTIVITY")
+                except Exception:
+                    pass
                 await session.flush()
 
         return await handler(event, data)

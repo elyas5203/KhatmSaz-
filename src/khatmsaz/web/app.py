@@ -3927,6 +3927,14 @@ async def broadcasts_page(
         for item in history_items:
             khatm = await session.get(Khatm, item.khatm_id) if item.khatm_id else None
             creator = await identity_service.find_by_id(session, item.creator_user_id) if item.creator_user_id else None
+            seen_count = 0
+            seen_pct = 0.0
+            try:
+                stats = await broadcast_service.repository.get_broadcast_stats(session, item.id)
+                seen_count = stats.get("seen", 0)
+                seen_pct = stats.get("seen_percentage", 0.0)
+            except Exception:
+                pass
             history_rows.append(
                 {
                     "item": item,
@@ -3935,6 +3943,8 @@ async def broadcasts_page(
                     "time": _tehran_time(item.created_at),
                     "reviewed_time": _tehran_time(item.reviewed_at) if item.reviewed_at else None,
                     "sent_time": _tehran_time(item.sent_at) if item.sent_at else None,
+                    "seen_count": seen_count,
+                    "seen_pct": seen_pct,
                 }
             )
 
@@ -3988,6 +3998,7 @@ async def _dispatch_broadcast_delivery(
     body_with_sender: str,
     media_type: str | None,
     media_file_id: str | None,
+    broadcast_item=None,
 ):
     if channel == "SMS":
         provider = build_sms_provider()
@@ -4017,6 +4028,31 @@ async def _dispatch_broadcast_delivery(
                     )
                 except Exception:
                     pass
+
+
+    if broadcast_item is not None and getattr(broadcast_item, "id", None) is not None:
+        receipts_to_create = []
+        for dest in destinations:
+            uid = getattr(dest, "user_id", None)
+            if uid:
+                receipts_to_create.append({
+                    "broadcast_id": broadcast_item.id,
+                    "recipient_user_id": uid,
+                    "channel": channel,
+                    "status": "DELIVERED",
+                })
+        if receipts_to_create:
+            try:
+                from khatmsaz.modules.broadcast import repository as broadcast_repo
+                async with session_scope() as sess:
+                    await broadcast_repo.create_receipts(sess, receipts_to_create)
+            except Exception:
+                pass
+        try:
+            async with session_scope() as sess:
+                await broadcast_service.notify_creator_broadcast_sent(sess, broadcast_item, len(destinations))
+        except Exception:
+            pass
 
 
 @app.get("/broadcasts/{broadcast_id}/media")
@@ -4127,12 +4163,12 @@ async def decide_broadcast(
                 background_tasks.add_task(
                     _dispatch_broadcast_delivery,
                     item.channel, destinations, body_with_sender,
-                    item.media_type, media_file_id,
+                    item.media_type, media_file_id, item,
                 )
             else:
                 await _dispatch_broadcast_delivery(
                     item.channel, destinations, body_with_sender,
-                    item.media_type, media_file_id,
+                    item.media_type, media_file_id, item,
                 )
             await broadcast_service.mark_sent(session, item)
     return RedirectResponse(

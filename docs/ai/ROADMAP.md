@@ -1,3 +1,15 @@
+## 2026-10-20 — Creator Broadcast Engagement, Delivery Receipts & Live Seen/Activity Tracking System (MASTER-60) [Antigravity]
+- [x] Author `docs/ai/masters/MASTER_60_CREATOR_BROADCAST_ENGAGEMENT_AND_READ_ANALYTICS.md` and document decision `DEC-PY-0152`.
+- [x] Add `khatm_broadcast_receipts` table with Alembic migration `bcreceipt2026102001_broadcast_engagement_and_receipts.py`.
+- [x] Maintain clean recipient experience: send broadcast to members without any intrusive buttons or confirmation text.
+- [x] Implement natural seen/read tracking in `ModerationMiddleware` invoking `record_user_seen` on all incoming member interactions.
+- [x] Implement instant creator delivery notification with `[📊 مشاهده آمار بازخورد و سین]` button.
+- [x] Implement live stats reporting card and in-place refresh `[🔄 بروزرسانی آمار]` in `src/khatmsaz/bot/handlers/creator_broadcast.py`.
+- [x] Implement paginated recipient seen/unseen list view `[👥 اسامی مخاطبان]`.
+- [x] Add `[📊 آمار پیام‌های ارسالی]` in khatm management keyboard (`cbroadcast_history:{khatm_id}`).
+- [x] Enrich Web Admin `/broadcasts?tab=history` table with live seen badge `👁 {{ row.seen_count }} ({{ row.seen_pct }}٪)`.
+- [x] Add unit and integration test suite `tests/test_master_60_broadcast_analytics.py` (10/10 PASS).
+
 ## 2026-10-20 — Unified Collective Quran Progression Relay, Round Wrap-Around & Unread Portions Reminder Engine (MASTER-59) [Antigravity]
 - [x] Author docs/ai/masters/MASTER_59_UNIFIED_COLLECTIVE_RELAY_AND_ROUND_ROTATION.md and document decision DEC-PY-0151.
 - [x] Implement collective progression relay across all participants in Quran commitment mode.

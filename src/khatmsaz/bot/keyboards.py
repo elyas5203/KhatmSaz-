@@ -1040,7 +1040,10 @@ def creator_khatm_keyboard(
             InlineKeyboardButton(text=t("cs.qr", lang), callback_data=f"creator_report:qr:{khatm_id}"),
             InlineKeyboardButton(text=t("cs.stats", lang), callback_data=f"creator_report:stats:{khatm_id}"),
         ],
-        [InlineKeyboardButton(text="📢 ارسال پیام گروهی", callback_data=f"cbroadcast_khatm:{khatm_id}")],
+        [
+            InlineKeyboardButton(text="📢 ارسال پیام گروهی", callback_data=f"cbroadcast_khatm:{khatm_id}"),
+            InlineKeyboardButton(text="📊 آمار پیام‌های ارسالی", callback_data=f"cbroadcast_history:{khatm_id}"),
+        ],
         [InlineKeyboardButton(text=t("cs.settings", lang), callback_data=f"cs:menu:{khatm_id}")],
     ]
     if transfer_status == "PENDING":

@@ -29,6 +29,7 @@ CHANNELS = ("TELEGRAM", "BALE", "SMS")
 class DigitalDestination:
     subject: str
     bot_instance_id: object | None
+    user_id: object | None = None
 
 
 async def audience_user_ids(
@@ -182,16 +183,16 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
     )
     channel = getattr(item, "channel", "TELEGRAM")
     if channel == "SMS":
-        result = await session.execute(select(UserSettings.contact_phone).where(
+        result = await session.execute(select(UserSettings.contact_phone, UserSettings.user_id).where(
             UserSettings.user_id.in_(user_ids), UserSettings.contact_phone.isnot(None)
         ))
-        return list(dict.fromkeys(phone for phone in result.scalars() if phone))
+        return [DigitalDestination(subject=phone, bot_instance_id=None, user_id=uid) for phone, uid in dict.fromkeys(result.all()) if phone]
     try:
         platform = Platform(channel)
     except Exception:
         platform = Platform.TELEGRAM
     stmt = (
-        select(PlatformIdentity.subject, Participation.joined_via_bot_instance_id)
+        select(PlatformIdentity.subject, Participation.joined_via_bot_instance_id, PlatformIdentity.user_id)
         .join(Participation, Participation.user_id == PlatformIdentity.user_id)
         .join(Khatm, Khatm.id == Participation.khatm_id)
         .where(
@@ -205,8 +206,8 @@ async def audience_destinations(session: AsyncSession, item: KhatmBroadcast):
         stmt = stmt.where(Participation.khatm_id == item.khatm_id)
     result = await session.execute(stmt)
     return [
-        DigitalDestination(subject=subject, bot_instance_id=bot_instance_id)
-        for subject, bot_instance_id in dict.fromkeys(result.all())
+        DigitalDestination(subject=subject, bot_instance_id=bot_instance_id, user_id=user_id)
+        for subject, bot_instance_id, user_id in dict.fromkeys(result.all())
     ]
 
 
@@ -274,3 +275,121 @@ async def reject(session: AsyncSession, broadcast_id, note: str | None = None) -
 
 async def mark_sent(session: AsyncSession, item: KhatmBroadcast) -> None:
     await repository.mark_sent(session, item)
+
+
+async def record_user_seen(session: AsyncSession, user_id, source: str = "BOT_ACTIVITY") -> int:
+    """Mark all unread broadcast receipts for a user as seen upon any bot interaction."""
+    return await repository.mark_user_receipts_seen(session, user_id, source=source)
+
+
+async def get_analytics(session: AsyncSession, broadcast_id) -> dict | None:
+    """Fetch complete engagement and seen analytics for a broadcast."""
+    broadcast = await repository.get_by_id(session, broadcast_id)
+    if broadcast is None:
+        return None
+    stats = await repository.get_broadcast_stats(session, broadcast_id)
+    khatm_title = "همهٔ ختم‌های شما"
+    if broadcast.khatm_id:
+        khatm = await khatm_service.get_khatm(session, broadcast.khatm_id)
+        if khatm:
+            khatm_title = khatm.title
+
+    total = stats["total"] if stats["total"] > 0 else broadcast.audience_count
+    seen = stats["seen"]
+    unseen = max(0, total - seen)
+    seen_pct = stats["seen_percentage"] if stats["total"] > 0 else (round(seen / total * 100, 1) if total > 0 else 0.0)
+
+    return {
+        "broadcast": broadcast,
+        "broadcast_id": broadcast.id,
+        "khatm_id": broadcast.khatm_id,
+        "khatm_title": khatm_title,
+        "channel": broadcast.channel,
+        "media_type": broadcast.media_type,
+        "body": broadcast.body,
+        "sent_at": broadcast.sent_at or broadcast.created_at,
+        "total": total,
+        "delivered": total,
+        "seen": seen,
+        "unseen": unseen,
+        "seen_percentage": seen_pct,
+    }
+
+
+async def list_recipients_page(
+    session: AsyncSession, broadcast_id, page: int = 0, page_size: int = 10,
+) -> tuple[list, int]:
+    """Fetch paginated recipient list with seen status."""
+    stats = await repository.get_broadcast_stats(session, broadcast_id)
+    total_count = stats["total"]
+    rows = await repository.list_broadcast_receipts(
+        session, broadcast_id, limit=page_size, offset=page * page_size,
+    )
+    results = []
+    for receipt, user in rows:
+        results.append({
+            "name": getattr(user, "display_name", None) or "کاربر ختم",
+            "seen": bool(receipt.seen_at),
+            "seen_at": receipt.seen_at,
+            "delivered_at": receipt.delivered_at,
+            "source": receipt.seen_source,
+        })
+    return results, total_count
+
+
+async def notify_creator_broadcast_sent(
+    session: AsyncSession, item: KhatmBroadcast, dest_count: int,
+) -> bool:
+    """Send approval confirmation and live stats entry button to creator."""
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+    from khatmsaz.bot.notify_adapter import send_with_keyboard
+    from khatmsaz.modules.identity import service as identity_service
+
+    creator_user_id = item.creator_user_id
+    if not creator_user_id:
+        return False
+
+    khatm_title = "همهٔ ختم‌ها"
+    if item.khatm_id:
+        khatm = await khatm_service.get_khatm(session, item.khatm_id)
+        if khatm:
+            khatm_title = khatm.title
+
+    text = (
+        "📢 پیام گروهی شما با موفقیت برای اعضا ارسال شد!\n\n"
+        f"🕋 ختم: «{khatm_title}»\n"
+        f"👥 تعداد دریافت‌کنندگان: {dest_count:,} نفر\n\n"
+        "جهت مشاهده تعداد اعضایی که پیام را باز کرده و مشاهده کرده‌اند، دکمه زیر را لمس فرمایید:"
+    )
+
+    markup = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📊 مشاهده آمار بازخورد و سین",
+                    callback_data=f"cbroadcast:stats:{item.id}",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🕋 مدیریت ختم",
+                    callback_data=f"my_khatms:manage:{item.khatm_id}" if item.khatm_id else "creator:menu",
+                )
+            ],
+        ]
+    )
+
+    sent = False
+    for identity in await identity_service.list_identities_for_user(session, creator_user_id):
+        try:
+            ok = await send_with_keyboard(
+                identity.platform.value,
+                identity.subject,
+                text,
+                reply_markup=markup,
+            )
+            if ok:
+                sent = True
+        except Exception:
+            pass
+    return sent
